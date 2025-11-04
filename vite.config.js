@@ -20,11 +20,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            // ↓ Breeze が設定したエイリアス
-            '@': '/resources/js', 
-            // ↓ shadcn-vue のために追加 (tsconfig.json と合わせる)
-            '@/Components': path.resolve(__dirname, 'resources/js/components'),
-            '@/lib': path.resolve(__dirname, 'resources/js/lib'),
+            '@': path.resolve(__dirname, 'resources/js'),
         },
     },
 });
