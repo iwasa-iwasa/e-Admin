@@ -33,7 +33,10 @@ const members: Member[] = [
 const page = usePage()
 
 const isActive = (path: string) => {
-    return page.url === path
+    if (path === '/dashboard') {
+        return page.url === '/dashboard'
+    }
+    return page.url.startsWith(path)
 }
 
 const handleMemberClick = (memberId: string) => {
@@ -58,19 +61,23 @@ const handleMemberClick = (memberId: string) => {
     <!-- ナビゲーション -->
     <nav class="flex-1 p-4 space-y-2">
       <Button
-        :variant="isActive('/') ? 'default' : 'ghost'"
-        class="w-full justify-start gap-3"
+        :class="[
+        'w-full justify-start gap-3',
+        isActive('/dashboard') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
+      ]"
         as-child
       >
-        <Link href="/">
+        <Link href="/dashboard">
           <Home class="h-5 w-5" />
           ホーム
         </Link>
       </Button>
 
       <Button
-        :variant="isActive('/calendar') ? 'default' : 'ghost'"
-        class="w-full justify-start gap-3"
+        :class="[
+        'w-full justify-start gap-3',
+        isActive('/calendar') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
+      ]"
         as-child
       >
         <Link href="/calendar">
@@ -80,8 +87,10 @@ const handleMemberClick = (memberId: string) => {
       </Button>
 
       <Button
-        :variant="isActive('/notes') ? 'default' : 'ghost'"
-        class="w-full justify-start gap-3"
+        :class="[
+        'w-full justify-start gap-3',
+        isActive('/notes') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
+      ]"
         as-child
       >
         <Link href="/notes">
@@ -91,8 +100,10 @@ const handleMemberClick = (memberId: string) => {
       </Button>
 
       <Button
-        :variant="isActive('/reminders') ? 'default' : 'ghost'"
-        class="w-full justify-start gap-3"
+        :class="[
+        'w-full justify-start gap-3',
+        isActive('/reminders') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
+      ]"
         as-child
       >
         <Link href="/reminders">
@@ -102,8 +113,10 @@ const handleMemberClick = (memberId: string) => {
       </Button>
 
       <Button
-        :variant="isActive('/surveys') ? 'default' : 'ghost'"
-        class="w-full justify-start gap-3 relative"
+        :class="[
+        'w-full justify-start gap-3 relative',
+        isActive('/surveys') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
+      ]"
         as-child
       >
         <Link href="/surveys">
@@ -116,8 +129,10 @@ const handleMemberClick = (memberId: string) => {
       </Button>
 
       <Button
-        :variant="isActive('/trash') ? 'default' : 'ghost'"
-        class="w-full justify-start gap-3"
+        :class="[
+        'w-full justify-start gap-3',
+        isActive('/trash') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
+      ]"
         as-child
       >
         <Link href="/trash">
@@ -151,8 +166,10 @@ const handleMemberClick = (memberId: string) => {
       </div>
 
       <Button
-        :variant="isActive('/monitor') ? 'default' : 'ghost'"
-        class="w-full justify-start gap-3"
+        :class="[
+        'w-full justify-start gap-3',
+        isActive('/monitor') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
+      ]"
         as-child
       >
         <Link href="/monitor">

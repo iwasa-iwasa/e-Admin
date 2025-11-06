@@ -1,0 +1,172 @@
+このReactで書かれたページたちをVue.jsに変換したいのでプロンプトを生成してほしい
+変換先の技術は「Laravel+Vue.js+Inertia.js+shadcn-vue」
+フォルダの中身を解析して必要なページと要素を見つけてGithubCopilotに最適なプロンプトをマークダウン形式で出力して
+また、ページの要素にできるだけ「shadcn-vue」のコンポーネントを使うように指示して
+
+「指示書に記載されているすべてのファイルの変換が完了しました。
+  元のプロジェクトの以下のファイルは指示書に含まれていませんでした。これらも変換しますか？
+   - CreateSurvey.tsx
+   - DisplayMonitor.tsx
+   - MemberCalendarPage.tsx
+   - SurveyResultsPage.tsx
+   - components/figma/ImageWithFallback.tsx」
+
+変換が完了したがこのような返答が来たので、すべて変換するように指示しLaravelのルーティングも設定するように指示してほしい
+
+ページの変換が完了したがアクセスできないページがあるので修正してほしい
+ - "アンケート管理"の"新しい"
+
+ログインページがないのでログインしていない状態でダッシュボードにアクセスしたログインする画面に飛ぶように指示してほしい（ログインしていないとページが表示できないため）
+また新規作成もできるようにしてほしい（breezeはインストール済み）
+データベースなどはもとからあるものを使用するように指示して
+
+
+現在のこのprojectはデータベースを使用せず見た目のみのデータとページになっているので、すべてのvueファイルを検査して適切にデータベースを使うようにしてほしい。
+
+マイグレーションは基本的にすでにあるものを使用する
+
+gemini cliに以下の指示をしたいので、以下のプロンプトを最適化してマークダウン形式のファイルで出力してほしい
+現在、Laravel+Vue.js+Inertia.jsでSPAのウェブアプリを作成しようとしているのだけど、まだデータがデータベースを使用せずvue.jsにダミーデータを直接書いている状態である。
+すべてのマイグレーションファイルとvueファイルを読み込んで、seederを作成し、すべてのページで適切にデータベースを使用するようにしてほしい
+また、ルーティングもデータベースに合わせて変更してほしい
+
+gemini cliに以下の指示をしたいので、以下のプロンプトを最適化してマークダウン形式のファイルで出力してほしい
+マイグレーションファイルとseederの作成と実行には成功したが、いくつかの問題が発生しているため修正してほしい
+ - ユーザー登録が正常にできないのでユーザー登録＆ログイン画面はダッシュボード内に描画せず、ログインしていない状態でダッシュボードにアクセスした場合は個別のログインページにリダイレクトするように
+  - 認証機能などはbreezeの標準のものを使用する
+ - ルートにアクセスした場合、次のようにリダイレクトするようにする
+  - ログインしていない場合、ログインか新規登録を選べるページ(新規作成)にリダイレクトするように
+  - ログインしている場合、ダッシュボードにリダイレクトするように
+
+上のpromptを実行した結果いくつかの問題が発生したので、以下の修正依頼プロンプトを最適化してマークダウン形式のファイルで出力してほしい
+問題を修正してほしい
+ - 「共有カレンダー」を押すと、error.mdの一つ目のエラーが出るようになった
+ - 「アンケート管理」を押すと、error.mdの二つ目のエラーが出るようになった
+ - ダッシュボードのプロフィール設定がまだダミーデータのままなのでデータベースから情報を取得して表示するように
+
+上のpromptを実行した結果いくつかの問題が発生したので、以下の修正依頼プロンプトを最適化してマークダウン形式のファイルで出力してほしい
+以下の問題が生じているので関連するvueファイル、コントローラ、モデルを読み込んで問題を修正してほしい
+ - 「共有カレンダー」を押すと、error.mdの一つ目のエラーが出るようになった
+ - 「アンケート管理」を押すと、error.mdの二つ目のエラーが出るようになった
+ - ダッシュボードにカレンダーが表示されなくなった
+ - ダッシュボードのサイドバーにある「共有メモ」と「個人リマインダー」をクリックしても内容が表示されなくなった
+
+PS C:\Users\ohara2025\Documents\e-Admin-project\e-Admin> php artisan migrate:fresh --seed
+
+  Dropping all tables ................................................................................................................ 124.70ms DONE
+
+   INFO  Preparing database.
+
+  Creating migration table ............................................................................................................. 8.35ms DONE
+
+   INFO  Running migrations.  
+
+  0001_01_01_000000_create_users_table ................................................................................................ 49.44ms DONE
+  0001_01_01_000001_add_custom_fields_to_users_table .................................................................................. 10.49ms DONE
+  0001_01_01_000001_create_cache_table ................................................................................................. 9.65ms DONE
+  0001_01_01_000002_create_custom_app_tables ......................................................................................... 764.10ms DONE
+  0001_01_01_000002_create_jobs_table ................................................................................................. 44.23ms DONE
+  2025_11_05_122535_create_survey_responses_table ...................................................................................... 2.06ms FAIL
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'survey_responses' already exists (Connection: mysql, SQL: create table `survey_responses` (`id` bigint unsigned not null auto_increment primary key, `survey_id` bigint unsigned not null, `user_id` bigint unsigned not null, `survey_question_id` bigint unsigned not null, `answer` text not null, `created_at` timestamp null, `updated_at` timestamp null) default character set utf8mb4 collate 'utf8mb4_unicode_ci')
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:824
+    820▕                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    821▕                 );
+    822▕             }
+    823▕
+  ➜ 824▕             throw new QueryException(
+    825▕                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    826▕             );
+    827▕         }
+    828▕     }
+
+  1   vendor\laravel\framework\src\Illuminate\Database\Connection.php:570
+      PDOException::("SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'survey_responses' already exists")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\Connection.php:570
+      PDOStatement::execute()
+
+このコマンドを実行したらこのエラーが出るようになったので修正依頼するプロンプトをマークダウン形式のファイルで出力して
+
+
+Uncaught (in promise) ReferenceError: reminders is not defined
+    at setup (PersonalReminders.vue:44:7)
+    at callWithErrorHandling (runtime-core.esm-bundler.js:199:19)
+    at setupStatefulComponent (runtime-core.esm-bundler.js:7996:25)
+    at setupComponent (runtime-core.esm-bundler.js:7957:36)
+    at mountComponent (runtime-core.esm-bundler.js:5285:7)
+    at processComponent (runtime-core.esm-bundler.js:5251:9)
+    at patch (runtime-core.esm-bundler.js:4767:11)
+    at mountChildren (runtime-core.esm-bundler.js:5001:7)
+    at mountElement (runtime-core.esm-bundler.js:4924:7)
+    at processElement (runtime-core.esm-bundler.js:4889:7)
+
+ダッシュボードを見るとこのエラーが出て何も表示されない。
+また、「calendar、notes、reminders、surveys」のページも何も表示されなくなっているので各ページも適切なデータが表示されるように修正して
+
+app.ts:31  [Vue warn]: Missing required prop: "selectedMember" 
+  at <Dashboard errors= {} auth= {user: {…}} events= (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]  ... > 
+  at <AuthenticatedLayout errors= {} auth= {user: {…}} events= (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]  ... > 
+  at <Inertia initialPage= {component: 'Dashboard', props: {…}, url: '/dashboard', version: 'b26555071171594101fe74fc46928964', clearHistory: false, …} initialComponent= {layout: {…}, __name: 'Dashboard', props: {…}, emits: Array(1), setup: ƒ, …} resolveComponent=fn<resolveComponent>  ... > 
+  at <App>
+
+以下の問題を修正してほしい
+  - ダッシュボード
+    - カレンダー
+     - カレンダーが表示されない
+    - 共有メモ
+      - 内容は表示されているがのところに共有しているメンバーのところにJSONが表示されてしまっている
+    - 個人リマインダー
+      - 枠は表示されているが、内容が表示されていない
+
+gemini cliに以下の指示をしたいので、以下のプロンプトを最適化してマークダウン形式のファイルで出力してほしい。
+現在、Laravel+Vue.js+Inertia.jsでSPAのウェブアプリを作成しようとしているのだけど、まだデータがデータベースを使用せずvue.jsにダミーデータを直接書いている状態である。
+以下のタスクを実行してほしい
+  - ルートにアクセスした場合、次のようにリダイレクトするようにする
+    - ログインしていない場合、ログインか新規登録を選べるページ(新規作成)にリダイレクトするように
+    - ログインしている場合、ダッシュボードにリダイレクトするように
+  - すべてのマイグレーションファイルとvueファイルを読み込む
+    - 各データベースごとに適切なseederを作成する
+      - 各ページのハードコーディングされたダミーデータを参考にする
+      - テスト用のアカウントを一つ作成するように（ログインできるかどうかの確認アカウント）
+    - ダミーデータが表示されている場所を、データベースから情報を読み込みページに表示するように
+  - プロフィール設定に表示される
+  - レイアウト
+    - 複数のレイアウトが黒枠の透明の背景になっているのですべて修正する
+    - 現在アクティブなリンクを黒く表示するように
+    - @ を参考に修正する
+
+次の作業をまとめるために、以下のプロンプトを最適化してマークダウン形式のファイルで出力してほしい。
+  - ログイン画面はダッシュボードのなかに表示せず、個別のページとして表示するように
+  - リマインダー関連でエラーが起きている
+```
+BadMethodCallException
+vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+Call to undefined method App\Models\User::reminders()
+```
+  - そのためリマインダーの画面とホーム画面が上記のエラーが出て開くことができない
+  - まだ、サイドバーが現在開いてるページによって黒く表示されない
+  - メイン画面に表示されている枠線が黒く、背景色が透明なので修正してほしい
+  - 右上のプロフィールアイコン
+    - プロフィール設定がダミーデータのままなので現在ログインしているユーザーの情報を出すように
+    - ログアウトボタンが機能するようにする
+      - ログアウトする前にモーダルで確認するように
+
+次の作業をまとめるために、以下のプロンプトを最適化してマークダウン形式のファイルで出力してほしい。
+  - 右上のプロフィールアイコン  
+    - 以下のエラーが出て開くなくなったので修正してほしい
+    ```
+    index.js:1  Uncaught (in promise) Error: Ziggy error: route 'profile.edit' is not in the route list.
+    at new A (index.js:1:11910)
+    at D (index.js:1:17737)
+    at Proxy.o (index.js:1:17819)
+    at DashboardHeader.vue:399:28
+    at renderFnWithContext (runtime-core.esm-bundler.js:695:13)
+    at renderSlot (runtime-core.esm-bundler.js:3045:53)
+    at DropdownMenuItem.vue:24:5
+    ```
+  - アンケート管理
+   - 画面を開くことはできるが、

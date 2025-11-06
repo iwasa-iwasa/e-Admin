@@ -11,70 +11,20 @@ import NoteDetailDialog from './NoteDetailDialog.vue'
 type Priority = 'high' | 'medium' | 'low'
 type SortOrder = 'priority' | 'deadline'
 
-interface Note {
-  id: number
-  title: string
-  content: string
-  author: string
-  date: string
-  deadline?: string
-  pinned: boolean
-  color: string
-  priority: Priority
-}
+const props = defineProps<{
+  notes: App.Models.SharedNote[]
+}>()
 
 const sortOrder = ref<SortOrder>('priority')
 const isCreateDialogOpen = ref(false)
-const selectedNote = ref<Note | null>(null)
-const notesData = ref<Note[]>([
-  {
-    id: 1,
-    title: '備品発注リスト',
-    content: '・コピー用紙 A4 10箱\n・ボールペン 黒 50本\n・クリアファイル 100枚',
-    author: '佐藤',
-    date: '2025-10-13',
-    deadline: '2025-10-20',
-    pinned: true,
-    color: 'bg-yellow-100 border-yellow-300',
-    priority: 'high',
-  },
-  {
-    id: 2,
-    title: '来客対応メモ',
-    content: '10/15 14:00 A社 山本様\n会議室Bを予約済み',
-    author: '田中',
-    date: '2025-10-12',
-    deadline: '2025-10-15',
-    pinned: true,
-    color: 'bg-blue-100 border-blue-300',
-    priority: 'high',
-  },
-  {
-    id: 3,
-    title: '月次報告の進捗',
-    content: '経理：完了\n人事：作業中\n総務：未着手',
-    author: '鈴木',
-    date: '2025-10-11',
-    deadline: '2025-10-18',
-    pinned: false,
-    color: 'bg-green-100 border-green-300',
-    priority: 'medium',
-  },
-  {
-    id: 4,
-    title: '社内イベント企画',
-    content: '忘年会の候補日：12/20, 12/22\n参加人数：約50名',
-    author: '山田',
-    date: '2025-10-10',
-    deadline: '2025-11-30',
-    pinned: false,
-    color: 'bg-pink-100 border-pink-300',
-    priority: 'low',
-  },
-])
+const selectedNote = ref<App.Models.SharedNote | null>(null)
 
-const handleUpdateNote = (updatedNote: Note) => {
-  notesData.value = notesData.value.map(note => note.id === updatedNote.id ? updatedNote : note)
+const handleUpdateNote = (updatedNote: App.Models.SharedNote) => {
+  // This should ideally emit an event to the parent to refresh data
+  const index = props.notes.findIndex(note => note.note_id === updatedNote.note_id)
+  if (index !== -1) {
+    props.notes[index] = updatedNote
+  }
 }
 
 const getPriorityInfo = (priority: Priority) => {
@@ -96,20 +46,32 @@ const getPriorityValue = (priority: Priority) => {
   }
 }
 
+const getColorClass = (color: string) => {
+  const colorMap: { [key: string]: string } = {
+    yellow: 'bg-yellow-100 border-yellow-300',
+    blue: 'bg-blue-100 border-blue-300',
+    green: 'bg-green-100 border-green-300',
+    pink: 'bg-pink-100 border-pink-300',
+    purple: 'bg-purple-100 border-purple-300',
+  };
+  return colorMap[color] || 'bg-gray-100 border-gray-300';
+}
+
 const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'priority' ? 'deadline' : 'priority'
 }
 
 const sortedNotes = computed(() => {
-  return [...notesData.value].sort((a, b) => {
+  if (!props.notes) return []
+  return [...props.notes].sort((a, b) => {
     if (sortOrder.value === 'priority') {
-      const priorityDiff = getPriorityValue(b.priority) - getPriorityValue(a.priority)
+      const priorityDiff = getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
       if (priorityDiff !== 0) return priorityDiff
       return (a.deadline || '9999-12-31').localeCompare(b.deadline || '9999-12-31')
     } else {
       const deadlineDiff = (a.deadline || '9999-12-31').localeCompare(b.deadline || '9999-12-31')
       if (deadlineDiff !== 0) return deadlineDiff
-      return getPriorityValue(b.priority) - getPriorityValue(a.priority)
+      return getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
     }
   })
 })
@@ -160,16 +122,16 @@ const sortedNotes = computed(() => {
         <div class="space-y-3">
           <div
             v-for="note in sortedNotes"
-            :key="note.id"
-            :class="[note.color, 'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow']"
+            :key="note.note_id"
+            :class="[getColorClass(note.color), 'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow']"
             @click="selectedNote = note"
           >
             <div class="flex items-start justify-between mb-2">
               <h4 class="flex-1">
                 {{ note.title }}
               </h4>
-              <Badge :class="[getPriorityInfo(note.priority).className, 'text-xs px-2 py-0.5']">
-                {{ getPriorityInfo(note.priority).label }}
+              <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5']">
+                {{ getPriorityInfo(note.priority as Priority).label }}
               </Badge>
             </div>
             <p class="text-sm text-gray-700 whitespace-pre-line mb-2">
@@ -179,13 +141,13 @@ const sortedNotes = computed(() => {
               <div class="flex items-center gap-2">
                 <div class="flex items-center gap-1">
                   <User class="h-3 w-3" />
-                  {{ note.author }}
+                  {{ note.author?.name || 'N/A' }}
                 </div>
                 <Badge v-if="note.deadline" variant="outline" class="text-xs h-5">
                   期限: {{ note.deadline }}
                 </Badge>
               </div>
-              <span>{{ note.date }}</span>
+              <span>{{ new Date(note.created_at).toLocaleDateString() }}</span>
             </div>
           </div>
         </div>

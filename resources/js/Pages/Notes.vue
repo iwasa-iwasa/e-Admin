@@ -18,103 +18,11 @@ defineOptions({
 
 type Priority = 'high' | 'medium' | 'low'
 
-interface Note {
-  id: string
-  title: string
-  content: string
-  author: string
-  createdAt: string
-  updatedAt: string
-  deadline?: string
-  pinned: boolean
-  tags: string[]
-  color: string
-  priority: Priority
-}
+const props = defineProps<{
+  notes: App.Models.SharedNote[]
+}>()
 
-const mockNotes: Note[] = [
-  {
-    id: '1',
-    title: '備品発注リスト',
-    content:
-      '・コピー用紙 A4 10箱\n・ボールペン 黒 50本\n・クリアファイル 100枚\n・付箋 大小各10個\n・ホッチキス針 5箱\n\n発注期限：10月20日まで\n業者：オフィスサプライ株式会社',
-    author: '佐藤',
-    createdAt: '2025-10-13 09:30',
-    updatedAt: '2025-10-14 14:20',
-    pinned: true,
-    tags: ['備品', '発注'],
-    color: 'yellow',
-    priority: 'high',
-  },
-  {
-    id: '2',
-    title: '来客対応メモ',
-    content:
-      '10/15 14:00 A社 山本様\n会議室Bを予約済み\n\n準備事項：\n・プロジェクター設定\n・お茶の準備\n・資料10部印刷',
-    author: '田中',
-    createdAt: '2025-10-12 16:45',
-    updatedAt: '2025-10-13 10:15',
-    pinned: true,
-    tags: ['来客', '会議'],
-    color: 'blue',
-    priority: 'high',
-  },
-  {
-    id: '3',
-    title: '月次報告の進捗',
-    content:
-      '経理：完了（10/10）\n人事：作業中（進捗80%）\n総務：未着手\n\n総務部の報告期限：10/18\n担当：鈴木',
-    author: '鈴木',
-    createdAt: '2025-10-11 11:20',
-    updatedAt: '2025-10-14 09:30',
-    pinned: false,
-    tags: ['報告', '進捗'],
-    color: 'green',
-    priority: 'medium',
-  },
-  {
-    id: '4',
-    title: '社内イベント企画',
-    content:
-      '忘年会の候補日：12/20（水）、12/22（金）\n参加人数：約50名\n予算：一人5,000円\n\n候補会場：\n1. 駅前ホテル宴会場\n2. 和食レストラン「花月」\n3. イタリアンレストラン「ベルソーレ」',
-    author: '山田',
-    createdAt: '2025-10-10 15:00',
-    updatedAt: '2025-10-11 13:45',
-    pinned: false,
-    tags: ['イベント', '社内'],
-    color: 'pink',
-    priority: 'low',
-  },
-  {
-    id: '5',
-    title: '勤怠管理システム更新',
-    content:
-      '新システム導入予定：11月1日\n\n変更点：\n・スマホアプリ対応\n・有給申請のワークフロー変更\n・打刻方法の簡素化\n\n説明会：10/25 13:00-14:00',
-    author: '佐藤',
-    createdAt: '2025-10-09 10:00',
-    updatedAt: '2025-10-09 10:00',
-    pinned: false,
-    tags: ['システム', '勤怠'],
-    color: 'purple',
-    priority: 'medium',
-  },
-  {
-    id: '6',
-    title: 'オフィス清掃スケジュール',
-    content:
-      '10月の清掃スケジュール：\n毎週月曜日：会議室\n毎週水曜日：給湯室\n毎週金曜日：エントランス\n\n清掃業者：クリーンサービス\n連絡先：03-1234-5678',
-    author: '田中',
-    createdAt: '2025-10-08 14:30',
-    updatedAt: '2025-10-08 14:30',
-    pinned: false,
-    tags: ['清掃', 'スケジュール'],
-    color: 'yellow',
-    priority: 'low',
-  },
-]
-
-const notes = ref<Note[]>(mockNotes)
-const selectedNote = ref<Note | null>(notes.value[0])
+const selectedNote = ref<App.Models.SharedNote | null>(props.notes.length > 0 ? props.notes[0] : null)
 const searchQuery = ref('')
 const filterAuthor = ref('all')
 const filterPinned = ref('all')
@@ -141,15 +49,15 @@ watch(selectedNote, (newNote) => {
 })
 
 const filteredNotes = computed(() => {
-  return notes.value.filter((note) => {
+  return props.notes.filter((note) => {
     const matchesSearch =
       note.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      note.author.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      note.createdAt.includes(searchQuery.value) ||
-      note.updatedAt.includes(searchQuery.value)
+      (note.content && note.content.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
+      (note.author && note.author.name.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
+      note.created_at.includes(searchQuery.value) ||
+      note.updated_at.includes(searchQuery.value)
 
-    const matchesAuthor = filterAuthor.value === 'all' || note.author === filterAuthor.value
+    const matchesAuthor = filterAuthor.value === 'all' || (note.author && note.author.name === filterAuthor.value)
 
     const matchesPinned =
       filterPinned.value === 'all' ||
@@ -160,27 +68,14 @@ const filteredNotes = computed(() => {
   })
 })
 
-const authors = computed(() => Array.from(new Set(notes.value.map((note) => note.author))))
+const authors = computed(() => Array.from(new Set(props.notes.map((note) => note.author?.name).filter(Boolean))))
 
-const handleSelectNote = (note: Note) => {
+const handleSelectNote = (note: App.Models.SharedNote) => {
   selectedNote.value = note
 }
 
 const handleCreateNote = () => {
-  const newNote: Note = {
-    id: String(Date.now()),
-    title: '新しいメモ',
-    content: '',
-    author: '田中', // Replace with actual logged in user
-    createdAt: new Date().toLocaleString('ja-JP'),
-    updatedAt: new Date().toLocaleString('ja-JP'),
-    pinned: false,
-    tags: [],
-    color: 'yellow',
-    priority: 'medium',
-  }
-  notes.value.unshift(newNote)
-  handleSelectNote(newNote)
+  isCreateDialogOpen.value = true
 }
 
 const getColorClass = (color: string) => {
@@ -266,9 +161,9 @@ const getColorClass = (color: string) => {
           </div>
           <Card
             v-for="note in filteredNotes"
-            :key="note.id"
+            :key="note.note_id"
             @click="handleSelectNote(note)"
-            :class="['cursor-pointer transition-all border-l-4', selectedNote?.id === note.id ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md', getColorClass(note.color)]"
+            :class="['cursor-pointer transition-all border-l-4', selectedNote?.note_id === note.note_id ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md', getColorClass(note.color)]"
           >
             <div class="p-4">
               <div class="flex items-start justify-between mb-2">
@@ -280,17 +175,17 @@ const getColorClass = (color: string) => {
               <p class="text-sm text-gray-600 mb-3 line-clamp-2 whitespace-pre-line">{{ note.content }}</p>
               <div v-if="note.tags.length > 0" class="flex flex-wrap gap-1 mb-3">
                 <Badge v-for="(tag, index) in note.tags" :key="index" variant="secondary" class="text-xs">
-                  {{ tag }}
+                  {{ tag.tag_name }}
                 </Badge>
               </div>
               <div class="flex items-center justify-between text-xs text-gray-500">
                 <div class="flex items-center gap-1">
                   <User class="h-3 w-3" />
-                  <span>{{ note.author }}</span>
+                  <span>{{ note.author?.name }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
-                  <span>{{ note.updatedAt }}</span>
+                  <span>{{ new Date(note.updated_at).toLocaleString('ja-JP') }}</span>
                 </div>
               </div>
             </div>
@@ -307,25 +202,25 @@ const getColorClass = (color: string) => {
               <Input
                 v-model="editedTitle"
                 placeholder="メモのタイトル"
-                class="mb-3 border-none shadow-none p-0 focus-visible:ring-0"
+                class="mb-3 border-none shadow-none p-0 focus-visible:ring-0 text-2xl font-bold"
               />
               <div class="flex items-center gap-4 text-sm text-gray-500">
                 <div class="flex items-center gap-1">
                   <User class="h-4 w-4" />
-                  <span>{{ selectedNote.author }}</span>
+                  <span>{{ selectedNote.author?.name }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Calendar class="h-4 w-4" />
-                  <span>作成: {{ selectedNote.createdAt }}</span>
+                  <span>作成: {{ new Date(selectedNote.created_at).toLocaleString('ja-JP') }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-4 w-4" />
-                  <span>更新: {{ selectedNote.updatedAt }}</span>
+                  <span>更新: {{ new Date(selectedNote.updated_at).toLocaleString('ja-JP') }}</span>
                 </div>
               </div>
             </div>
             <div class="flex items-center gap-2 ml-4">
-              <Button variant="outline" size="sm" class="gap-2">
+              <Button variant="outline" size="sm" class="gap-2" disabled>
                 <Pin class="h-4 w-4" />
                 {{ selectedNote.pinned ? 'ピン解除' : 'ピン留め' }}
               </Button>
@@ -333,7 +228,7 @@ const getColorClass = (color: string) => {
           </div>
           <div v-if="selectedNote.tags.length > 0" class="flex flex-wrap gap-2">
             <Badge v-for="(tag, index) in selectedNote.tags" :key="index" variant="secondary">
-              {{ tag }}
+              {{ tag.tag_name }}
             </Badge>
           </div>
         </div>
@@ -341,22 +236,22 @@ const getColorClass = (color: string) => {
           <Textarea
             v-model="editedContent"
             placeholder="メモの内容を入力..."
-            class="min-h-[400px] resize-none border-none shadow-none focus-visible:ring-0 p-0"
+            class="min-h-[400px] resize-none border-none shadow-none focus-visible:ring-0 p-0 leading-relaxed"
           />
         </div>
         <div class="p-6 border-t border-gray-200">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <Button variant="destructive" class="gap-2">
+              <Button variant="destructive" class="gap-2" disabled>
                 <Trash2 class="h-4 w-4" />
                 削除
               </Button>
-              <Button variant="outline" class="gap-2">
+              <Button variant="outline" class="gap-2" disabled>
                 <Share2 class="h-4 w-4" />
                 共有
               </Button>
             </div>
-            <Button class="gap-2">
+            <Button class="gap-2" disabled>
               <Save class="h-4 w-4" />
               保存
             </Button>

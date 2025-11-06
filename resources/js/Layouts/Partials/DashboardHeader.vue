@@ -1,4 +1,14 @@
 <script setup lang="ts">
+import { Link, useForm } from '@inertiajs/vue3'
+import ConfirmationModal from '@/components/ConfirmationModal.vue';
+
+const showConfirmLogoutModal = ref(false);
+
+const form = useForm({});
+
+const logout = () => {
+    form.post(route('logout'));
+};
 import { ref } from 'vue'
 import { Search, Bell, User, Calendar, StickyNote, BarChart3 } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
@@ -20,7 +30,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
-import ProfileSettingsDialog from '@/components/ProfileSettingsDialog.vue'
+
 import NotificationSettingsDialog from '@/components/NotificationSettingsDialog.vue'
 import {
   Dialog,
@@ -385,18 +395,28 @@ const totalNotifications = importantEvents.length + importantNotes.length + pend
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>総務部 アカウント</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem @click="isProfileSettingsOpen = true">
-              プロフィール設定
+            <DropdownMenuItem as-child>
+              <Link :href="route('profile.edit')">プロフィール設定</Link>
             </DropdownMenuItem>
             <DropdownMenuItem @click="isNotificationSettingsOpen = true">
               通知設定
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>ログアウト</DropdownMenuItem>
+            <DropdownMenuItem @click="showConfirmLogoutModal = true">
+              ログアウト
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </div>
+
+    <ConfirmationModal
+        :show="showConfirmLogoutModal"
+        title="Logout Confirmation"
+        message="Are you sure you want to log out?"
+        @close="showConfirmLogoutModal = false"
+        @confirm="logout"
+    />
 
     <!-- イベント詳細ダイアログ -->
     <EventDetailDialog
@@ -453,11 +473,7 @@ const totalNotifications = importantEvents.length + importantNotes.length + pend
       </DialogContent>
     </Dialog>
 
-    <!-- プロフィール設定ダイアログ -->
-    <ProfileSettingsDialog
-      :open="isProfileSettingsOpen"
-      @update:open="isProfileSettingsOpen = $event"
-    />
+
 
     <!-- 通知設定ダイアログ -->
     <NotificationSettingsDialog

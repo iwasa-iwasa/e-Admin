@@ -5,32 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { type Event, getEventsForDate } from '@/data/events'
-import EventDetailDialog from './EventDetailDialog.vue'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import CreateEventDialog from './CreateEventDialog.vue'
-
-type ViewMode = 'year' | 'month' | 'week' | 'day'
-
-const props = defineProps<{ 
-    selectedMember?: string | null 
+const props = defineProps<{
+    events: App.Models.Event[]
 }>()
-
-const memberIdToName: { [key: string]: string } = {
-  '1': '田中',
-  '2': '佐藤',
-  '3': '鈴木',
-  '4': '山田',
-}
 
 const currentDate = ref(new Date(2025, 9, 14))
 const viewMode = ref<ViewMode>('month')
-const selectedEvent = ref<Event | null>(null)
+const selectedEvent = ref<App.Models.Event | null>(null)
 const isCreateEventDialogOpen = ref(false)
 
 const monthNames = [
@@ -40,10 +21,33 @@ const monthNames = [
 
 const daysOfWeek = ['日', '月', '火', '水', '木', '金', '土']
 
-const filterEvents = (events: Event[]) => {
-  if (!props.selectedMember) return events
-  const memberName = memberIdToName[props.selectedMember]
-  return events.filter((event) => event.assignee === memberName)
+
+const getEventColor = (event: App.Models.Event) => {
+    const categoryColorMap: { [key: string]: string } = {
+        '会議': 'bg-purple-500',
+        '期限': 'bg-orange-500',
+        'MTG': 'bg-green-500',
+        '重要': 'bg-red-500',
+        '休暇': 'bg-teal-500',
+        '業務': 'bg-blue-500',
+        '来客': 'bg-yellow-500',
+        '報告': 'bg-indigo-500',
+        '研修': 'bg-pink-500',
+    };
+    if (event.importance === '高') return 'bg-red-500';
+    return categoryColorMap[event.category] || 'bg-gray-500';
+}
+
+const getEventsForDate = (day: number, month: number, year: number) => {
+  const date = new Date(year, month, day);
+  date.setHours(0, 0, 0, 0);
+  return props.events.filter(event => {
+    const startDate = new Date(event.start_date);
+    const endDate = new Date(event.end_date);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+    return date >= startDate && date <= endDate;
+  });
 }
 
 const days = computed(() => {
@@ -61,7 +65,7 @@ const days = computed(() => {
     }
     
     for (let i = 1; i <= daysInMonth; i++) {
-      const events = filterEvents(getEventsForDate(i, month))
+      const events = getEventsForDate(i, month, year)
       daysArr.push({ day: i, isCurrentMonth: true, events })
     }
 
@@ -81,7 +85,7 @@ const weekDays = computed(() => {
         date: day,
         day: day.getDate(),
         isToday: day.toDateString() === new Date(2025, 9, 14).toDateString(),
-        events: filterEvents(getEventsForDate(day.getDate(), day.getMonth()))
+        events: getEventsForDate(day.getDate(), day.getMonth(), day.getFullYear())
       })
     }
     return daysArr
@@ -103,7 +107,7 @@ const yearMonths = computed(() => {
       }
       
       for (let i = 1; i <= daysInMonth; i++) {
-        const events = filterEvents(getEventsForDate(i, month))
+        const events = getEventsForDate(i, month, year)
         daysArr.push({ day: i, hasEvent: events.length > 0 })
       }
       
@@ -294,10 +298,10 @@ const handleTodayClick = () => {
                 </div>
                 <div class="space-y-1">
                   <template v-for="(event, eventIndex) in dayObj.events">
-                    <Tooltip v-if="event.isMultiDay" :key="eventIndex">
+                    <Tooltip v-if="(new Date(event.end_date) > new Date(event.start_date))" :key="eventIndex">
                       <TooltipTrigger as-child>
                         <div
-                          :class="[event.color, 'text-white text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80']"
+                          :class="[getEventColor(event), 'text-white text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80']"
                           @click="selectedEvent = event"
                         >
                           {{ event.title }}
@@ -307,15 +311,15 @@ const handleTodayClick = () => {
                         <div class="text-sm">
                           <div class="mb-1">{{ event.title }}</div>
                           <div class="text-xs opacity-90">
-                            期間: {{ event.startDate }} 〜 {{ event.endDate }}
+                            期間: {{ event.start_date }} 〜 {{ event.end_date }}
                           </div>
                         </div>
                       </TooltipContent>
                     </Tooltip>
                     <div
                       v-else
-                      :key="event.id"
-                      :class="[event.color, 'text-white text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80']"
+                      :key="event.event_id"
+                      :class="[getEventColor(event), 'text-white text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80']"
                       @click="selectedEvent = event"
                     >
                       {{ event.title }}
@@ -345,26 +349,24 @@ const handleTodayClick = () => {
                     {{ time }}
                   </div>
                   <div v-for="(dayObj, dayIndex) in weekDays" :key="dayIndex" :class="['min-h-[60px] p-1 border-r border-gray-200 last:border-r-0', dayObj.isToday ? 'bg-blue-50/30' : 'bg-white', 'hover:bg-gray-50']">
-                      <template v-for="(event, eventIndex) in dayObj.events.filter(e => e.time === time)">
-                        <Tooltip v-if="event.isMultiDay" :key="eventIndex">
+                      <template v-for="(event, eventIndex) in dayObj.events.filter(e => e.start_time && e.start_time.startsWith(time))">
+                        <Tooltip v-if="(new Date(event.end_date) > new Date(event.start_date))" :key="eventIndex">
                           <TooltipTrigger as-child>
-                            <div :class="[event.color, 'text-white text-xs p-2 rounded mb-1 cursor-pointer hover:opacity-80']" @click="selectedEvent = event">
+                            <div :class="[getEventColor(event), 'text-white text-xs p-2 rounded mb-1 cursor-pointer hover:opacity-80']" @click="selectedEvent = event">
                               <div>{{ event.title }}</div>
-                              <div class="text-xs opacity-90">{{ event.assignee }}</div>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             <div class="text-sm">
                               <div class="mb-1">{{ event.title }}</div>
                               <div class="text-xs opacity-90">
-                                期間: {{ event.startDate }} 〜 {{ event.endDate }}
+                                期間: {{ event.start_date }} 〜 {{ event.end_date }}
                               </div>
                             </div>
                           </TooltipContent>
                         </Tooltip>
-                        <div v-else :key="event.id" :class="[event.color, 'text-white text-xs p-2 rounded mb-1 cursor-pointer hover:opacity-80']" @click="selectedEvent = event">
+                        <div v-else :key="event.event_id" :class="[getEventColor(event), 'text-white text-xs p-2 rounded mb-1 cursor-pointer hover:opacity-80']" @click="selectedEvent = event">
                           <div>{{ event.title }}</div>
-                          <div class="text-xs opacity-90">{{ event.assignee }}</div>
                         </div>
                       </template>
                   </div>
@@ -392,15 +394,12 @@ const handleTodayClick = () => {
                       {{ time }}
                     </div>
                     <div class="flex-1 p-3 min-h-[80px]">
-                      <template v-for="(event, eventIndex) in getEventsForDate(currentDate.getDate(), currentDate.getMonth()).filter(e => e.time === time)">
-                        <Tooltip v-if="event.isMultiDay" :key="eventIndex">
+                      <template v-for="(event, eventIndex) in getEventsForDate(currentDate.getDate(), currentDate.getMonth(), currentDate.getFullYear()).filter(e => e.start_time && e.start_time.startsWith(time))">
+                        <Tooltip v-if="(new Date(event.end_date) > new Date(event.start_date))" :key="eventIndex">
                           <TooltipTrigger as-child>
-                            <div :class="[event.color, 'text-white p-3 rounded mb-2 cursor-pointer hover:opacity-90']" @click="selectedEvent = event">
+                            <div :class="[getEventColor(event), 'text-white p-3 rounded mb-2 cursor-pointer hover:opacity-90']" @click="selectedEvent = event">
                               <div class="flex items-center justify-between mb-1">
                                 <span>{{ event.title }}</span>
-                                <Badge variant="secondary" class="text-xs">
-                                  {{ event.assignee }}
-                                </Badge>
                               </div>
                               <div class="text-xs opacity-90">{{ time }}</div>
                             </div>
@@ -409,17 +408,14 @@ const handleTodayClick = () => {
                             <div class="text-sm">
                               <div class="mb-1">{{ event.title }}</div>
                               <div class="text-xs opacity-90">
-                                期間: {{ event.startDate }} 〜 {{ event.endDate }}
+                                期間: {{ event.start_date }} 〜 {{ event.end_date }}
                               </div>
                             </div>
                           </TooltipContent>
                         </Tooltip>
-                        <div v-else :key="event.id" :class="[event.color, 'text-white p-3 rounded mb-2 cursor-pointer hover:opacity-90']" @click="selectedEvent = event">
+                        <div v-else :key="event.event_id" :class="[getEventColor(event), 'text-white p-3 rounded mb-2 cursor-pointer hover:opacity-90']" @click="selectedEvent = event">
                           <div class="flex items-center justify-between mb-1">
                             <span>{{ event.title }}</span>
-                            <Badge variant="secondary" class="text-xs">
-                              {{ event.assignee }}
-                            </Badge>
                           </div>
                           <div class="text-xs opacity-90">{{ time }}</div>
                         </div>

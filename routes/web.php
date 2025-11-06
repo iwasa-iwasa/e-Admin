@@ -1,5 +1,10 @@
 <?php
 
+use App\Http\Controllers\SurveyController;
+use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\NoteController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,32 +20,22 @@ use Inertia\Inertia;
 |
 */
 
-// ルートURL ('/') にアクセスされたらダッシュボードへリダイレクト
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
 // 認証済みユーザーのみがアクセスできるルートのグループ
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Dashboard
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Calendar
-    Route::get('/calendar', function () {
-        return Inertia::render('Calendar');
-    })->name('calendar');
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
 
-    // Notes
-    Route::get('/notes', function () {
-        return Inertia::render('Notes');
-    })->name('notes');
+    Route::get('/notes', [NoteController::class, 'index'])->name('notes');
 
-    // Surveys
-    Route::get('/surveys', function () {
-        return Inertia::render('Surveys');
-    })->name('surveys');
+    Route::get('/surveys', [SurveyController::class, 'index'])->name('surveys');
 
     // Survey Results
     Route::get('/surveys/{survey}/results', function () {
@@ -48,10 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('SurveyResults');
     })->name('surveys.results');
 
-    // Reminders
-    Route::get('/reminders', function () {
-        return Inertia::render('Reminders');
-    })->name('reminders');
+    Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders');
 
     // Trash
     Route::get('/trash', function () {
