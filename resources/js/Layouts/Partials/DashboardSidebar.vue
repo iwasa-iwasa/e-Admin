@@ -190,7 +190,6 @@ const handleMemberClick = (memberId: string) => {
           </Button>
         </div>
       </ScrollArea>
-
     </nav>
   </aside>
 </template>

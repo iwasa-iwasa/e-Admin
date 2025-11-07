@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatDate } from '@/lib/utils'
 import { ref, computed } from 'vue'
 import { Bell, Plus, Clock } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -71,7 +72,7 @@ const isDialogOpen = ref(false)
                 <div class="flex items-center gap-4 text-xs text-gray-600">
                   <div class="flex items-center gap-1">
                     <Clock class="h-3 w-3" />
-                    期限: {{ reminder.deadline }}
+                    期限: {{ formatDate(reminder.deadline) }}
                   </div>
                   <Badge variant="outline" class="text-xs">
                     {{ reminder.category }}

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatDate } from '@/lib/utils'
 import { Calendar as CalendarIcon, Users, MapPin } from 'lucide-vue-next'
 import {
   Dialog,
@@ -56,7 +57,7 @@ const closeDialog = () => {
           <CalendarIcon class="h-5 w-5 text-gray-400 mt-0.5" />
           <div>
             <p class="text-sm text-gray-500">日時</p>
-            <p>{{ event.date }} {{ event.time }}</p>
+            <p>{{ formatDate(event.date) }} {{ event.time }}</p>
           </div>
         </div>
 
