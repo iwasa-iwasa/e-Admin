@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatDate } from '@/lib/utils'
 import { ref, computed } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { ArrowLeft, Download, Edit, Users, Calendar as CalendarIcon, Clock, CheckCircle2, AlertCircle, Filter } from 'lucide-vue-next'
@@ -9,7 +10,10 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { PieChart, Pie, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts'
+import { Bar, Pie, Radar } from 'vue-chartjs'
+import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, RadialLinearScale, PointElement, LineElement, Filler } from 'chart.js'
+
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, RadialLinearScale, PointElement, LineElement, Filler)
 import { useToast } from '@/components/ui/toast/use-toast'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
@@ -118,7 +122,7 @@ const responseRate = computed(() => {
               <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                 <div class="flex items-center gap-1">
                   <CalendarIcon class="h-4 w-4" />
-                  締切: {{ survey.deadline }}
+                  締切: {{ formatDate(survey.deadline) }}
                 </div>
                 <div class="flex items-center gap-1">作成者: {{ survey.createdBy }}</div>
                 <Badge variant="outline">{{ survey.category }}</Badge>
@@ -225,41 +229,78 @@ const responseRate = computed(() => {
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
                         <h4 class="text-sm mb-4 text-gray-600">回答の割合</h4>
-                        <ResponsiveContainer width="100%" height="300">
-                            <PieChart>
-                                <Pie :data="question.aggregatedData" cx="50%" cy="50%" :labelLine="false" :label="({ name, percentage }) => `${name} (${percentage}%)`" outerRadius="100" fill="#8884d8" dataKey="value">
-                                    <Cell v-for="(entry, index) in question.aggregatedData" :key="`cell-${index}`" :fill="COLORS[index % COLORS.length]" />
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        <div style="height: 300px; position: relative;">
+                            <Pie
+                                :data="{
+                                    labels: question.aggregatedData.map(d => `${d.name} (${d.percentage}%)`),
+                                    datasets: [{
+                                        backgroundColor: COLORS,
+                                        data: question.aggregatedData.map(d => d.value)
+                                    }]
+                                }"
+                                :options="{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            position: 'top',
+                                        }
+                                    }
+                                }"
+                            />
+                        </div>
                     </div>
                     <div>
                         <h4 class="text-sm mb-4 text-gray-600">回答数</h4>
-                        <ResponsiveContainer width="100%" height="300">
-                            <BarChart :data="question.aggregatedData">
-                                <CartesianGrid stroke-dasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Bar dataKey="value" fill="#3b82f6" />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <div style="height: 300px; position: relative;">
+                            <Bar
+                                :data="{
+                                    labels: question.aggregatedData.map(d => d.name),
+                                    datasets: [{
+                                        label: '回答数',
+                                        backgroundColor: '#3b82f6',
+                                        data: question.aggregatedData.map(d => d.value)
+                                    }]
+                                }"
+                                :options="{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
+                                        }
+                                    }
+                                }"
+                            />
+                        </div>
                     </div>
                 </div>
             </template>
             <template v-if="question.type === 'multiple'">
                 <div>
                     <h4 class="text-sm mb-4 text-gray-600">選択された回数（複数選択可）</h4>
-                    <ResponsiveContainer width="100%" height="300">
-                        <BarChart :data="question.aggregatedData" layout="vertical" :margin="{ left: 100 }">
-                            <CartesianGrid stroke-dasharray="3 3" />
-                            <XAxis type="number" />
-                            <YAxis type="category" dataKey="name" />
-                            <Tooltip />
-                            <Bar dataKey="value" fill="#10b981" />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    <div style="height: 300px; position: relative;">
+                        <Bar
+                            :data="{
+                                labels: question.aggregatedData.map(d => d.name),
+                                datasets: [{
+                                    label: '選択された回数',
+                                    backgroundColor: '#10b981',
+                                    data: question.aggregatedData.map(d => d.value)
+                                }]
+                            }"
+                            :options="{
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    }
+                                }
+                            }"
+                        />
+                    </div>
                 </div>
             </template>
             <template v-if="question.type === 'rating'">
@@ -274,31 +315,74 @@ const responseRate = computed(() => {
                     </div>
                     <div>
                         <h4 class="text-sm mb-4 text-gray-600">評価の分布</h4>
-                        <ResponsiveContainer width="100%" height="250">
-                            <BarChart :data="question.aggregatedData">
-                                <CartesianGrid stroke-dasharray="3 3" />
-                                <XAxis dataKey="name" :label="{ value: '星の数', position: 'insideBottom', offset: -5 }" />
-                                <YAxis :label="{ value: '回答数', angle: -90, position: 'insideLeft' }" />
-                                <Tooltip />
-                                <Bar dataKey="value" fill="#f59e0b" />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <div style="height: 250px; position: relative;">
+                            <Bar
+                                :data="{
+                                    labels: question.aggregatedData.map(d => d.name),
+                                    datasets: [{
+                                        label: '回答数',
+                                        backgroundColor: '#f59e0b',
+                                        data: question.aggregatedData.map(d => d.value)
+                                    }]
+                                }"
+                                :options="{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            display: false
+                                        }
+                                    },
+                                    scales: {
+                                        x: {
+                                            title: {
+                                                display: true,
+                                                text: '星の数'
+                                            }
+                                        },
+                                        y: {
+                                            title: {
+                                                display: true,
+                                                text: '回答数'
+                                            }
+                                        }
+                                    }
+                                }"
+                            />
+                        </div>
                     </div>
                 </div>
             </template>
             <template v-if="question.type === 'scale'">
                 <div>
                     <h4 class="text-sm mb-4 text-gray-600">各項目の平均評価（5段階）</h4>
-                    <ResponsiveContainer width="100%" height="400">
-                        <RadarChart :data="question.aggregatedData">
-                            <PolarGrid />
-                            <PolarAngleAxis dataKey="subject" />
-                            <PolarRadiusAxis angle="90" domain="[0, 5]" />
-                            <Radar name="平均評価" dataKey="A" stroke="#8b5cf6" fill="#8b5cf6" :fillOpacity="0.6" />
-                            <Tooltip />
-                            <Legend />
-                        </RadarChart>
-                    </ResponsiveContainer>
+                    <div style="height: 400px; position: relative;">
+                        <Radar
+                            :data="{
+                                labels: question.aggregatedData.map(d => d.subject),
+                                datasets: [{
+                                    label: '平均評価',
+                                    backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                                    borderColor: '#8b5cf6',
+                                    pointBackgroundColor: '#8b5cf6',
+                                    data: question.aggregatedData.map(d => d.A)
+                                }]
+                            }"
+                            :options="{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    r: {
+                                        angleLines: {
+                                            display: false
+                                        },
+                                        suggestedMin: 0,
+                                        suggestedMax: 5
+                                    }
+                                }
+                            }"
+                        />
+                    </div>
                 </div>
             </template>
             <template v-if="question.type === 'text' || question.type === 'textarea'">
@@ -310,7 +394,7 @@ const responseRate = computed(() => {
                                 <div class="flex items-start justify-between mb-2">
                                     <div class="flex items-center gap-2">
                                         <Badge variant="outline" class="text-xs">{{ response.respondent }}</Badge>
-                                        <span v-if="response.timestamp" class="text-xs text-gray-500">{{ response.timestamp }}</span>
+                                        <span v-if="response.timestamp" class="text-xs text-gray-500">{{ formatDate(response.timestamp) }}</span>
                                     </div>
                                 </div>
                                 <p class="text-gray-700 whitespace-pre-wrap">{{ response.value }}</p>
