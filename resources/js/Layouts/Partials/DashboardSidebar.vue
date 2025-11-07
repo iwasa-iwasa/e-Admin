@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import LogoTitle from '@/components/logoTitle.vue'
 
 interface Member {
   id: string
@@ -51,10 +52,11 @@ const handleMemberClick = (memberId: string) => {
 <template>
   <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
     <!-- ロゴ・タイトル -->
+    <!-- サイドバー用ロゴコンポーネント -->
     <div class="p-6">
-      <h1 class="text-blue-600">総務部ダッシュボード</h1>
-      <p class="text-xs text-gray-500 mt-1">4名で情報共有</p>
+      <LogoTitle logo-src="/images/logo.png" />
     </div>
+ 
 
     <Separator />
 
