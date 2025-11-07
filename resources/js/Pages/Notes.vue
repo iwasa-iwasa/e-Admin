@@ -103,7 +103,7 @@ const getColorClass = (color: string) => {
             <StickyNote class="h-6 w-6 text-yellow-600" />
             <h1>共有メモ</h1>
           </div>
-          <Button @click="handleCreateNote" class="gap-2">
+          <Button variant="outline" @click="handleCreateNote" class="gap-2">
             <Plus class="h-4 w-4" />
             新規作成
           </Button>

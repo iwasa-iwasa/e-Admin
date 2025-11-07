@@ -43,7 +43,7 @@ const isDialogOpen = ref(false)
           disabled
         >
           <Plus class="h-3 w-3" />
-          追加
+          新規作成
         </Button>
       </div>
       <p v-if="completedCount > 0" class="text-xs text-gray-500 mt-2">

@@ -45,9 +45,9 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
             <p class="text-xs text-gray-500">自分専用のタスク管理</p>
           </div>
         </div>
-        <Button @click="isCreateDialogOpen = true" class="gap-2" disabled>
+        <Button variant="outline" @click="isCreateDialogOpen = true" class="gap-2" disabled>
           <Plus class="h-4 w-4" />
-          新規追加
+          新規作成
         </Button>
       </div>
     </header>
