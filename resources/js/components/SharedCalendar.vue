@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatDate } from '@/lib/utils'
 import { ref, computed } from 'vue'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users, Clock } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -311,7 +312,7 @@ const handleTodayClick = () => {
                         <div class="text-sm">
                           <div class="mb-1">{{ event.title }}</div>
                           <div class="text-xs opacity-90">
-                            期間: {{ event.start_date }} 〜 {{ event.end_date }}
+                            期間: {{ formatDate(event.start_date) }} 〜 {{ formatDate(event.end_date) }}
                           </div>
                         </div>
                       </TooltipContent>
@@ -360,7 +361,7 @@ const handleTodayClick = () => {
                             <div class="text-sm">
                               <div class="mb-1">{{ event.title }}</div>
                               <div class="text-xs opacity-90">
-                                期間: {{ event.start_date }} 〜 {{ event.end_date }}
+                                期間: {{ formatDate(event.start_date) }} 〜 {{ formatDate(event.end_date) }}
                               </div>
                             </div>
                           </TooltipContent>
@@ -408,7 +409,7 @@ const handleTodayClick = () => {
                             <div class="text-sm">
                               <div class="mb-1">{{ event.title }}</div>
                               <div class="text-xs opacity-90">
-                                期間: {{ event.start_date }} 〜 {{ event.end_date }}
+                                期間: {{ formatDate(event.start_date) }} 〜 {{ formatDate(event.end_date) }}
                               </div>
                             </div>
                           </TooltipContent>

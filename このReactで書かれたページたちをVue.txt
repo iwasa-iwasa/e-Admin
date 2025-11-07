@@ -169,4 +169,28 @@ Call to undefined method App\Models\User::reminders()
     at DropdownMenuItem.vue:24:5
     ```
   - アンケート管理
-   - 画面を開くことはできるが、
+   - 画面を開くことはできるが、「結果を見るボタン」を押すと以下のエラーが発生して何も表示されなくなる
+   ```
+   Uncaught (in promise) TypeError: Cannot read properties of null (reading 'useContext')
+    at exports.useContext (react.development.js:1212:25)
+    at useResponsiveContainerContext (ResponsiveContainer.js:41:50)
+    at Proxy.<anonymous> (ResponsiveContainer.js:164:36)
+    at renderComponentRoot (runtime-core.esm-bundler.js:6590:16)
+    at ReactiveEffect.componentUpdateFn [as fn] (runtime-core.esm-bundler.js:5390:46)
+    at ReactiveEffect.run (reactivity.esm-bundler.js:237:19)
+    at setupRenderEffect (runtime-core.esm-bundler.js:5525:5)
+    at mountComponent (runtime-core.esm-bundler.js:5299:7)
+    at processComponent (runtime-core.esm-bundler.js:5251:9)
+    at patch (runtime-core.esm-bundler.js:4767:11)
+   ```
+  - カレンダーやリマインダーの時間の表示が「2025-10-17T15:00:00.000000Z」のようになっているので「2025-10-12」のように整形してほしい
+  - ほとんどの枠線が黒い問題は直ったいるが、まだ直っていない部分があるので以下に羅列する
+   - ほとんどのボタン
+   - テキストを入力する場所
+   - 「期限:XXXXX」や「同期済み」などのチップ
+
+
+次の作業をまとめるために、以下のプロンプトを最適化してマークダウン形式のファイルで出力してほしい。
+  - 「共有カレンダー」のカレンダーが現在、コードで作られたものになっているので「FullCalendar」に置き換えてほしい
+    - 予定などもすべて前のカレンダーのように表示する
+  - 日付を選択するピッカーを「VCalendar」に置き換えてほしい

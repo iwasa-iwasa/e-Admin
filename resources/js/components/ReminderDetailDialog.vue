@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatDate } from '@/lib/utils'
 import { ref, computed, watch } from 'vue'
 import { Clock, CheckCircle2, Edit2, Save, X } from 'lucide-vue-next'
 import {
@@ -118,7 +119,7 @@ const closeDialog = () => {
             <div class="text-sm text-gray-600">期限</div>
             <Input v-if="isEditing && editedReminder" type="date" v-model="editedReminder.deadline" class="h-8 mt-1" />
             <div v-else :class="[currentReminder.completed ? 'text-gray-400' : '']">
-              {{ currentReminder.deadline }}
+              {{ formatDate(currentReminder.deadline) }}
             </div>
           </div>
         </div>
@@ -135,7 +136,7 @@ const closeDialog = () => {
           <div class="flex items-center gap-2 text-green-700">
             <CheckCircle2 class="h-4 w-4" />
             <span class="text-sm">
-              完了日時: {{ new Date(currentReminder.completedAt).toLocaleString('ja-JP') }}
+              完了日時: {{ formatDate(currentReminder.completedAt) }}
             </span>
           </div>
           <p class="text-xs text-green-600 mt-2">

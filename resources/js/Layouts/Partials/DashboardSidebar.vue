@@ -165,19 +165,6 @@ const handleMemberClick = (memberId: string) => {
         </a>
       </div>
 
-      <Button
-        :class="[
-        'w-full justify-start gap-3',
-        isActive('/monitor') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
-      ]"
-        as-child
-      >
-        <Link href="/monitor">
-          <Monitor class="h-5 w-5" />
-          閲覧専用モニター
-        </Link>
-      </Button>
-
       <Separator class="my-4" />
 
       <div class="px-3 py-2 text-xs text-gray-500">部署メンバー</div>
@@ -203,13 +190,6 @@ const handleMemberClick = (memberId: string) => {
           </Button>
         </div>
       </ScrollArea>
-
-      <Separator class="my-4" />
-
-      <Button variant="ghost" class="w-full justify-start gap-3">
-        <Settings class="h-5 w-5" />
-        設定
-      </Button>
     </nav>
   </aside>
 </template>
