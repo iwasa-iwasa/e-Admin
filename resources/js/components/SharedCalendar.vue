@@ -236,7 +236,7 @@ const handleTodayClick = () => {
         <Button
           size="sm"
           variant="outline"
-          class="absolute bottom-4 right-4 z-10 shadow-lg gap-2"
+          class="absolute bottom-4 bg-white right-4 z-10 shadow-lg gap-2"
           @click="handleTodayClick"
         >
           <CalendarIcon class="h-4 w-4" />
