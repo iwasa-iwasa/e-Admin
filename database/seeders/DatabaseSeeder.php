@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             NoteSeeder::class,
             ReminderSeeder::class,
             SurveySeeder::class,
+            SurveyResponseSeeder::class,
         ]);
     }
 }

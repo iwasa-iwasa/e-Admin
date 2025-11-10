@@ -37,12 +37,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/surveys', [SurveyController::class, 'index'])->name('surveys');
     Route::post('/surveys', [SurveyController::class, 'store'])->name('surveys.store');
+    Route::get('/surveys/{survey}/edit', [SurveyController::class, 'edit'])->name('surveys.edit');
+    Route::put('/surveys/{survey}', [SurveyController::class, 'update'])->name('surveys.update');
+    Route::delete('/surveys/{survey}', [SurveyController::class, 'destroy'])->name('surveys.destroy');
 
     // Survey Results
-    Route::get('/surveys/{survey}/results', function () {
-        // Note: In a real application, you would pass the specific survey data as a prop.
-        return Inertia::render('SurveyResults');
-    })->name('surveys.results');
+    Route::get('/surveys/{survey}/results', [SurveyController::class, 'results'])->name('surveys.results');
+    Route::get('/surveys/{survey}/export', [SurveyController::class, 'export'])->name('surveys.export');
 
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders');
 

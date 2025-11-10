@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, h, onMounted, watch } from "vue";
+import { ref, h, onMounted, watch, computed } from "vue";
 import { useForm } from "@inertiajs/vue3";
 import {
     Plus,
@@ -73,6 +73,7 @@ interface QuestionTemplate {
 
 const props = defineProps<{
     open: boolean;
+    survey?: App.Models.Survey | null;
 }>();
 const emit = defineEmits(["update:open"]);
 
@@ -293,36 +294,64 @@ const handleSave = (isDraft: boolean = false) => {
         options: q.options,
     }));
 
-    // POSTリクエストを送信
-    form.post("/surveys", {
-        preserveScroll: true,
-        onSuccess: () => {
-            // 本保存成功時は一時保存データを削除
-            if (!isDraft) {
-                clearDraft();
-            }
-            toast({
-                title: "Success",
-                description: isDraft
-                    ? "アンケートを一時保存しました"
-                    : "アンケートを公開しました",
-            });
-            handleClose();
-        },
-        onError: (errors) => {
-            // バリデーションエラーを表示
-            const firstError = Object.values(errors)[0];
-            if (firstError) {
+    // リクエストを送信
+    if (isEditMode.value && props.survey) {
+        // 編集モード: PUTリクエスト
+        form.put(`/surveys/${props.survey.survey_id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
                 toast({
-                    title: "Error",
-                    description: Array.isArray(firstError)
-                        ? firstError[0]
-                        : String(firstError),
-                    variant: "destructive",
+                    title: "Success",
+                    description: "アンケートを更新しました",
                 });
-            }
-        },
-    });
+                handleClose();
+            },
+            onError: (errors) => {
+                // バリデーションエラーを表示
+                const firstError = Object.values(errors)[0];
+                if (firstError) {
+                    toast({
+                        title: "Error",
+                        description: Array.isArray(firstError)
+                            ? firstError[0]
+                            : String(firstError),
+                        variant: "destructive",
+                    });
+                }
+            },
+        });
+    } else {
+        // 新規作成モード: POSTリクエスト
+        form.post("/surveys", {
+            preserveScroll: true,
+            onSuccess: () => {
+                // 本保存成功時は一時保存データを削除
+                if (!isDraft) {
+                    clearDraft();
+                }
+                toast({
+                    title: "Success",
+                    description: isDraft
+                        ? "アンケートを一時保存しました"
+                        : "アンケートを公開しました",
+                });
+                handleClose();
+            },
+            onError: (errors) => {
+                // バリデーションエラーを表示
+                const firstError = Object.values(errors)[0];
+                if (firstError) {
+                    toast({
+                        title: "Error",
+                        description: Array.isArray(firstError)
+                            ? firstError[0]
+                            : String(firstError),
+                        variant: "destructive",
+                    });
+                }
+            },
+        });
+    }
 };
 
 const handleClose = () => {
@@ -501,34 +530,87 @@ const scheduleAutoSave = () => {
     }, AUTO_SAVE_DELAY);
 };
 
-// 入力内容の変更を監視して自動保存をスケジュール
+// 編集モードの判定
+const isEditMode = computed(() => !!props.survey);
+
+// 入力内容の変更を監視して自動保存をスケジュール（新規作成時のみ）
 watch(
     [title, description, category, deadline, questions],
     () => {
-        if (props.open) {
+        if (props.open && !isEditMode.value) {
             scheduleAutoSave();
         }
     },
     { deep: true }
 );
 
+// データベースの質問タイプをフロントエンドのタイプに変換
+const mapQuestionTypeFromDb = (dbType: string): QuestionType => {
+    const mapping: Record<string, QuestionType> = {
+        single_choice: "single",
+        multiple_choice: "multiple",
+        text: "text",
+        textarea: "textarea",
+        rating: "rating",
+        scale: "scale",
+        dropdown: "dropdown",
+        date: "date",
+    };
+    return mapping[dbType] || "text";
+};
+
+// 編集データの読み込み
+const loadEditData = () => {
+    if (!props.survey) return;
+
+    title.value = props.survey.title || "";
+    description.value = props.survey.description || "";
+    category.value = "その他"; // カテゴリは現在DBに保存されていないためデフォルト値
+    deadline.value = props.survey.deadline
+        ? new Date(props.survey.deadline).toISOString().split("T")[0]
+        : "";
+
+    // 質問データを変換
+    questions.value =
+        props.survey.questions?.map((q: any, index: number) => {
+            const question: Question = {
+                id: String(q.question_id || Date.now() + index),
+                type: mapQuestionTypeFromDb(q.question_type),
+                question: q.question_text || "",
+                options:
+                    q.options?.map((opt: any) => opt.option_text || "") || [],
+                required: q.is_required || false,
+                scaleMin: q.scaleMin,
+                scaleMax: q.scaleMax,
+                scaleMinLabel: q.scaleMinLabel,
+                scaleMaxLabel: q.scaleMaxLabel,
+            };
+            return question;
+        }) || [];
+};
+
 // ダイアログが開いた時の処理
 watch(
     () => props.open,
     (isOpen) => {
         if (isOpen) {
-            // ダイアログが開かれた時に一時保存データをチェック
-            const saved = localStorage.getItem(DRAFT_KEY);
-            if (saved && !draftSavedAt.value) {
-                // 確認ダイアログを表示
-                const shouldRestore = window.confirm(
-                    "前回の下書きが見つかりました。復元しますか？"
-                );
+            if (isEditMode.value) {
+                // 編集モード: 既存データを読み込む
+                loadEditData();
+            } else {
+                // 新規作成モード: 一時保存データをチェック
+                const saved = localStorage.getItem(DRAFT_KEY);
+                if (saved && !draftSavedAt.value) {
+                    // 確認ダイアログを表示
+                    const shouldRestore = window.confirm(
+                        "前回の下書きが見つかりました。復元しますか？"
+                    );
 
-                if (shouldRestore) {
-                    loadDraft();
-                } else {
-                    clearDraft();
+                    if (shouldRestore) {
+                        loadDraft();
+                    } else {
+                        clearDraft();
+                    }
                 }
             }
         }
@@ -540,15 +622,19 @@ watch(
     <Dialog :open="props.open" @update:open="handleClose">
         <DialogContent class="max-w-4xl max-h-[90vh]">
             <DialogHeader>
-                <DialogTitle>新しいアンケートを作成</DialogTitle>
-                <DialogDescription
-                    >総務部 共同管理のアンケートを作成します</DialogDescription
-                >
+                <DialogTitle>{{
+                    isEditMode ? "アンケートを編集" : "新しいアンケートを作成"
+                }}</DialogTitle>
+                <DialogDescription>{{
+                    isEditMode
+                        ? "アンケートの内容を編集します"
+                        : "総務部 共同管理のアンケートを作成します"
+                }}</DialogDescription>
             </DialogHeader>
 
-            <!-- 一時保存バナー -->
+            <!-- 一時保存バナー（新規作成時のみ） -->
             <div
-                v-if="showDraftBanner && draftSavedAt"
+                v-if="!isEditMode && showDraftBanner && draftSavedAt"
                 class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between"
             >
                 <div class="flex items-center gap-2 text-sm text-blue-700">
@@ -1160,6 +1246,7 @@ watch(
                 >
                 <div class="flex gap-2">
                     <Button
+                        v-if="!isEditMode"
                         variant="outline"
                         @click="saveDraft"
                         :disabled="form.processing"
@@ -1171,7 +1258,13 @@ watch(
                         :disabled="form.processing"
                     >
                         <Save class="h-4 w-4" />
-                        {{ form.processing ? "保存中..." : "アンケートを公開" }}
+                        {{
+                            form.processing
+                                ? "保存中..."
+                                : isEditMode
+                                ? "更新"
+                                : "アンケートを公開"
+                        }}
                     </Button>
                 </div>
             </DialogFooter>

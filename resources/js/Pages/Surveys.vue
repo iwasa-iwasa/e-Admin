@@ -13,6 +13,8 @@ import {
     Users,
     ArrowLeft,
     Calendar as CalendarIcon,
+    Edit,
+    Trash2,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ defineOptions({
 
 const props = defineProps<{
     surveys: App.Models.Survey[];
+    editingSurvey?: App.Models.Survey | null;
 }>();
 
 const searchQuery = ref("");
@@ -98,6 +101,7 @@ const getDaysUntilDeadline = (deadline: string) => {
 
 const page = usePage();
 const { toast } = useToast();
+const isEditDialogOpen = ref(false);
 
 // フラッシュメッセージの表示
 watch(
@@ -112,6 +116,43 @@ watch(
     },
     { immediate: true }
 );
+
+// 編集ダイアログを開く
+watch(
+    () => props.editingSurvey,
+    (survey) => {
+        if (survey) {
+            isEditDialogOpen.value = true;
+        }
+    },
+    { immediate: true }
+);
+
+// 削除処理
+const handleDelete = (survey: App.Models.Survey) => {
+    if (
+        window.confirm(
+            "本当にこのアンケートを削除しますか？この操作は取り消せません。"
+        )
+    ) {
+        router.delete(`/surveys/${survey.survey_id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast({
+                    title: "Success",
+                    description: "アンケートを削除しました",
+                });
+            },
+            onError: () => {
+                toast({
+                    title: "Error",
+                    description: "アンケートの削除に失敗しました",
+                    variant: "destructive",
+                });
+            },
+        });
+    }
+};
 </script>
 
 <template>
@@ -289,6 +330,18 @@ watch(
                                     class="flex items-center gap-2 flex-shrink-0"
                                 >
                                     <Button
+                                        variant="outline"
+                                        class="gap-2"
+                                        @click="
+                                            router.get(
+                                                `/surveys/${survey.survey_id}/edit`
+                                            )
+                                        "
+                                    >
+                                        <Edit class="h-4 w-4" />
+                                        編集
+                                    </Button>
+                                    <Button
                                         v-if="survey.is_active"
                                         class="gap-2"
                                         disabled
@@ -373,6 +426,18 @@ watch(
         <CreateSurveyDialog
             :open="isCreateSurveyDialogOpen"
             @update:open="isCreateSurveyDialogOpen = $event"
+        />
+
+        <CreateSurveyDialog
+            v-if="props.editingSurvey"
+            :open="isEditDialogOpen"
+            :survey="props.editingSurvey"
+            @update:open="
+                isEditDialogOpen = $event;
+                if (!$event) {
+                    router.get('/surveys');
+                }
+            "
         />
     </div>
 </template>
