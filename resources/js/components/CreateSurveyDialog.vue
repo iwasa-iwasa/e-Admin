@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, h } from "vue";
-import { router } from "@inertiajs/vue3";
+import { useForm } from "@inertiajs/vue3";
 import {
     Plus,
     Save,
@@ -83,6 +83,20 @@ const questions = ref<Question[]>([]);
 const showTemplateDialog = ref(false);
 
 const { toast } = useToast();
+
+const form = useForm({
+    title: "",
+    description: "",
+    category: "その他",
+    deadline: "",
+    questions: [] as Array<{
+        question: string;
+        type: QuestionType;
+        required: boolean;
+        options: string[];
+    }>,
+    isDraft: false,
+});
 
 const questionTemplates: QuestionTemplate[] = [
     {
@@ -210,6 +224,7 @@ const removeOption = (questionId: string, optionIndex: number) => {
 };
 
 const handleSave = (isDraft: boolean = false) => {
+    // クライアント側のバリデーション
     if (!title.value.trim()) {
         toast({
             title: "Error",
@@ -258,19 +273,45 @@ const handleSave = (isDraft: boolean = false) => {
         }
     }
 
-    if (isDraft) {
-        toast({
-            title: "Success",
-            description: "アンケートを一時保存しました",
-        });
-    } else {
-        toast({
-            title: "Success",
-            description: "アンケートを公開しました",
-        });
-    }
-    handleClose();
-    router.get("/surveys");
+    // フォームデータを準備
+    form.title = title.value;
+    form.description = description.value;
+    form.category = category.value;
+    form.deadline = deadline.value;
+    form.isDraft = isDraft;
+    form.questions = questions.value.map((q) => ({
+        question: q.question,
+        type: q.type,
+        required: q.required,
+        options: q.options,
+    }));
+
+    // POSTリクエストを送信
+    form.post("/surveys", {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast({
+                title: "Success",
+                description: isDraft
+                    ? "アンケートを一時保存しました"
+                    : "アンケートを公開しました",
+            });
+            handleClose();
+        },
+        onError: (errors) => {
+            // バリデーションエラーを表示
+            const firstError = Object.values(errors)[0];
+            if (firstError) {
+                toast({
+                    title: "Error",
+                    description: Array.isArray(firstError)
+                        ? firstError[0]
+                        : String(firstError),
+                    variant: "destructive",
+                });
+            }
+        },
+    });
 };
 
 const handleClose = () => {
@@ -280,6 +321,8 @@ const handleClose = () => {
     deadline.value = "";
     questions.value = [];
     showTemplateDialog.value = false;
+    form.reset();
+    form.clearErrors();
     emit("update:open", false);
 };
 
@@ -326,7 +369,16 @@ const getQuestionTypeLabel = (type: QuestionType) => {
                                     id="title"
                                     placeholder="例：2025年度 忘年会の候補日アンケート"
                                     v-model="title"
+                                    :class="{
+                                        'border-red-500': form.errors.title,
+                                    }"
                                 />
+                                <p
+                                    v-if="form.errors.title"
+                                    class="text-sm text-red-500"
+                                >
+                                    {{ form.errors.title }}
+                                </p>
                             </div>
                             <div class="space-y-2">
                                 <Label for="description">説明</Label>
@@ -372,7 +424,17 @@ const getQuestionTypeLabel = (type: QuestionType) => {
                                         id="deadline"
                                         type="date"
                                         v-model="deadline"
+                                        :class="{
+                                            'border-red-500':
+                                                form.errors.deadline,
+                                        }"
                                     />
+                                    <p
+                                        v-if="form.errors.deadline"
+                                        class="text-sm text-red-500"
+                                    >
+                                        {{ form.errors.deadline }}
+                                    </p>
                                 </div>
                             </div>
                         </CardContent>
@@ -881,16 +943,26 @@ const getQuestionTypeLabel = (type: QuestionType) => {
             </ScrollArea>
 
             <DialogFooter class="flex-col sm:flex-row gap-2">
-                <Button variant="outline" @click="handleCancel"
+                <Button
+                    variant="outline"
+                    @click="handleCancel"
+                    :disabled="form.processing"
                     >キャンセル</Button
                 >
                 <div class="flex gap-2">
-                    <Button variant="outline" @click="handleSave(true)"
+                    <Button
+                        variant="outline"
+                        @click="handleSave(true)"
+                        :disabled="form.processing"
                         >一時保存</Button
                     >
-                    <Button @click="handleSave(false)" class="gap-2">
+                    <Button
+                        @click="handleSave(false)"
+                        class="gap-2"
+                        :disabled="form.processing"
+                    >
                         <Save class="h-4 w-4" />
-                        アンケートを公開
+                        {{ form.processing ? "保存中..." : "アンケートを公開" }}
                     </Button>
                 </div>
             </DialogFooter>
