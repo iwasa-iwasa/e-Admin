@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head } from "@inertiajs/vue3";
-import { ref, computed } from "vue";
+import { Head, usePage } from "@inertiajs/vue3";
+import { ref, computed, watch } from "vue";
 import { router } from "@inertiajs/vue3";
 import {
     BarChart3,
@@ -37,6 +37,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CreateSurveyDialog from "@/components/CreateSurveyDialog.vue";
+import { useToast } from "@/components/ui/toast/use-toast";
 
 defineOptions({
     layout: AuthenticatedLayout,
@@ -94,6 +95,23 @@ const getDaysUntilDeadline = (deadline: string) => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
 };
+
+const page = usePage();
+const { toast } = useToast();
+
+// フラッシュメッセージの表示
+watch(
+    () => page.props.flash?.success,
+    (success) => {
+        if (success) {
+            toast({
+                title: "Success",
+                description: success,
+            });
+        }
+    },
+    { immediate: true }
+);
 </script>
 
 <template>
