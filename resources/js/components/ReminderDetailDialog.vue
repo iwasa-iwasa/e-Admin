@@ -5,6 +5,7 @@ import { Clock, CheckCircle2, Edit2, Save, X } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -44,16 +45,52 @@ const emit = defineEmits<{
 const isEditing = ref(false)
 const editedReminder = ref<Reminder | null>(null)
 
+// 新規作成用のデフォルトリマインダー
+const createDefaultReminder = (): Reminder => ({
+  id: 0,
+  title: '',
+  deadline: new Date().toISOString().split('T')[0],
+  category: '業務',
+  completed: false,
+  description: ''
+})
+
+watch(() => props.open, (isOpen) => {
+  if (isOpen) {
+    if (props.reminder) {
+      editedReminder.value = { ...props.reminder }
+      isEditing.value = false
+    } else {
+      // 新規作成モード
+      editedReminder.value = createDefaultReminder()
+      isEditing.value = true
+    }
+  }
+})
+
 watch(() => props.reminder, (newReminder) => {
   if (newReminder) {
     editedReminder.value = { ...newReminder }
-  } else {
-    editedReminder.value = null
+    isEditing.value = false
+  } else if (props.open) {
+    // 新規作成モード
+    editedReminder.value = createDefaultReminder()
+    isEditing.value = true
   }
-  isEditing.value = false
 }, { deep: true })
 
-const currentReminder = computed(() => isEditing.value && editedReminder.value ? editedReminder.value : props.reminder)
+const currentReminder = computed(() => {
+  if (isEditing.value && editedReminder.value) {
+    return editedReminder.value
+  }
+  if (props.reminder) {
+    return props.reminder
+  }
+  // 新規作成モード
+  return editedReminder.value || createDefaultReminder()
+})
+
+const isCreateMode = computed(() => !props.reminder && props.open)
 
 const handleEdit = () => {
   if (props.reminder) {
@@ -64,6 +101,9 @@ const handleEdit = () => {
 
 const handleSave = () => {
   if (editedReminder.value) {
+    if (!editedReminder.value.title.trim()) {
+      return
+    }
     emit('update:reminder', editedReminder.value)
   }
   isEditing.value = false
@@ -74,11 +114,19 @@ const handleCancel = () => {
   isEditing.value = false
   if (props.reminder) {
     editedReminder.value = { ...props.reminder }
+  } else {
+    editedReminder.value = createDefaultReminder()
   }
+  emit('update:open', false)
 }
 
 const closeDialog = () => {
-    emit('update:open', false)
+  if (isEditing.value && !props.reminder) {
+    // 新規作成モードでキャンセル
+    editedReminder.value = createDefaultReminder()
+    isEditing.value = false
+  }
+  emit('update:open', false)
 }
 
 </script>
@@ -87,32 +135,46 @@ const closeDialog = () => {
   <Dialog :open="open" @update:open="closeDialog">
     <DialogContent v-if="currentReminder" class="max-w-lg">
       <DialogHeader>
-        <div class="flex items-start justify-between gap-4">
-          <DialogTitle class="flex items-center gap-2 flex-1">
-            <CheckCircle2 v-if="currentReminder.completed" class="h-5 w-5 text-green-600" />
-            <Input v-if="isEditing && editedReminder" v-model="editedReminder.title" class="h-8" />
-            <span v-else :class="[currentReminder.completed ? 'line-through text-gray-500' : '']">
-              {{ currentReminder.title }}
-            </span>
-          </DialogTitle>
-          <template v-if="isEditing && editedReminder">
-            <Select v-model="editedReminder.category">
-              <SelectTrigger class="w-28 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="業務">業務</SelectItem>
-                <SelectItem value="人事">人事</SelectItem>
-                <SelectItem value="総務">総務</SelectItem>
-                <SelectItem value="その他">その他</SelectItem>
-              </SelectContent>
-            </Select>
-          </template>
-          <Badge v-else variant="outline">{{ currentReminder.category }}</Badge>
-        </div>
+        <DialogTitle>
+          {{ isCreateMode ? '新規リマインダー作成' : (currentReminder.completed ? '完了済みリマインダー' : 'リマインダー詳細') }}
+        </DialogTitle>
+        <DialogDescription v-if="isCreateMode">
+          個人リマインダーを新規作成します
+        </DialogDescription>
       </DialogHeader>
 
       <div class="space-y-4 pt-4">
+        <div class="space-y-2">
+          <div class="text-sm text-gray-600">タイトル *</div>
+          <Input 
+            v-if="isEditing && editedReminder" 
+            v-model="editedReminder.title" 
+            class="h-8" 
+            placeholder="タイトルを入力" 
+          />
+          <div v-else :class="['text-base font-medium', currentReminder.completed ? 'line-through text-gray-500' : '']">
+            {{ currentReminder.title || '（タイトルなし）' }}
+          </div>
+        </div>
+
+        <div v-if="isEditing && editedReminder" class="space-y-2">
+          <div class="text-sm text-gray-600">カテゴリ</div>
+          <Select v-model="editedReminder.category">
+            <SelectTrigger class="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="業務">業務</SelectItem>
+              <SelectItem value="人事">人事</SelectItem>
+              <SelectItem value="総務">総務</SelectItem>
+              <SelectItem value="その他">その他</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div v-else class="flex items-center gap-2">
+          <Badge variant="outline">{{ currentReminder.category }}</Badge>
+        </div>
+
         <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
           <Clock class="h-4 w-4 text-gray-600" />
           <div class="flex-1">
@@ -132,7 +194,7 @@ const closeDialog = () => {
           </p>
         </div>
 
-        <div v-if="currentReminder.completed && currentReminder.completedAt" class="p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div v-if="!isCreateMode && currentReminder.completed && currentReminder.completedAt" class="p-4 bg-green-50 border border-green-200 rounded-lg">
           <div class="flex items-center gap-2 text-green-700">
             <CheckCircle2 class="h-4 w-4" />
             <span class="text-sm">
@@ -144,7 +206,7 @@ const closeDialog = () => {
           </p>
         </div>
 
-        <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+        <div v-if="!isCreateMode" class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
           <span class="text-sm text-gray-600">ステータス</span>
           <Badge :variant="currentReminder.completed ? 'secondary' : 'default'">
             {{ currentReminder.completed ? '完了' : '未完了' }}
@@ -160,7 +222,7 @@ const closeDialog = () => {
           </Button>
           <Button @click="handleSave" size="sm">
             <Save class="h-4 w-4 mr-1" />
-            保存
+            {{ isCreateMode ? '作成' : '保存' }}
           </Button>
         </template>
         <template v-else>

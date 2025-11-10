@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
-import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
+import ReminderDetailDialog from '@/Components/ReminderDetailDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
 defineOptions({
@@ -47,10 +47,10 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
             <p class="text-xs text-gray-500">自分専用のタスク管理</p>
           </div>
         </div>
-        <Button variant="outline" @click="isCreateDialogOpen = true" class="gap-2" disabled>
-          <Plus class="h-4 w-4" />
-          新規作成
-        </Button>
+          <Button variant="outline" @click="isCreateDialogOpen = true" class="gap-2">
+            <Plus class="h-4 w-4" />
+            新規作成
+          </Button>
       </div>
     </header>
 
@@ -130,6 +130,18 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
       </div>
     </main>
 
-    <ReminderDetailDialog :reminder="selectedReminder" :open="selectedReminder !== null" @update:open="(isOpen) => !isOpen && (selectedReminder = null)" @update:reminder="handleUpdateReminder" />
+    <ReminderDetailDialog 
+      :reminder="selectedReminder" 
+      :open="selectedReminder !== null" 
+      @update:open="(isOpen) => !isOpen && (selectedReminder = null)" 
+      @update:reminder="handleUpdateReminder" 
+    />
+
+    <ReminderDetailDialog
+      :reminder="null"
+      :open="isCreateDialogOpen"
+      @update:open="isCreateDialogOpen = $event"
+      @update:reminder="handleUpdateReminder"
+    />
   </div>
 </template>
