@@ -1,5 +1,8 @@
-import '../css/app.css';
+// import 'v-calendar/style.css';
+// import '../css/app.css';
 import './bootstrap';
+import '../css/app.css';
+import 'v-calendar/style.css';
 
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
@@ -8,13 +11,22 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) =>
-        resolvePageComponent(
+    resolve: (name) => {
+        const page = resolvePageComponent(
             `./Pages/${name}.vue`,
-            import.meta.glob<DefineComponent>('./Pages/**/*.vue'),
-        ),
+            import.meta.glob<DefineComponent>('./Pages/**/*.vue')
+        );
+        page.then((module) => {
+            if (module.default.layout === undefined) {
+                module.default.layout = AuthenticatedLayout;
+            }
+        });
+        return page;
+    },
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)

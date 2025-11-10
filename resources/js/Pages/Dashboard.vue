@@ -1,30 +1,40 @@
 <script setup lang="ts">
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue'
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+// @ts-ignore
+import SharedCalendar from '@/Components/SharedCalendar.vue'
+// @ts-ignore
+import SharedNotes from '@/Components/SharedNotes.vue'
+// @ts-ignore
+import PersonalReminders from '@/Components/PersonalReminders.vue'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { X } from 'lucide-vue-next'
+
+defineOptions({
+  layout: AuthenticatedLayout,
+})
+
+const props = defineProps<{
+  events: Object[]
+  sharedNotes: Object[]
+  personalReminders: Object[]
+}>()
+
 </script>
 
 <template>
-    <Head title="Dashboard" />
-
-    <AuthenticatedLayout>
-        <template #header>
-            <h2
-                class="text-xl font-semibold leading-tight text-gray-800"
-            >
-                Dashboard
-            </h2>
-        </template>
-
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div
-                    class="overflow-hidden bg-white shadow-sm sm:rounded-lg"
-                >
-                    <div class="p-6 text-gray-900">
-                        You're logged in!
-                    </div>
-                </div>
+    <div class="flex gap-6 max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+        <div class="flex-[2.9] h-full">
+            <SharedCalendar :events="props.events" />
+        </div>
+        <div class="flex-[2.1] space-y-6 h-full flex flex-col">
+            <div class="flex-[1.1] min-h-0">
+            <SharedNotes :notes="props.sharedNotes" />
+            </div>
+            <div class="flex-[1.1] min-h-0">
+            <PersonalReminders :reminders="props.personalReminders" />
             </div>
         </div>
-    </AuthenticatedLayout>
+    </div>
 </template>

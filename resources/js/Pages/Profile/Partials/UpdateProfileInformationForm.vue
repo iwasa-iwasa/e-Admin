@@ -15,6 +15,7 @@ const user = usePage().props.auth.user;
 const form = useForm({
     name: user.name,
     email: user.email,
+    department: user.department,
 });
 </script>
 
@@ -63,6 +64,34 @@ const form = useForm({
                 />
 
                 <InputError class="mt-2" :message="form.errors.email" />
+            </div>
+
+            <div>
+                <InputLabel for="department" value="Department" />
+
+                <TextInput
+                    id="department"
+                    type="text"
+                    class="mt-1 block w-full"
+                    v-model="form.department"
+                    required
+                    autocomplete="organization-unit"
+                />
+
+                <InputError class="mt-2" :message="form.errors.department" />
+            </div>
+
+            <div>
+                <InputLabel for="role" value="Role" />
+
+                <TextInput
+                    id="role"
+                    type="text"
+                    class="mt-1 block w-full bg-gray-100"
+                    v-model="user.role"
+                    disabled
+                    readonly
+                />
             </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
