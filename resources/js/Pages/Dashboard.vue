@@ -28,14 +28,14 @@ const props = defineProps<{
     <Head title="ホーム" />
     <div class="flex gap-6 max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
         <div class="flex-[2.9] h-full">
-            <SharedCalendar :events="events" />
+            <SharedCalendar :events="props.events" />
         </div>
         <div class="flex-[2.1] space-y-6 h-full flex flex-col">
             <div class="flex-[1.1] min-h-0">
-            <SharedNotes :notes="sharedNotes" />
+            <SharedNotes :notes="props.sharedNotes" />
             </div>
             <div class="flex-[1.1] min-h-0">
-            <PersonalReminders :reminders="personalReminders" />
+            <PersonalReminders :reminders="props.personalReminders" />
             </div>
         </div>
     </div>

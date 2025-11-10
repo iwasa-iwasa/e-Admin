@@ -126,7 +126,7 @@ const handleEmptyTrash = () => {
               </div>
             </div>
           </div>
-          <Button v-if="trashItems.length > 0" variant="destructive" @click="showEmptyTrashDialog = true" class="gap-2">
+          <Button v-if="trashItems.length > 0" variant="outline" @click="showEmptyTrashDialog = true" class="gap-2">
             <Trash2 class="h-4 w-4" />
             ゴミ箱を空にする
           </Button>
@@ -183,7 +183,7 @@ const handleEmptyTrash = () => {
                       <RotateCcw class="h-4 w-4" />
                       元に戻す
                     </Button>
-                    <Button variant="destructive" size="sm" @click="itemToDelete = item.id" class="gap-2">
+                    <Button variant="outline" size="sm" @click="itemToDelete = item.id" class="gap-2 bg-red-500 hover:bg-red-600 hover:text-white">
                       <X class="h-4 w-4" />
                       完全に削除
                     </Button>
@@ -204,7 +204,7 @@ const handleEmptyTrash = () => {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="handlePermanentDelete" class="bg-red-600 hover:bg-red-700">完全に削除</AlertDialogAction>
+          <AlertDialogAction @click="handlePermanentDelete" class="bg-red-500 hover:bg-red-600 hover:text-white">完全に削除</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

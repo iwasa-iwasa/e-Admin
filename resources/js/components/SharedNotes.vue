@@ -93,7 +93,7 @@ const sortedNotes = computed(() => {
           @click="isCreateDialogOpen = true"
         >
           <Plus class="h-3 w-3" />
-          追加
+          新規作成
         </Button>
       </div>
       <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
