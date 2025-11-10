@@ -31,56 +31,37 @@ class EventSeeder extends Seeder
             'owner_id' => $user->id,
         ]);
 
-        $events = [
-            [
-                'title' => '経営戦略会議',
-                'description' => 'Q4の経営戦略を策定する重要会議',
-                'location' => '大会議室',
-                'category' => '会議',
-                'importance' => '高',
-                'start_date' => '2025-10-14',
-                'start_time' => '09:00',
-                'end_date' => '2025-10-17',
-                'end_time' => '17:00',
+        // サンプルイベントデータを100件生成
+        $categories = ['会議', 'MTG', '業務', '期限', '休暇', '重要'];
+        $importances = ['高', '中', '低'];
+        $locations = ['大会議室', '会議室A', '会議室B', '研修室', 'オンライン', ''];
+        $faker = \Faker\Factory::create('ja_JP');
+        $events = [];
+        for ($i = 1; $i <= 100; $i++) {
+            $category = $categories[array_rand($categories)];
+            $importance = $importances[array_rand($importances)];
+            $location = $locations[array_rand($locations)];
+            // 2025年9月〜12月の間でランダムな日付
+            $month = rand(9, 12);
+            $day = rand(1, 28);
+            $startDate = sprintf('2025-%02d-%02d', $month, $day);
+            $durationDays = rand(0, 2);
+            $endDate = date('Y-m-d', strtotime($startDate . " +{$durationDays} day"));
+            $startHour = rand(8, 17);
+            $endHour = min($startHour + rand(1, 3), 18);
+            $events[] = [
+                'title' => $faker->realText(10),
+                'description' => $faker->realText(40),
+                'location' => $location,
+                'category' => $category,
+                'importance' => $importance,
+                'start_date' => $startDate,
+                'start_time' => sprintf('%02d:00', $startHour),
+                'end_date' => $endDate,
+                'end_time' => sprintf('%02d:00', $endHour),
                 'is_all_day' => false,
-            ],
-            [
-                'title' => 'チームMTG',
-                'description' => '週次のチームミーティング。進捗確認と今週のタスク割り振り',
-                'location' => '会議室A',
-                'category' => 'MTG',
-                'importance' => '中',
-                'start_date' => '2025-10-14',
-                'start_time' => '09:00',
-                'end_date' => '2025-10-14',
-                'end_time' => '10:00',
-                'is_all_day' => false,
-            ],
-            [
-                'title' => '備品発注',
-                'description' => '月次の備品発注作業',
-                'location' => '',
-                'category' => '業務',
-                'importance' => '中',
-                'start_date' => '2025-10-14',
-                'start_time' => '14:00',
-                'end_date' => '2025-10-14',
-                'end_time' => '15:00',
-                'is_all_day' => false,
-            ],
-            [
-                'title' => '新システム導入研修',
-                'description' => '新勤怠管理システムの全社員向け研修',
-                'location' => '研修室',
-                'category' => '研修',
-                'importance' => '中',
-                'start_date' => '2025-10-20',
-                'start_time' => '10:00',
-                'end_date' => '2025-10-22',
-                'end_time' => '17:00',
-                'is_all_day' => false,
-            ],
-        ];
+            ];
+        }
 
         foreach ($events as $eventData) {
             $event = Event::create(array_merge($eventData, [

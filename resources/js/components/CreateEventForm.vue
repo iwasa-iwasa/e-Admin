@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { ArrowLeft, Calendar as CalendarIcon, Clock, Users, MapPin, FileText, Link as LinkIcon, Paperclip, AlertCircle, X, Plus, Save, Repeat } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/components/ui/toast/use-toast'
+import { DatePicker } from 'v-calendar'
 
 interface Participant {
   id: string
@@ -27,6 +28,10 @@ const availableMembers: Participant[] = [
 
 const title = ref('')
 const isAllDay = ref(false)
+const dateRange = ref({
+  start: null,
+  end: null,
+});
 const startDate = ref('')
 const startTime = ref('09:00')
 const endDate = ref('')
@@ -42,10 +47,20 @@ const attachments = ref<File[]>([])
 const isRecurring = ref(false)
 const recurrenceType = ref('none')
 const recurrenceInterval = ref('1')
-const recurrenceEndDate = ref('')
+const recurrenceEndDate = ref<Date | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const { toast } = useToast()
+
+const formatDate = (date: Date | null) => {
+  if (!date) return ''
+  return date.toISOString().split('T')[0]
+}
+
+watch(dateRange, (newRange) => {
+  startDate.value = formatDate(newRange.start)
+  endDate.value = formatDate(newRange.end)
+}, { deep: true })
 
 const handleAddParticipant = (memberId: string) => {
   const member = availableMembers.find((m) => m.id === memberId)
@@ -266,25 +281,39 @@ const triggerFileInput = () => {
                 <Label for="allDay" class="text-sm cursor-pointer">終日</Label>
               </div>
               <div class="space-y-2">
-                <Label>開始日時 *</Label>
-                <div class="flex flex-col sm:flex-row gap-2">
-                  <div class="flex-1">
-                    <Input type="date" v-model="startDate" class="w-full" />
-                  </div>
-                  <div v-if="!isAllDay" class="w-full sm:w-32">
-                    <Input type="time" v-model="startTime" class="w-full" />
-                  </div>
-                </div>
+                <Label>期間 *</Label>
+                <DatePicker v-model.range="dateRange" :masks="{ modelValue: 'YYYY-MM-DD' }" is-range>
+                  <template #default="{ inputValue, inputEvents }">
+                    <div class="flex flex-col sm:flex-row justify-start items-center">
+                      <div class="relative flex-grow w-full">
+                        <Input
+                          :value="inputValue.start"
+                          v-on="inputEvents.start"
+                          class="pr-10"
+                        />
+                        <CalendarIcon class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      </div>
+                      <span class="m-2">-</span>
+                      <div class="relative flex-grow w-full">
+                        <Input
+                          :value="inputValue.end"
+                          v-on="inputEvents.end"
+                          class="pr-10"
+                        />
+                        <CalendarIcon class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      </div>
+                    </div>
+                  </template>
+                </DatePicker>
               </div>
-              <div class="space-y-2">
-                <Label>終了日時 *</Label>
-                <div class="flex flex-col sm:flex-row gap-2">
-                  <div class="flex-1">
-                    <Input type="date" v-model="endDate" class="w-full" />
-                  </div>
-                  <div v-if="!isAllDay" class="w-full sm:w-32">
-                    <Input type="time" v-model="endTime" class="w-full" />
-                  </div>
+              <div v-if="!isAllDay" class="flex flex-col sm:flex-row gap-2">
+                <div class="space-y-2 flex-1">
+                  <Label>開始時刻</Label>
+                  <Input type="time" v-model="startTime" class="w-full" />
+                </div>
+                <div class="space-y-2 flex-1">
+                  <Label>終了時刻</Label>
+                  <Input type="time" v-model="endTime" class="w-full" />
                 </div>
               </div>
             </CardContent>
@@ -338,7 +367,18 @@ const triggerFileInput = () => {
                 </div>
                 <div class="space-y-2">
                   <Label for="recurrenceEnd">繰り返し終了日</Label>
-                  <Input id="recurrenceEnd" type="date" v-model="recurrenceEndDate" />
+                  <DatePicker v-model="recurrenceEndDate" :masks="{ modelValue: 'YYYY-MM-DD' }">
+                    <template #default="{ inputValue, inputEvents }">
+                      <div class="relative w-full">
+                        <Input
+                          :value="inputValue"
+                          v-on="inputEvents"
+                          class="pr-10"
+                        />
+                        <CalendarIcon class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      </div>
+                    </template>
+                  </DatePicker>
                   <p class="text-xs text-gray-500">空白の場合は無期限で繰り返されます</p>
                 </div>
                 <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
@@ -350,7 +390,7 @@ const triggerFileInput = () => {
                     <span v-if="recurrenceType === 'monthly'">毎月繰り返されます</span>
                     <span v-if="recurrenceType === 'yearly'">毎年繰り返されます</span>
                     <span v-if="recurrenceType === 'custom'">{{ recurrenceInterval }}日/週/月/年ごとに繰り返されます</span>
-                    <span v-if="recurrenceEndDate"> ({{ recurrenceEndDate }}まで)</span>
+                    <span v-if="recurrenceEndDate"> ({{ formatDate(recurrenceEndDate) }}まで)</span>
                   </p>
                 </div>
               </div>

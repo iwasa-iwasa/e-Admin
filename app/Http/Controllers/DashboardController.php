@@ -25,18 +25,15 @@ class DashboardController extends Controller
             $query->where('users.id', $user->id);
         })
         ->orderBy('start_date')
-        ->take(5)
         ->get();
 
         $notes = SharedNote::with('author')->orderBy('pinned', 'desc')
             ->orderBy('updated_at', 'desc')
-            ->take(5)
             ->get();
 
         $reminders = $user->reminders()
             ->where('completed', false)
             ->orderBy('deadline')
-            ->take(5)
             ->get();
 
         return Inertia::render('Dashboard', [
