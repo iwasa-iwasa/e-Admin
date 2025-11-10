@@ -44,7 +44,7 @@ const { isMobile } = useSidebar()
   <SidebarMenu>
     <SidebarMenuItem>
       <DropdownMenu>
-        <DropdownMenuTrigger as-child>
+        <DropdownMenuTrigger>
           <SidebarMenuButton
             size="lg"
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"

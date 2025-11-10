@@ -54,6 +54,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/member-calendar', function () {
         return Inertia::render('MemberCalendar');
     })->name('member.calendar');
+
+    Route::post('/events', [\App\Http\Controllers\CalendarController::class, 'store'])->name('events.store');
+
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // Laravel Breeze/Jetstreamのデフォルト認証ルート
