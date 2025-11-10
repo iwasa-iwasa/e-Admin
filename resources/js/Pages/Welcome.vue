@@ -1,4 +1,5 @@
 <script setup>
+import { Head } from '@inertiajs/vue3'
 import { Head, Link } from '@inertiajs/vue3';
 
 defineProps({
@@ -12,7 +13,7 @@ defineProps({
 </script>
 
 <template>
-    <Head title="Welcome" />
+    <Head title="ようこそ" />
 
     <div class="flex items-center justify-center min-h-screen bg-gray-100">
         <div class="text-center">

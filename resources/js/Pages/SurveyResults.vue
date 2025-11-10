@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Head } from '@inertiajs/vue3'
 import { formatDate } from '@/lib/utils'
 import { ref, computed } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
@@ -85,6 +86,7 @@ const responseRate = computed(() => {
 </script>
 
 <template>
+  <Head title="アンケート結果" />
   <div class="min-h-screen bg-gray-50">
     <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4">

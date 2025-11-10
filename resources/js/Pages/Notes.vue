@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft } from 'lucide-vue-next'
@@ -92,6 +93,7 @@ const getColorClass = (color: string) => {
 </script>
 
 <template>
+  <Head title="共有メモ" />
   <div class="h-screen bg-gray-50 flex">
     <div class="w-full md:w-96 lg:w-[420px] bg-white border-r border-gray-200 flex flex-col">
       <div class="p-4 border-b border-gray-200">
