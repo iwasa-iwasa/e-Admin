@@ -401,7 +401,7 @@ const getQuestionTypeLabel = (type: QuestionType) => {
           </div>
 
           <div class="flex flex-col sm:hidden gap-2 pt-4">
-            <Button @click="handleSave(false)" class="w-full gap-2">
+            <Button variant="outline" @click="handleSave(false)" class="w-full gap-2">
               <Save class="h-4 w-4" />
               アンケートを公開
             </Button>

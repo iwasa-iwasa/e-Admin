@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, h } from "vue";
+import { ref, h, onMounted, watch } from "vue";
 import { useForm } from "@inertiajs/vue3";
 import {
     Plus,
@@ -13,6 +13,7 @@ import {
     List,
     Clock,
     BarChart2,
+    X,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +71,7 @@ interface QuestionTemplate {
     scaleMax?: number;
 }
 
-defineProps<{
+const props = defineProps<{
     open: boolean;
 }>();
 const emit = defineEmits(["update:open"]);
@@ -81,8 +82,14 @@ const category = ref("その他");
 const deadline = ref("");
 const questions = ref<Question[]>([]);
 const showTemplateDialog = ref(false);
+const draftSavedAt = ref<Date | null>(null);
+const showDraftBanner = ref(false);
 
 const { toast } = useToast();
+
+const DRAFT_KEY = "survey_draft";
+const AUTO_SAVE_DELAY = 30000; // 30秒
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 const form = useForm({
     title: "",
@@ -290,6 +297,10 @@ const handleSave = (isDraft: boolean = false) => {
     form.post("/surveys", {
         preserveScroll: true,
         onSuccess: () => {
+            // 本保存成功時は一時保存データを削除
+            if (!isDraft) {
+                clearDraft();
+            }
             toast({
                 title: "Success",
                 description: isDraft
@@ -315,12 +326,20 @@ const handleSave = (isDraft: boolean = false) => {
 };
 
 const handleClose = () => {
+    // 自動保存タイマーをクリア
+    if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = null;
+    }
+
     title.value = "";
     description.value = "";
     category.value = "その他";
     deadline.value = "";
     questions.value = [];
     showTemplateDialog.value = false;
+    draftSavedAt.value = null;
+    showDraftBanner.value = false;
     form.reset();
     form.clearErrors();
     emit("update:open", false);
@@ -344,10 +363,181 @@ const getQuestionTypeLabel = (type: QuestionType) => {
     const template = questionTemplates.find((t) => t.type === type);
     return template?.name || type;
 };
+
+// 一時保存データの型定義
+interface DraftData {
+    title: string;
+    description: string;
+    category: string;
+    deadline: string;
+    questions: Question[];
+    saved_at: string;
+}
+
+// 一時保存処理
+const saveDraft = () => {
+    try {
+        // 入力内容が空の場合は保存しない
+        if (
+            !title.value.trim() &&
+            !description.value.trim() &&
+            questions.value.length === 0
+        ) {
+            toast({
+                title: "Info",
+                description: "保存する内容がありません",
+            });
+            return;
+        }
+
+        const draftData: DraftData = {
+            title: title.value,
+            description: description.value,
+            category: category.value,
+            deadline: deadline.value,
+            questions: questions.value,
+            saved_at: new Date().toISOString(),
+        };
+
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+        draftSavedAt.value = new Date();
+        showDraftBanner.value = true;
+
+        toast({
+            title: "Success",
+            description: "下書きを保存しました",
+        });
+    } catch (error) {
+        console.error("一時保存に失敗:", error);
+        toast({
+            title: "Error",
+            description: "一時保存に失敗しました",
+            variant: "destructive",
+        });
+    }
+};
+
+// 一時保存データの復元
+const loadDraft = () => {
+    try {
+        const saved = localStorage.getItem(DRAFT_KEY);
+        if (!saved) return null;
+
+        const draftData: DraftData = JSON.parse(saved);
+
+        title.value = draftData.title || "";
+        description.value = draftData.description || "";
+        category.value = draftData.category || "その他";
+        deadline.value = draftData.deadline || "";
+        questions.value = draftData.questions || [];
+        draftSavedAt.value = new Date(draftData.saved_at);
+        showDraftBanner.value = true;
+
+        return draftData;
+    } catch (error) {
+        console.error("復元に失敗:", error);
+        toast({
+            title: "Error",
+            description: "下書きの復元に失敗しました",
+            variant: "destructive",
+        });
+        return null;
+    }
+};
+
+// 一時保存データの削除
+const clearDraft = () => {
+    try {
+        localStorage.removeItem(DRAFT_KEY);
+        draftSavedAt.value = null;
+        showDraftBanner.value = false;
+        toast({
+            title: "Success",
+            description: "下書きを削除しました",
+        });
+    } catch (error) {
+        console.error("下書き削除に失敗:", error);
+    }
+};
+
+// 保存時刻の表示用フォーマット
+const formatSavedTime = (date: Date | null): string => {
+    if (!date) return "";
+
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (minutes < 1) return "たった今";
+    if (minutes < 60) return `${minutes}分前`;
+    if (hours < 24) return `${hours}時間前`;
+    if (days < 7) return `${days}日前`;
+
+    return date.toLocaleDateString("ja-JP", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+};
+
+// 自動保存のスケジュール
+const scheduleAutoSave = () => {
+    if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+    }
+
+    autoSaveTimer = setTimeout(() => {
+        // 入力内容がある場合のみ自動保存
+        if (
+            title.value.trim() ||
+            description.value.trim() ||
+            questions.value.length > 0
+        ) {
+            saveDraft();
+        }
+    }, AUTO_SAVE_DELAY);
+};
+
+// 入力内容の変更を監視して自動保存をスケジュール
+watch(
+    [title, description, category, deadline, questions],
+    () => {
+        if (props.open) {
+            scheduleAutoSave();
+        }
+    },
+    { deep: true }
+);
+
+// ダイアログが開いた時の処理
+watch(
+    () => props.open,
+    (isOpen) => {
+        if (isOpen) {
+            // ダイアログが開かれた時に一時保存データをチェック
+            const saved = localStorage.getItem(DRAFT_KEY);
+            if (saved && !draftSavedAt.value) {
+                // 確認ダイアログを表示
+                const shouldRestore = window.confirm(
+                    "前回の下書きが見つかりました。復元しますか？"
+                );
+
+                if (shouldRestore) {
+                    loadDraft();
+                } else {
+                    clearDraft();
+                }
+            }
+        }
+    }
+);
 </script>
 
 <template>
-    <Dialog :open="open" @update:open="handleClose">
+    <Dialog :open="props.open" @update:open="handleClose">
         <DialogContent class="max-w-4xl max-h-[90vh]">
             <DialogHeader>
                 <DialogTitle>新しいアンケートを作成</DialogTitle>
@@ -355,6 +545,25 @@ const getQuestionTypeLabel = (type: QuestionType) => {
                     >総務部 共同管理のアンケートを作成します</DialogDescription
                 >
             </DialogHeader>
+
+            <!-- 一時保存バナー -->
+            <div
+                v-if="showDraftBanner && draftSavedAt"
+                class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between"
+            >
+                <div class="flex items-center gap-2 text-sm text-blue-700">
+                    <Clock class="h-4 w-4" />
+                    <span>最終保存: {{ formatSavedTime(draftSavedAt) }}</span>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    @click="clearDraft"
+                    class="h-6 px-2 text-blue-700 hover:text-blue-900"
+                >
+                    <X class="h-3 w-3" />
+                </Button>
+            </div>
 
             <ScrollArea class="max-h-[60vh] mt-4">
                 <div class="space-y-6 pr-4">
@@ -952,7 +1161,7 @@ const getQuestionTypeLabel = (type: QuestionType) => {
                 <div class="flex gap-2">
                     <Button
                         variant="outline"
-                        @click="handleSave(true)"
+                        @click="saveDraft"
                         :disabled="form.processing"
                         >一時保存</Button
                     >
