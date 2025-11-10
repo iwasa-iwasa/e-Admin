@@ -124,12 +124,13 @@ const changeView = (view: string) => {
           </Badge>
         </div>
         <Button
+          variant="outline"
           size="sm"
           class="gap-2"
           @click="isCreateEventDialogOpen = true"
         >
           <Plus class="h-4 w-4" />
-          予定追加
+          新規作成
         </Button>
       </div>
 
