@@ -287,7 +287,7 @@ const totalNotifications = importantEvents.length + importantNotes.length + pend
           <PopoverTrigger as-child>
             <Button variant="outline" size="icon" class="relative">
               <Bell class="h-5 w-5" />
-              <Badge class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500">
+              <Badge class="absolute -top-1 text-white -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500">
                 {{ totalNotifications }}
               </Badge>
             </Button>

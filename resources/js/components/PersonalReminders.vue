@@ -40,7 +40,6 @@ const isDialogOpen = ref(false)
           variant="outline"
           class="h-8 gap-1"
           @click="isDialogOpen = true"
-          disabled
         >
           <Plus class="h-3 w-3" />
           新規作成
