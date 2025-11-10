@@ -51,17 +51,17 @@ const handleMemberClick = (memberId: string) => {
 
 <template>
   <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
-    <!-- ロゴ・タイトル -->
-    <!-- サイドバー用ロゴコンポーネント -->
-    <div class="p-6">
-      <LogoTitle logo-src="/images/logo.png" />
-    </div>
- 
-
-    <Separator />
-
+    
     <!-- ナビゲーション -->
+    
     <nav class="flex-1 p-4 space-y-2">
+      <!-- ロゴ・タイトル -->
+      <!-- サイドバー用ロゴコンポーネント -->
+      <div class="p-6">
+        <LogoTitle logo-src="/images/logo.png" />
+      </div>
+   
+      <Separator />
       <Button
         :class="[
         'w-full justify-start gap-3',

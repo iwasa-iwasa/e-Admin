@@ -193,13 +193,13 @@ const totalNotifications = importantEvents.length + importantNotes.length + pend
               <Input
                 type="text"
                 placeholder="日付、名前、キーワードで検索... (例: 2025-10-20, 田中, 会議)"
-                class="pl-10 pr-4 py-2 w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                class="pl-10 pr-4 py-2 w-full text-gray-500 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 v-model="searchQuery"
               />
             </div>
           </PopoverTrigger>
           <PopoverContent
-            class="w-80 p-2"
+            class="w-80 p-2  border-gray-300"
             align="start"
             side="bottom"
             @mouseenter="isSearchFocused = true"
@@ -287,7 +287,7 @@ const totalNotifications = importantEvents.length + importantNotes.length + pend
           <PopoverTrigger as-child>
             <Button variant="outline" size="icon" class="relative">
               <Bell class="h-5 w-5" />
-              <Badge class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500">
+              <Badge class="absolute -top-1 -right-1 h-5 w-5 flex items-center text-white justify-center p-0 bg-red-500">
                 {{ totalNotifications }}
               </Badge>
             </Button>

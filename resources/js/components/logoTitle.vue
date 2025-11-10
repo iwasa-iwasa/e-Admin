@@ -14,7 +14,7 @@ const goToHome = () => {
 
 <template>
   <a href="/" @click.prevent="goToHome">
-    <img src="../../../ロゴ・タイトル3.svg" alt="Logo" />
+    <img src="../../../ロゴ・タイトル.svg" alt="Logo" />
   </a>
 </template>
 

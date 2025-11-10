@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Head } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SharedCalendar from '@/components/SharedCalendar.vue'
 
@@ -12,6 +13,7 @@ const props = defineProps<{
 </script>
 
 <template>
+    <Head title="カレンダー" />
     <div class="p-6">
         <SharedCalendar :events="events" />
     </div>

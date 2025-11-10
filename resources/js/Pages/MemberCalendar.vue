@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Head } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Search, Users, Eye, EyeOff, Calendar as CalendarIcon, Clock, MapPin, User, Edit, Trash2 } from 'lucide-vue-next'
@@ -160,6 +161,7 @@ const weekDays = ['日', '月', '火', '水', '木', '金', '土']
 </script>
 
 <template>
+  <Head title="部署共有カレンダー" />
   <div class="min-h-screen bg-gray-50 flex">
     <aside class="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div class="p-4 border-b border-gray-200">

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Head } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { Bell, Plus, Clock, ArrowLeft, Trash2 } from 'lucide-vue-next'
@@ -32,6 +33,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
 </script>
 
 <template>
+  <Head title="個人リマインダー" />
   <div class="h-screen bg-gray-50 flex flex-col">
     <header class="bg-white border-b border-gray-200 px-6 py-4">
       <div class="flex items-center justify-between">

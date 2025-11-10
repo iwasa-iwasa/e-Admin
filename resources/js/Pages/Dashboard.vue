@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Head } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 // @ts-ignore
@@ -24,6 +25,7 @@ const props = defineProps<{
 </script>
 
 <template>
+    <Head title="ホーム" />
     <div class="flex gap-6 max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
         <div class="flex-[2.9] h-full">
             <SharedCalendar :events="events" />
