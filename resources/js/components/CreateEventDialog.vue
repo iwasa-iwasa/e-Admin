@@ -35,10 +35,11 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast/use-toast";
-import { DatePicker } from 'v-calendar'
-import { TimePicker } from 'vue-material-time-picker'
-import 'vue-material-time-picker/dist/style.css'
-import 'v-calendar/style.css';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
+import { TimePicker } from "vue-material-time-picker";
+import { ja } from "date-fns/locale"
+import '@vuepic/vue-datepicker/dist/main.css';
+import "vue-material-time-picker/dist/style.css";
 import {
   Popover,
   PopoverContent,
@@ -58,10 +59,7 @@ const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 const form = useForm({
   title: '',
   is_all_day: false,
-  date_range: {
-    start: new Date(),
-    end: new Date(),
-  },
+  date_range: [new Date(), new Date()],
   start_time: '09:00',
   end_time: '10:00',
   participants: [] as App.Models.User[],
@@ -70,24 +68,26 @@ const form = useForm({
   category: '会議',
   importance: '中',
 })
-
-// Workaround for v-calendar and inertia form proxy issue
-const dateRange = ref({
-    start: new Date(form.date_range.start),
-    end: new Date(form.date_range.end),
-})
-watch(dateRange, (newRange) => {
-    if (newRange && newRange.start && newRange.end) {
-        form.date_range.start = newRange.start
-        form.date_range.end = newRange.end
+const is_all_day = ref(form.is_all_day);
+const date = ref(form.date_range);
+watch(date, (newDate) => {
+    if (newDate && newDate.length === 2) {
+        form.date_range = newDate;
     }
-})
-
-// Watch for debugging toggle state
-watch(() => form.is_all_day, (newValue) => {
-    console.log('form.is_all_day changed:', newValue);
 });
 
+const format = (dates: Date[]) => {
+    if (dates && dates.length === 2) {
+        const start = dates[0].toLocaleDateString('ja-JP');
+        const end = dates[1].toLocaleDateString('ja-JP');
+        return `${start} - ${end}`;
+    }
+    return '';
+}
+
+const handleAllDayToggle = (value: boolean) => {
+  form.is_all_day = value;
+};
 
 const handleAddParticipant = (memberId: number) => {
   const member = teamMembers.value.find((m) => m.id === memberId)
@@ -101,7 +101,10 @@ const handleRemoveParticipant = (participantId: number) => {
 }
 
 const handleSave = () => {
-  form.post(route('events.store'), {
+  form.transform(data => ({
+    ...data,
+    participants: data.participants.map(p => p.id)
+  })).post(route('events.store'), {
     onSuccess: () => {
       toast({ title: "Success", description: "予定を作成しました" })
       handleClose()
@@ -121,8 +124,7 @@ const handleSave = () => {
 
 const handleClose = () => {
     form.reset()
-    // also reset the local dateRange ref
-    dateRange.value = { start: new Date(), end: new Date() }
+    date.value = [new Date(), new Date()];
     emit("update:open", false);
 };
 
@@ -214,7 +216,12 @@ const getCategoryColor = (cat: string) => {
 
                         <TabsContent value="datetime" class="space-y-4 min-h-[400px]">
                             <div class="flex items-center space-x-2">
-                                <Switch id="allDay" v-model:checked="form.is_all_day" />
+                                <Switch
+                                  id="allDay"
+                                  :checked="is_all_day"
+                                  v-model="form.is_all_day"
+                                  @update:checked="handleAllDayToggle"
+                                />
                                 <Label for="allDay" class="text-sm cursor-pointer">終日</Label>
                             </div>
                             <div class="space-y-2">
@@ -222,21 +229,16 @@ const getCategoryColor = (cat: string) => {
                                     <CalendarIcon class="h-4 w-4" />
                                     期間 *
                                 </Label>
-                                <DatePicker v-model="dateRange" is-range :masks="{ modelValue: 'YYYY-MM-DD' }">
-                                     <template #default="{ inputValue, inputEvents }">
-                                        <div class="flex flex-col sm:flex-row justify-start items-center">
-                                            <div class="relative flex-grow w-full">
-                                                <Input :value="inputValue.start" v-on="inputEvents.start" class="pr-10" />
-                                                <CalendarIcon class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                            </div>
-                                            <span class="m-2">-</span>
-                                            <div class="relative flex-grow w-full">
-                                                <Input :value="inputValue.end" v-on="inputEvents.end" class="pr-10" />
-                                                <CalendarIcon class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                            </div>
-                                        </div>
-                                    </template>
-                                </DatePicker>
+                                <VueDatePicker
+                                    v-model="date"
+                                    range
+                                    :time-config="{ enableTimePicker: false }"
+                                    placeholder="期間を選択"
+                                    :locale="ja"
+                                    :format="format"
+                                    auto-apply
+                                    teleport-center
+                                />
                             </div>
                             <div v-if="!form.is_all_day" class="flex flex-col sm:flex-row gap-4">
                                 <div class="space-y-2 flex-1">
@@ -255,7 +257,7 @@ const getCategoryColor = (cat: string) => {
                                 </div>
                                 <div class="space-y-2 flex-1">
                                     <Label>終了時刻</Label>
-                                     <Popover>
+                                    <Popover>
                                         <PopoverTrigger as-child>
                                             <Button variant="outline" class="w-full justify-start font-normal">
                                                 <Clock class="mr-2 h-4 w-4" />

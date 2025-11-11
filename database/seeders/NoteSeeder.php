@@ -15,10 +15,11 @@ class NoteSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::where('email', 'test@example.com')->first();
+        $user = User::inRandomOrder()->first();
         if (!$user) {
-            $this->command->call('db:seed', ['--class' => 'UserSeeder']);
-            $user = User::where('email', 'test@example.com')->first();
+            // ユーザーが存在しない場合は、シーダーを中止
+            $this->command->info('No users found, skipping NoteSeeder.');
+            return;
         }
 
         $notes = [

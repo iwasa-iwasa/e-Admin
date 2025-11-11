@@ -14,10 +14,10 @@ class ReminderSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::where('email', 'test@example.com')->first();
+        $user = User::inRandomOrder()->first();
         if (!$user) {
-            $this->command->call('db:seed', ['--class' => 'UserSeeder']);
-            $user = User::where('email', 'test@example.com')->first();
+            $this->command->info('No users found, skipping ReminderSeeder.');
+            return;
         }
 
         $reminders = [

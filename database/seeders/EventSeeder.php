@@ -24,12 +24,12 @@ class EventSeeder extends Seeder
             $user = User::first();
         }
 
-        // Create a default calendar for the user
-        $calendar = Calendar::create([
-            'calendar_name' => '部署内共有カレンダー',
-            'calendar_type' => 'group',
-            'owner_id' => $user->id,
-        ]);
+        // Get the shared calendar
+        $calendar = Calendar::first();
+        if (!$calendar) {
+            $this->command->error('No calendar found. Run DatabaseSeeder first.');
+            return;
+        }
 
         // サンプルイベントデータを100件生成
         $categories = ['会議', 'MTG', '業務', '期限', '休暇', '重要'];

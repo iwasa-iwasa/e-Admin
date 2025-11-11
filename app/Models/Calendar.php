@@ -40,16 +40,7 @@ class Calendar extends Model
     protected $fillable = [
         'calendar_name',
         'calendar_type',
-        'owner_id',
     ];
-
-    /**
-     * Get the user that owns the calendar.
-     */
-    public function owner()
-    {
-        return $this->belongsTo(User::class, 'owner_id');
-    }
 
     /**
      * Get the events for the calendar.
