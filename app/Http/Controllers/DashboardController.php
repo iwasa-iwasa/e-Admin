@@ -20,12 +20,10 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Fetch data for the dashboard
-        $events = Event::with(['creator', 'participants'])->whereHas('participants', function ($query) use ($user) {
-            $query->where('users.id', $user->id);
-        })
-        ->orderBy('start_date')
-        ->get();
+        // Fetch all events from the shared calendar
+        $events = Event::with(['creator', 'participants'])
+            ->orderBy('start_date')
+            ->get();
 
         $notes = SharedNote::with('author')->orderBy('pinned', 'desc')
             ->orderBy('updated_at', 'desc')
