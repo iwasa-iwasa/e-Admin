@@ -20,35 +20,35 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Test User',
                 'password' => Hash::make('password'),
-                'department' => 'IT',
+                'department' => '総務部',
                 'role' => 'admin',
             ]
         );
 
         $users = [
             [
-                'name' => '田中',
+                'name' => 'aaa',
                 'email' => 'tanaka@example.com',
                 'password' => Hash::make('password'),
                 'department' => '総務部',
                 'role' => 'member',
             ],
             [
-                'name' => '佐藤',
+                'name' => 'bbb',
                 'email' => 'sato@example.com',
                 'password' => Hash::make('password'),
                 'department' => '総務部',
                 'role' => 'member',
             ],
             [
-                'name' => '鈴木',
+                'name' => 'ccc',
                 'email' => 'suzuki@example.com',
                 'password' => Hash::make('password'),
                 'department' => '総務部',
                 'role' => 'member',
             ],
             [
-                'name' => '山田',
+                'name' => 'ddd',
                 'email' => 'yamada@example.com',
                 'password' => Hash::make('password'),
                 'department' => '総務部',

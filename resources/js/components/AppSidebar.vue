@@ -6,15 +6,12 @@ import {
   BookOpen,
   Bot,
   Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
   Settings2,
   SquareTerminal,
 } from "lucide-vue-next"
 import NavMain from "@/components/NavMain.vue"
-import NavProjects from "@/components/NavProjects.vue"
+import NavMembers from "@/components/NavMembers.vue"
 import NavUser from "@/components/NavUser.vue"
 import TeamSwitcher from "@/components/TeamSwitcher.vue"
 
@@ -141,23 +138,6 @@ const data = {
       ],
     },
   ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
 }
 </script>
 
@@ -168,7 +148,7 @@ const data = {
     </SidebarHeader>
     <SidebarContent>
       <NavMain :items="data.navMain" />
-      <NavProjects :projects="data.projects" />
+      <NavMembers />
     </SidebarContent>
     <SidebarFooter>
       <NavUser :user="data.user" />

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import DashboardSidebar from '@/Layouts/Partials/DashboardSidebar.vue'
 import DashboardHeader from '@/Layouts/Partials/DashboardHeader.vue'
+import { Toaster } from '@/components/ui/toast'
 
 const selectedMember = ref<string | null>(null)
 </script>
@@ -15,5 +16,6 @@ const selectedMember = ref<string | null>(null)
         <slot :selected-member="selectedMember" @update:selected-member="selectedMember = $event" />
       </main>
     </div>
+    <Toaster />
   </div>
 </template>

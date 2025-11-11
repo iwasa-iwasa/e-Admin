@@ -6,15 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import LogoTitle from '@/components/logoTitle.vue'
-
-interface Member {
-  id: string
-  name: string
-  initial: string
-  color: string
-}
 
 const props = defineProps<{
   selectedMember: string | null
@@ -24,14 +17,9 @@ const emit = defineEmits<{
   (e: 'update:selectedMember', memberId: string | null): void
 }>()
 
-const members: Member[] = [
-  { id: '1', name: '田中', initial: '田', color: '#3b82f6' },
-  { id: '2', name: '佐藤', initial: '佐', color: '#10b981' },
-  { id: '3', name: '鈴木', initial: '鈴', color: '#f59e0b' },
-  { id: '4', name: '山田', initial: '山', color: '#ef4444' },
-]
-
 const page = usePage()
+
+const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 
 const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -174,16 +162,15 @@ const handleMemberClick = (memberId: string) => {
       <ScrollArea class="max-h-[200px]">
         <div class="space-y-1">
           <Button
-            v-for="member in members"
+            v-for="member in teamMembers"
             :key="member.id"
             :variant="selectedMember === member.id ? 'default' : 'ghost'"
             class="w-full justify-start gap-3"
             @click="handleMemberClick(member.id)"
           >
-            <Avatar class="h-6 w-6" :style="{ backgroundColor: member.color }">
-              <AvatarFallback class="text-white text-xs">
-                {{ member.initial }}
-              </AvatarFallback>
+            <Avatar class="h-6 w-6">
+              <AvatarImage :src="member.avatar" :alt="member.name" />
+              <AvatarFallback>{{ member.name.charAt(0) }}</AvatarFallback>
             </Avatar>
             {{ member.name }}
             <Badge v-if="selectedMember === member.id" variant="secondary" class="ml-auto text-xs">
