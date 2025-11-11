@@ -7,6 +7,10 @@ import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
+defineOptions({
+    layout: GuestLayout,
+});
+
 defineProps<{
     canResetPassword?: boolean;
     status?: string;
@@ -28,7 +32,7 @@ const submit = () => {
 </script>
 
 <template>
-    <GuestLayout>
+    <div>
         <Head title="ログイン" />
 
         <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
@@ -94,5 +98,5 @@ const submit = () => {
                 </PrimaryButton>
             </div>
         </form>
-    </GuestLayout>
+    </div>
 </template>

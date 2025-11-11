@@ -21,7 +21,8 @@ createInertiaApp({
             import.meta.glob<DefineComponent>('./Pages/**/*.vue')
         );
         page.then((module) => {
-            if (module.default.layout === undefined) {
+            // 認証ページ（Auth/で始まるページ）にはデフォルトレイアウトを適用しない
+            if (module.default.layout === undefined && !name.startsWith('Auth/')) {
                 module.default.layout = AuthenticatedLayout;
             }
         });
