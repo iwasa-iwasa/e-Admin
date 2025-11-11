@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\PersonalReminderController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
@@ -36,6 +37,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/notes', [NoteController::class, 'index'])->name('notes');
 
     Route::get('/surveys', [SurveyController::class, 'index'])->name('surveys');
+    Route::post('/surveys', [SurveyController::class, 'store'])->name('surveys.store');
 
     // Survey Results
     Route::get('/surveys/{survey}/results', function () {
@@ -44,6 +46,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('surveys.results');
 
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders');
+    Route::post('/reminders', [PersonalReminderController::class, 'store'])->name('reminders.store');
+    Route::put('/reminders/{reminder}', [PersonalReminderController::class, 'update'])->name('reminders.update');
 
     // Trash
     Route::get('/trash', function () {
@@ -63,4 +67,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Laravel Breeze/Jetstreamのデフォルト認証ルート
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

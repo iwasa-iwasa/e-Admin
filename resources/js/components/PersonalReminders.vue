@@ -20,7 +20,7 @@ const completedCount = computed(() => props.reminders.filter((r) => r.completed)
 // Data modification functions are disabled for now
 const handleToggleComplete = (id: number) => {}
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
-const isDialogOpen = ref(false)
+const isCreateDialogOpen = ref(false)
 
 </script>
 
@@ -39,7 +39,7 @@ const isDialogOpen = ref(false)
           size="sm"
           variant="outline"
           class="h-8 gap-1"
-          @click="isDialogOpen = true"
+          @click="isCreateDialogOpen = true"
         >
           <Plus class="h-3 w-3" />
           新規作成
@@ -88,6 +88,13 @@ const isDialogOpen = ref(false)
       :reminder="selectedReminder"
       :open="selectedReminder !== null"
       @update:open="(isOpen) => !isOpen && (selectedReminder = null)"
+      @update:reminder="handleUpdateReminder"
+    />
+
+    <ReminderDetailDialog
+      :reminder="null"
+      :open="isCreateDialogOpen"
+      @update:open="isCreateDialogOpen = $event"
       @update:reminder="handleUpdateReminder"
     />
   </Card>
