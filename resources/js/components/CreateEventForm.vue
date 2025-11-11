@@ -1,144 +1,3 @@
-<script setup lang="ts">
-import { ref, watch } from 'vue'
-import { router } from '@inertiajs/vue3'
-import { ArrowLeft, Calendar as CalendarIcon, Clock, Users, MapPin, FileText, Link as LinkIcon, Paperclip, AlertCircle, X, Plus, Save, Repeat } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useToast } from '@/components/ui/toast/use-toast'
-import { DatePicker } from 'v-calendar'
-
-interface Participant {
-  id: string
-  name: string
-}
-
-const availableMembers: Participant[] = [
-  { id: '1', name: '田中' },
-  { id: '2', name: '佐藤' },
-  { id: '3', name: '鈴木' },
-  { id: '4', name: '山田' },
-]
-
-const title = ref('')
-const isAllDay = ref(false)
-const dateRange = ref({
-  start: null,
-  end: null,
-});
-const startDate = ref('')
-const startTime = ref('09:00')
-const endDate = ref('')
-const endTime = ref('10:00')
-const participants = ref<Participant[]>([])
-const location = ref('')
-const description = ref('')
-const calendarName = ref('総務部共有カレンダー')
-const category = ref('会議')
-const url = ref('')
-const importance = ref('中')
-const attachments = ref<File[]>([])
-const isRecurring = ref(false)
-const recurrenceType = ref('none')
-const recurrenceInterval = ref('1')
-const recurrenceEndDate = ref<Date | null>(null)
-const fileInput = ref<HTMLInputElement | null>(null)
-
-const { toast } = useToast()
-
-const formatDate = (date: Date | null) => {
-  if (!date) return ''
-  return date.toISOString().split('T')[0]
-}
-
-watch(dateRange, (newRange) => {
-  startDate.value = formatDate(newRange.start)
-  endDate.value = formatDate(newRange.end)
-}, { deep: true })
-
-const handleAddParticipant = (memberId: string) => {
-  const member = availableMembers.find((m) => m.id === memberId)
-  if (member && !participants.value.find((p) => p.id === member.id)) {
-    participants.value.push(member)
-  }
-}
-
-const handleRemoveParticipant = (participantId: string) => {
-  participants.value = participants.value.filter((p) => p.id !== participantId)
-}
-
-const handleFileChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  if (target.files) {
-    const newFiles = Array.from(target.files)
-    attachments.value.push(...newFiles)
-  }
-}
-
-const handleRemoveAttachment = (index: number) => {
-  attachments.value.splice(index, 1)
-}
-
-const handleSave = () => {
-  if (!title.value.trim()) {
-    toast({ title: 'Error', description: 'タイトルを入力してください', variant: 'destructive' })
-    return
-  }
-  if (!startDate.value) {
-    toast({ title: 'Error', description: '開始日を選択してください', variant: 'destructive' })
-    return
-  }
-  if (!endDate.value) {
-    toast({ title: 'Error', description: '終了日を選択してください', variant: 'destructive' })
-    return
-  }
-
-  toast({ title: 'Success', description: '予定を作成しました' })
-  router.get('/')
-}
-
-const handleCancel = () => {
-  if (title.value || description.value || participants.value.length > 0 || location.value || url.value || attachments.value.length > 0) {
-    if (window.confirm('入力内容が失われますが、よろしいですか？')) {
-      router.get('/')
-    }
-  } else {
-    router.get('/')
-  }
-}
-
-const getImportanceColor = (importance: string) => {
-  switch (importance) {
-    case '高': return 'text-red-600'
-    case '中': return 'text-yellow-600'
-    case '低': return 'text-gray-600'
-    default: return 'text-gray-600'
-  }
-}
-
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case '会議': return 'bg-purple-500'
-    case 'MTG': return 'bg-green-500'
-    case '期限': return 'bg-orange-500'
-    case '重要': return 'bg-red-500'
-    case '有給': return 'bg-teal-500'
-    default: return 'bg-gray-500'
-  }
-}
-
-const triggerFileInput = () => {
-  fileInput.value?.click()
-}
-
-</script>
-
 <template>
   <div class="min-h-screen bg-gray-50">
     <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -155,7 +14,7 @@ const triggerFileInput = () => {
           </div>
           <div class="flex items-center gap-2">
             <Button variant="outline" @click="handleCancel">キャンセル</Button>
-            <Button @click="handleSave" class="gap-2">
+            <Button @click="handleSave" class="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
               <Save class="h-4 w-4" />
               保存
             </Button>
@@ -177,11 +36,11 @@ const triggerFileInput = () => {
             <CardContent class="space-y-4">
               <div class="space-y-2">
                 <Label for="title" class="required">タイトル / 件名 *</Label>
-                <Input id="title" placeholder="例：部署ミーティング" v-model="title" class="text-base" />
+                <Input id="title" placeholder="例：部署ミーティング" v-model="form.title" class="text-base" />
               </div>
               <div class="space-y-2">
                 <Label for="calendar">カレンダー</Label>
-                <Select v-model="calendarName">
+                <Select v-model="form.calendar_name">
                   <SelectTrigger id="calendar">
                     <SelectValue />
                   </SelectTrigger>
@@ -193,10 +52,10 @@ const triggerFileInput = () => {
               </div>
               <div class="space-y-2">
                 <Label for="category">ジャンル</Label>
-                <Select v-model="category">
+                <Select v-model="form.category">
                   <SelectTrigger id="category">
                     <div class="flex items-center gap-2">
-                      <div :class="['w-3 h-3 rounded-full', getCategoryColor(category)]"></div>
+                      <div :class="['w-3 h-3 rounded-full', getCategoryColor(form.category)]"></div>
                       <SelectValue />
                     </div>
                   </SelectTrigger>
@@ -236,10 +95,10 @@ const triggerFileInput = () => {
               </div>
               <div class="space-y-2">
                 <Label for="importance">重要度</Label>
-                <Select v-model="importance">
+                <Select v-model="form.importance">
                   <SelectTrigger id="importance">
                     <div class="flex items-center gap-2">
-                      <AlertCircle :class="['h-4 w-4', getImportanceColor(importance)]" />
+                      <AlertCircle :class="['h-4 w-4', getImportanceColor(form.importance)]" />
                       <SelectValue />
                     </div>
                   </SelectTrigger>
@@ -277,12 +136,12 @@ const triggerFileInput = () => {
             </CardHeader>
             <CardContent class="space-y-4">
               <div class="flex items-center space-x-2">
-                <Checkbox id="allDay" :checked="isAllDay" @update:checked="isAllDay = $event" />
+                <Checkbox id="allDay" :checked="form.is_all_day" @update:checked="form.is_all_day = $event" />
                 <Label for="allDay" class="text-sm cursor-pointer">終日</Label>
               </div>
               <div class="space-y-2">
                 <Label>期間 *</Label>
-                <DatePicker v-model.range="dateRange" :masks="{ modelValue: 'YYYY-MM-DD' }" is-range>
+                <DatePicker v-model.range="form.date_range" :masks="{ modelValue: 'YYYY-MM-DD' }" is-range>
                   <template #default="{ inputValue, inputEvents }">
                     <div class="flex flex-col sm:flex-row justify-start items-center">
                       <div class="relative flex-grow w-full">
@@ -306,14 +165,14 @@ const triggerFileInput = () => {
                   </template>
                 </DatePicker>
               </div>
-              <div v-if="!isAllDay" class="flex flex-col sm:flex-row gap-2">
+              <div v-if="!form.is_all_day" class="flex flex-col sm:flex-row gap-4">
                 <div class="space-y-2 flex-1">
                   <Label>開始時刻</Label>
-                  <Input type="time" v-model="startTime" class="w-full" />
+                  <vue-material-time-picker v-model="form.start_time" />
                 </div>
                 <div class="space-y-2 flex-1">
                   <Label>終了時刻</Label>
-                  <Input type="time" v-model="endTime" class="w-full" />
+                  <vue-material-time-picker v-model="form.end_time" />
                 </div>
               </div>
             </CardContent>
@@ -328,13 +187,13 @@ const triggerFileInput = () => {
             </CardHeader>
             <CardContent class="space-y-4">
               <div class="flex items-center space-x-2">
-                <Checkbox id="recurring" :checked="isRecurring" @update:checked="(checked) => { isRecurring = checked; if (!checked) recurrenceType = 'none'; }" />
+                <Checkbox id="recurring" :checked="form.is_recurring" @update:checked="(checked) => { form.is_recurring = checked; if (!checked) form.recurrence_type = 'none'; }" />
                 <Label for="recurring" class="text-sm cursor-pointer">この予定を繰り返す</Label>
               </div>
-              <div v-if="isRecurring" class="space-y-4 pl-6 border-l-2 border-gray-200">
+              <div v-if="form.is_recurring" class="space-y-4 pl-6 border-l-2 border-gray-200">
                 <div class="space-y-2">
                   <Label for="recurrence">繰り返しパターン</Label>
-                  <Select v-model="recurrenceType">
+                  <Select v-model="form.recurrence_type">
                     <SelectTrigger id="recurrence">
                       <SelectValue />
                     </SelectTrigger>
@@ -348,10 +207,10 @@ const triggerFileInput = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div v-if="recurrenceType === 'custom'" class="space-y-2">
+                <div v-if="form.recurrence_type === 'custom'" class="space-y-2">
                   <Label for="interval">繰り返し間隔</Label>
                   <div class="flex items-center gap-2">
-                    <Input id="interval" type="number" min="1" v-model="recurrenceInterval" class="w-20" />
+                    <Input id="interval" type="number" min="1" v-model="form.recurrence_interval" class="w-20" />
                     <Select default-value="days">
                       <SelectTrigger class="w-32">
                         <SelectValue />
@@ -367,7 +226,7 @@ const triggerFileInput = () => {
                 </div>
                 <div class="space-y-2">
                   <Label for="recurrenceEnd">繰り返し終了日</Label>
-                  <DatePicker v-model="recurrenceEndDate" :masks="{ modelValue: 'YYYY-MM-DD' }">
+                  <DatePicker v-model="form.recurrence_end_date" :masks="{ modelValue: 'YYYY-MM-DD' }">
                     <template #default="{ inputValue, inputEvents }">
                       <div class="relative w-full">
                         <Input
@@ -384,13 +243,13 @@ const triggerFileInput = () => {
                 <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
                   <p class="text-sm text-blue-900">
                     <strong>プレビュー:</strong>
-                    <span v-if="recurrenceType === 'daily'">毎日繰り返されます</span>
-                    <span v-if="recurrenceType === 'weekly'">毎週繰り返されます</span>
-                    <span v-if="recurrenceType === 'biweekly'">隔週で繰り返されます</span>
-                    <span v-if="recurrenceType === 'monthly'">毎月繰り返されます</span>
-                    <span v-if="recurrenceType === 'yearly'">毎年繰り返されます</span>
-                    <span v-if="recurrenceType === 'custom'">{{ recurrenceInterval }}日/週/月/年ごとに繰り返されます</span>
-                    <span v-if="recurrenceEndDate"> ({{ formatDate(recurrenceEndDate) }}まで)</span>
+                    <span v-if="form.recurrence_type === 'daily'">毎日繰り返されます</span>
+                    <span v-if="form.recurrence_type === 'weekly'">毎週繰り返されます</span>
+                    <span v-if="form.recurrence_type === 'biweekly'">隔週で繰り返されます</span>
+                    <span v-if="form.recurrence_type === 'monthly'">毎月繰り返されます</span>
+                    <span v-if="form.recurrence_type === 'yearly'">毎年繰り返されます</span>
+                    <span v-if="form.recurrence_type === 'custom'">{{ form.recurrence_interval }}日/週/月/年ごとに繰り返されます</span>
+                    <span v-if="form.recurrence_end_date"> ({{ formatDate(form.recurrence_end_date) }}まで)</span>
                   </p>
                 </div>
               </div>
@@ -412,16 +271,16 @@ const triggerFileInput = () => {
                     <SelectValue placeholder="メンバーを選択..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem v-for="member in availableMembers.filter(m => !participants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
+                    <SelectItem v-for="member in teamMembers.filter(m => !form.participants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
                       {{ member.name }}
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div v-if="participants.length > 0" class="space-y-2">
+              <div v-if="form.participants.length > 0" class="space-y-2">
                 <Label>選択済み参加者</Label>
                 <div class="flex flex-wrap gap-2">
-                  <Badge v-for="participant in participants" :key="participant.id" variant="secondary" class="text-sm px-3 py-1 gap-2">
+                  <Badge v-for="participant in form.participants" :key="participant.id" variant="secondary" class="text-sm px-3 py-1 gap-2">
                     {{ participant.name }}
                     <button @click="handleRemoveParticipant(participant.id)" class="hover:text-red-600">
                       <X class="h-3 w-3" />
@@ -440,7 +299,7 @@ const triggerFileInput = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Input placeholder="例：会議室A、オンライン（Zoom）" v-model="location" class="text-base" />
+              <Input placeholder="例：会議室A、オンライン（Zoom）" v-model="form.location" class="text-base" />
             </CardContent>
           </Card>
 
@@ -452,7 +311,7 @@ const triggerFileInput = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Textarea placeholder="予定の詳細、準備事項、議題など..." v-model="description" class="min-h-[120px] text-base" />
+              <Textarea placeholder="予定の詳細、準備事項、議題など..." v-model="form.description" class="min-h-[120px] text-base" />
             </CardContent>
           </Card>
 
@@ -462,9 +321,9 @@ const triggerFileInput = () => {
                 <LinkIcon class="h-5 w-5" />
                 URL
               </CardTitle>
-            </CardHeader>
+            </Header>
             <CardContent>
-              <Input type="url" placeholder="例：https://zoom.us/j/123456789" v-model="url" class="text-base" />
+              <Input type="url" placeholder="例：https://zoom.us/j/123456789" v-model="form.url" class="text-base" />
               <p class="text-xs text-gray-500 mt-2">オンライン会議のURLや関連資料のリンクなど</p>
             </CardContent>
           </Card>
@@ -484,10 +343,10 @@ const triggerFileInput = () => {
                 </Label>
                 <Input id="fileUpload" type="file" multiple @change="handleFileChange" class="hidden" ref="fileInput" />
               </div>
-              <div v-if="attachments.length > 0" class="space-y-2">
+              <div v-if="form.attachments.length > 0" class="space-y-2">
                 <Label>添付済みファイル</Label>
                 <div class="space-y-2">
-                  <div v-for="(file, index) in attachments" :key="index" class="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                  <div v-for="(file, index) in form.attachments" :key="index" class="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                     <div class="flex items-center gap-2 flex-1 min-w-0">
                       <Paperclip class="h-4 w-4 text-gray-400 flex-shrink-0" />
                       <span class="text-sm truncate">{{ file.name }}</span>
@@ -503,7 +362,7 @@ const triggerFileInput = () => {
           </Card>
 
           <div class="flex flex-col sm:hidden gap-2 pt-4">
-            <Button @click="handleSave" class="w-full gap-2">
+            <Button @click="handleSave" class="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white">
               <Save class="h-4 w-4" />
               保存
             </Button>

@@ -16,8 +16,8 @@ class SurveySeeder extends Seeder
      */
     public function run(): void
     {
-        $tanaka = User::where('name', '田中')->first();
-        $sato = User::where('name', '佐藤')->first();
+        $tanaka = User::where('name', 'aaa')->first();
+        $sato = User::where('name', 'bbb')->first();
 
         if (!$tanaka || !$sato) {
             $this->command->error('Required users not found. Run UserSeeder first.');

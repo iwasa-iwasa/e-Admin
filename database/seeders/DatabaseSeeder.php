@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // 共有カレンダーを1つだけ作成
+        \App\Models\Calendar::firstOrCreate(
+            ['calendar_name' => '共有カレンダー'],
+            ['calendar_type' => 'shared']
+        );
+
         $this->call([
             UserSeeder::class,
             EventSeeder::class,

@@ -1,8 +1,5 @@
-// import 'v-calendar/style.css';
-// import '../css/app.css';
 import './bootstrap';
 import '../css/app.css';
-import 'v-calendar/style.css';
 
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
@@ -21,7 +18,8 @@ createInertiaApp({
             import.meta.glob<DefineComponent>('./Pages/**/*.vue')
         );
         page.then((module) => {
-            if (module.default.layout === undefined) {
+            // 認証ページ（Auth/で始まるページ）にはデフォルトレイアウトを適用しない
+            if (module.default.layout === undefined && !name.startsWith('Auth/')) {
                 module.default.layout = AuthenticatedLayout;
             }
         });
