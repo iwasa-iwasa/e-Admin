@@ -73,8 +73,6 @@ const filteredSurveys = computed(() => {
                     .toLowerCase()
                     .includes(searchQuery.value.toLowerCase()));
 
-        // This part needs to be adapted as category is not in the model
-        // const matchesCategory = categoryFilter.value === 'all' || survey.category === categoryFilter.value
         const matchesCategory = true;
 
         const status = survey.is_active ? "active" : "closed";
@@ -84,9 +82,7 @@ const filteredSurveys = computed(() => {
     });
 });
 
-const categories = computed(() =>
-    Array.from(new Set(props.surveys.map((survey) => survey.category || "N/A")))
-);
+
 
 const getResponseRate = (survey: App.Models.Survey) => {
     const total = survey.questions[0]?.survey.responses.length || 0;

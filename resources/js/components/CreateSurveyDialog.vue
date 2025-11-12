@@ -79,7 +79,6 @@ const emit = defineEmits(["update:open"]);
 
 const title = ref("");
 const description = ref("");
-const category = ref("その他");
 const deadline = ref("");
 const questions = ref<Question[]>([]);
 const showTemplateDialog = ref(false);
@@ -95,7 +94,6 @@ let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 const form = useForm({
     title: "",
     description: "",
-    category: "その他",
     deadline: "",
     questions: [] as Array<{
         question: string;
@@ -284,7 +282,6 @@ const handleSave = (isDraft: boolean = false) => {
     // フォームデータを準備
     form.title = title.value;
     form.description = description.value;
-    form.category = category.value;
     form.deadline = deadline.value;
     form.isDraft = isDraft;
     form.questions = questions.value.map((q) => ({
@@ -363,7 +360,6 @@ const handleClose = () => {
 
     title.value = "";
     description.value = "";
-    category.value = "その他";
     deadline.value = "";
     questions.value = [];
     showTemplateDialog.value = false;
@@ -397,7 +393,6 @@ const getQuestionTypeLabel = (type: QuestionType) => {
 interface DraftData {
     title: string;
     description: string;
-    category: string;
     deadline: string;
     questions: Question[];
     saved_at: string;
@@ -422,7 +417,6 @@ const saveDraft = () => {
         const draftData: DraftData = {
             title: title.value,
             description: description.value,
-            category: category.value,
             deadline: deadline.value,
             questions: questions.value,
             saved_at: new Date().toISOString(),
@@ -456,7 +450,6 @@ const loadDraft = () => {
 
         title.value = draftData.title || "";
         description.value = draftData.description || "";
-        category.value = draftData.category || "その他";
         deadline.value = draftData.deadline || "";
         questions.value = draftData.questions || [];
         draftSavedAt.value = new Date(draftData.saved_at);
@@ -535,7 +528,7 @@ const isEditMode = computed(() => !!props.survey);
 
 // 入力内容の変更を監視して自動保存をスケジュール（新規作成時のみ）
 watch(
-    [title, description, category, deadline, questions],
+    [title, description, deadline, questions],
     () => {
         if (props.open && !isEditMode.value) {
             scheduleAutoSave();
@@ -590,7 +583,6 @@ const loadEditData = () => {
 
     title.value = props.survey.title || "";
     description.value = props.survey.description || "";
-    category.value = "その他"; // カテゴリは現在DBに保存されていないためデフォルト値
     deadline.value = props.survey.deadline
         ? new Date(props.survey.deadline).toISOString().split("T")[0]
         : "";
@@ -709,53 +701,22 @@ watch(
                                     class="min-h-[80px]"
                                 />
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <Label for="category">カテゴリ</Label>
-                                    <Select v-model="category">
-                                        <SelectTrigger id="category">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="イベント"
-                                                >イベント</SelectItem
-                                            >
-                                            <SelectItem value="備品"
-                                                >備品</SelectItem
-                                            >
-                                            <SelectItem value="システム"
-                                                >システム</SelectItem
-                                            >
-                                            <SelectItem value="オフィス環境"
-                                                >オフィス環境</SelectItem
-                                            >
-                                            <SelectItem value="会議"
-                                                >会議</SelectItem
-                                            >
-                                            <SelectItem value="その他"
-                                                >その他</SelectItem
-                                            >
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div class="space-y-2">
-                                    <Label for="deadline">回答期限 *</Label>
-                                    <Input
-                                        id="deadline"
-                                        type="date"
-                                        v-model="deadline"
-                                        :class="{
-                                            'border-red-500':
-                                                form.errors.deadline,
-                                        }"
-                                    />
-                                    <p
-                                        v-if="form.errors.deadline"
-                                        class="text-sm text-red-500"
-                                    >
-                                        {{ form.errors.deadline }}
-                                    </p>
-                                </div>
+                            <div class="space-y-2">
+                                <Label for="deadline">回答期限 *</Label>
+                                <Input
+                                    id="deadline"
+                                    type="date"
+                                    v-model="deadline"
+                                    :class="{
+                                        'border-red-500': form.errors.deadline,
+                                    }"
+                                />
+                                <p
+                                    v-if="form.errors.deadline"
+                                    class="text-sm text-red-500"
+                                >
+                                    {{ form.errors.deadline }}
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
