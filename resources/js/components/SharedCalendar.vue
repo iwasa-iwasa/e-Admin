@@ -44,7 +44,7 @@ const getEventColor = (category: string, importance: string) => {
         '期限': '#f97316', // orange
         'MTG': '#22c55e', // green
         '重要': '#ef4444', // red
-        '有給': '#14b8a6', // teal
+        '休暇': '#14b8a6', // teal
         '業務': '#3b82f6', // blue
         '来客': '#eab308', // yellow
         '報告': '#6366f1', // indigo
