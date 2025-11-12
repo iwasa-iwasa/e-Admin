@@ -34,7 +34,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
 
 <template>
   <Head title="個人リマインダー" />
-  <div class="h-screen bg-gray-50 flex flex-col">
+  <div class="h-100 bg-gray-50 flex flex-col ">
     <header class="bg-white border-b border-gray-200 px-6 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
