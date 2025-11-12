@@ -55,6 +55,8 @@ const page = usePage()
 const { toast } = useToast()
 
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
+// Current authenticated user id from Inertia page props
+const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
 
 const form = useForm({
   title: '',
@@ -89,11 +91,14 @@ const handleAllDayToggle = (value: boolean) => {
   form.is_all_day = value;
 };
 
-const handleAddParticipant = (memberId: number) => {
-  const member = teamMembers.value.find((m) => m.id === memberId)
-  if (member && !form.participants.find((p) => p.id === member.id)) {
-    form.participants.push(member)
-  }
+const handleAddParticipant = (memberId: unknown) => {
+    if (memberId === null || memberId === undefined) return
+    const id = Number(memberId as any)
+    if (Number.isNaN(id)) return
+    const member = teamMembers.value.find((m) => m.id === id)
+    if (member && !form.participants.find((p) => p.id === member.id)) {
+        form.participants.push(member)
+    }
 }
 
 const handleRemoveParticipant = (participantId: number) => {
@@ -280,9 +285,9 @@ const getCategoryColor = (cat: string) => {
                                         <SelectValue placeholder="メンバーを選択..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem v-for="member in teamMembers.filter(m => !form.participants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
-                                            {{ member.name }}
-                                        </SelectItem>
+                                            <SelectItem v-for="member in teamMembers.filter(m => m.id !== currentUserId && !form.participants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
+                                                {{ member.name }}
+                                            </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>

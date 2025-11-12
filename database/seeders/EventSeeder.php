@@ -36,12 +36,22 @@ class EventSeeder extends Seeder
         $importances = ['高', '中', '低'];
         $locations = ['大会議室', '会議室A', '会議室B', '研修室', 'オンライン', ''];
         $faker = \Faker\Factory::create('ja_JP');
+           // すべてのユーザーを取得
+        $users = User::all();
+        if ($users->isEmpty()) {
+            // If no user, maybe run UserSeeder first
+            $this->command->call('db:seed', ['--class' => 'UserSeeder']);
+            $users = User::all();
+        }
+
         $events = [];
         for ($i = 1; $i <= 100; $i++) {
             $category = $categories[array_rand($categories)];
             $importance = $importances[array_rand($importances)];
             $location = $locations[array_rand($locations)];
-            // 2025年9月〜12月の間でランダムな日付
+               // ランダムなユーザーを選択
+            $randomUser = $users->random();
+               // 2025年9月〜12月の間でランダムな日付
             $month = rand(9, 12);
             $day = rand(1, 28);
             $startDate = sprintf('2025-%02d-%02d', $month, $day);
@@ -60,17 +70,20 @@ class EventSeeder extends Seeder
                 'end_date' => $endDate,
                 'end_time' => sprintf('%02d:00', $endHour),
                 'is_all_day' => false,
+                // 'user_id' => $randomUser->id,
             ];
         }
 
         foreach ($events as $eventData) {
+            // ランダムなユーザーを選択
+            $randomUser = $users->random();
             $event = Event::create(array_merge($eventData, [
                 'calendar_id' => $calendar->calendar_id,
-                'created_by' => $user->id,
+                'created_by' => $randomUser->id,
             ]));
 
             // Attach the creator as a participant
-            $event->participants()->attach($user->id, ['response_status' => 'accepted']);
+            $event->participants()->attach($randomUser->id, ['response_status' => 'accepted']);
         }
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\PersonalReminderController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -63,11 +64,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('MemberCalendar');
     })->name('member.calendar');
 
-    Route::post('/events', [\App\Http\Controllers\CalendarController::class, 'store'])->name('events.store');
+    Route::post('/events', [CalendarController::class, 'store'])->name('events.store');
 
-    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [\App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // Laravel Breeze/Jetstreamのデフォルト認証ルート

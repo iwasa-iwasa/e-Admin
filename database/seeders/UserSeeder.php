@@ -15,7 +15,15 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        
-        \App\Models\User::factory()->count(10)->create();
+        User::firstOrCreate(
+            ['email' => 'a@a'],
+            [
+                'name' => 'a',
+                'password' => Hash::make('a'),
+                'department' => '総務部',
+                'role' => 'admin',
+            ]
+        );
+        User::factory()->count(3)->create();
     }
 }
