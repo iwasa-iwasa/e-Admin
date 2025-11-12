@@ -303,7 +303,7 @@ const totalNotifications = importantEvents.length + importantNotes.length + pend
               </p>
             </div>
 
-            <ScrollArea class="max-h-[600px] overflow-y-auto">
+            <ScrollArea class="max-h-[600px]">
               <!-- 重要な予定 -->
               <div v-if="importantEvents.length > 0" class="p-3 border-b border-gray-200">
                 <div class="flex items-center gap-2 mb-2">

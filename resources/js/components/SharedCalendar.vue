@@ -112,16 +112,12 @@ const changeView = (view: string) => {
 </script>
 
 <template>
-  <Card class="h-full flex flex-col">
+  <Card class="h-full flex flex-col hidden-scrollbar">
     <CardHeader>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <CalendarIcon class="h-6 w-6 text-blue-600" />
           <CardTitle>部署内共有カレンダー</CardTitle>
-          <Badge variant="outline" class="gap-1">
-            <Users class="h-3 w-3" />
-            4名で共有
-          </Badge>
         </div>
         <Button
           variant="outline"
@@ -136,7 +132,7 @@ const changeView = (view: string) => {
 
       <div class="flex items-center justify-between mt-4 gap-4">
         <Tabs :model-value="viewMode" @update:model-value="changeView" class="flex-1">
-          <TabsList class="grid w-full max-w-[400px] grid-cols-4">
+          <TabsList class="grid w-full max-w-[400px] grid-cols-4 bg-gray-100">
             <TabsTrigger value="multiMonthYear">年</TabsTrigger>
             <TabsTrigger value="dayGridMonth">月</TabsTrigger>
             <TabsTrigger value="timeGridWeek">週</TabsTrigger>
@@ -161,7 +157,7 @@ const changeView = (view: string) => {
 
     <CardContent class="flex-1 overflow-auto relative flex flex-col">
       <div class="flex-1">
-        <FullCalendar ref="fullCalendar" :options="calendarOptions" class="h-full" />
+        <FullCalendar ref="fullCalendar" :options="calendarOptions"  class="h-full"/>
       </div>
       <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs">
           <div v-for="item in legendItems" :key="item.label" class="flex items-center gap-1.5">
