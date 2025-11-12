@@ -69,6 +69,6 @@ class Survey extends Model
      */
     public function responses()
     {
-        return $this->hasMany(SurveyResponse::class, 'survey_id');
+        return $this->hasMany(SurveyResponse::class, 'survey_id', 'survey_id');
     }
 }
