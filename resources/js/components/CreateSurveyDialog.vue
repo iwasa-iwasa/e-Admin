@@ -559,6 +559,31 @@ const mapQuestionTypeFromDb = (dbType: string): QuestionType => {
     return mapping[dbType] || "text";
 };
 
+// 削除処理
+const handleDelete = () => {
+    if (!props.survey) return;
+    
+    if (window.confirm('本当にこのアンケートを削除しますか？この操作は取り消せません。')) {
+        form.delete(`/surveys/${props.survey.survey_id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast({
+                    title: 'Success',
+                    description: 'アンケートを削除しました',
+                });
+                handleClose();
+            },
+            onError: () => {
+                toast({
+                    title: 'Error',
+                    description: 'アンケートの削除に失敗しました',
+                    variant: 'destructive',
+                });
+            },
+        });
+    }
+};
+
 // 編集データの読み込み
 const loadEditData = () => {
     if (!props.survey) return;
@@ -1245,6 +1270,16 @@ watch(
                     >キャンセル</Button
                 >
                 <div class="flex gap-2">
+                    <Button
+                        v-if="isEditMode"
+                        variant="destructive"
+                        @click="handleDelete"
+                        :disabled="form.processing"
+                        class="gap-2"
+                    >
+                        <Trash2 class="h-4 w-4" />
+                        削除
+                    </Button>
                     <Button
                         v-if="!isEditMode"
                         variant="outline"

@@ -41,8 +41,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/surveys/{survey}/edit', [SurveyController::class, 'edit'])->name('surveys.edit');
     Route::put('/surveys/{survey}', [SurveyController::class, 'update'])->name('surveys.update');
     Route::delete('/surveys/{survey}', [SurveyController::class, 'destroy'])->name('surveys.destroy');
-
-    // Survey Results
+    Route::get('/surveys/{survey}/answer', [SurveyController::class, 'answer'])->name('surveys.answer');
+    Route::post('/surveys/{survey}/submit', [SurveyController::class, 'submit'])->name('surveys.submit');
+    //Survey Results and Export
     Route::get('/surveys/{survey}/results', [SurveyController::class, 'results'])->name('surveys.results');
     Route::get('/surveys/{survey}/export', [SurveyController::class, 'export'])->name('surveys.export');
 

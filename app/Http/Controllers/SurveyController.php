@@ -10,6 +10,8 @@ use Inertia\Inertia;
 use App\Models\Survey;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyQuestionOption;
+use App\Models\SurveyResponse;
+use App\Models\Answer;
 
 class SurveyController extends Controller
 {
@@ -141,163 +143,135 @@ class SurveyController extends Controller
         }
     }
 
-    /**
-     * Show the form for editing the specified survey.
-     *
-     * @param  \App\Models\Survey  $survey
-     * @return \Inertia\Response
-     */
     public function edit(Survey $survey)
     {
-        // アンケート本体と質問のみをロード（回答データは含めない）
         $survey->load([
-            'questions' => function ($query) {
-                $query->orderBy('display_order');
-            },
-            'questions.options' => function ($query) {
-                $query->orderBy('display_order');
-            },
+            'questions' => fn($query) => $query->orderBy('display_order'),
+            'questions.options' => fn($query) => $query->orderBy('display_order'),
         ]);
 
-        // 編集用のデータのみを返す（回答データは含めない）
-        $editingSurvey = [
+        $editSurvey = [
             'survey_id' => $survey->survey_id,
             'title' => $survey->title,
             'description' => $survey->description,
             'deadline' => $survey->deadline,
-            'is_active' => $survey->is_active,
-            'questions' => $survey->questions->map(function ($question) {
-                return [
-                    'question_id' => $question->question_id,
-                    'question_text' => $question->question_text,
-                    'question_type' => $question->question_type,
-                    'is_required' => $question->is_required,
-                    'display_order' => $question->display_order,
-                    'options' => $question->options->map(function ($option) {
-                        return [
-                            'option_id' => $option->option_id,
-                            'option_text' => $option->option_text,
-                            'display_order' => $option->display_order,
-                        ];
-                    })->toArray(),
-                ];
-            })->toArray(),
+            'questions' => $survey->questions->map(fn($question) => [
+                'question_id' => $question->question_id,
+                'question_text' => $question->question_text,
+                'question_type' => $question->question_type,
+                'is_required' => $question->is_required,
+                'options' => $question->options->pluck('option_text')->toArray(),
+            ])->toArray(),
         ];
 
         return Inertia::render('Surveys', [
-            'surveys' => Survey::with(['creator', 'questions.options', 'responses.respondent'])
-                ->orderBy('created_at', 'desc')
-                ->get(),
-            'editingSurvey' => $editingSurvey,
+            'surveys' => Survey::with(['creator', 'questions.options', 'responses.respondent'])->orderBy('created_at', 'desc')->get(),
+            'editSurvey' => $editSurvey,
         ]);
     }
 
-    /**
-     * Update the specified survey in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Survey  $survey
-     * @return \Illuminate\Http\RedirectResponse
-     */
     public function update(Request $request, Survey $survey)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'category' => ['nullable', 'string', 'max:50'],
-            'deadline' => ['required', 'date'],
-            'questions' => ['required', 'array', 'min:1'],
-            'questions.*.question' => ['required', 'string'],
-            'questions.*.type' => ['required', 'string', 'in:single,multiple,text,textarea,rating,scale,dropdown,date'],
-            'questions.*.required' => ['boolean'],
-            'questions.*.options' => ['array'],
-            'questions.*.options.*' => ['string'],
-        ], [
-            'title.required' => 'アンケートタイトルは必須です。',
-            'deadline.required' => '回答期限は必須です。',
-            'deadline.date' => '回答期限は有効な日付形式で入力してください。',
-            'questions.required' => '最低1つの質問を追加してください。',
-            'questions.min' => '最低1つの質問を追加してください。',
-            'questions.*.question.required' => 'すべての質問を入力してください。',
-            'questions.*.type.required' => '質問形式を選択してください。',
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'deadline' => 'required|date',
+            'questions' => 'required|array',
         ]);
 
-        // 選択肢形式の質問のバリデーション
-        $validator->after(function ($validator) use ($request) {
-            foreach ($request->questions as $index => $question) {
-                if (in_array($question['type'], ['single', 'multiple', 'dropdown'])) {
-                    $validOptions = array_filter($question['options'] ?? [], function ($opt) {
-                        return !empty(trim($opt));
-                    });
-                    if (count($validOptions) < 2) {
-                        $validator->errors()->add(
-                            "questions.{$index}.options",
-                            "選択肢形式の質問には最低2つの選択肢が必要です。"
-                        );
-                    }
-                }
-            }
-        });
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
         try {
-            DB::beginTransaction();
-
-            // アンケート本体を更新
-            $survey->update([
-                'title' => $request->title,
-                'description' => $request->description,
-                'deadline' => $request->deadline,
-            ]);
-
-            // 既存の質問と選択肢を削除
-            $survey->questions()->each(function ($question) {
-                $question->options()->delete();
-            });
-            $survey->questions()->delete();
-
-            // 質問を再作成
-            foreach ($request->questions as $index => $questionData) {
-                $questionType = $this->mapQuestionType($questionData['type']);
-
-                $question = SurveyQuestion::create([
-                    'survey_id' => $survey->survey_id,
-                    'question_text' => $questionData['question'],
-                    'question_type' => $questionType,
-                    'is_required' => $questionData['required'] ?? false,
-                    'display_order' => $index + 1,
+            DB::transaction(function () use ($request, $survey) {
+                $survey->update([
+                    'title' => $request->title,
+                    'description' => $request->description,
+                    'deadline' => $request->deadline,
                 ]);
 
-                // 選択肢を保存（選択肢形式の質問の場合）
-                if (in_array($questionData['type'], ['single', 'multiple', 'dropdown']) && !empty($questionData['options'])) {
-                    foreach ($questionData['options'] as $optionIndex => $optionText) {
-                        $trimmedOption = trim($optionText);
-                        if (!empty($trimmedOption)) {
-                            SurveyQuestionOption::create([
-                                'question_id' => $question->question_id,
-                                'option_text' => $trimmedOption,
-                                'display_order' => $optionIndex + 1,
-                            ]);
+                $survey->questions()->each(fn($question) => $question->options()->delete());
+                $survey->questions()->delete();
+
+                foreach ($request->questions as $index => $questionData) {
+                    $question = SurveyQuestion::create([
+                        'survey_id' => $survey->survey_id,
+                        'question_text' => $questionData['question'],
+                        'question_type' => $this->mapQuestionType($questionData['type']),
+                        'is_required' => $questionData['required'] ?? false,
+                        'display_order' => $index + 1,
+                    ]);
+
+                    if (in_array($questionData['type'], ['single', 'multiple', 'dropdown']) && !empty($questionData['options'])) {
+                        foreach ($questionData['options'] as $optionIndex => $optionText) {
+                            if (!empty(trim($optionText))) {
+                                SurveyQuestionOption::create([
+                                    'question_id' => $question->question_id,
+                                    'option_text' => trim($optionText),
+                                    'display_order' => $optionIndex + 1,
+                                ]);
+                            }
                         }
                     }
                 }
-            }
+            });
 
-            DB::commit();
-
-            return redirect()->route('surveys')
-                ->with('success', 'アンケートを更新しました。');
+            return redirect()->route('surveys')->with('success', 'アンケートを更新しました');
         } catch (\Exception $e) {
-            DB::rollBack();
+            return back()->withErrors(['error' => 'アンケートの更新中にエラーが発生しました']);
+        }
+    }
 
-            return redirect()->back()
-                ->withErrors(['error' => 'アンケートの更新中にエラーが発生しました。'])
-                ->withInput();
+    public function answer(Survey $survey)
+    {
+        $survey->load([
+            'questions' => fn($query) => $query->orderBy('display_order'),
+            'questions.options'
+        ]);
+
+        return Inertia::render('Surveys/Answer', [
+            'survey' => [
+                'survey_id' => $survey->survey_id,
+                'title' => $survey->title,
+                'description' => $survey->description,
+                'deadline' => $survey->deadline,
+            ],
+            'questions' => $survey->questions->map(fn($question) => [
+                'question_id' => $question->question_id,
+                'question_text' => $question->question_text,
+                'question_type' => $question->question_type,
+                'is_required' => $question->is_required,
+                'options' => $question->options->map(fn($option) => [
+                    'option_id' => $option->option_id,
+                    'option_text' => $option->option_text,
+                ])->toArray(),
+            ])->toArray(),
+        ]);
+    }
+
+    public function submit(Request $request, Survey $survey)
+    {
+        $request->validate([
+            'answers' => 'required|array',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $survey) {
+                $response = SurveyResponse::create([
+                    'survey_id' => $survey->survey_id,
+                    'respondent_id' => auth()->id(),
+                    'submitted_at' => now(),
+                ]);
+
+                foreach ($request->answers as $questionId => $answerData) {
+                    Answer::create([
+                        'response_id' => $response->response_id,
+                        'question_id' => $questionId,
+                        'answer_text' => is_array($answerData) ? json_encode($answerData) : $answerData,
+                    ]);
+                }
+            });
+
+            return redirect()->route('surveys')->with('success', '回答を送信しました');
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => '回答の送信中にエラーが発生しました']);
         }
     }
 
