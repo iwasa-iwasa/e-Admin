@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -81,6 +82,14 @@ class User extends Authenticatable
     }
 
     /**
+     * ユーザーがピン留めした共有ノートを取得します。
+     */
+    public function pinnedNotes(): BelongsToMany
+    {
+        return $this->belongsToMany(SharedNote::class, 'pinned_notes', 'user_id', 'note_id')->withTimestamps();
+    }
+
+    /**
      * Get the surveys created by the user.
      */
     public function surveys()
@@ -96,3 +105,4 @@ class User extends Authenticatable
         return $this->hasMany(SurveyResponse::class, 'respondent_id', 'id');
     }
 }
+

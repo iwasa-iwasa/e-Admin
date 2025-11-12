@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 #[TypeScript]
@@ -37,7 +38,6 @@ class SharedNote extends Model
         'color',
         'priority',
         'deadline',
-        'pinned',
     ];
 
     /**
@@ -47,23 +47,30 @@ class SharedNote extends Model
      */
     protected $casts = [
         'deadline' => 'date',
-        'pinned' => 'boolean',
     ];
 
     /**
      * Get the author of the note.
      */
-        public function author()
-        {
-            return $this->belongsTo(User::class, 'author_id');
-        }
-    
-        /**
-         * The tags that belong to the note.
-         */
-        public function tags()
-        {
-            return $this->belongsToMany(NoteTag::class, 'note_tag_relations', 'note_id', 'tag_id');
-        }
+    public function author()
+    {
+        return $this->belongsTo(User::class, 'author_id');
     }
+
+    /**
+     * The tags that belong to the note.
+     */
+    public function tags()
+    {
+        return $this->belongsToMany(NoteTag::class, 'note_tag_relations', 'note_id', 'tag_id');
+    }
+
+    /**
+     * この共有ノートをピン留めしたユーザーを取得します。
+     */
+    public function pinnedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'pinned_notes', 'note_id', 'user_id')->withTimestamps();
+    }
+}
     

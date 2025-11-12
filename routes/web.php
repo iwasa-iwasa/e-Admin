@@ -36,15 +36,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
 
     Route::get('/notes', [NoteController::class, 'index'])->name('notes');
+    Route::post('/notes/{note}/pin', [NoteController::class, 'pin'])->name('notes.pin');
+    Route::delete('/notes/{note}/unpin', [NoteController::class, 'unpin'])->name('notes.unpin');
 
     Route::get('/surveys', [SurveyController::class, 'index'])->name('surveys');
     Route::post('/surveys', [SurveyController::class, 'store'])->name('surveys.store');
-
-    // Survey Results
-    Route::get('/surveys/{survey}/results', function () {
-        // Note: In a real application, you would pass the specific survey data as a prop.
-        return Inertia::render('SurveyResults');
-    })->name('surveys.results');
+    Route::get('/surveys/{survey}/edit', [SurveyController::class, 'edit'])->name('surveys.edit');
+    Route::put('/surveys/{survey}', [SurveyController::class, 'update'])->name('surveys.update');
+    Route::delete('/surveys/{survey}', [SurveyController::class, 'destroy'])->name('surveys.destroy');
+    Route::get('/surveys/{survey}/answer', [SurveyController::class, 'answer'])->name('surveys.answer');
+    Route::post('/surveys/{survey}/submit', [SurveyController::class, 'submitAnswer'])->name('surveys.submit');
+    //Survey Results and Export
+    Route::get('/surveys/{survey}/results', [SurveyController::class, 'results'])->name('surveys.results');
+    Route::get('/surveys/{survey}/export', [SurveyController::class, 'export'])->name('surveys.export');
 
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders');
     Route::post('/reminders', [PersonalReminderController::class, 'store'])->name('reminders.store');
