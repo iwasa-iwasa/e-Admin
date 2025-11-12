@@ -35,6 +35,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
 
     Route::get('/notes', [NoteController::class, 'index'])->name('notes');
+    Route::post('/notes/{note}/pin', [NoteController::class, 'pin'])->name('notes.pin');
+    Route::delete('/notes/{note}/unpin', [NoteController::class, 'unpin'])->name('notes.unpin');
 
     Route::get('/surveys', [SurveyController::class, 'index'])->name('surveys');
     Route::post('/surveys', [SurveyController::class, 'store'])->name('surveys.store');
