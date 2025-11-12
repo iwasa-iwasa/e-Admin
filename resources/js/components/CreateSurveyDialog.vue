@@ -1233,7 +1233,7 @@ watch(
                 <div class="flex gap-2">
                     <Button
                         v-if="isEditMode"
-                        variant="destructive"
+                        variant="outline"
                         @click="handleDelete"
                         :disabled="form.processing"
                         class="gap-2"
@@ -1250,6 +1250,7 @@ watch(
                     >
                     <Button
                         @click="handleSave(false)"
+                        variant="outline"
                         class="gap-2"
                         :disabled="form.processing"
                     >
