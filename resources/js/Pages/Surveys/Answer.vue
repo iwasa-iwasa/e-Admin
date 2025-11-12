@@ -42,22 +42,50 @@ const form = useForm({
     answers: {} as Record<number, any>
 })
 
-const multipleChoiceAnswers = ref<Record<number, number[]>>({})
+const multipleChoiceAnswers = ref<Record<number, string[]>>({})
 
-const handleMultipleChoiceChange = (questionId: number, optionId: number, checked: boolean) => {
+const handleMultipleChoiceChange = (questionId: number, option: string, checked: boolean) => {
     if (!multipleChoiceAnswers.value[questionId]) {
         multipleChoiceAnswers.value[questionId] = []
     }
+    
     if (checked) {
-        multipleChoiceAnswers.value[questionId].push(optionId)
+        multipleChoiceAnswers.value[questionId].push(option)
     } else {
-        multipleChoiceAnswers.value[questionId] = multipleChoiceAnswers.value[questionId].filter(id => id !== optionId)
+        multipleChoiceAnswers.value[questionId] = 
+            multipleChoiceAnswers.value[questionId].filter(o => o !== option)
     }
+    
     form.answers[questionId] = multipleChoiceAnswers.value[questionId]
 }
 
+const validateMultipleChoice = () => {
+    for (const question of props.questions) {
+        if (question.question_type === 'multiple_choice' && question.is_required) {
+            const answers = multipleChoiceAnswers.value[question.question_id]
+            if (!answers || answers.length === 0) {
+                alert(`「${question.question_text}」は必須項目です。少なくとも1つ選択してください。`)
+                return false
+            }
+        }
+    }
+    return true
+}
+
 const submitAnswer = () => {
-    form.post(route('surveys.submit', props.survey.survey_id))
+    if (!validateMultipleChoice()) {
+        return
+    }
+    
+    form.post(route('surveys.submit', props.survey.survey_id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            // 成功時の処理（オプション）
+        },
+        onError: (errors) => {
+            console.error('送信エラー:', errors);
+        },
+    });
 }
 
 const cancel = () => {
@@ -110,6 +138,7 @@ const cancel = () => {
                                     :name="`question_${question.question_id}`"
                                     :value="option.option_id" 
                                     :id="`q${question.question_id}_${option.option_id}`"
+                                    :required="question.is_required"
                                     v-model="form.answers[question.question_id]"
                                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                                 />
@@ -123,7 +152,7 @@ const cancel = () => {
                                 <input 
                                     type="checkbox"
                                     :id="`q${question.question_id}_${option.option_id}`"
-                                    @change="handleMultipleChoiceChange(question.question_id, option.option_id, ($event.target as HTMLInputElement).checked)"
+                                    @change="handleMultipleChoiceChange(question.question_id, option.option_text, ($event.target as HTMLInputElement).checked)"
                                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                 />
                                 <Label :for="`q${question.question_id}_${option.option_id}`">{{ option.option_text }}</Label>
@@ -133,6 +162,7 @@ const cancel = () => {
                         <!-- Text Input -->
                         <Input 
                             v-else-if="question.question_type === 'text'"
+                            :required="question.is_required"
                             v-model="form.answers[question.question_id]"
                             placeholder="回答を入力してください"
                         />
@@ -140,6 +170,7 @@ const cancel = () => {
                         <!-- Textarea -->
                         <Textarea 
                             v-else-if="question.question_type === 'textarea'"
+                            :required="question.is_required"
                             v-model="form.answers[question.question_id]"
                             placeholder="回答を入力してください"
                             class="min-h-[100px]"
@@ -148,6 +179,7 @@ const cancel = () => {
                         <!-- Date -->
                         <Input 
                             v-else-if="question.question_type === 'date'"
+                            :required="question.is_required"
                             v-model="form.answers[question.question_id]"
                             type="date"
                         />
@@ -161,6 +193,7 @@ const cancel = () => {
                                         :name="`question_${question.question_id}`"
                                         :value="rating" 
                                         :id="`q${question.question_id}_${rating}`"
+                                        :required="question.is_required"
                                         v-model="form.answers[question.question_id]"
                                         class="sr-only"
                                     />
@@ -185,6 +218,7 @@ const cancel = () => {
                                         :name="`question_${question.question_id}`"
                                         :value="scale" 
                                         :id="`q${question.question_id}_scale_${scale}`"
+                                        :required="question.is_required"
                                         v-model="form.answers[question.question_id]"
                                         class="sr-only"
                                     />
@@ -204,6 +238,7 @@ const cancel = () => {
                         <!-- Dropdown -->
                         <select 
                             v-else-if="question.question_type === 'dropdown'" 
+                            :required="question.is_required"
                             v-model="form.answers[question.question_id]"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
@@ -215,11 +250,20 @@ const cancel = () => {
                     </CardContent>
                 </Card>
 
+                <!-- エラー表示 -->
+                <div v-if="Object.keys(form.errors).length > 0" class="bg-red-50 border border-red-200 rounded-md p-4">
+                    <div class="text-red-800">
+                        <div v-for="(error, key) in form.errors" :key="key" class="text-sm">
+                            {{ error }}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex gap-4 justify-end">
                     <Button type="button" variant="outline" @click="cancel">
                         キャンセル
                     </Button>
-                    <Button type="submit" variant="outline" :disabled="form.processing">
+                    <Button type="submit" :disabled="form.processing">
                         {{ form.processing ? '送信中...' : '回答を送信' }}
                     </Button>
                 </div>

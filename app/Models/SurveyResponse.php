@@ -50,7 +50,7 @@ class SurveyResponse extends Model
      */
     public function survey()
     {
-        return $this->belongsTo(Survey::class, 'survey_id');
+        return $this->belongsTo(Survey::class, 'survey_id', 'survey_id');
     }
 
     /**
@@ -58,7 +58,7 @@ class SurveyResponse extends Model
      */
     public function respondent()
     {
-        return $this->belongsTo(User::class, 'respondent_id');
+        return $this->belongsTo(User::class, 'respondent_id', 'id');
     }
 
     /**
@@ -66,6 +66,6 @@ class SurveyResponse extends Model
      */
     public function answers()
     {
-        return $this->hasMany(Answer::class, 'response_id');
+        return $this->hasMany(SurveyAnswer::class, 'response_id', 'response_id');
     }
 }

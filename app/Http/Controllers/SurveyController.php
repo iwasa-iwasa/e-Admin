@@ -11,7 +11,7 @@ use App\Models\Survey;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyQuestionOption;
 use App\Models\SurveyResponse;
-use App\Models\Answer;
+use App\Models\SurveyAnswer;
 
 class SurveyController extends Controller
 {
@@ -246,6 +246,41 @@ class SurveyController extends Controller
         ]);
     }
 
+    public function submitAnswer(Request $request, Survey $survey)
+    {
+        $validated = $request->validate([
+            'answers' => 'required|array',
+        ]);
+        
+        try {
+            DB::transaction(function () use ($survey, $validated) {
+                $response = \App\Models\SurveyResponse::create([
+                    'survey_id' => $survey->survey_id,
+                    'respondent_id' => auth()->id(),
+                    'submitted_at' => now(),
+                ]);
+                
+                foreach ($validated['answers'] as $questionId => $answerText) {
+                    if ($answerText !== null && $answerText !== '') {
+                        SurveyAnswer::create([
+                            'response_id' => $response->response_id,
+                            'question_id' => $questionId,
+                            'answer_text' => is_array($answerText) ? json_encode($answerText) : $answerText,
+                            'selected_option_id' => null,
+                        ]);
+                    }
+                }
+            });
+            
+            return redirect()->route('surveys')
+                ->with('success', '回答を送信しました');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withErrors(['error' => '回答の送信に失敗しました'])
+                ->withInput();
+        }
+    }
+
     public function submit(Request $request, Survey $survey)
     {
         $request->validate([
@@ -261,7 +296,7 @@ class SurveyController extends Controller
                 ]);
 
                 foreach ($request->answers as $questionId => $answerData) {
-                    Answer::create([
+                    SurveyAnswer::create([
                         'response_id' => $response->response_id,
                         'question_id' => $questionId,
                         'answer_text' => is_array($answerData) ? json_encode($answerData) : $answerData,

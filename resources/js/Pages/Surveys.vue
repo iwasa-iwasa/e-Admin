@@ -108,16 +108,23 @@ const isEditDialogOpen = ref(false);
 
 // フラッシュメッセージの表示
 watch(
-    () => page.props.flash?.success,
-    (success) => {
-        if (success) {
+    () => page.props.flash,
+    (flash: any) => {
+        if (flash?.success) {
             toast({
-                title: "Success",
-                description: success,
+                title: "成功",
+                description: flash.success,
+            });
+        }
+        if (flash?.error) {
+            toast({
+                title: "エラー",
+                description: flash.error,
+                variant: "destructive",
             });
         }
     },
-    { immediate: true }
+    { deep: true, immediate: true }
 );
 
 // 編集ダイアログを開く
