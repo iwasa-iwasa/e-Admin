@@ -49,7 +49,7 @@ class SurveyAnswer extends Model
      */
     public function response()
     {
-        return $this->belongsTo(SurveyResponse::class, 'response_id');
+        return $this->belongsTo(SurveyResponse::class, 'response_id', 'response_id');
     }
 
     /**

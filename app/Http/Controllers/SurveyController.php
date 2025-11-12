@@ -253,19 +253,32 @@ class SurveyController extends Controller
         
         try {
             DB::transaction(function () use ($survey, $validated) {
-                $response = \App\Models\SurveyResponse::create([
+                $response = SurveyResponse::create([
                     'survey_id' => $survey->survey_id,
                     'respondent_id' => auth()->id(),
                     'submitted_at' => now(),
                 ]);
                 
-                foreach ($validated['answers'] as $questionId => $answerText) {
-                    if ($answerText !== null && $answerText !== '') {
+                foreach ($validated['answers'] as $questionId => $answerData) {
+                    if ($answerData !== null && $answerData !== '') {
+                        $question = SurveyQuestion::find($questionId);
+                        $selectedOptionId = null;
+                        $answerText = $answerData;
+                        
+                        // Handle option-based questions
+                        if (in_array($question->question_type, ['single_choice', 'dropdown']) && is_numeric($answerData)) {
+                            $selectedOptionId = $answerData;
+                            $option = SurveyQuestionOption::find($answerData);
+                            $answerText = $option ? $option->option_text : $answerData;
+                        } elseif (is_array($answerData)) {
+                            $answerText = json_encode($answerData);
+                        }
+                        
                         SurveyAnswer::create([
                             'response_id' => $response->response_id,
                             'question_id' => $questionId,
-                            'answer_text' => is_array($answerText) ? json_encode($answerText) : $answerText,
-                            'selected_option_id' => null,
+                            'answer_text' => $answerText,
+                            'selected_option_id' => $selectedOptionId,
                         ]);
                     }
                 }
@@ -274,8 +287,15 @@ class SurveyController extends Controller
             return redirect()->route('surveys')
                 ->with('success', '回答を送信しました');
         } catch (\Exception $e) {
+            \Log::error('Survey answer submission failed', [
+                'survey_id' => $survey->survey_id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return redirect()->back()
-                ->withErrors(['error' => '回答の送信に失敗しました'])
+                ->withErrors(['error' => '回答の送信に失敗しました: ' . $e->getMessage()])
                 ->withInput();
         }
     }
