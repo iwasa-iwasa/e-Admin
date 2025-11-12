@@ -37,12 +37,12 @@ class EventSeeder extends Seeder
         $locations = ['大会議室', '会議室A', '会議室B', '研修室', 'オンライン', ''];
         $faker = \Faker\Factory::create('ja_JP');
            // すべてのユーザーを取得
-           $users = User::all();
-           if ($users->isEmpty()) {
-               // If no user, maybe run UserSeeder first
-               $this->command->call('db:seed', ['--class' => 'UserSeeder']);
-               $users = User::all();
-           }
+        $users = User::all();
+        if ($users->isEmpty()) {
+            // If no user, maybe run UserSeeder first
+            $this->command->call('db:seed', ['--class' => 'UserSeeder']);
+            $users = User::all();
+        }
 
         $events = [];
         for ($i = 1; $i <= 100; $i++) {
@@ -50,7 +50,7 @@ class EventSeeder extends Seeder
             $importance = $importances[array_rand($importances)];
             $location = $locations[array_rand($locations)];
                // ランダムなユーザーを選択
-               $randomUser = $users->random();
+            $randomUser = $users->random();
                // 2025年9月〜12月の間でランダムな日付
             $month = rand(9, 12);
             $day = rand(1, 28);

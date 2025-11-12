@@ -16,14 +16,22 @@ class DashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
+        $memberId = $request->query('member_id');
 
         // Fetch all events from the shared calendar
-        $events = Event::with(['creator', 'participants'])
-            ->orderBy('start_date')
-            ->get();
+        $eventsQuery = Event::with(['creator', 'participants'])
+            ->orderBy('start_date');
+
+        if ($memberId) {
+            $eventsQuery->whereHas('participants', function ($query) use ($memberId) {
+                $query->where('users.id', $memberId);
+            });
+        }
+
+        $events = $eventsQuery->get();
 
         $notes = SharedNote::with('author')
             ->orderBy('updated_at', 'desc')
@@ -49,6 +57,7 @@ class DashboardController extends Controller
             'events' => $events,
             'sharedNotes' => $sortedNotes->values(),
             'personalReminders' => $reminders,
+            'filteredMemberId' => $memberId ? (int)$memberId : null,
         ]);
     }
 }
