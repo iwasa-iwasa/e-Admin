@@ -21,10 +21,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             NoteTagSeeder::class, // NoteSeederより先に実行
             NoteSeeder::class,
-            // 他に必要なシーダーがあればここに追加
-            // EventSeeder::class,
-            // ReminderSeeder::class,
-            // SurveySeeder::class,
+            ReminderSeeder::class,
+            SurveySeeder::class,
+            SurveyResponseSeeder::class,
         ]);
     }
 }

@@ -13,6 +13,8 @@ import {
     Users,
     ArrowLeft,
     Calendar as CalendarIcon,
+    Edit,
+    Trash2,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,12 +47,16 @@ defineOptions({
 
 const props = defineProps<{
     surveys: App.Models.Survey[];
+    editingSurvey?: App.Models.Survey | null;
+    editSurvey?: Object;
 }>();
 
 const searchQuery = ref("");
 const categoryFilter = ref("all");
 const activeTab = ref("active");
 const isCreateSurveyDialogOpen = ref(false);
+const showCreateDialog = ref(false);
+const editingSurvey = ref(null);
 
 const filteredSurveys = computed(() => {
     return props.surveys.filter((survey) => {
@@ -67,8 +73,6 @@ const filteredSurveys = computed(() => {
                     .toLowerCase()
                     .includes(searchQuery.value.toLowerCase()));
 
-        // This part needs to be adapted as category is not in the model
-        // const matchesCategory = categoryFilter.value === 'all' || survey.category === categoryFilter.value
         const matchesCategory = true;
 
         const status = survey.is_active ? "active" : "closed";
@@ -78,9 +82,7 @@ const filteredSurveys = computed(() => {
     });
 });
 
-const categories = computed(() =>
-    Array.from(new Set(props.surveys.map((survey) => survey.category || "N/A")))
-);
+
 
 const getResponseRate = (survey: App.Models.Survey) => {
     const total = survey.questions[0]?.survey.responses.length || 0;
@@ -98,20 +100,101 @@ const getDaysUntilDeadline = (deadline: string) => {
 
 const page = usePage();
 const { toast } = useToast();
+const isEditDialogOpen = ref(false);
 
 // フラッシュメッセージの表示
 watch(
-    () => page.props.flash?.success,
-    (success) => {
-        if (success) {
+    () => page.props.flash,
+    (flash: any) => {
+        if (flash?.success) {
             toast({
-                title: "Success",
-                description: success,
+                title: "成功",
+                description: flash.success,
             });
+        }
+        if (flash?.error) {
+            toast({
+                title: "エラー",
+                description: flash.error,
+                variant: "destructive",
+            });
+        }
+    },
+    { deep: true, immediate: true }
+);
+
+// 編集ダイアログを開く
+watch(
+    () => props.editingSurvey,
+    (survey) => {
+        if (survey) {
+            isEditDialogOpen.value = true;
         }
     },
     { immediate: true }
 );
+
+// editSurveyが存在する場合、自動的にダイアログを開く
+watch(
+    () => props.editSurvey,
+    (survey) => {
+        if (survey) {
+            editingSurvey.value = survey;
+            showCreateDialog.value = true;
+        }
+    },
+    { immediate: true }
+);
+
+// ハンドラ関数
+const handleCreate = () => {
+    editingSurvey.value = null;
+    showCreateDialog.value = true;
+};
+
+const handleEdit = (survey: App.Models.Survey) => {
+    editingSurvey.value = survey;
+    showCreateDialog.value = true;
+};
+
+const handleAnswer = (survey: App.Models.Survey) => {
+    router.get(`/surveys/${survey.survey_id}/answer`);
+};
+
+const handleResults = (survey: App.Models.Survey) => {
+    router.get(`/surveys/${survey.survey_id}/results`);
+};
+
+const handleDialogClose = () => {
+    showCreateDialog.value = false;
+    editingSurvey.value = null;
+};
+
+// 削除処理
+const handleDelete = (survey: App.Models.Survey) => {
+    if (
+        window.confirm(
+            "本当にこのアンケートを削除しますか？この操作は取り消せません。"
+        )
+    ) {
+        router.delete(`/surveys/${survey.survey_id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast({
+                    title: "Success",
+                    description: "アンケートを削除しました",
+                });
+            },
+            onError: () => {
+                toast({
+                    title: "Error",
+                    description: "アンケートの削除に失敗しました",
+                    variant: "destructive",
+                });
+            },
+        });
+    }
+};
 </script>
 
 <template>
@@ -141,7 +224,7 @@ watch(
                     <Button
                         variant="outline"
                         class="gap-2"
-                        @click="isCreateSurveyDialogOpen = true"
+                        @click="handleCreate"
                     >
                         <Plus class="h-4 w-4" />
                         新しいアンケートを作成
@@ -289,9 +372,18 @@ watch(
                                     class="flex items-center gap-2 flex-shrink-0"
                                 >
                                     <Button
-                                        v-if="survey.is_active"
+                                        variant="outline"
                                         class="gap-2"
-                                        disabled
+                                        @click="handleEdit(survey)"
+                                    >
+                                        <Edit class="h-4 w-4" />
+                                        編集
+                                    </Button>
+                                    <Button
+                                        v-if="survey.is_active"
+                                        variant="outline"
+                                        class="gap-2"
+                                        @click="handleAnswer(survey)"
                                     >
                                         <CheckCircle2 class="h-4 w-4" />
                                         回答する
@@ -299,11 +391,7 @@ watch(
                                     <Button
                                         variant="outline"
                                         class="gap-2"
-                                        @click="
-                                            router.get(
-                                                `/surveys/${survey.survey_id}/results`
-                                            )
-                                        "
+                                        @click="handleResults(survey)"
                                     >
                                         <BarChart3 class="h-4 w-4" />
                                         結果を見る
@@ -371,8 +459,21 @@ watch(
         </main>
 
         <CreateSurveyDialog
-            :open="isCreateSurveyDialogOpen"
-            @update:open="isCreateSurveyDialogOpen = $event"
+            :open="showCreateDialog"
+            :survey="editingSurvey"
+            @update:open="handleDialogClose"
+        />
+
+        <CreateSurveyDialog
+            v-if="props.editingSurvey"
+            :open="isEditDialogOpen"
+            :survey="props.editingSurvey"
+            @update:open="
+                isEditDialogOpen = $event;
+                if (!$event) {
+                    router.get('/surveys');
+                }
+            "
         />
     </div>
 </template>
