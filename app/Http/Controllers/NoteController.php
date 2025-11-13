@@ -38,6 +38,31 @@ class NoteController extends Controller
     }
 
     /**
+     * 新しい共有メモをデータベースに保存する。
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'content' => ['nullable', 'string'],
+            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
+            'priority' => ['nullable', 'string', 'in:low,medium,high'],
+            'deadline' => ['nullable', 'date'],
+        ]);
+
+        SharedNote::create([
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'author_id' => Auth::id(),
+            'color' => $validated['color'] ?? 'yellow',
+            'priority' => $validated['priority'] ?? 'medium',
+            'deadline' => $validated['deadline'],
+        ]);
+
+        return redirect()->route('notes')->with('success', '新しい共有メモを作成しました！');
+    }
+
+    /**
      * 指定されたノートをピン留めします。
      */
     public function pin(Request $request, SharedNote $note)

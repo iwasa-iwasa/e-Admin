@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useForm } from "@inertiajs/vue3";
 import { Save, X } from "lucide-vue-next";
 import {
     Dialog,
@@ -30,18 +31,21 @@ defineProps<{
 }>();
 const emit = defineEmits(["update:open"]);
 
-const title = ref("");
-const content = ref("");
-const priority = ref<Priority>("medium");
-const deadline = ref("");
-const tags = ref<string[]>([]);
+const form = useForm({
+    title: "",
+    content: "",
+    priority: "medium",
+    deadline: "",
+    tags: [] as string[],
+    color: "yellow",
+});
+
 const tagInput = ref("");
-const color = ref("yellow");
 
 const { toast } = useToast();
 
 const handleSave = () => {
-    if (!title.value.trim()) {
+    if (!form.title.trim()) {
         toast({
             title: "Error",
             description: "タイトルを入力してください",
@@ -49,37 +53,42 @@ const handleSave = () => {
         });
         return;
     }
-    console.log("新規メモ作成:", {
-        title: title.value,
-        content: content.value,
-        priority: priority.value,
-        deadline: deadline.value,
-        tags: tags.value,
-        color: color.value,
+    
+    form.post(route("shared-notes.store"), {
+        onSuccess: () => {
+            toast({
+                title: "Success",
+                description: "共有メモを正常に作成しました。",
+            });
+            handleClose();
+        },
+        onError: (errors) => {
+             toast({
+                title: "Error",
+                description: "メモの作成中にエラーが発生しました。",
+                variant: "destructive",
+            });
+            console.error(errors);
+        },
     });
-    handleClose();
 };
 
 const handleClose = () => {
-    title.value = "";
-    content.value = "";
-    priority.value = "medium";
-    deadline.value = "";
-    tags.value = [];
+    form.reset();
+    form.tags = [];
     tagInput.value = "";
-    color.value = "yellow";
     emit("update:open", false);
 };
 
 const handleAddTag = () => {
-    if (tagInput.value.trim() && !tags.value.includes(tagInput.value.trim())) {
-        tags.value.push(tagInput.value.trim());
+    if (tagInput.value.trim() && !form.tags.includes(tagInput.value.trim())) {
+        form.tags.push(tagInput.value.trim());
         tagInput.value = "";
     }
 };
 
 const handleRemoveTag = (tagToRemove: string) => {
-    tags.value = tags.value.filter((tag) => tag !== tagToRemove);
+    form.tags = form.tags.filter((tag) => tag !== tagToRemove);
 };
 
 const getPriorityInfo = (p: Priority) => {
@@ -121,7 +130,7 @@ const getColorInfo = (c: string) => {
                     <Input
                         id="title"
                         placeholder="メモのタイトル"
-                        v-model="title"
+                        v-model="form.title"
                         autofocus
                     />
                 </div>
@@ -131,20 +140,20 @@ const getColorInfo = (c: string) => {
                     <Textarea
                         id="content"
                         placeholder="メモの内容を入力..."
-                        v-model="content"
+                        v-model="form.content"
                         rows="6"
                     />
                 </div>
 
                 <div class="space-y-2">
                     <Label for="priority">重要度</Label>
-                    <Select v-model="priority">
+                    <Select v-model="form.priority">
                         <SelectTrigger id="priority">
                             <div class="flex items-center gap-2">
                                 <Badge
-                                    :class="getPriorityInfo(priority).className"
+                                    :class="getPriorityInfo(form.priority).className"
                                 >
-                                    {{ getPriorityInfo(priority).label }}
+                                    {{ getPriorityInfo(form.priority).label }}
                                 </Badge>
                             </div>
                         </SelectTrigger>
@@ -168,21 +177,21 @@ const getColorInfo = (c: string) => {
 
                 <div class="space-y-2">
                     <Label for="deadline">期限（任意）</Label>
-                    <Input id="deadline" type="date" v-model="deadline" />
+                    <Input id="deadline" type="date" v-model="form.deadline" />
                 </div>
 
                 <div class="space-y-2">
                     <Label for="color">メモの色</Label>
-                    <Select v-model="color">
+                    <Select v-model="form.color">
                         <SelectTrigger id="color">
                             <div class="flex items-center gap-2">
                                 <div
                                     :class="[
                                         'w-4 h-4 rounded',
-                                        getColorInfo(color).bg,
+                                        getColorInfo(form.color).bg,
                                     ]"
                                 ></div>
-                                <span>{{ getColorInfo(color).label }}</span>
+                                <span>{{ getColorInfo(form.color).label }}</span>
                             </div>
                         </SelectTrigger>
                         <SelectContent>
@@ -229,11 +238,11 @@ const getColorInfo = (c: string) => {
                         </Button>
                     </div>
                     <div
-                        v-if="tags.length > 0"
+                        v-if="form.tags.length > 0"
                         class="flex flex-wrap gap-2 mt-2"
                     >
                         <Badge
-                            v-for="tag in tags"
+                            v-for="tag in form.tags"
                             :key="tag"
                             variant="secondary"
                             class="gap-2"
@@ -251,7 +260,11 @@ const getColorInfo = (c: string) => {
                 <Button variant="outline" @click="handleClose">
                     キャンセル
                 </Button>
-                <Button variant="outline" @click="handleSave" class="gap-2">
+                <Button 
+                    @click="handleSave" 
+                    :disabled="form.processing" 
+                    class="gap-2"
+                >
                     <Save class="h-4 w-4" />
                     作成
                 </Button>

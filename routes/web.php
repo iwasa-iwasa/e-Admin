@@ -36,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
 
     Route::get('/notes', [NoteController::class, 'index'])->name('notes');
+    Route::post('/shared-notes', [NoteController::class, 'store'])->name('shared-notes.store');
     Route::post('/notes/{note}/pin', [NoteController::class, 'pin'])->name('notes.pin');
     Route::delete('/notes/{note}/unpin', [NoteController::class, 'unpin'])->name('notes.unpin');
 
