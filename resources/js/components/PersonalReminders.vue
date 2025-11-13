@@ -15,32 +15,46 @@ const props = defineProps<{
 }>()
 
 const selectedReminder = ref<App.Models.Reminder | null>(null)
+const recentlyCompleted = ref<{ id: number; undoUrl: string } | null>(null)
 
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
 
 const handleToggleComplete = (id: number, checked: boolean) => {
-  const message = checked ? 'タスクを完了しますか？' : 'タスクを未完了に戻しますか？'
-  
-  if (confirm(message)) {
-    if (checked) {
-      // 完了処理
-      router.patch(route('reminders.complete', id), {}, {
-        preserveScroll: true,
-        onError: (errors) => {
-          console.error('完了エラー:', errors)
-        },
-      })
-    } else {
-      // 未完了に戻す処理（復元）
-      router.post(route('reminders.restore'), {
-        reminder_id: id
-      }, {
-        preserveScroll: true,
-        onError: (errors) => {
-          console.error('復元エラー:', errors)
-        },
-      })
-    }
+  if (checked) {
+    router.patch(route('reminders.complete', id), {}, {
+      onSuccess: (page) => {
+        const pageProps = page.props
+        const message = pageProps?.success
+        
+        if (message) {
+          recentlyCompleted.value = { 
+            id: id, 
+            undoUrl: route('reminders.restore', id)
+          }
+          
+          setTimeout(() => {
+            if (recentlyCompleted.value?.id === id) {
+              recentlyCompleted.value = null
+            }
+          }, 5000)
+        }
+      },
+    })
+  }
+}
+
+
+
+// 元に戻すアクション
+const undoAction = () => {
+  if (recentlyCompleted.value) {
+    // 生成されたundo_urlを使用してPOSTリクエスト
+    router.post(recentlyCompleted.value.undoUrl, {}, {
+      replace: true,
+      onSuccess: () => {
+        recentlyCompleted.value = null
+      }
+    })
   }
 }
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
@@ -79,14 +93,22 @@ const isCreateDialogOpen = ref(false)
           <div
             v-for="reminder in reminders"
             :key="reminder.reminder_id"
-            :class="['border-2 rounded-lg p-3 transition-all cursor-pointer', reminder.completed ? 'border-gray-300 bg-gray-100 opacity-60' : 'border-gray-200 bg-gray-50 hover:shadow-md']"
-            @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']')) { selectedReminder = reminder } }"
+            :class="['border-2 rounded-lg p-3 transition-all cursor-pointer relative min-h-12', reminder.completed ? 'border-gray-300 bg-gray-100 opacity-60' : 'border-gray-200 bg-gray-50 hover:shadow-md']"
+@click="(e) => { 
+              e.preventDefault();
+              e.stopPropagation();
+              if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { 
+                selectedReminder = reminder 
+              } 
+            }"
           >
             <div class="flex items-start gap-3">
               <input
                 type="checkbox"
                 :checked="reminder.completed"
+                @click.stop
                 @change="handleToggleComplete(reminder.reminder_id, ($event.target as HTMLInputElement).checked)"
+                :data-reminder-id="reminder.reminder_id"
                 class="mt-1 h-4 w-4 text-blue-600 rounded"
               />
               <div class="flex-1">
@@ -103,6 +125,25 @@ const isCreateDialogOpen = ref(false)
                   </Badge>
                 </div>
               </div>
+            </div>
+            
+            <!-- 元に戻すボタンオーバーレイ -->
+            <div 
+              v-if="recentlyCompleted && String(recentlyCompleted.id) === String(reminder.reminder_id)"
+              class="absolute inset-0 bg-red-500/90 flex items-center justify-end pr-4 rounded-lg z-[9999]"
+              style="pointer-events: auto;"
+            >
+              <!-- デバッグ情報 -->
+              <span class="text-xs text-white mr-2">RC:{{ recentlyCompleted?.id }} R:{{ reminder.reminder_id }}</span>
+              <span class="text-sm text-white mr-4">タスク完了！</span>
+              <Button 
+                size="sm" 
+                @click.stop="undoAction"
+                variant="default"
+                class="!bg-green-500 !text-white"
+              >
+                元に戻す
+              </Button>
             </div>
           </div>
         </div>

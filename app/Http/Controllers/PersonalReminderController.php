@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Reminder;
 use App\Models\TrashItem;
+use App\Models\Event;
+use App\Models\SharedNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Session;
+use Inertia\Inertia;
 
 class PersonalReminderController extends Controller
 {
@@ -138,9 +142,36 @@ class PersonalReminderController extends Controller
                 \Log::info('Transaction completed successfully');
             });
             
-            return redirect()->back()->with([
-                'success' => 'タスクを完了しました',
-                'reminder_id' => $reminder->reminder_id,
+            // ダッシュボードに必要なデータを再取得
+            $user = Auth::user();
+            
+            $events = Event::with(['creator', 'participants'])
+                ->orderBy('start_date')
+                ->get();
+            
+            $notes = SharedNote::with('author')
+                ->orderBy('updated_at', 'desc')
+                ->get();
+            
+            $pinnedNoteIds = $user->pinnedNotes()->pluck('shared_notes.note_id')->all();
+            $notes->each(function ($note) use ($pinnedNoteIds) {
+                $note->is_pinned = in_array($note->note_id, $pinnedNoteIds);
+            });
+            $sortedNotes = $notes->sortByDesc('is_pinned');
+            
+            $reminders = $user->reminders()
+                ->where('completed', false)
+                ->orderBy('deadline')
+                ->get();
+            
+            return Inertia::render('Dashboard', [
+                'events' => $events,
+                'sharedNotes' => $sortedNotes->values(),
+                'personalReminders' => $reminders,
+                'filteredMemberId' => null,
+            ])->with([
+                'success' => 'タスク完了！',
+                'undo_url' => route('reminders.restore', $reminder->reminder_id)
             ]);
         } catch (\Exception $e) {
             \Log::error('タスク完了エラー: ' . $e->getMessage());
@@ -151,42 +182,64 @@ class PersonalReminderController extends Controller
     /**
      * Restore the specified reminder.
      *
+     * @param  \App\Models\Reminder  $reminder
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function restoreReminder(Request $request)
+    public function restoreReminder(Reminder $reminder, Request $request)
     {
         // デバッグ用ログ
         \Log::info('Received ID and Data:', [
+            'reminder_id' => $reminder->reminder_id,
             'request_all' => $request->all(),
-            'reminder_id_from_request' => $request->input('reminder_id'),
             'auth_id' => auth()->id()
         ]);
         
-        $reminderId = $request->input('reminder_id');
-        
-        $reminder = Reminder::where('reminder_id', $reminderId)
-            ->where('user_id', auth()->id())
-            ->first();
-        
-        if (!$reminder) {
-            return redirect()->back()->withErrors(['error' => 'リマインダーが見つかりません']);
+        if ($reminder->user_id !== auth()->id()) {
+            return redirect()->back()->withErrors(['error' => '権限がありません']);
         }
         
         try {
-            DB::transaction(function () use ($reminder, $reminderId) {
+            DB::transaction(function () use ($reminder) {
                 $reminder->update([
                     'completed' => 0,
                     'completed_at' => null,
                 ]);
                 
                 TrashItem::where('item_type', 'reminder')
-                    ->where('item_id', $reminderId)
+                    ->where('item_id', $reminder->reminder_id)
                     ->where('user_id', auth()->id())
                     ->delete();
             });
             
-            return redirect()->back()->with('success', 'タスクを元に戻しました');
+            // ダッシュボードに必要なデータを再取得
+            $user = Auth::user();
+            
+            $events = Event::with(['creator', 'participants'])
+                ->orderBy('start_date')
+                ->get();
+            
+            $notes = SharedNote::with('author')
+                ->orderBy('updated_at', 'desc')
+                ->get();
+            
+            $pinnedNoteIds = $user->pinnedNotes()->pluck('shared_notes.note_id')->all();
+            $notes->each(function ($note) use ($pinnedNoteIds) {
+                $note->is_pinned = in_array($note->note_id, $pinnedNoteIds);
+            });
+            $sortedNotes = $notes->sortByDesc('is_pinned');
+            
+            $reminders = $user->reminders()
+                ->where('completed', false)
+                ->orderBy('deadline')
+                ->get();
+            
+            return Inertia::render('Dashboard', [
+                'events' => $events,
+                'sharedNotes' => $sortedNotes->values(),
+                'personalReminders' => $reminders,
+                'filteredMemberId' => null,
+            ])->with('success', 'リマインダーを元に戻しました！');
         } catch (\Exception $e) {
             \Log::error('タスク復元エラー: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'タスクの復元に失敗しました']);
