@@ -8,11 +8,11 @@ const selectedMember = ref<string | null>(null)
 </script>
 
 <template>
-  <div class="flex h-screen bg-gray-50">
+  <div class="flex h-screen bg-gray-50 overflow-hidden">
     <DashboardSidebar v-model:selectedMember="selectedMember" />
     <div class="flex-1 flex flex-col overflow-hidden">
       <DashboardHeader />
-      <main class="flex-1 overflow-auto p-6">
+      <main class="flex-1 overflow-hidden p-6">
         <slot :selected-member="selectedMember" @update:selected-member="selectedMember = $event" />
       </main>
     </div>

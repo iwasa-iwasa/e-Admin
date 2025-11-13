@@ -112,7 +112,7 @@ const changeView = (view: string) => {
 </script>
 
 <template>
-  <Card class="h-full flex flex-col hidden-scrollbar">
+  <Card class="flex flex-col max-h-full">
     <CardHeader>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -155,7 +155,7 @@ const changeView = (view: string) => {
       </div>
     </CardHeader>
 
-    <CardContent class="flex-1 overflow-auto relative flex flex-col">
+    <CardContent class="flex-1 relative flex flex-col">
       <div class="flex-1">
         <FullCalendar ref="fullCalendar" :options="calendarOptions"  class="h-full"/>
       </div>
