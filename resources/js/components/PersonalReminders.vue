@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatDate } from '@/lib/utils'
 import { ref, computed } from 'vue'
+import { router } from '@inertiajs/vue3'
 import { Bell, Plus, Clock } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,8 +18,31 @@ const selectedReminder = ref<App.Models.Reminder | null>(null)
 
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
 
-// Data modification functions are disabled for now
-const handleToggleComplete = (id: number) => {}
+const handleToggleComplete = (id: number, checked: boolean) => {
+  const message = checked ? 'タスクを完了しますか？' : 'タスクを未完了に戻しますか？'
+  
+  if (confirm(message)) {
+    if (checked) {
+      // 完了処理
+      router.patch(route('reminders.complete', id), {}, {
+        preserveScroll: true,
+        onError: (errors) => {
+          console.error('完了エラー:', errors)
+        },
+      })
+    } else {
+      // 未完了に戻す処理（復元）
+      router.post(route('reminders.restore'), {
+        reminder_id: id
+      }, {
+        preserveScroll: true,
+        onError: (errors) => {
+          console.error('復元エラー:', errors)
+        },
+      })
+    }
+  }
+}
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
 const isCreateDialogOpen = ref(false)
 
@@ -56,13 +80,14 @@ const isCreateDialogOpen = ref(false)
             v-for="reminder in reminders"
             :key="reminder.reminder_id"
             :class="['border-2 rounded-lg p-3 transition-all cursor-pointer', reminder.completed ? 'border-gray-300 bg-gray-100 opacity-60' : 'border-gray-200 bg-gray-50 hover:shadow-md']"
-            @click="(e) => { if (!(e.target as HTMLElement).closest('button[role=\'checkbox\']')) { selectedReminder = reminder } }"
+            @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']')) { selectedReminder = reminder } }"
           >
             <div class="flex items-start gap-3">
-              <Checkbox
+              <input
+                type="checkbox"
                 :checked="reminder.completed"
-                @update:checked="handleToggleComplete(reminder.reminder_id)"
-                class="mt-1"
+                @change="handleToggleComplete(reminder.reminder_id, ($event.target as HTMLInputElement).checked)"
+                class="mt-1 h-4 w-4 text-blue-600 rounded"
               />
               <div class="flex-1">
                 <h4 :class="['mb-2', reminder.completed ? 'line-through text-gray-500' : '']">
