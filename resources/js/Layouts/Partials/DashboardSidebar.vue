@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3'
+import { Link, usePage, router } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { Calendar, StickyNote, BarChart3, Mail, Home, Settings, Monitor, Trash2, Users, Bell } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -9,17 +9,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import LogoTitle from '@/components/logoTitle.vue'
 
-const props = defineProps<{
-  selectedMember: string | null
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:selectedMember', memberId: string | null): void
-}>()
-
 const page = usePage()
 
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
+const selectedMember = computed(() => page.props.filteredMemberId as number | null)
 
 const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -28,11 +21,21 @@ const isActive = (path: string) => {
     return page.url.startsWith(path)
 }
 
-const handleMemberClick = (memberId: string) => {
-  if (props.selectedMember === memberId) {
-    emit('update:selectedMember', null)
+const handleMemberClick = (memberId: number) => {
+  const routeName = 'dashboard'
+
+  // If the clicked member is already selected, clear the filter.
+  if (selectedMember.value === memberId) {
+    router.get(route(routeName), {}, {
+      preserveState: true,
+      replace: true,
+    })
   } else {
-    emit('update:selectedMember', memberId)
+    // Otherwise, filter by the new member.
+    router.get(route(routeName), { member_id: memberId }, {
+      preserveState: true,
+      replace: true,
+    })
   }
 }
 </script>

@@ -16,18 +16,37 @@ class DashboardController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
+        $memberId = $request->query('member_id');
 
         // Fetch all events from the shared calendar
-        $events = Event::with(['creator', 'participants'])
-            ->orderBy('start_date')
-            ->get();
+        $eventsQuery = Event::with(['creator', 'participants'])
+            ->orderBy('start_date');
 
-        $notes = SharedNote::with('author')->orderBy('pinned', 'desc')
+        if ($memberId) {
+            $eventsQuery->whereHas('participants', function ($query) use ($memberId) {
+                $query->where('users.id', $memberId);
+            });
+        }
+
+        $events = $eventsQuery->get();
+
+        $notes = SharedNote::with('author')
             ->orderBy('updated_at', 'desc')
             ->get();
+
+        // Get IDs of notes pinned by the current user
+        $pinnedNoteIds = $user->pinnedNotes()->pluck('shared_notes.note_id')->all();
+
+        // Add is_pinned attribute to each note
+        $notes->each(function ($note) use ($pinnedNoteIds) {
+            $note->is_pinned = in_array($note->note_id, $pinnedNoteIds);
+        });
+
+        // Sort by is_pinned desc (pinned notes first), then by updated_at (already sorted by DB)
+        $sortedNotes = $notes->sortByDesc('is_pinned');
 
         $reminders = $user->reminders()
             ->where('completed', false)
@@ -36,8 +55,9 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'events' => $events,
-            'sharedNotes' => $notes,
+            'sharedNotes' => $sortedNotes->values(),
             'personalReminders' => $reminders,
+            'filteredMemberId' => $memberId ? (int)$memberId : null,
         ]);
     }
 }
