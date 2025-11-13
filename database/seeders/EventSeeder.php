@@ -32,7 +32,7 @@ class EventSeeder extends Seeder
         }
 
         // サンプルイベントデータを100件生成
-        $categories = ['会議', 'MTG', '業務', '期限', '休暇', '重要'];
+        $categories = ['会議', 'MTG', '業務', '期限', '有給', '重要'];
         $importances = ['高', '中', '低'];
         $locations = ['大会議室', '会議室A', '会議室B', '研修室', 'オンライン', ''];
         $faker = \Faker\Factory::create('ja_JP');
