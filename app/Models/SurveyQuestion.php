@@ -69,4 +69,12 @@ class SurveyQuestion extends Model
     {
         return $this->hasMany(SurveyQuestionOption::class, 'question_id');
     }
+
+    /**
+     * Get the answers for the question.
+     */
+    public function answers()
+    {
+        return $this->hasMany(Answer::class, 'question_id');
+    }
 }

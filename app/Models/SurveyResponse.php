@@ -37,6 +37,13 @@ class SurveyResponse extends Model
     ];
 
     /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public $timestamps = false;
+
+    /**
      * The attributes that should be cast.
      *
      * @var array<string, string>
@@ -50,7 +57,7 @@ class SurveyResponse extends Model
      */
     public function survey()
     {
-        return $this->belongsTo(Survey::class, 'survey_id');
+        return $this->belongsTo(Survey::class, 'survey_id', 'survey_id');
     }
 
     /**
@@ -58,7 +65,7 @@ class SurveyResponse extends Model
      */
     public function respondent()
     {
-        return $this->belongsTo(User::class, 'respondent_id');
+        return $this->belongsTo(User::class, 'respondent_id', 'id');
     }
 
     /**
@@ -66,6 +73,6 @@ class SurveyResponse extends Model
      */
     public function answers()
     {
-        return $this->hasMany(SurveyAnswer::class, 'response_id');
+        return $this->hasMany(SurveyAnswer::class, 'response_id', 'response_id');
     }
 }

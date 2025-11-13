@@ -39,6 +39,7 @@ const fullCalendar = ref<any>(null)
 const calendarTitle = ref('')
 
 const getEventColor = (category: string, importance: string) => {
+    console.log(category, importance);
     const categoryColorMap: { [key: string]: string } = {
         '会議': '#8b5cf6', // purple
         '期限': '#f97316', // orange
@@ -59,7 +60,7 @@ const legendItems = [
     { label: '期限', color: '#f97316' },
     { label: 'MTG', color: '#22c55e' },
     { label: '重要', color: '#ef4444' },
-    { label: '休暇', color: '#14b8a6' },
+    { label: '有休', color: '#14b8a6' },
     { label: '業務', color: '#3b82f6' },
 ];
 

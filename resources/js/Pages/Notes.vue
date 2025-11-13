@@ -20,10 +20,10 @@ defineOptions({
 type Priority = 'high' | 'medium' | 'low'
 
 const props = defineProps<{
-  notes: App.Models.SharedNote[]
+  notes: (App.Models.SharedNote & { is_pinned: boolean })[]
 }>()
 
-const selectedNote = ref<App.Models.SharedNote | null>(props.notes.length > 0 ? props.notes[0] : null)
+const selectedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null>(props.notes.length > 0 ? props.notes[0] : null)
 const searchQuery = ref('')
 const filterAuthor = ref('all')
 const filterPinned = ref('all')
@@ -49,6 +49,15 @@ watch(selectedNote, (newNote) => {
   }
 })
 
+watch(() => props.notes, (newNotes) => {
+  if (selectedNote.value) {
+    const updatedSelectedNote = newNotes.find(note => note.note_id === selectedNote.value.note_id);
+    if (updatedSelectedNote) {
+      selectedNote.value = updatedSelectedNote;
+    }
+  }
+}, { deep: true });
+
 const filteredNotes = computed(() => {
   return props.notes.filter((note) => {
     const matchesSearch =
@@ -62,8 +71,8 @@ const filteredNotes = computed(() => {
 
     const matchesPinned =
       filterPinned.value === 'all' ||
-      (filterPinned.value === 'pinned' && note.pinned) ||
-      (filterPinned.value === 'unpinned' && !note.pinned)
+      (filterPinned.value === 'pinned' && note.is_pinned) ||
+      (filterPinned.value === 'unpinned' && !note.is_pinned)
 
     return matchesSearch && matchesAuthor && matchesPinned
   })
@@ -71,7 +80,7 @@ const filteredNotes = computed(() => {
 
 const authors = computed(() => Array.from(new Set(props.notes.map((note) => note.author?.name).filter(Boolean))))
 
-const handleSelectNote = (note: App.Models.SharedNote) => {
+const handleSelectNote = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
   selectedNote.value = note
 }
 
@@ -89,6 +98,18 @@ const getColorClass = (color: string) => {
   }
   return colorMap[color] || 'bg-gray-50 border-gray-300 hover:bg-gray-100'
 }
+
+const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
+    if (note.is_pinned) {
+        router.delete(route('notes.unpin', note.note_id), {
+            preserveScroll: true, // スクロール位置のみ維持する
+        });
+    } else {
+        router.post(route('notes.pin', note.note_id), {}, {
+            preserveScroll: true, // スクロール位置のみ維持する
+        });
+    }
+};
 
 </script>
 
@@ -170,7 +191,7 @@ const getColorClass = (color: string) => {
             <div class="p-4">
               <div class="flex items-start justify-between mb-2">
                 <h3 class="flex-1 flex items-center gap-2 pr-2">
-                  <Pin v-if="note.pinned" class="h-4 w-4 text-gray-600 flex-shrink-0" />
+                  <Pin v-if="note.is_pinned" class="h-4 w-4 text-yellow-500 fill-current flex-shrink-0" />
                   <span class="line-clamp-1">{{ note.title }}</span>
                 </h3>
               </div>
@@ -222,9 +243,9 @@ const getColorClass = (color: string) => {
               </div>
             </div>
             <div class="flex items-center gap-2 ml-4">
-              <Button variant="outline" size="sm" class="gap-2" disabled>
-                <Pin class="h-4 w-4" />
-                {{ selectedNote.pinned ? 'ピン解除' : 'ピン留め' }}
+              <Button variant="outline" size="sm" class="gap-2" @click="togglePin(selectedNote)">
+                <Pin class="h-4 w-4" :class="{'fill-current text-yellow-500': selectedNote.is_pinned}" />
+                {{ selectedNote.is_pinned ? 'ピン解除' : 'ピン留め' }}
               </Button>
             </div>
           </div>
