@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed, watch } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 import { Bell, Plus, Clock, ArrowLeft, Trash2 } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useToast } from '@/components/ui/toast/use-toast'
 import ReminderDetailDialog from '@/Components/ReminderDetailDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
@@ -19,13 +20,58 @@ const props = defineProps<{
   reminders: App.Models.Reminder[]
 }>()
 
+const page = usePage()
+const { toast } = useToast()
 const isCreateDialogOpen = ref(false)
 const selectedReminder = ref<App.Models.Reminder | null>(null)
+const completedReminderId = ref<number | null>(null)
+const showCompleted = ref(false)
 
-// Data modification functions are disabled for now
-const handleToggleComplete = (id: number) => {}
+// 元に戻す処理
+const restoreReminder = () => {
+  if (completedReminderId.value) {
+    router.post(route('reminders.restore'), {
+      reminder_id: completedReminderId.value,
+    }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        completedReminderId.value = null
+      },
+    })
+  }
+}
+
+// タスク完了処理
+const handleToggleComplete = (id: number) => {
+  if (confirm('タスクを完了しますか？')) {
+    router.patch(route('reminders.complete', id), {}, {
+      preserveScroll: true,
+      onError: (errors) => {
+        console.error('完了エラー:', errors)
+      },
+    })
+  }
+}
+
 const handleDeletePermanently = (id: number) => {}
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
+
+// フラッシュメッセージを監視
+watch(() => page.props.flash, (flash: any) => {
+  if (flash?.success && flash?.reminder_id) {
+    completedReminderId.value = flash.reminder_id
+    
+    toast({
+      title: "タスク完了",
+      description: flash.success,
+      action: {
+        label: "元に戻す",
+        onClick: restoreReminder,
+      },
+      duration: 5000,
+    })
+  }
+}, { deep: true, immediate: true })
 
 const activeReminders = computed(() => props.reminders.filter((r) => !r.completed))
 const completedReminders = computed(() => props.reminders.filter((r) => r.completed))
@@ -97,16 +143,22 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
         <Card v-if="completedReminders.length > 0">
           <CardHeader>
             <CardTitle class="flex items-center justify-between">
-              <span>完了済み</span>
-              <Badge variant="secondary">{{ completedReminders.length }}件</Badge>
+              <Button 
+                variant="ghost" 
+                @click="showCompleted = !showCompleted"
+                class="flex items-center gap-2 p-0 h-auto font-semibold text-lg"
+              >
+                <span>完了済み</span>
+                <Badge variant="secondary">{{ completedReminders.length }}件</Badge>
+              </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent v-if="showCompleted">
             <ScrollArea class="max-h-[300px]">
               <div class="space-y-3">
                 <div v-for="reminder in completedReminders" :key="reminder.reminder_id" class="border-2 border-gray-300 bg-gray-100 rounded-lg p-4 opacity-60">
                   <div class="flex items-start gap-3">
-                    <Checkbox :checked="reminder.completed" @update:checked="handleToggleComplete(reminder.reminder_id)" class="mt-1" />
+                    <Checkbox :checked="reminder.completed" @update:checked="() => {}" class="mt-1" disabled />
                     <div class="flex-1">
                       <h3 class="mb-2 line-through text-gray-500">{{ reminder.title }}</h3>
                       <p v-if="reminder.description" class="text-sm text-gray-500 mb-2 line-through">{{ reminder.description }}</p>

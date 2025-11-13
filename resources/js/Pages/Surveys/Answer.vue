@@ -264,7 +264,7 @@ const cancel = () => {
                     <Button type="button" variant="outline" @click="cancel">
                         キャンセル
                     </Button>
-                    <Button type="submit" :disabled="form.processing">
+                    <Button type="submit" variant="outline" :disabled="form.processing">
                         {{ form.processing ? '送信中...' : '回答を送信' }}
                     </Button>
                 </div>

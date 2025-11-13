@@ -389,7 +389,7 @@ const getQuestionResponses = (
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <Button @click="handleDownloadCSV" class="gap-2">
+                        <Button @click="handleDownloadCSV" variant="outline" class="gap-2">
                             <Download class="h-4 w-4" />
                             CSVダウンロード
                         </Button>

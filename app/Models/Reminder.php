@@ -46,9 +46,9 @@ class Reminder extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'deadline' => 'date',
         'completed' => 'boolean',
         'completed_at' => 'datetime',
+        'deadline' => 'datetime',
     ];
 
     /**
