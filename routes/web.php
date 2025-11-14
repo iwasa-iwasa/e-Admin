@@ -61,9 +61,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/reminders/restore', [PersonalReminderController::class, 'restoreReminder'])->name('reminders.restore');
 
     // Trash
-    Route::get('/trash', function () {
-        return Inertia::render('Trash');
-    })->name('trash');
+    Route::get('/trash', [\App\Http\Controllers\TrashController::class, 'index'])->name('trash');
+    Route::post('/trash/{id}/restore', [\App\Http\Controllers\TrashController::class, 'restore'])->name('trash.restore');
+    Route::delete('/trash/{id}', [\App\Http\Controllers\TrashController::class, 'destroy'])->name('trash.destroy');
+    Route::delete('/trash', [\App\Http\Controllers\TrashController::class, 'emptyTrash'])->name('trash.empty');
 
     // Member Calendar
     Route::get('/member-calendar', function () {

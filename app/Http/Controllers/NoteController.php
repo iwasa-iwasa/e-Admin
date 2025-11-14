@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SharedNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class NoteController extends Controller
@@ -18,7 +19,7 @@ class NoteController extends Controller
     {
         $user = Auth::user();
         $notes = SharedNote::with(['author', 'tags'])
-            ->whereNull('deleted_at')
+            ->active()
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -51,7 +52,7 @@ class NoteController extends Controller
             'deadline' => ['nullable', 'date'],
         ]);
 
-        SharedNote::create([
+        $note = SharedNote::create([
             'title' => $validated['title'],
             'content' => $validated['content'],
             'author_id' => Auth::id(),
@@ -60,7 +61,7 @@ class NoteController extends Controller
             'deadline' => $validated['deadline'],
         ]);
 
-        return redirect()->route('notes')->with('success', '新しい共有メモを作成しました！');
+        return redirect()->route('notes', ['select' => $note->note_id])->with('success', '新しい共有メモを作成しました！');
     }
 
     /**
@@ -113,8 +114,11 @@ class NoteController extends Controller
     public function destroy(SharedNote $note)
     {
         \DB::transaction(function () use ($note) {
-            // ソフトデリート
-            $note->delete();
+            // is_deletedフラグを設定
+            $note->update([
+                'is_deleted' => true,
+                'deleted_at' => now(),
+            ]);
             
             // ゴミ箱テーブルに記録
             \App\Models\TrashItem::create([
@@ -137,8 +141,11 @@ class NoteController extends Controller
     {
         \DB::transaction(function () use ($noteId) {
             // メモを復元
-            $note = SharedNote::withTrashed()->findOrFail($noteId);
-            $note->restore();
+            $note = SharedNote::findOrFail($noteId);
+            $note->update([
+                'is_deleted' => false,
+                'deleted_at' => null,
+            ]);
             
             // ゴミ箱テーブルから削除
             \App\Models\TrashItem::where('item_type', 'shared_note')
