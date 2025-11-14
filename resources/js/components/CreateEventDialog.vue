@@ -180,10 +180,24 @@ const handleRemoveParticipant = (participantId: number) => {
   form.participants = form.participants.filter((p) => p.id !== participantId)
 }
 
+const MAX_FILE_SIZE = 41943040; // Approximately 40MB, matching common PHP post_max_size
+
 const handleFileChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
     if (target.files) {
-        form.attachments.new_files.push(...Array.from(target.files));
+        Array.from(target.files).forEach(file => {
+            if (file.size > MAX_FILE_SIZE) {
+                toast({
+                    title: "ファイルサイズエラー",
+                    description: `${file.name} はサイズ上限 (${(MAX_FILE_SIZE / (1024 * 1024)).toFixed(0)}MB) を超えています。`,
+                    variant: "destructive",
+                });
+            } else {
+                form.attachments.new_files.push(file);
+            }
+        });
+        // Clear the input to allow selecting the same file again if needed
+        target.value = '';
     }
 };
 
@@ -212,10 +226,16 @@ const toggleByDay = (day: string) => {
 };
 
 const handleSave = () => {
-  const transformData = (data: typeof form) => ({
-    ...data,
-    participants: data.participants.map(p => p.id)
-  });
+  const transformData = (data: typeof form) => {
+    const transformed: Record<string, any> = {
+        ...data,
+        participants: data.participants.map(p => p.id)
+    };
+    if (isEditMode.value) {
+        transformed._method = 'put';
+    }
+    return transformed;
+  };
 
   const options = {
     onSuccess: () => {
@@ -235,7 +255,7 @@ const handleSave = () => {
   };
 
   if (isEditMode.value && props.event) {
-    form.transform(transformData).put(route('events.update', { event: props.event.event_id }), options);
+    form.transform(transformData).post(route('events.update', { event: props.event.event_id }), options);
   } else {
     form.transform(transformData).post(route('events.store'), options);
   }

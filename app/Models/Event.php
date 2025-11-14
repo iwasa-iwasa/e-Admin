@@ -56,8 +56,6 @@ class Event extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'start_date' => 'datetime',
-        'end_date' => 'datetime',
         'is_all_day' => 'boolean',
     ];
 
@@ -122,7 +120,7 @@ class Event extends Model
         $rrule = [
             'freq' => $this->recurrence->recurrence_type,
             'interval' => $this->recurrence->recurrence_interval,
-            'dtstart' => $this->start_date->format('Y-m-d') . 'T' . ($this->start_time ?? '00:00:00'),
+            'dtstart' => $this->start_date . 'T' . ($this->start_time ?? '00:00:00'),
             'until' => $this->recurrence->end_date ? $this->recurrence->end_date->format('Y-m-d') : null,
         ];
 

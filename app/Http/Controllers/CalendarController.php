@@ -9,6 +9,7 @@ use App\Models\EventAttachment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class CalendarController extends Controller
 {
@@ -22,7 +23,7 @@ class CalendarController extends Controller
         $user = Auth::user();
 
         // Fetch all events from the shared calendar
-        $events = Event::with(['creator', 'participants'])
+        $events = Event::with(['creator', 'participants', 'recurrence', 'attachments'])
             ->orderBy('start_date')
             ->get();
 
@@ -69,8 +70,8 @@ class CalendarController extends Controller
         $event = Event::create([
             'calendar_id' => \App\Models\Calendar::first()->calendar_id,
             'title' => $validated['title'],
-            'start_date' => $validated['date_range'][0],
-            'end_date' => $validated['date_range'][1],
+            'start_date' => Carbon::parse($validated['date_range'][0])->format('Y-m-d'),
+            'end_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
             'is_all_day' => $validated['is_all_day'],
             'start_time' => $validated['is_all_day'] ? null : $validated['start_time'],
             'end_time' => $validated['is_all_day'] ? null : $validated['end_time'],
@@ -155,8 +156,8 @@ class CalendarController extends Controller
 
         $event->update([
             'title' => $validated['title'],
-            'start_date' => $validated['date_range'][0],
-            'end_date' => $validated['date_range'][1],
+            'start_date' => Carbon::parse($validated['date_range'][0])->format('Y-m-d'),
+            'end_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
             'is_all_day' => $validated['is_all_day'],
             'start_time' => $validated['is_all_day'] ? null : $validated['start_time'],
             'end_time' => $validated['is_all_day'] ? null : $validated['end_time'],
