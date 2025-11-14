@@ -65,6 +65,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('member.calendar');
 
     Route::post('/events', [CalendarController::class, 'store'])->name('events.store');
+    Route::put('/events/{event}', [CalendarController::class, 'update'])->name('events.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

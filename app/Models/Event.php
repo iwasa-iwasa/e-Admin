@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Carbon\Carbon;
+
+use App\Models\EventRecurrence;
+use App\Models\EventAttachment;
 
 #[TypeScript]
 class Event extends Model
@@ -52,10 +56,17 @@ class Event extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
         'is_all_day' => 'boolean',
     ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['rrule', 'duration'];
 
     /**
      * Get the user who created the event.
@@ -79,5 +90,71 @@ class Event extends Model
     public function participants()
     {
         return $this->belongsToMany(User::class, 'event_participants', 'event_id', 'user_id');
+    }
+
+    /**
+     * Get the recurrence rule for the event.
+     */
+    public function recurrence()
+    {
+        return $this->hasOne(EventRecurrence::class, 'event_id');
+    }
+
+    /**
+     * Get the attachments for the event.
+     */
+    public function attachments()
+    {
+        return $this->hasMany(EventAttachment::class, 'event_id');
+    }
+
+    /**
+     * Get the rrule object for FullCalendar.
+     *
+     * @return array|null
+     */
+    public function getRruleAttribute(): ?array
+    {
+        if (!$this->recurrence) {
+            return null;
+        }
+
+        $rrule = [
+            'freq' => $this->recurrence->recurrence_type,
+            'interval' => $this->recurrence->recurrence_interval,
+            'dtstart' => $this->start_date->format('Y-m-d') . 'T' . ($this->start_time ?? '00:00:00'),
+            'until' => $this->recurrence->end_date ? $this->recurrence->end_date->format('Y-m-d') : null,
+        ];
+
+        if (!empty($this->recurrence->by_day)) {
+            $rrule['byweekday'] = $this->recurrence->by_day;
+        }
+
+        if (!is_null($this->recurrence->by_set_pos)) {
+            $rrule['bysetpos'] = $this->recurrence->by_set_pos;
+        }
+
+        return $rrule;
+    }
+
+    /**
+     * Get the duration for FullCalendar recurring events.
+     *
+     * @return string|null
+     */
+    public function getDurationAttribute(): ?string
+    {
+        if (!$this->recurrence || $this->is_all_day || !$this->start_time || !$this->end_time) {
+            return null;
+        }
+
+        try {
+            $start = Carbon::parse($this->start_time);
+            $end = Carbon::parse($this->end_time);
+            $diff = $start->diff($end);
+            return $diff->format('%H:%I:%S');
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }

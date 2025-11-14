@@ -5,6 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import multiMonthPlugin from '@fullcalendar/multimonth'
+import rrulePlugin from '@fullcalendar/rrule'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,12 +35,26 @@ function combineDateAndTime(fullDateStr:string, timeStr:string): string {
 
 const viewMode = ref('dayGridMonth')
 const selectedEvent = ref<App.Models.Event | null>(null)
-const isCreateEventDialogOpen = ref(false)
+const isEventFormOpen = ref(false)
+const editingEvent = ref<App.Models.Event | null>(null)
 const fullCalendar = ref<any>(null)
 const calendarTitle = ref('')
 
+const openCreateDialog = () => {
+  editingEvent.value = null
+  isEventFormOpen.value = true
+}
+
+const openEditDialog = (eventId: number) => {
+  const event = props.events.find(e => e.event_id === eventId)
+  if (event) {
+    editingEvent.value = event
+    isEventFormOpen.value = true
+  }
+}
+
 const getEventColor = (category: string, importance: string) => {
-    console.log(category, importance);
+    // console.log(category, importance);
     const categoryColorMap: { [key: string]: string } = {
         '会議': '#8b5cf6', // purple
         '期限': '#f97316', // orange
@@ -65,24 +80,40 @@ const legendItems = [
 ];
 
 const calendarOptions = computed(() => ({
-  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin],
+  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin, rrulePlugin],
   initialView: viewMode.value,
   headerToolbar: false,
-  events: props.events.map(event => ({
-    id: event.event_id,
-    title: event.title,
-    start: combineDateAndTime(event.start_date,event.start_time ? event.start_time : '00:00:00'),
-    end: combineDateAndTime(event.end_date,event.end_time ? event.end_time : '00:00:00'),
-    backgroundColor: getEventColor(event.category, event.importance),
-    borderColor: getEventColor(event.category, event.importance),
-    extendedProps: event,
-    allDay: event.is_all_day,
-  })),
+  events: props.events.map(event => {
+    const commonProps = {
+      id: event.event_id,
+      title: event.title,
+      backgroundColor: getEventColor(event.category, event.importance),
+      borderColor: getEventColor(event.category, event.importance),
+      extendedProps: event,
+      allDay: event.is_all_day,
+    };
+
+    if (event.rrule) {
+      return {
+        ...commonProps,
+        rrule: event.rrule,
+        duration: event.duration,
+      };
+    }
+
+    return {
+      ...commonProps,
+      start: combineDateAndTime(event.start_date, event.start_time ? event.start_time : '00:00:00'),
+      end: combineDateAndTime(event.end_date, event.end_time ? event.end_time : '00:00:00'),
+    };
+  }),
   locale: 'ja',
   buttonText: {
     today: '今日',
   },
   eventClick: (info: any) => {
+    // For recurring events, FullCalendar provides the original event definition in extendedProps.
+    // The `info.event.extendedProps` should correctly reference our main event object.
     selectedEvent.value = info.event.extendedProps
   },
   datesSet: (info: any) => {
@@ -124,7 +155,7 @@ const changeView = (view: string) => {
           variant="outline"
           size="sm"
           class="gap-2"
-          @click="isCreateEventDialogOpen = true"
+          @click="openCreateDialog"
         >
           <Plus class="h-4 w-4" />
           新規作成
@@ -172,11 +203,14 @@ const changeView = (view: string) => {
       :event="selectedEvent"
       :open="selectedEvent !== null"
       @update:open="(isOpen) => !isOpen && (selectedEvent = null)"
+      @edit="openEditDialog"
     />
 
     <CreateEventDialog
-      :open="isCreateEventDialogOpen"
-      @update:open="isCreateEventDialogOpen = $event"
+      :key="editingEvent ? editingEvent.event_id : 'create'"
+      :open="isEventFormOpen"
+      @update:open="isEventFormOpen = $event"
+      :event="editingEvent"
     />
   </Card>
 </template>
