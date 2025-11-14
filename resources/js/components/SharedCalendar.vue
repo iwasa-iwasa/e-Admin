@@ -5,6 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import multiMonthPlugin from '@fullcalendar/multimonth'
+import rrulePlugin from '@fullcalendar/rrule'
 import { CalendarOptions } from '@fullcalendar/core'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,28 +20,27 @@ const props = defineProps<{
     events: App.Models.Event[]
 }>()
 
-/**
- * ISO形式の日付文字列と、時刻文字列を結合します。
- * @param {string} fullDateStr - 元の日付時刻文字列 (例: '2025-10-16T15:00:00.000000Z')
- * @param {string} timeStr - 結合したい時刻文字列 (例: '17:00:00')
- * @returns {string} 結合された日付時刻文字列 (例: '2025-10-16T17:00:00')
- */
-function combineDateAndTime(fullDateStr:string, timeStr:string): string {
-  // 'T' を基準に文字列を分割し、日付部分（[0]）を取得します
-  const datePart = fullDateStr.split('T')[0];
-  
-  // 取得した日付部分と、新しい時刻の文字列を 'T' で結合します
-  return `${datePart}T${timeStr}`;
-}
-
 const viewMode = ref('dayGridMonth')
 const selectedEvent = ref<App.Models.Event | null>(null)
-const isCreateEventDialogOpen = ref(false)
+const isEventFormOpen = ref(false)
+const editingEvent = ref<App.Models.Event | null>(null)
 const fullCalendar = ref<any>(null)
 const calendarTitle = ref('')
 
+const openCreateDialog = () => {
+  editingEvent.value = null
+  isEventFormOpen.value = true
+}
+
+const openEditDialog = (eventId: number) => {
+  const event = props.events.find(e => e.event_id === eventId)
+  if (event) {
+    editingEvent.value = event
+    isEventFormOpen.value = true
+  }
+}
+
 const getEventColor = (category: string, importance: string) => {
-    console.log(category, importance);
     const categoryColorMap: { [key: string]: string } = {
         '会議': '#8b5cf6', // purple
         '期限': '#f97316', // orange
@@ -65,21 +65,48 @@ const legendItems = [
     { label: '業務', color: '#3b82f6' },
 ];
 
-const calendarOptions = computed<CalendarOptions>(() => ({
-  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin],
+const calendarOptions = computed(() => ({
+  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin, rrulePlugin],
   initialView: viewMode.value,
   headerToolbar: false,
-  contentHeight: 'auto',
-  events: props.events.map(event => ({
-    id: event.event_id,
-    title: event.title,
-    start: combineDateAndTime(event.start_date,event.start_time ? event.start_time : '00:00:00'),
-    end: combineDateAndTime(event.end_date,event.end_time ? event.end_time : '00:00:00'),
-    backgroundColor: getEventColor(event.category, event.importance),
-    borderColor: getEventColor(event.category, event.importance),
-    extendedProps: event,
-    allDay: event.is_all_day,
-  })),
+  events: props.events.map(event => {
+    const commonProps = {
+      id: event.event_id,
+      title: event.title,
+      backgroundColor: getEventColor(event.category, event.importance),
+      borderColor: getEventColor(event.category, event.importance),
+      extendedProps: event,
+      allDay: event.is_all_day,
+    };
+
+    if (event.rrule) {
+      return {
+        ...commonProps,
+        rrule: event.rrule,
+        duration: event.duration,
+      };
+    }
+
+    // Non-recurring events
+    if (event.is_all_day) {
+        // For all-day events, the end date is exclusive.
+        // Add one day to the end date for it to display correctly.
+        // IMPORTANT: Create date in UTC to avoid timezone shifts.
+        const endDate = new Date(event.end_date + 'T00:00:00Z');
+        endDate.setUTCDate(endDate.getUTCDate() + 1);
+        return {
+            ...commonProps,
+            start: event.start_date, // 'YYYY-MM-DD' string from backend
+            end: endDate.toISOString().split('T')[0], // Format back to 'YYYY-MM-DD'
+        };
+    }
+
+    return {
+      ...commonProps,
+      start: `${event.start_date}T${event.start_time || '00:00:00'}`,
+      end: `${event.end_date}T${event.end_time || '00:00:00'}`,
+    };
+  }),
   locale: 'ja',
   buttonText: {
     today: '今日',
@@ -126,7 +153,7 @@ const changeView = (view: string) => {
           variant="outline"
           size="sm"
           class="gap-2"
-          @click="isCreateEventDialogOpen = true"
+          @click="openCreateDialog"
         >
           <Plus class="h-4 w-4" />
           新規作成
@@ -177,11 +204,14 @@ const changeView = (view: string) => {
       :event="selectedEvent"
       :open="selectedEvent !== null"
       @update:open="(isOpen) => !isOpen && (selectedEvent = null)"
+      @edit="openEditDialog"
     />
 
     <CreateEventDialog
-      :open="isCreateEventDialogOpen"
-      @update:open="isCreateEventDialogOpen = $event"
+      :key="editingEvent ? editingEvent.event_id : 'create'"
+      :open="isEventFormOpen"
+      @update:open="isEventFormOpen = $event"
+      :event="editingEvent"
     />
   </Card>
 </template>
