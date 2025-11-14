@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { formatDate } from '@/lib/utils'
-import { Calendar as CalendarIcon, Users, MapPin, Info } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -19,11 +19,13 @@ const props = defineProps<{
     event: App.Models.Event | null,
     open: boolean 
 }>()
-const emit = defineEmits(['update:open'])
+const emit = defineEmits(['update:open', 'edit'])
 
 const editEvent = () => {
-  // TODO: Implement edit functionality
-  console.log("Edit event:", props.event?.event_id)
+  if (props.event) {
+    emit('edit', props.event.event_id)
+  }
+  closeDialog()
 }
 
 const closeDialog = () => {
@@ -58,6 +60,42 @@ const displayTime = computed(() => {
   return start || end;
 });
 
+const recurrenceText = computed(() => {
+    if (!props.event?.recurrence) {
+        return '';
+    }
+    const { recurrence_type, recurrence_interval, by_day, by_set_pos } = props.event.recurrence;
+    let text = '';
+
+    const intervalText = recurrence_interval > 1 ? `${recurrence_interval}` : '';
+
+    switch (recurrence_type) {
+        case 'daily':
+            text = intervalText ? `${intervalText}日ごと` : '毎日';
+            break;
+        case 'weekly':
+            text = intervalText ? `${intervalText}週間ごと` : '毎週';
+            if (by_day && by_day.length > 0) {
+                const weekdays: { [key: string]: string } = { MO: '月', TU: '火', WE: '水', TH: '木', FR: '金', SA: '土', SU: '日' };
+                text += ' ' + by_day.map(d => weekdays[d]).join(', ') + '曜日';
+            }
+            break;
+        case 'monthly':
+            text = intervalText ? `${intervalText}ヶ月ごと` : '毎月';
+            if (by_set_pos && by_day && by_day.length === 1) {
+                const weekdays: { [key: string]: string } = { MO: '月', TU: '火', WE: '水', TH: '木', FR: '金', SA: '土', SU: '日' };
+                const pos: { [key: string]: string } = { '1': '第1', '2': '第2', '3': '第3', '4': '第4', '-1': '最終' };
+                text += ` ${pos[String(by_set_pos)] || ''}${weekdays[by_day[0]]}曜日`;
+            }
+            break;
+        case 'yearly':
+            text = intervalText ? `${intervalText}年ごと` : '毎年';
+            break;
+    }
+
+    return text + 'に繰り返す';
+});
+
 </script>
 
 <template>
@@ -78,6 +116,10 @@ const displayTime = computed(() => {
           <div>
             <p class="font-semibold">{{ displayDate }}</p>
             <p class="text-sm text-gray-600">{{ displayTime }}</p>
+            <p v-if="event.recurrence" class="text-sm text-gray-600 flex items-center gap-1 mt-1">
+              <Repeat class="h-4 w-4" />
+              {{ recurrenceText }}
+            </p>
           </div>
         </div>
 
@@ -101,6 +143,26 @@ const displayTime = computed(() => {
           </div>
         </div>
 
+        <div v-if="event.url" class="flex items-start gap-4">
+          <LinkIcon class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+          <div>
+            <p class="text-sm text-gray-500">URL</p>
+            <a :href="event.url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline break-all">{{ event.url }}</a>
+          </div>
+        </div>
+
+        <div v-if="event.attachments && event.attachments.length > 0" class="flex items-start gap-4">
+          <Paperclip class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+          <div>
+            <p class="text-sm text-gray-500 mb-2">添付ファイル</p>
+            <div class="space-y-2">
+              <a v-for="file in event.attachments" :key="file.attachment_id" :href="`/storage/${file.file_path}`" target="_blank" class="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                {{ file.file_name }}
+              </a>
+            </div>
+          </div>
+        </div>
+
         <div v-if="event.description" class="flex items-start gap-4">
           <Info class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
@@ -110,11 +172,11 @@ const displayTime = computed(() => {
         </div>
       </div>
 
-      <DialogFooter class="flex gap-2 justify-end mt-4">
+      <DialogFooter class="flex-row justify-end gap-2">
         <Button variant="outline" @click="closeDialog">
           閉じる
         </Button>
-        <!-- <Button @click="editEvent">編集</Button> -->
+        <Button @click="editEvent">編集</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
