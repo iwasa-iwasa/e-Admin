@@ -69,6 +69,7 @@ const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin, rrulePlugin],
   initialView: viewMode.value,
   headerToolbar: false,
+  contentHeight: 'auto',
   events: props.events.map(event => {
     const commonProps = {
       id: event.event_id,
@@ -186,13 +187,13 @@ const changeView = (view: string) => {
     </CardHeader>
 
     <CardContent class="flex flex-1 overflow-y-auto">
-      <div class="">
+      <div class="w-full h-full flex-1">
         <FullCalendar ref="fullCalendar" :options="calendarOptions"/>
       </div>
     </CardContent>
 
     <CardContent>
-    <div class="flex flex-wrap gap-x-4 gap-y-2 text-xs mt-5">
+    <div class="flex flex-wrap gap-x-3 gap-y-2 text-xs mt-1">
         <div v-for="item in legendItems" :key="item.label" class="flex items-center gap-1.5">
           <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
           <span>{{ item.label }}</span>
