@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/toast/use-toast'
-import { Toaster } from '@/components/ui/toast/toaster'
+import Toaster from '@/components/ui/toast/Toaster.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
 defineOptions({

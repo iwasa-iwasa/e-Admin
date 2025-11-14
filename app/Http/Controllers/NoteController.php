@@ -52,7 +52,7 @@ class NoteController extends Controller
             'deadline' => ['nullable', 'date'],
         ]);
 
-        SharedNote::create([
+        $note = SharedNote::create([
             'title' => $validated['title'],
             'content' => $validated['content'],
             'author_id' => Auth::id(),
@@ -61,7 +61,7 @@ class NoteController extends Controller
             'deadline' => $validated['deadline'],
         ]);
 
-        return redirect()->route('notes')->with('success', '新しい共有メモを作成しました！');
+        return redirect()->route('notes', ['select' => $note->note_id])->with('success', '新しい共有メモを作成しました！');
     }
 
     /**

@@ -54,6 +54,18 @@ onMounted(() => {
     url.searchParams.delete('create')
     window.history.replaceState({}, '', url.toString())
   }
+  
+  // 新規作成されたメモを選択
+  const selectNoteId = url.searchParams.get('select')
+  if (selectNoteId) {
+    const noteToSelect = props.notes.find(note => note.note_id.toString() === selectNoteId)
+    if (noteToSelect) {
+      selectedNote.value = noteToSelect
+      scrollToNote(selectNoteId)
+    }
+    url.searchParams.delete('select')
+    window.history.replaceState({}, '', url.toString())
+  }
 })
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
@@ -81,7 +93,22 @@ watch(selectedNote, (newNote) => {
   }
 })
 
-watch(() => props.notes, (newNotes) => {
+watch(() => props.notes, (newNotes, oldNotes) => {
+  // 新しいメモが追加された場合の処理
+  const url = new URL(window.location.href)
+  const selectNoteId = url.searchParams.get('select')
+  
+  if (selectNoteId && newNotes.length > (oldNotes?.length || 0)) {
+    const noteToSelect = newNotes.find(note => note.note_id.toString() === selectNoteId)
+    if (noteToSelect) {
+      selectedNote.value = noteToSelect
+      scrollToNote(selectNoteId)
+      url.searchParams.delete('select')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }
+  
+  // 既存の選択されたメモの更新処理
   if (selectedNote.value) {
     const updatedSelectedNote = newNotes.find(note => note.note_id === selectedNote.value.note_id);
     if (updatedSelectedNote) {
