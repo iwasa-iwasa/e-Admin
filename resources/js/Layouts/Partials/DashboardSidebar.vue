@@ -162,7 +162,7 @@ const handleMemberClick = (memberId: number) => {
 
       <div class="px-3 py-2 text-xs text-gray-500">部署メンバー</div>
 
-      <ScrollArea class="max-h-[200px]">
+      <ScrollArea>
         <div class="space-y-1">
           <Button
             v-for="member in teamMembers"
