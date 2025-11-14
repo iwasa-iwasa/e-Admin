@@ -93,57 +93,58 @@ class PersonalReminderController extends Controller
     /**
      * Complete the specified reminder.
      *
-     * @param  \App\Models\Reminder  $reminder
+     * @param  int  $reminder
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function completeReminder(Reminder $reminder, Request $request)
+    public function completeReminder($reminder, Request $request)
     {
-        // デバッグ用ログ
-        \Log::info('Received ID and Data:', [
-            'id' => $reminder->reminder_id,
-            'request_all' => $request->all(),
-            'completed_status_from_request' => $request->boolean('checked'),
+        \Log::info('Complete reminder called', [
+            'reminder_id' => $reminder,
             'auth_id' => auth()->id()
         ]);
         
-        if ($reminder->user_id !== auth()->id()) {
-            return redirect()->back()->withErrors(['error' => '権限がありません']);
+        $reminderModel = Reminder::where('reminder_id', $reminder)
+            ->where('user_id', auth()->id())
+            ->first();
+            
+        if (!$reminderModel) {
+            \Log::error('Reminder not found or permission denied', ['reminder_id' => $reminder, 'auth_id' => auth()->id()]);
+            return redirect()->back()->withErrors(['error' => 'リマインダーが見つからないか権限がありません']);
         }
         
+        \Log::info('Found reminder', [
+            'reminder_id' => $reminderModel->reminder_id,
+            'current_completed' => $reminderModel->completed,
+            'user_id' => $reminderModel->user_id
+        ]);
+        
         try {
-            DB::transaction(function () use ($reminder) {
-                \Log::info('Starting transaction', ['reminder_id' => $reminder->reminder_id]);
+            DB::transaction(function () use ($reminderModel) {
+                \Log::info('Starting complete transaction', ['reminder_id' => $reminderModel->reminder_id]);
                 
-                // Reminder更新のテスト
-                $updateResult = $reminder->update([
+                $updateResult = $reminderModel->update([
                     'completed' => 1,
                     'completed_at' => now(),
                 ]);
-                \Log::info('Reminder update result', ['result' => $updateResult, 'completed' => $reminder->completed]);
+                \Log::info('Reminder completed', ['result' => $updateResult, 'new_completed' => $reminderModel->fresh()->completed]);
                 
-                // TrashItem作成のテスト
                 $trashData = [
                     'user_id' => auth()->id(),
                     'item_type' => 'reminder',
-                    'item_id' => $reminder->reminder_id,
-                    'original_title' => $reminder->title,
+                    'item_id' => $reminderModel->reminder_id,
+                    'original_title' => $reminderModel->title,
                     'deleted_at' => now(),
                     'permanent_delete_at' => now()->addDays(30),
                 ];
-                \Log::info('Creating TrashItem with data', $trashData);
                 
                 $trashItem = TrashItem::create($trashData);
                 \Log::info('TrashItem created', ['trash_id' => $trashItem->trash_id]);
-                
-                \Log::info('Transaction completed successfully');
             });
             
-            return redirect()->back()->with([
-                'success' => 'タスクを完了しました',
-                'reminder_id' => $reminder->reminder_id,
-            ]);
+            \Log::info('Complete transaction successful');
+            return redirect()->back();
         } catch (\Exception $e) {
-            \Log::error('タスク完了エラー: ' . $e->getMessage());
+            \Log::error('Complete reminder error: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'タスクの完了に失敗しました']);
         }
     }
@@ -156,39 +157,47 @@ class PersonalReminderController extends Controller
      */
     public function restoreReminder(Request $request)
     {
-        // デバッグ用ログ
-        \Log::info('Received ID and Data:', [
-            'request_all' => $request->all(),
-            'reminder_id_from_request' => $request->input('reminder_id'),
+        $reminderId = $request->input('reminder_id');
+        \Log::info('Restore reminder called', [
+            'reminder_id' => $reminderId,
             'auth_id' => auth()->id()
         ]);
-        
-        $reminderId = $request->input('reminder_id');
         
         $reminder = Reminder::where('reminder_id', $reminderId)
             ->where('user_id', auth()->id())
             ->first();
         
         if (!$reminder) {
+            \Log::error('Reminder not found', ['reminder_id' => $reminderId, 'auth_id' => auth()->id()]);
             return redirect()->back()->withErrors(['error' => 'リマインダーが見つかりません']);
         }
         
+        \Log::info('Found reminder to restore', [
+            'reminder_id' => $reminder->reminder_id,
+            'current_completed' => $reminder->completed
+        ]);
+        
         try {
             DB::transaction(function () use ($reminder, $reminderId) {
-                $reminder->update([
+                \Log::info('Starting restore transaction');
+                
+                $updateResult = $reminder->update([
                     'completed' => 0,
                     'completed_at' => null,
                 ]);
+                \Log::info('Reminder restored', ['result' => $updateResult, 'new_completed' => $reminder->fresh()->completed]);
                 
-                TrashItem::where('item_type', 'reminder')
+                $deletedTrashItems = TrashItem::where('item_type', 'reminder')
                     ->where('item_id', $reminderId)
                     ->where('user_id', auth()->id())
                     ->delete();
+                \Log::info('TrashItems deleted', ['count' => $deletedTrashItems]);
             });
             
-            return redirect()->back()->with('success', 'タスクを元に戻しました');
+            \Log::info('Restore transaction successful');
+            return redirect()->back();
         } catch (\Exception $e) {
-            \Log::error('タスク復元エラー: ' . $e->getMessage());
+            \Log::error('Restore reminder error: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'タスクの復元に失敗しました']);
         }
     }

@@ -2,13 +2,13 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
-import { Bell, Plus, Clock, ArrowLeft, Trash2 } from 'lucide-vue-next'
+import { Bell, Plus, Clock, ArrowLeft, Trash2, CheckCircle, Undo2 } from 'lucide-vue-next'
+import { formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useToast } from '@/components/ui/toast/use-toast'
+
 import ReminderDetailDialog from '@/Components/ReminderDetailDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
@@ -21,57 +21,108 @@ const props = defineProps<{
 }>()
 
 const page = usePage()
-const { toast } = useToast()
 const isCreateDialogOpen = ref(false)
+const isCreatingNew = ref(false)
 const selectedReminder = ref<App.Models.Reminder | null>(null)
-const completedReminderId = ref<number | null>(null)
 const showCompleted = ref(false)
+const saveMessage = ref('')
+const messageType = ref<'success' | 'delete'>('success')
+const messageTimer = ref<number | null>(null)
+const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
 
-// 元に戻す処理
-const restoreReminder = () => {
-  if (completedReminderId.value) {
+const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  messageType.value = type
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+    lastDeletedReminder.value = null
+  }, 4000)
+}
+
+const handleToggleComplete = (id: number, checked: boolean) => {
+  if (checked) {
+    const reminder = props.reminders.find(r => r.reminder_id === id)
+    if (reminder) {
+      lastDeletedReminder.value = reminder
+    }
+    
+    router.patch(route('reminders.complete', id), {}, {
+      preserveScroll: true,
+      onSuccess: () => {
+        showMessage('リマインダーを削除しました。', 'delete')
+      },
+      onError: (errors) => {
+        console.error('完了エラー:', errors)
+        lastDeletedReminder.value = null
+        showMessage('リマインダーの削除に失敗しました。', 'success')
+      },
+    })
+  } else {
     router.post(route('reminders.restore'), {
-      reminder_id: completedReminderId.value,
+      reminder_id: id
     }, {
       preserveScroll: true,
       onSuccess: () => {
-        completedReminderId.value = null
+        showMessage('リマインダーが元に戻されました。', 'success')
       },
-    })
-  }
-}
-
-// タスク完了処理
-const handleToggleComplete = (id: number) => {
-  if (confirm('タスクを完了しますか？')) {
-    router.patch(route('reminders.complete', id), {}, {
-      preserveScroll: true,
       onError: (errors) => {
-        console.error('完了エラー:', errors)
+        console.error('復元エラー:', errors)
+        showMessage('元に戻す処理に失敗しました。', 'success')
       },
     })
   }
 }
 
-const handleDeletePermanently = (id: number) => {}
-const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
+const handleUndoDelete = () => {
+  if (!lastDeletedReminder.value) return
 
-// フラッシュメッセージを監視
-watch(() => page.props.flash, (flash: any) => {
-  if (flash?.success && flash?.reminder_id) {
-    completedReminderId.value = flash.reminder_id
-    
-    toast({
-      title: "タスク完了",
-      description: flash.success,
-      action: {
-        label: "元に戻す",
-        onClick: restoreReminder,
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  saveMessage.value = '元に戻しています...'
+  
+  const reminderToRestore = lastDeletedReminder.value
+  lastDeletedReminder.value = null
+
+  router.post(route('reminders.restore'), {
+    reminder_id: reminderToRestore.reminder_id
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      showMessage('リマインダーが元に戻されました。', 'success')
+    },
+    onError: () => {
+      showMessage('元に戻す処理に失敗しました。', 'success')
+    }
+  })
+}
+
+const handleDeletePermanently = (id: number) => {
+  if (confirm('このリマインダーを完全に削除しますか？この操作は元に戻せません。')) {
+    router.delete(route('reminders.destroy', id), {
+      preserveScroll: true,
+      onSuccess: () => {
+        showMessage('リマインダーを完全に削除しました。', 'success')
       },
-      duration: 5000,
+      onError: () => {
+        showMessage('削除に失敗しました。', 'success')
+      }
     })
   }
-}, { deep: true, immediate: true })
+}
+const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {
+  // メッセージ表示はReminderDetailDialog内で処理される
+  if (isCreatingNew.value) {
+    isCreatingNew.value = false
+  }
+}
+
+
 
 const activeReminders = computed(() => props.reminders.filter((r) => !r.completed))
 const completedReminders = computed(() => props.reminders.filter((r) => r.completed))
@@ -93,7 +144,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
             <p class="text-xs text-gray-500">自分専用のタスク管理</p>
           </div>
         </div>
-          <Button variant="outline" @click="isCreateDialogOpen = true" class="gap-2">
+          <Button variant="outline" @click="() => { isCreateDialogOpen = true; isCreatingNew.value = true }" class="gap-2">
             <Plus class="h-4 w-4" />
             新規作成
           </Button>
@@ -112,21 +163,26 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
           <CardContent>
             <ScrollArea class="max-h-[400px]">
               <div class="space-y-3">
-                <div v-for="reminder in activeReminders" :key="reminder.reminder_id" class="border-2 border-gray-200 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" @click="(e) => { if (!(e.target as HTMLElement).closest('button[role=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { selectedReminder = reminder } }">
+                <div v-for="reminder in activeReminders" :key="reminder.reminder_id" class="border-2 border-gray-200 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { selectedReminder = reminder } }">
                   <div class="flex items-start gap-3">
-                    <Checkbox :checked="reminder.completed" @update:checked="handleToggleComplete(reminder.reminder_id)" class="mt-1" />
+                    <input
+                      type="checkbox"
+                      :checked="false"
+                      @change="handleToggleComplete(reminder.reminder_id, ($event.target as HTMLInputElement).checked)"
+                      class="mt-1 h-4 w-4 text-blue-600 rounded"
+                    />
                     <div class="flex-1">
                       <h3 class="mb-2">{{ reminder.title }}</h3>
                       <p v-if="reminder.description" class="text-sm text-gray-600 mb-2">{{ reminder.description }}</p>
                       <div class="flex items-center gap-4 text-xs text-gray-600">
                         <div class="flex items-center gap-1">
                           <Clock class="h-3 w-3" />
-                          期限: {{ reminder.deadline }}
+                          期限: {{ formatDate(reminder.deadline) }}
                         </div>
                         <Badge variant="outline" class="text-xs">{{ reminder.category }}</Badge>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" @click.stop="handleDeletePermanently(reminder.reminder_id)" disabled>
+                    <Button variant="outline" size="sm" @click.stop="handleDeletePermanently(reminder.reminder_id)">
                       <Trash2 class="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
@@ -158,19 +214,24 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
               <div class="space-y-3">
                 <div v-for="reminder in completedReminders" :key="reminder.reminder_id" class="border-2 border-gray-300 bg-gray-100 rounded-lg p-4 opacity-60">
                   <div class="flex items-start gap-3">
-                    <Checkbox :checked="reminder.completed" @update:checked="() => {}" class="mt-1" disabled />
+                    <input
+                      type="checkbox"
+                      :checked="reminder.completed"
+                      @change="handleToggleComplete(reminder.reminder_id, ($event.target as HTMLInputElement).checked)"
+                      class="mt-1 h-4 w-4 text-blue-600 rounded"
+                    />
                     <div class="flex-1">
                       <h3 class="mb-2 line-through text-gray-500">{{ reminder.title }}</h3>
                       <p v-if="reminder.description" class="text-sm text-gray-500 mb-2 line-through">{{ reminder.description }}</p>
                       <div class="flex items-center gap-4 text-xs text-gray-500">
                         <div class="flex items-center gap-1">
                           <Clock class="h-3 w-3" />
-                          期限: {{ reminder.deadline }}
+                          期限: {{ formatDate(reminder.deadline) }}
                         </div>
                         <Badge variant="outline" class="text-xs opacity-60">{{ reminder.category }}</Badge>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" @click="handleDeletePermanently(reminder.reminder_id)" disabled>
+                    <Button variant="outline" size="sm" @click="handleDeletePermanently(reminder.reminder_id)">
                       <Trash2 class="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
@@ -192,8 +253,38 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
     <ReminderDetailDialog
       :reminder="null"
       :open="isCreateDialogOpen"
-      @update:open="isCreateDialogOpen = $event"
+      @update:open="(open) => { isCreateDialogOpen = open; if (!open) isCreatingNew.value = false }"
       @update:reminder="handleUpdateReminder"
     />
+    
+    <!-- メッセージ表示 -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 p-3 text-white rounded-lg shadow-lg',
+          messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium">{{ saveMessage }}</span>
+          <Button 
+            v-if="messageType === 'delete' && lastDeletedReminder"
+            variant="link"
+            :class="messageType === 'delete' ? 'text-white hover:bg-red-400 p-1 h-auto ml-2' : 'text-white hover:bg-green-400 p-1 h-auto ml-2'"
+            @click.stop="handleUndoDelete"
+          >
+            <Undo2 class="h-4 w-4 mr-1" />
+            <span class="underline">元に戻す</span>
+          </Button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>

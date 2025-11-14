@@ -85,6 +85,23 @@ class TrashController extends Controller
                 \Log::info('Successfully restored shared note');
                 return back()->with('success', 'メモを復元しました。');
             }
+            
+            if ($trashItem->item_type === 'reminder') {
+                \DB::transaction(function () use ($trashItem) {
+                    // リマインダーを復元
+                    $reminder = \App\Models\Reminder::findOrFail($trashItem->item_id);
+                    $reminder->update([
+                        'completed' => false,
+                        'completed_at' => null,
+                    ]);
+                    
+                    // ゴミ箱テーブルから削除
+                    $trashItem->delete();
+                });
+                
+                \Log::info('Successfully restored reminder');
+                return back()->with('success', 'リマインダーを復元しました。');
+            }
 
             return back()->with('error', 'サポートされていないアイテムタイプです。');
         } catch (\Exception $e) {
@@ -107,6 +124,12 @@ class TrashController extends Controller
             \App\Models\SharedNote::where('note_id', $trashItem->item_id)
                 ->delete();
         }
+        
+        if ($trashItem->item_type === 'reminder') {
+            // リマインダーを完全削除
+            \App\Models\Reminder::where('reminder_id', $trashItem->item_id)
+                ->delete();
+        }
 
         // ゴミ箱からも削除
         $trashItem->delete();
@@ -124,6 +147,11 @@ class TrashController extends Controller
         foreach ($trashItems as $item) {
             if ($item->item_type === 'shared_note') {
                 \App\Models\SharedNote::where('note_id', $item->item_id)
+                    ->delete();
+            }
+            
+            if ($item->item_type === 'reminder') {
+                \App\Models\Reminder::where('reminder_id', $item->item_id)
                     ->delete();
             }
         }
