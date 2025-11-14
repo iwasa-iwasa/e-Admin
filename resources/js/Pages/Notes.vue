@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
-import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft } from 'lucide-vue-next'
+import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,9 +27,16 @@ const selectedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null
 const searchQuery = ref('')
 const filterAuthor = ref('all')
 const filterPinned = ref('all')
+const sortKey = ref<'priority' | 'deadline' | 'updated_at'>('updated_at')
+const sortOrder = ref<'asc' | 'desc'>('desc')
 const editedTitle = ref(selectedNote.value?.title || '')
 const editedContent = ref(selectedNote.value?.content || '')
+const editedDeadline = ref(selectedNote.value?.deadline || '')
+const editedPriority = ref<Priority>(selectedNote.value?.priority as Priority || 'medium')
+const editedColor = ref(selectedNote.value?.color || 'yellow')
 const isCreateDialogOpen = ref(false)
+const isSaving = ref(false)
+const saveMessage = ref('')
 
 const page = usePage()
 
@@ -46,6 +53,9 @@ watch(selectedNote, (newNote) => {
   if (newNote) {
     editedTitle.value = newNote.title
     editedContent.value = newNote.content
+    editedDeadline.value = newNote.deadline || ''
+    editedPriority.value = newNote.priority as Priority
+    editedColor.value = newNote.color
   }
 })
 
@@ -58,8 +68,17 @@ watch(() => props.notes, (newNotes) => {
   }
 }, { deep: true });
 
+const getPriorityValue = (priority: Priority) => {
+  switch (priority) {
+    case 'high': return 3
+    case 'medium': return 2
+    case 'low': return 1
+    default: return 0
+  }
+}
+
 const filteredNotes = computed(() => {
-  return props.notes.filter((note) => {
+  const filtered = props.notes.filter((note) => {
     const matchesSearch =
       note.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       (note.content && note.content.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
@@ -75,6 +94,32 @@ const filteredNotes = computed(() => {
       (filterPinned.value === 'unpinned' && !note.is_pinned)
 
     return matchesSearch && matchesAuthor && matchesPinned
+  })
+
+  return filtered.sort((a, b) => {
+    // 1. ピン留め優先
+    if (a.is_pinned !== b.is_pinned) {
+      return a.is_pinned ? -1 : 1
+    }
+
+    // 2. 選択されたソートキー
+    let sortResult = 0
+    if (sortKey.value === 'priority') {
+      sortResult = getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
+    } else if (sortKey.value === 'deadline') {
+      const aDeadline = a.deadline || '9999-12-31'
+      const bDeadline = b.deadline || '9999-12-31'
+      sortResult = aDeadline.localeCompare(bDeadline)
+    } else {
+      sortResult = new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    }
+    
+    if (sortResult !== 0) {
+      return sortOrder.value === 'asc' ? -sortResult : sortResult
+    }
+
+    // 3. デフォルト: 更新日時（新しい順）
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   })
 })
 
@@ -111,6 +156,58 @@ const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
     }
 };
 
+const handleSaveNote = () => {
+  if (!selectedNote.value) return
+  
+  isSaving.value = true
+  saveMessage.value = ''
+  
+  const updateData = {
+    title: editedTitle.value,
+    content: editedContent.value,
+    deadline: editedDeadline.value || null,
+    priority: editedPriority.value,
+    color: editedColor.value
+  }
+  
+  router.put(route('shared-notes.update', selectedNote.value.note_id), updateData, {
+    preserveScroll: true,
+    onSuccess: () => {
+      saveMessage.value = 'メモを保存しました'
+      setTimeout(() => saveMessage.value = '', 5000)
+    },
+    onError: () => {
+      saveMessage.value = '保存に失敗しました'
+      setTimeout(() => saveMessage.value = '', 5000)
+    },
+    onFinish: () => {
+      isSaving.value = false
+    }
+  })
+}
+
+const getPriorityInfo = (priority: Priority) => {
+  switch (priority) {
+    case 'high':
+      return { className: 'bg-red-600 text-white border-red-600', label: '重要' }
+    case 'medium':
+      return { className: 'bg-yellow-500 text-white border-yellow-500', label: '中' }
+    case 'low':
+      return { className: 'bg-gray-400 text-white border-gray-400', label: '低' }
+  }
+}
+
+const getColorInfo = (color: string) => {
+  const colorMap: Record<string, { bg: string; label: string }> = {
+    yellow: { bg: 'bg-yellow-100', label: 'イエロー' },
+    blue: { bg: 'bg-blue-100', label: 'ブルー' },
+    green: { bg: 'bg-green-100', label: 'グリーン' },
+    pink: { bg: 'bg-pink-100', label: 'ピンク' },
+    purple: { bg: 'bg-purple-100', label: 'パープル' },
+  }
+  return colorMap[color] || colorMap.yellow
+}
+
 </script>
 
 <template>
@@ -144,7 +241,7 @@ const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
           </button>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2 mb-2">
           <Select v-model="filterAuthor">
             <SelectTrigger class="flex-1">
               <div class="flex items-center gap-2">
@@ -174,6 +271,57 @@ const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
             </SelectContent>
           </Select>
         </div>
+
+        <div class="space-y-2">
+          <div class="text-xs font-medium text-gray-700 mb-1">並び順</div>
+          <div class="flex gap-2">
+            <Button
+              size="sm"
+              :variant="sortKey === 'updated_at' ? 'default' : 'outline'"
+              @click="sortKey === 'updated_at' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'updated_at', sortOrder = 'desc')"
+              class="flex-1 h-9 text-xs font-medium transition-all"
+              :class="sortKey === 'updated_at' ? 'shadow-md' : 'hover:bg-gray-50'"
+            >
+              <Clock class="h-3.5 w-3.5 mr-1.5" />
+              <span>更新日時順</span>
+              <component 
+                :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
+                v-if="sortKey === 'updated_at'" 
+                class="h-3 w-3 ml-1" 
+              />
+            </Button>
+            <Button
+              size="sm"
+              :variant="sortKey === 'priority' ? 'default' : 'outline'"
+              @click="sortKey === 'priority' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'priority', sortOrder = 'desc')"
+              class="flex-1 h-9 text-xs font-medium transition-all"
+              :class="sortKey === 'priority' ? 'shadow-md' : 'hover:bg-gray-50'"
+            >
+              <AlertCircle class="h-3.5 w-3.5 mr-1.5" />
+              <span>重要度順</span>
+              <component 
+                :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
+                v-if="sortKey === 'priority'" 
+                class="h-3 w-3 ml-1" 
+              />
+            </Button>
+            <Button
+              size="sm"
+              :variant="sortKey === 'deadline' ? 'default' : 'outline'"
+              @click="sortKey === 'deadline' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'deadline', sortOrder = 'desc')"
+              class="flex-1 h-9 text-xs font-medium transition-all"
+              :class="sortKey === 'deadline' ? 'shadow-md' : 'hover:bg-gray-50'"
+            >
+              <Calendar class="h-3.5 w-3.5 mr-1.5" />
+              <span>期限順</span>
+              <component 
+                :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
+                v-if="sortKey === 'deadline'" 
+                class="h-3 w-3 ml-1" 
+              />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <ScrollArea class="flex-1">
@@ -194,6 +342,9 @@ const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
                   <Pin v-if="note.is_pinned" class="h-4 w-4 text-yellow-500 fill-current flex-shrink-0" />
                   <span class="line-clamp-1">{{ note.title }}</span>
                 </h3>
+                <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5 flex-shrink-0']">
+                  {{ getPriorityInfo(note.priority as Priority).label }}
+                </Badge>
               </div>
               <p class="text-sm text-gray-600 mb-3 line-clamp-2 whitespace-pre-line">{{ note.content }}</p>
               <div v-if="note.tags.length > 0" class="flex flex-wrap gap-1 mb-3">
@@ -249,10 +400,72 @@ const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
               </Button>
             </div>
           </div>
+          
+          <!-- 編集UI -->
+          <div class="space-y-3 mb-4">
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">期限</label>
+                <Input
+                  type="date"
+                  v-model="editedDeadline"
+                  class="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">重要度</label>
+                <Select v-model="editedPriority">
+                  <SelectTrigger class="h-8 text-xs">
+                    <div class="flex items-center gap-2">
+                      <Badge :class="getPriorityInfo(editedPriority).className" class="text-xs px-1 py-0">
+                        {{ getPriorityInfo(editedPriority).label }}
+                      </Badge>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">
+                      <Badge class="bg-red-600 text-white text-xs">重要</Badge>
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      <Badge class="bg-yellow-500 text-white text-xs">中</Badge>
+                    </SelectItem>
+                    <SelectItem value="low">
+                      <Badge class="bg-gray-400 text-white text-xs">低</Badge>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">色</label>
+                <Select v-model="editedColor">
+                  <SelectTrigger class="h-8 text-xs">
+                    <div class="flex items-center gap-2">
+                      <div :class="['w-3 h-3 rounded', getColorInfo(editedColor).bg]"></div>
+                      <span>{{ getColorInfo(editedColor).label }}</span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="c in ['yellow', 'blue', 'green', 'pink', 'purple']" :key="c" :value="c">
+                      <div class="flex items-center gap-2">
+                        <div :class="['w-3 h-3 rounded', getColorInfo(c).bg]"></div>
+                        <span>{{ getColorInfo(c).label }}</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          
           <div v-if="selectedNote.tags.length > 0" class="flex flex-wrap gap-2">
             <Badge v-for="(tag, index) in selectedNote.tags" :key="index" variant="secondary">
               {{ tag.tag_name }}
             </Badge>
+          </div>
+          
+          <!-- 保存メッセージ -->
+          <div v-if="saveMessage" class="mt-3 p-2 rounded text-sm" :class="saveMessage.includes('失敗') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'">
+            {{ saveMessage }}
           </div>
         </div>
         <div class="flex-1 p-6 overflow-auto">
@@ -274,9 +487,9 @@ const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
                 共有
               </Button>
             </div>
-            <Button class="gap-2" disabled>
+            <Button class="gap-2" @click="handleSaveNote" :disabled="isSaving">
               <Save class="h-4 w-4" />
-              保存
+              {{ isSaving ? '保存中...' : '保存' }}
             </Button>
           </div>
         </div>

@@ -81,4 +81,28 @@ class NoteController extends Controller
 
         return back()->with('success', 'ノートのピン留めを解除しました。');
     }
+
+    /**
+     * 共有メモを更新します。
+     */
+    public function update(Request $request, SharedNote $note)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'content' => ['nullable', 'string'],
+            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
+            'priority' => ['nullable', 'string', 'in:low,medium,high'],
+            'deadline' => ['nullable', 'date'],
+        ]);
+
+        $note->update([
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'color' => $validated['color'] ?? 'yellow',
+            'priority' => $validated['priority'] ?? 'medium',
+            'deadline' => $validated['deadline'],
+        ]);
+
+        return back()->with('success', 'メモを更新しました。');
+    }
 }
