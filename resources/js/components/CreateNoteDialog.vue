@@ -69,6 +69,8 @@ const handleSave = () => {
     }
     
     form.post(route("shared-notes.store"), {
+        preserveState: true,
+        preserveScroll: true,
         onSuccess: () => {
             showMessage('共有メモを正常に作成しました。')
             handleClose();

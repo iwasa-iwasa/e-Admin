@@ -61,7 +61,7 @@ class NoteController extends Controller
             'deadline' => $validated['deadline'],
         ]);
 
-        return redirect()->route('notes', ['select' => $note->note_id])->with('success', '新しい共有メモを作成しました！');
+        return back()->with('success', '新しい共有メモを作成しました！');
     }
 
     /**
