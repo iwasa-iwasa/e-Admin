@@ -5,6 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import multiMonthPlugin from '@fullcalendar/multimonth'
+import { CalendarOptions } from '@fullcalendar/core'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -64,10 +65,11 @@ const legendItems = [
     { label: '業務', color: '#3b82f6' },
 ];
 
-const calendarOptions = computed(() => ({
+const calendarOptions = computed<CalendarOptions>(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin],
   initialView: viewMode.value,
   headerToolbar: false,
+  contentHeight: 'auto',
   events: props.events.map(event => ({
     id: event.event_id,
     title: event.title,
@@ -88,10 +90,8 @@ const calendarOptions = computed(() => ({
   datesSet: (info: any) => {
     calendarTitle.value = info.view.title
     viewMode.value = info.view.type
-  }
+  },
 }))
-
-// console.log(props.events)
 
 const previousPeriod = () => {
   fullCalendar.value?.getApi().prev()
@@ -110,10 +110,12 @@ const changeView = (view: string) => {
   fullCalendar.value?.getApi().changeView(view)
 }
 
+
+
 </script>
 
 <template>
-  <Card class="h-full flex flex-col hidden-scrollbar">
+  <Card class="flex flex-col h-full">
     <CardHeader>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -156,16 +158,19 @@ const changeView = (view: string) => {
       </div>
     </CardHeader>
 
-    <CardContent class="flex-1 overflow-auto relative flex flex-col">
-      <div class="flex-1">
-        <FullCalendar ref="fullCalendar" :options="calendarOptions"  class="h-full"/>
+    <CardContent class="flex flex-1 overflow-y-auto">
+      <div class="">
+        <FullCalendar ref="fullCalendar" :options="calendarOptions"/>
       </div>
-      <div class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs">
-          <div v-for="item in legendItems" :key="item.label" class="flex items-center gap-1.5">
-            <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
-            <span>{{ item.label }}</span>
-          </div>
-      </div>
+    </CardContent>
+
+    <CardContent>
+    <div class="flex flex-wrap gap-x-4 gap-y-2 text-xs mt-5">
+        <div v-for="item in legendItems" :key="item.label" class="flex items-center gap-1.5">
+          <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
+          <span>{{ item.label }}</span>
+        </div>
+    </div>
     </CardContent>
 
     <EventDetailDialog
