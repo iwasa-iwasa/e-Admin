@@ -174,11 +174,11 @@ const handleSaveNote = () => {
     preserveScroll: true,
     onSuccess: () => {
       saveMessage.value = 'メモを保存しました'
-      setTimeout(() => saveMessage.value = '', 5000)
+      setTimeout(() => saveMessage.value = '', 3000)
     },
     onError: () => {
       saveMessage.value = '保存に失敗しました'
-      setTimeout(() => saveMessage.value = '', 5000)
+      setTimeout(() => saveMessage.value = '', 3000)
     },
     onFinish: () => {
       isSaving.value = false
@@ -463,10 +463,7 @@ const getColorInfo = (color: string) => {
             </Badge>
           </div>
           
-          <!-- 保存メッセージ -->
-          <div v-if="saveMessage" class="mt-3 p-2 rounded text-sm" :class="saveMessage.includes('失敗') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'">
-            {{ saveMessage }}
-          </div>
+
         </div>
         <div class="flex-1 p-6 overflow-auto">
           <Textarea
@@ -476,6 +473,10 @@ const getColorInfo = (color: string) => {
           />
         </div>
         <div class="p-6 border-t border-gray-200">
+          <!-- 保存メッセージ -->
+          <div v-if="saveMessage" class="mb-3 p-2 rounded text-sm" :class="saveMessage.includes('失敗') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'">
+            {{ saveMessage }}
+          </div>
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <Button variant="destructive" class="gap-2" disabled>
