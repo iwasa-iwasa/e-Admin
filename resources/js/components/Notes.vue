@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, withDefaults } from 'vue'
 import { router, usePage } from '@inertiajs/vue3' // Inertiaのインポート
-// --- 🚨 修正箇所: CornerPin を MapPin に変更 🚨 ---
-import { StickyNote, Plus, User, AlertCircle, Calendar, MapPin } from 'lucide-vue-next'
-// -----------------------------------------------------
+import { StickyNote, Plus, User, AlertCircle, Calendar, MapPin, CheckCircle, Undo2 } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -16,7 +14,6 @@ import NoteDetailDialog from './Notes/NoteDetailDialog.vue'
 type Priority = 'high' | 'medium' | 'low'
 type SortOrder = 'priority' | 'deadline'
 
-// --- 🐞 修正箇所: definePropsの構文をwithDefaultsでラップしてエラーを回避 🐞 ---
 interface NotesProps {
     notes: App.Models.SharedNote[];
 }
@@ -24,7 +21,6 @@ interface NotesProps {
 const props = withDefaults(defineProps<NotesProps>(), {
     notes: () => [],
 });
-// -------------------------------------------------------------------------
 
 const page = usePage()
 const sortOrder = ref<SortOrder>('priority')
@@ -32,7 +28,27 @@ const isCreateDialogOpen = ref(false)
 const selectedNote = ref<App.Models.SharedNote | null>(null)
 const isSaving = ref(false)
 
-// --- メッセージ関連のロジックは一旦削除 ---
+// メッセージとUndoロジック
+const saveMessage = ref('')
+const messageType = ref<'success' | 'delete'>('success')
+const messageTimer = ref<number | null>(null)
+const lastDeletedNote = ref<App.Models.SharedNote | null>(null) // 削除したメモを一時保存
+
+const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
+    // 既存のタイマーをクリア
+    if (messageTimer.value) {
+        clearTimeout(messageTimer.value);
+    }
+    
+    saveMessage.value = message
+    messageType.value = type
+    
+    // 4秒後にメッセージを非表示にする
+    messageTimer.value = setTimeout(() => {
+        saveMessage.value = ''
+        lastDeletedNote.value = null
+    }, 4000)
+}
 
 // NoteDetailDialogから保存ボタンが押されたときに呼び出される
 const handleSaveNote = async (editedData: App.Models.SharedNote) => {
@@ -44,7 +60,54 @@ const handleSaveNote = async (editedData: App.Models.SharedNote) => {
         preserveScroll: true,
         onFinish: () => {
             isSaving.value = false
-            // ここに保存成功メッセージ表示ロジックが入る
+            showMessage('メモが保存されました。', 'success') // メッセージ表示ロジック追加
+        }
+    })
+}
+
+// 削除処理 (DELETE)
+const handleDeleteNote = (note: App.Models.SharedNote) => {
+    // 削除前のメモを一時保存
+    lastDeletedNote.value = note;
+    
+    router.delete(route('notes.destroy', note.note_id), {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            // 削除成功メッセージ表示 (Undoボタン付き)
+            showMessage('メモを削除しました。', 'delete')
+            selectedNote.value = null // 詳細ダイアログを閉じる
+        },
+        onError: () => {
+            // エラー時は一時保存を解除し、通常メッセージで通知
+            lastDeletedNote.value = null
+            showMessage('メモの削除に失敗しました。', 'success')
+        }
+    })
+}
+
+// Undo (元に戻す) 処理 (RESTORE)
+const handleUndoDelete = () => {
+    if (!lastDeletedNote.value) return;
+
+    // メッセージタイマーをクリアし、メッセージを一旦非表示
+    if (messageTimer.value) {
+        clearTimeout(messageTimer.value);
+    }
+    saveMessage.value = '元に戻しています...'
+    
+    const noteToRestore = lastDeletedNote.value
+    lastDeletedNote.value = null // Undo処理中はボタンを押せないように解除
+
+    // サーバーサイドに復元リクエストを送る (notes.restore ルートがある前提)
+    router.post(route('notes.restore', noteToRestore.note_id), {}, {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+             showMessage('メモが元に戻されました。', 'success')
+        },
+        onError: () => {
+            showMessage('元に戻す処理に失敗しました。', 'success')
         }
     })
 }
@@ -121,7 +184,36 @@ const sortedNotes = computed(() => {
 
 <template>
     <Card class="h-full flex flex-col relative overflow-hidden">
-        <!-- メッセージ表示UIは一旦削除 -->
+        <Transition
+            enter-active-class="transition ease-out duration-300"
+            enter-from-class="transform opacity-0 -translate-y-full"
+            enter-to-class="transform opacity-100 translate-y-0"
+            leave-active-class="transition ease-in duration-200"
+            leave-from-class="transform opacity-100 translate-y-0"
+            leave-to-class="transform opacity-0 -translate-y-full"
+        >
+            <div 
+                v-if="saveMessage" 
+                :class="['absolute top-0 left-0 right-0 z-10 p-3 shadow-md transition-all',
+                    messageType === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white']"
+            >
+                <div class="flex items-center justify-between max-w-lg mx-auto">
+                    <div class="flex items-center gap-2">
+                        <CheckCircle class="h-5 w-5" />
+                        <span class="font-medium">{{ saveMessage }}</span>
+                    </div>
+                    <Button 
+                        v-if="messageType === 'delete' && lastDeletedNote"
+                        variant="link"
+                        class="text-white hover:bg-red-400 p-1 h-auto"
+                        @click.stop="handleUndoDelete"
+                    >
+                        <Undo2 class="h-4 w-4 mr-1" />
+                        <span class="underline">元に戻す</span>
+                    </Button>
+                </div>
+            </div>
+        </Transition>
         
         <CardHeader>
             <div class="flex items-center justify-between mb-3">
@@ -209,6 +301,7 @@ const sortedNotes = computed(() => {
             @update:open="(isOpen) => !isOpen && (selectedNote = null)"
             @save="handleSaveNote"
             @toggle-pin="togglePin"
+            @delete="handleDeleteNote"
         />
     </Card>
 </template>

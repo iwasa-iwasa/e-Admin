@@ -18,6 +18,7 @@ class NoteController extends Controller
     {
         $user = Auth::user();
         $notes = SharedNote::with(['author', 'tags'])
+            ->whereNull('deleted_at')
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -104,5 +105,48 @@ class NoteController extends Controller
         ]);
 
         return back()->with('success', 'メモを更新しました。');
+    }
+
+    /**
+     * 共有メモを削除します。
+     */
+    public function destroy(SharedNote $note)
+    {
+        \DB::transaction(function () use ($note) {
+            // ソフトデリート
+            $note->delete();
+            
+            // ゴミ箱テーブルに記録
+            \App\Models\TrashItem::create([
+                'user_id' => Auth::id(),
+                'item_type' => 'shared_note',
+                'item_id' => $note->note_id,
+                'original_title' => $note->title,
+                'deleted_at' => now(),
+                'permanent_delete_at' => now()->addDays(30),
+            ]);
+        });
+        
+        return back()->with('success', 'メモを削除しました。');
+    }
+
+    /**
+     * 削除された共有メモを復元します。
+     */
+    public function restore($noteId)
+    {
+        \DB::transaction(function () use ($noteId) {
+            // メモを復元
+            $note = SharedNote::withTrashed()->findOrFail($noteId);
+            $note->restore();
+            
+            // ゴミ箱テーブルから削除
+            \App\Models\TrashItem::where('item_type', 'shared_note')
+                ->where('item_id', $noteId)
+                ->where('user_id', Auth::id())
+                ->delete();
+        });
+        
+        return back()->with('success', 'メモを復元しました。');
     }
 }

@@ -261,6 +261,7 @@ const getColorInfo = (c: string) => {
                     キャンセル
                 </Button>
                 <Button 
+                    variant="outline"
                     @click="handleSave" 
                     :disabled="form.processing" 
                     class="gap-2"

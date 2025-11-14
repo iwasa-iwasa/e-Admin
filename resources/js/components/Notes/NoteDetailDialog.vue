@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { User, Clock, Edit2, Save, X, Tag } from 'lucide-vue-next'
+// Trash2 (ゴミ箱) アイコンを追加
+import { User, Clock, Edit2, Save, X, MapPin, Trash2 } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -23,64 +24,53 @@ import {
 
 type Priority = 'high' | 'medium' | 'low'
 
-interface NoteTag {
-  tag_name: string;
+interface Props {
+  note: App.Models.SharedNote | null
+  open: boolean
 }
 
-interface Note {
-  id: number
-  title: string
-  content: string
-  author: string
-  date: string
-  deadline?: string
-  pinned: boolean
-  color: string
-  priority: Priority
-  tags: NoteTag[]
-}
-
-const props = defineProps<{ 
-    note: Note | null,
-    open: boolean 
-}>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
-  (e: 'update:note', value: Note): void
+  (e: 'save', value: App.Models.SharedNote): void
+  (e: 'toggle-pin', value: App.Models.SharedNote): void
+  (e: 'delete', value: App.Models.SharedNote): void // 削除イベントを追加
 }>()
 
 const isEditing = ref(false)
-const editedNote = ref<Note | null>(null)
+const editedNote = ref<App.Models.SharedNote | null>(null)
 
-// --- 🛠 追加: 日付を YYYY-MM-DD 形式に整形する関数 ---
-const formatDateToInput = (isoDate: string | undefined): string | undefined => {
-    if (!isoDate) return undefined;
+// Format date for input[type="date"] (YYYY-MM-DD format)
+const formatDateForInput = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString
+  }
+  
+  // Try to parse and format the date
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return ''
     
-    // YYYY-MM-DD形式に既に準拠しているか確認 (TやZが含まれていないか)
-    if (isoDate.length === 10 && isoDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        return isoDate;
-    }
-
-    try {
-        const datePart = isoDate.split('T')[0];
-        if (datePart && datePart.length === 10) {
-            return datePart;
-        }
-        return new Date(isoDate).toISOString().substring(0, 10);
-    } catch {
-        return undefined;
-    }
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    
+    return `${year}-${month}-${day}`
+  } catch {
+    return ''
+  }
 }
-// --------------------------------------------------------
 
-// ウォッチャーを修正し、editedNoteのdeadlineを整形
 watch(() => props.note, (newNote) => {
   if (newNote) {
     editedNote.value = { 
         ...newNote,
         // deadlineをフォーム入力形式に整形して格納
-        deadline: formatDateToInput(newNote.deadline)
+        deadline: formatDateForInput(newNote.deadline)
     }
   } else {
     editedNote.value = null
@@ -118,7 +108,7 @@ const handleEdit = () => {
     // 編集開始時にもdeadlineを整形して格納
     editedNote.value = { 
         ...props.note,
-        deadline: formatDateToInput(props.note.deadline)
+        deadline: formatDateForInput(props.note.deadline)
     }
     isEditing.value = true
   }
@@ -127,10 +117,26 @@ const handleEdit = () => {
 const handleSave = () => {
   if (editedNote.value) {
     // 保存前に、editedNoteのdeadlineが'YYYY-MM-DD'形式であることを確認 (この形式でサーバーに送る)
-    emit('update:note', editedNote.value)
+    emit('save', editedNote.value)
   }
   isEditing.value = false
   emit('update:open', false)
+}
+
+const handleTogglePin = () => {
+  if (props.note) {
+    emit('toggle-pin', props.note)
+  }
+}
+
+// 削除処理のハンドラ
+const handleDelete = () => {
+  if (props.note) {
+    // 親コンポーネントに削除イベントを通知
+    emit('delete', props.note)
+    // ダイアログを閉じる
+    emit('update:open', false)
+  }
 }
 
 const handleCancel = () => {
@@ -139,7 +145,7 @@ const handleCancel = () => {
     // キャンセル時、元のnoteのdeadlineを再整形してeditedNoteに格納
     editedNote.value = { 
         ...props.note,
-        deadline: formatDateToInput(props.note.deadline)
+        deadline: formatDateForInput(props.note.deadline)
     }
   }
 }
@@ -147,45 +153,73 @@ const handleCancel = () => {
 const closeDialog = () => {
     emit('update:open', false)
 }
+
+// Watch for deadline changes and format them
+watch(() => editedNote.value?.deadline, (newDeadline) => {
+  if (editedNote.value && newDeadline) {
+    editedNote.value.deadline = formatDateForInput(newDeadline)
+  }
+})
+
 </script>
 
 <template>
   <Dialog :open="open" @update:open="closeDialog">
-    <!-- --- 🛠 修正箇所: アクセシビリティ警告の解消（aria-describedby の追加） --- -->
     <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]" aria-describedby="note-description">
-    <!-- ---------------------------------------------------------------------- -->
       <DialogHeader>
         <div class="flex items-start justify-between gap-4">
           <DialogTitle class="flex-1">
             <Input
-              v-if="isEditing"
+              v-if="isEditing && editedNote"
               v-model="editedNote.title"
               class="h-8"
+              aria-label="メモタイトル"
             />
             <template v-else>{{ currentNote.title }}</template>
           </DialogTitle>
-          <Badge :class="getPriorityInfo(currentNote.priority).className">
-            {{ getPriorityInfo(currentNote.priority).label }}
-          </Badge>
+          <div class="flex items-center gap-2">
+            <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
+              {{ getPriorityInfo(currentNote.priority as Priority).label }}
+            </Badge>
+            <Button
+              v-if="currentNote.is_pinned !== undefined"
+              variant="ghost"
+              size="sm"
+              @click="handleTogglePin"
+              :class="currentNote.is_pinned ? 'text-yellow-600' : 'text-gray-400'"
+              aria-label="ピン留めの切り替え"
+            >
+              <MapPin class="h-4 w-4" :class="{ 'fill-yellow-600': currentNote.is_pinned }" />
+            </Button>
+            <Button 
+                v-if="!isEditing"
+                variant="ghost" 
+                size="sm" 
+                @click="handleDelete" 
+                class="text-red-500 hover:text-red-600"
+                aria-label="メモを削除"
+            >
+                <Trash2 class="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <div class="flex items-center gap-4 text-sm text-gray-600 pt-2">
           <div class="flex items-center gap-1">
             <User class="h-4 w-4" />
-            <span>{{ currentNote.author }}</span>
+            <span>{{ currentNote.author?.name || 'N/A' }}</span>
           </div>
           <div class="flex items-center gap-1">
             <Clock class="h-4 w-4" />
-            <span>{{ currentNote.date }}</span>
+            <span>{{ new Date(currentNote.updated_at || currentNote.created_at).toLocaleDateString() }}</span>
           </div>
-          <div v-if="isEditing" class="flex items-center gap-2">
+          <div v-if="isEditing && editedNote" class="flex items-center gap-2">
             <span class="text-xs">期限:</span>
-            <!-- --- 🛠 修正箇所: editedNote.deadline は整形済み --- -->
             <Input
               type="date"
               v-model="editedNote.deadline"
               class="h-7 w-40 text-xs"
+              aria-label="期限日"
             />
-            <!-- -------------------------------------------------- -->
           </div>
           <Badge v-else-if="currentNote.deadline" variant="outline" class="text-xs">
             期限: {{ currentNote.deadline }}
@@ -193,56 +227,14 @@ const closeDialog = () => {
         </div>
       </DialogHeader>
 
-      <div v-if="currentNote.tags && currentNote.tags.length > 0" class="flex flex-wrap gap-2 pt-2 border-b pb-4">
-          <div class="flex items-center gap-1 text-sm font-medium text-gray-700">
-              <Tag class="h-4 w-4 text-gray-500" />
-              タグ:
-          </div>
-          <Badge 
-              v-for="(tag, index) in currentNote.tags" 
-              :key="index" 
-              variant="secondary" 
-              class="bg-gray-200 text-gray-800 hover:bg-gray-300 cursor-default"
-          >
-              {{ tag.tag_name }}
-          </Badge>
-      </div>
-
-      <div v-if="isEditing && editedNote" class="space-y-3 pt-2">
-        <div class="flex gap-2">
-          <Select v-model="editedNote.priority">
-            <SelectTrigger class="w-32 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="high">重要</SelectItem>
-              <SelectItem value="medium">中</SelectItem>
-              <SelectItem value="low">低</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select v-model="editedNote.color">
-            <SelectTrigger class="w-32 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="yellow">黄色</SelectItem>
-              <SelectItem value="blue">青色</SelectItem>
-              <SelectItem value="green">緑色</SelectItem>
-              <SelectItem value="pink">ピンク</SelectItem>
-              <SelectItem value="purple">紫色</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
       <ScrollArea class="max-h-[60vh]">
         <div :class="[getColorClass(currentNote.color), 'border-2 rounded-lg p-6']">
           <Textarea
             v-if="isEditing && editedNote"
             v-model="editedNote.content"
             class="min-h-[200px] whitespace-pre-line bg-white"
+            aria-label="メモ内容"
           />
-          <!-- DialogContentのaria-describedbyで参照されるIDを設定 -->
           <p v-else class="whitespace-pre-line text-gray-800" id="note-description">
             {{ currentNote.content }}
           </p>
