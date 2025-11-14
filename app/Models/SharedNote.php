@@ -5,13 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 #[TypeScript]
 class SharedNote extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     /**
      * The table associated with the model.
@@ -39,6 +38,7 @@ class SharedNote extends Model
         'color',
         'priority',
         'deadline',
+        'is_deleted',
     ];
 
     /**
@@ -48,7 +48,24 @@ class SharedNote extends Model
      */
     protected $casts = [
         'deadline' => 'date',
+        'is_deleted' => 'boolean',
     ];
+
+    /**
+     * Scope to get only non-deleted notes.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_deleted', false);
+    }
+
+    /**
+     * Scope to get only deleted notes.
+     */
+    public function scopeDeleted($query)
+    {
+        return $query->where('is_deleted', true);
+    }
 
     /**
      * Get the author of the note.
