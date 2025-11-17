@@ -36,6 +36,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
 
     Route::get('/notes', [NoteController::class, 'index'])->name('notes');
+    Route::post('/shared-notes', [NoteController::class, 'store'])->name('shared-notes.store');
+    Route::put('/shared-notes/{note}', [NoteController::class, 'update'])->name('shared-notes.update');
+    Route::delete('/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
+    Route::post('/notes/{note}/restore', [NoteController::class, 'restore'])->name('notes.restore');
     Route::post('/notes/{note}/pin', [NoteController::class, 'pin'])->name('notes.pin');
     Route::delete('/notes/{note}/unpin', [NoteController::class, 'unpin'])->name('notes.unpin');
 
@@ -57,9 +61,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/reminders/restore', [PersonalReminderController::class, 'restoreReminder'])->name('reminders.restore');
 
     // Trash
-    Route::get('/trash', function () {
-        return Inertia::render('Trash');
-    })->name('trash');
+    Route::get('/trash', [\App\Http\Controllers\TrashController::class, 'index'])->name('trash');
+    Route::post('/trash/{id}/restore', [\App\Http\Controllers\TrashController::class, 'restore'])->name('trash.restore');
+    Route::delete('/trash/{id}', [\App\Http\Controllers\TrashController::class, 'destroy'])->name('trash.destroy');
+    Route::delete('/trash', [\App\Http\Controllers\TrashController::class, 'emptyTrash'])->name('trash.empty');
 
     // Member Calendar
     Route::get('/member-calendar', function () {
@@ -67,6 +72,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('member.calendar');
 
     Route::post('/events', [CalendarController::class, 'store'])->name('events.store');
+    Route::put('/events/{event}', [CalendarController::class, 'update'])->name('events.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

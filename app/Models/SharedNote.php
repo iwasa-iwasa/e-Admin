@@ -38,6 +38,7 @@ class SharedNote extends Model
         'color',
         'priority',
         'deadline',
+        'is_deleted',
     ];
 
     /**
@@ -47,7 +48,24 @@ class SharedNote extends Model
      */
     protected $casts = [
         'deadline' => 'date',
+        'is_deleted' => 'boolean',
     ];
+
+    /**
+     * Scope to get only non-deleted notes.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_deleted', false);
+    }
+
+    /**
+     * Scope to get only deleted notes.
+     */
+    public function scopeDeleted($query)
+    {
+        return $query->where('is_deleted', true);
+    }
 
     /**
      * Get the author of the note.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useForm } from "@inertiajs/vue3";
-import { Save, X, CheckCircle } from "lucide-vue-next";
+import { Save, X } from "lucide-vue-next";
 import {
     Dialog,
     DialogContent,
@@ -43,20 +43,6 @@ const form = useForm({
 const tagInput = ref("");
 
 const { toast } = useToast();
-const saveMessage = ref('')
-const messageTimer = ref<number | null>(null)
-
-const showMessage = (message: string) => {
-    if (messageTimer.value) {
-        clearTimeout(messageTimer.value);
-    }
-    
-    saveMessage.value = message
-    
-    messageTimer.value = setTimeout(() => {
-        saveMessage.value = ''
-    }, 4000)
-}
 
 const handleSave = () => {
     if (!form.title.trim()) {
@@ -69,10 +55,11 @@ const handleSave = () => {
     }
     
     form.post(route("shared-notes.store"), {
-        preserveState: true,
-        preserveScroll: true,
         onSuccess: () => {
-            showMessage('共有メモを正常に作成しました。')
+            toast({
+                title: "Success",
+                description: "共有メモを正常に作成しました。",
+            });
             handleClose();
         },
         onError: (errors) => {
@@ -274,7 +261,6 @@ const getColorInfo = (c: string) => {
                     キャンセル
                 </Button>
                 <Button 
-                    variant="outline"
                     @click="handleSave" 
                     :disabled="form.processing" 
                     class="gap-2"
@@ -284,25 +270,5 @@ const getColorInfo = (c: string) => {
                 </Button>
             </DialogFooter>
         </DialogContent>
-        
-        <!-- 下部メッセージ -->
-        <Transition
-          enter-active-class="transition ease-out duration-300"
-          enter-from-class="transform opacity-0 translate-y-full"
-          enter-to-class="transform opacity-100 translate-y-0"
-          leave-active-class="transition ease-in duration-200"
-          leave-from-class="transform opacity-100 translate-y-0"
-          leave-to-class="transform opacity-0 translate-y-full"
-        >
-          <div 
-            v-if="saveMessage"
-            class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 p-3 text-white rounded-lg shadow-lg bg-green-500"
-          >
-            <div class="flex items-center gap-2">
-              <CheckCircle class="h-5 w-5" />
-              <span class="font-medium">{{ saveMessage }}</span>
-            </div>
-          </div>
-        </Transition>
     </Dialog>
 </template>

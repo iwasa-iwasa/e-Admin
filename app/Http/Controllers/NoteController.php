@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SharedNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class NoteController extends Controller
@@ -18,6 +19,7 @@ class NoteController extends Controller
     {
         $user = Auth::user();
         $notes = SharedNote::with(['author', 'tags'])
+            ->active()
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -38,6 +40,31 @@ class NoteController extends Controller
     }
 
     /**
+     * 新しい共有メモをデータベースに保存する。
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'content' => ['nullable', 'string'],
+            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
+            'priority' => ['nullable', 'string', 'in:low,medium,high'],
+            'deadline' => ['nullable', 'date'],
+        ]);
+
+        $note = SharedNote::create([
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'author_id' => Auth::id(),
+            'color' => $validated['color'] ?? 'yellow',
+            'priority' => $validated['priority'] ?? 'medium',
+            'deadline' => $validated['deadline'],
+        ]);
+
+        return back()->with('success', '新しい共有メモを作成しました！');
+    }
+
+    /**
      * 指定されたノートをピン留めします。
      */
     public function pin(Request $request, SharedNote $note)
@@ -55,5 +82,78 @@ class NoteController extends Controller
         $request->user()->pinnedNotes()->detach($note->note_id);
 
         return back()->with('success', 'ノートのピン留めを解除しました。');
+    }
+
+    /**
+     * 共有メモを更新します。
+     */
+    public function update(Request $request, SharedNote $note)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'content' => ['nullable', 'string'],
+            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
+            'priority' => ['nullable', 'string', 'in:low,medium,high'],
+            'deadline' => ['nullable', 'date'],
+        ]);
+
+        $note->update([
+            'title' => $validated['title'],
+            'content' => $validated['content'],
+            'color' => $validated['color'] ?? 'yellow',
+            'priority' => $validated['priority'] ?? 'medium',
+            'deadline' => $validated['deadline'],
+        ]);
+
+        return back()->with('success', 'メモを更新しました。');
+    }
+
+    /**
+     * 共有メモを削除します。
+     */
+    public function destroy(SharedNote $note)
+    {
+        \DB::transaction(function () use ($note) {
+            // is_deletedフラグを設定
+            $note->update([
+                'is_deleted' => true,
+                'deleted_at' => now(),
+            ]);
+            
+            // ゴミ箱テーブルに記録
+            \App\Models\TrashItem::create([
+                'user_id' => Auth::id(),
+                'item_type' => 'shared_note',
+                'item_id' => $note->note_id,
+                'original_title' => $note->title,
+                'deleted_at' => now(),
+                'permanent_delete_at' => now()->addDays(30),
+            ]);
+        });
+        
+        return back()->with('success', 'メモを削除しました。');
+    }
+
+    /**
+     * 削除された共有メモを復元します。
+     */
+    public function restore($noteId)
+    {
+        \DB::transaction(function () use ($noteId) {
+            // メモを復元
+            $note = SharedNote::findOrFail($noteId);
+            $note->update([
+                'is_deleted' => false,
+                'deleted_at' => null,
+            ]);
+            
+            // ゴミ箱テーブルから削除
+            \App\Models\TrashItem::where('item_type', 'shared_note')
+                ->where('item_id', $noteId)
+                ->where('user_id', Auth::id())
+                ->delete();
+        });
+        
+        return back()->with('success', 'メモを復元しました。');
     }
 }
