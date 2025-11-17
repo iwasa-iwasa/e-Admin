@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('item_type'); // 'shared_note', 'event', 'survey' etc.
             $table->string('item_id'); // 元のアイテムのID
             $table->string('original_title'); // 元のタイトル
-            $table->timestamp('deleted_at');
-            $table->timestamp('permanent_delete_at'); // 完全削除予定日
+            $table->timestamp('deleted_at')->nullable();
+            $table->timestamp('permanent_delete_at')->nullable(); // 完全削除予定日
             $table->timestamps();
         });
     }

@@ -188,18 +188,6 @@ return new class extends Migration
             $table->timestamp('created_at')->useCurrent()->index();
         });
 
-        // 16. trash_items (depends on users)
-        Schema::create('trash_items', function (Blueprint $table) {
-            $table->id('trash_id');
-            // 'users' テーブルの 'id' を参照
-            $table->foreignId('user_id')->constrained('users', 'id')->onDelete('cascade');
-            $table->string('item_type', 50);
-            $table->unsignedBigInteger('item_id');
-            $table->string('original_title')->nullable();
-            $table->timestamp('deleted_at')->useCurrent();
-            $table->timestamp('permanent_delete_at')->nullable();
-        });
-
         // 17. activity_logs (depends on users)
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->id('log_id');
@@ -237,9 +225,6 @@ return new class extends Migration
         
         // 17. activity_logs
         Schema::dropIfExists('activity_logs');
-        
-        // 16. trash_items
-        Schema::dropIfExists('trash_items');
         
         // 15. notifications
         Schema::dropIfExists('notifications');
