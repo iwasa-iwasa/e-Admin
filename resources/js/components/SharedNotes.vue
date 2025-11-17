@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { StickyNote, Plus, User, AlertCircle, Calendar } from 'lucide-vue-next'
+import { StickyNote, Plus, User, AlertCircle, Calendar, CheckCircle } from 'lucide-vue-next'
+import { router } from '@inertiajs/vue3'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -18,6 +19,8 @@ const props = defineProps<{
 const sortOrder = ref<SortOrder>('priority')
 const isCreateDialogOpen = ref(false)
 const selectedNote = ref<App.Models.SharedNote | null>(null)
+const saveMessage = ref('')
+const messageTimer = ref<number | null>(null)
 
 const handleUpdateNote = (updatedNote: App.Models.SharedNote) => {
   // This should ideally emit an event to the parent to refresh data
@@ -25,6 +28,63 @@ const handleUpdateNote = (updatedNote: App.Models.SharedNote) => {
   if (index !== -1) {
     props.notes[index] = updatedNote
   }
+}
+
+const handleSaveNote = (updatedNote: App.Models.SharedNote) => {
+  // Save the note via API call
+  // This is a simplified version - in a real app you'd make an API call
+  handleUpdateNote(updatedNote)
+  showMessage('メモが保存されました。')
+}
+
+const handleDeleteNote = (deletedNote: App.Models.SharedNote) => {
+  // 削除されたメモをリストから除外
+  const index = props.notes.findIndex(note => note.note_id === deletedNote.note_id)
+  if (index !== -1) {
+    props.notes.splice(index, 1)
+  }
+  selectedNote.value = null
+}
+
+const handleTogglePin = (note: App.Models.SharedNote) => {
+  const noteId = note.note_id
+  if (note.is_pinned) {
+    router.delete(route('notes.unpin', noteId), {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => {
+        // リスト内のメモのピン状態を更新
+        const noteIndex = props.notes.findIndex(n => n.note_id === noteId)
+        if (noteIndex !== -1) {
+          props.notes[noteIndex].is_pinned = false
+        }
+      }
+    })
+  } else {
+    router.post(route('notes.pin', noteId), {}, {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => {
+        // リスト内のメモのピン状態を更新
+        const noteIndex = props.notes.findIndex(n => n.note_id === noteId)
+        if (noteIndex !== -1) {
+          props.notes[noteIndex].is_pinned = true
+        }
+      }
+    })
+  }
+}
+
+const showMessage = (message: string) => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+  }, 3000)
 }
 
 const getPriorityInfo = (priority: Priority) => {
@@ -137,6 +197,11 @@ const sortedNotes = computed(() => {
             <p class="text-sm text-gray-700 whitespace-pre-line mb-2">
               {{ note.content }}
             </p>
+            <div v-if="note.tags && note.tags.length > 0" class="flex flex-wrap gap-1 mb-2">
+              <Badge v-for="tag in note.tags" :key="tag.tag_name" variant="secondary" class="text-xs">
+                {{ tag.tag_name }}
+              </Badge>
+            </div>
             <div class="flex items-center justify-between text-xs text-gray-600">
               <div class="flex items-center gap-2">
                 <div class="flex items-center gap-1">
@@ -162,6 +227,29 @@ const sortedNotes = computed(() => {
       :open="selectedNote !== null"
       @update:open="(isOpen) => !isOpen && (selectedNote = null)"
       @update:note="handleUpdateNote"
+      @save="handleSaveNote"
+      @delete="handleDeleteNote"
+      @toggle-pin="handleTogglePin"
     />
+    
+    <!-- 成功メッセージ -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[9999] p-3 bg-green-500 text-white rounded-lg shadow-lg"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium">{{ saveMessage }}</span>
+        </div>
+      </div>
+    </Transition>
   </Card>
 </template>
