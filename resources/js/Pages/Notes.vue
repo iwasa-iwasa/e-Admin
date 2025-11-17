@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
@@ -44,6 +45,7 @@ const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const lastDeletedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null>(null)
+
 
 const page = usePage()
 
@@ -215,6 +217,9 @@ const handleSaveNote = () => {
 const handleDeleteNote = () => {
   if (!selectedNote.value) return
   
+  const currentIndex = filteredNotes.value.findIndex(note => note.note_id === selectedNote.value.note_id)
+  const nextNote = filteredNotes.value[currentIndex + 1] || filteredNotes.value[currentIndex - 1] || null
+  
   lastDeletedNote.value = selectedNote.value;
   
   router.delete(route('notes.destroy', selectedNote.value.note_id), {
@@ -222,7 +227,7 @@ const handleDeleteNote = () => {
     preserveState: true,
     onSuccess: () => {
       showMessage('メモを削除しました。', 'delete')
-      selectedNote.value = null
+      selectedNote.value = nextNote
     },
     onError: () => {
       lastDeletedNote.value = null
@@ -230,6 +235,8 @@ const handleDeleteNote = () => {
     }
   })
 }
+
+
 
 // Undo処理
 const handleUndoDelete = () => {
@@ -248,13 +255,9 @@ const handleUndoDelete = () => {
     preserveState: true,
     onSuccess: () => {
       showMessage('メモが元に戻されました。', 'success')
-      // 復元されたメモを選択
+      selectedNote.value = noteToRestore
       setTimeout(() => {
-        const restoredNote = props.notes.find(note => note.note_id === noteToRestore.note_id)
-        if (restoredNote) {
-          selectedNote.value = restoredNote
-          scrollToNote(noteToRestore.note_id)
-        }
+        scrollToNote(noteToRestore.note_id.toString())
       }, 100)
     },
     onError: () => {
@@ -368,7 +371,7 @@ const handleRemoveTag = (tagToRemove: string) => {
 
         <div class="flex gap-2 mb-2">
           <Select v-model="filterAuthor">
-            <SelectTrigger class="flex-1 h-8">
+            <SelectTrigger class="flex-1 h-8 border-input">
               <div class="flex items-center gap-2">
                 <User class="h-4 w-4" />
                 <SelectValue placeholder="作成者" />
@@ -383,7 +386,7 @@ const handleRemoveTag = (tagToRemove: string) => {
           </Select>
 
           <Select v-model="filterPinned">
-            <SelectTrigger class="flex-1 h-8">
+            <SelectTrigger class="flex-1 h-8 border-input">
               <div class="flex items-center gap-2">
                 <Filter class="h-4 w-4" />
                 <SelectValue placeholder="フィルター" />
@@ -463,14 +466,16 @@ const handleRemoveTag = (tagToRemove: string) => {
             :class="['cursor-pointer transition-all border-l-4', selectedNote?.note_id === note.note_id ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md', getColorClass(note.color)]"
           >
             <div class="p-4">
-              <div class="flex items-start justify-between mb-2">
-                <h3 class="flex-1 flex items-center gap-2 pr-2">
-                  <Pin v-if="note.is_pinned" class="h-4 w-4 text-yellow-500 fill-current flex-shrink-0" />
-                  <span class="line-clamp-1">{{ note.title }}</span>
-                </h3>
-                <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5 flex-shrink-0']">
-                  {{ getPriorityInfo(note.priority as Priority).label }}
-                </Badge>
+              <div class="flex items-start gap-3 mb-2">
+                <div class="flex-1 flex items-start justify-between">
+                  <h3 class="flex-1 flex items-center gap-2 pr-2">
+                    <Pin v-if="note.is_pinned" class="h-4 w-4 text-yellow-500 fill-current flex-shrink-0" />
+                    <span class="line-clamp-1">{{ note.title }}</span>
+                  </h3>
+                  <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5 flex-shrink-0']">
+                    {{ getPriorityInfo(note.priority as Priority).label }}
+                  </Badge>
+                </div>
               </div>
               <p class="text-sm text-gray-600 mb-3 line-clamp-2 whitespace-pre-line">{{ note.content }}</p>
               <div v-if="note.tags.length > 0" class="flex flex-wrap gap-1 mb-3">
@@ -541,7 +546,7 @@ const handleRemoveTag = (tagToRemove: string) => {
               <div>
                 <label class="text-xs font-medium text-gray-700 mb-1 block">重要度</label>
                 <Select v-model="editedPriority">
-                  <SelectTrigger class="h-8 text-xs">
+                  <SelectTrigger class="h-8 text-xs border-input">
                     <div class="flex items-center gap-2">
                       <Badge :class="getPriorityInfo(editedPriority).className" class="text-xs px-1 py-0">
                         {{ getPriorityInfo(editedPriority).label }}
@@ -564,7 +569,7 @@ const handleRemoveTag = (tagToRemove: string) => {
               <div>
                 <label class="text-xs font-medium text-gray-700 mb-1 block">色</label>
                 <Select v-model="editedColor">
-                  <SelectTrigger class="h-8 text-xs">
+                  <SelectTrigger class="h-8 text-xs border-input">
                     <div class="flex items-center gap-2">
                       <div :class="['w-3 h-3 rounded', getColorInfo(editedColor).bg]"></div>
                       <span>{{ getColorInfo(editedColor).label }}</span>

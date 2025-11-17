@@ -384,7 +384,7 @@ const handleUndoDelete = () => {
             <X class="h-4 w-4 mr-1" />
             キャンセル
           </Button>
-          <Button @click="handleSave" size="sm">
+          <Button variant="outline" @click="handleSave" size="sm">
             <Save class="h-4 w-4 mr-1" />
             保存
           </Button>

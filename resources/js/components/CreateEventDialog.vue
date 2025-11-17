@@ -551,7 +551,7 @@ const getCategoryColor = (cat: string) => {
             
                         <DialogFooter>
                             <Button variant="outline" @click="handleClose">キャンセル</Button>
-                            <Button @click="handleSave" class="gap-2 bg-gray-900 text-white hover:bg-gray-800">
+                            <Button variant="outline" @click="handleSave" class="gap-2">
                                 <Save class="h-4 w-4" />
                                 {{ isEditMode ? '保存' : '作成' }}
                             </Button>

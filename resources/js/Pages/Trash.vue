@@ -2,22 +2,20 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown } from 'lucide-vue-next'
+import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { useToast } from '@/components/ui/toast/use-toast'
-import Toaster from '@/components/ui/toast/Toaster.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
 defineOptions({
   layout: AuthenticatedLayout,
 })
 
-type ItemType = 'shared_note' | 'event' | 'survey'
+type ItemType = 'shared_note' | 'event' | 'survey' | 'reminder'
 
 interface TrashItem {
   id: string
@@ -45,14 +43,29 @@ const sortField = ref<SortField>('deletedAt')
 const sortOrder = ref<SortOrder>('desc')
 const itemToDelete = ref<string | null>(null)
 const showEmptyTrashDialog = ref(false)
+const saveMessage = ref('')
+const messageType = ref<'success' | 'delete'>('success')
+const messageTimer = ref<number | null>(null)
 
-const { toast } = useToast()
+const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  messageType.value = type
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+  }, 4000)
+}
 
 const getItemTypeInfo = (type: ItemType) => {
   switch (type) {
     case 'event': return { icon: CalendarIcon, label: '予定', color: 'bg-blue-100 text-blue-700 border-blue-200' }
     case 'shared_note': return { icon: StickyNote, label: 'メモ', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' }
     case 'survey': return { icon: BarChart3, label: 'アンケート', color: 'bg-purple-100 text-purple-700 border-purple-200' }
+    case 'reminder': return { icon: Bell, label: 'リマインダー', color: 'bg-green-100 text-green-700 border-green-200' }
     default: return { icon: StickyNote, label: '不明', color: 'bg-gray-100 text-gray-700 border-gray-200' }
   }
 }
@@ -82,20 +95,24 @@ const sortedItems = computed(() => {
 
 const handleRestore = (id: string) => {
   const item = trashItems.value.find((i) => i.id === id)
+  
   router.post(route('trash.restore', id), {}, {
     preserveScroll: true,
     onSuccess: () => {
       if (item) {
         trashItems.value = trashItems.value.filter((i) => i.id !== id)
-        toast({ title: 'メモが元に戻されました' })
+        const itemTypeLabel = getItemTypeInfo(item.type).label
+        showMessage(`${itemTypeLabel}が元に戻されました。`, 'success')
       }
     },
     onError: (errors) => {
       console.error('Restore error:', errors)
-      toast({ title: '復元に失敗しました', variant: 'destructive' })
+      showMessage('復元に失敗しました。', 'success')
     }
   })
 }
+
+
 
 const handlePermanentDelete = () => {
   if (itemToDelete.value) {
@@ -250,6 +267,25 @@ const handleEmptyTrash = () => {
       </AlertDialogContent>
     </AlertDialog>
 
-    <Toaster />
+    <!-- メッセージ表示 -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 p-3 text-white rounded-lg shadow-lg',
+          messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium">{{ saveMessage }}</span>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>

@@ -49,7 +49,6 @@ class DashboardController extends Controller
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
         $reminders = $user->reminders()
-            ->where('completed', false)
             ->orderBy('deadline')
             ->get();
 

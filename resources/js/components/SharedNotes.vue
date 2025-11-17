@@ -141,40 +141,38 @@ const sortedNotes = computed(() => {
 <template>
   <Card class="h-full flex flex-col">
     <CardHeader>
-      <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <StickyNote class="h-5 w-5 text-yellow-600" />
           <CardTitle class="text-lg">共有メモ</CardTitle>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          class="h-8 gap-1"
-          @click="isCreateDialogOpen = true"
-        >
-          <Plus class="h-3 w-3" />
-          新規作成
-        </Button>
-      </div>
-      <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
-        <button
-          @click="toggleSortOrder"
-          :class="['flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded transition-all', sortOrder === 'priority' ? 'bg-white shadow-sm border border-gray-200' : 'hover:bg-gray-200']"
-        >
-          <AlertCircle :class="['h-3.5 w-3.5', sortOrder === 'priority' ? 'text-red-600' : 'text-gray-400']" />
-          <span :class="['text-xs', sortOrder === 'priority' ? 'text-gray-900' : 'text-gray-500']">
-            優先度順
-          </span>
-        </button>
-        <button
-          @click="toggleSortOrder"
-          :class="['flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded transition-all', sortOrder === 'deadline' ? 'bg-white shadow-sm border border-gray-200' : 'hover:bg-gray-200']"
-        >
-          <Calendar :class="['h-3.5 w-3.5', sortOrder === 'deadline' ? 'text-blue-600' : 'text-gray-400']" />
-          <span :class="['text-xs', sortOrder === 'deadline' ? 'text-gray-900' : 'text-gray-500']">
-            期限順
-          </span>
-        </button>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+            <button
+              @click="sortOrder = 'priority'"
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortOrder === 'priority' ? 'bg-white shadow-sm border border-input text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+            >
+              <AlertCircle :class="['h-3.5 w-3.5', sortOrder === 'priority' ? 'text-red-500' : 'text-gray-400']" />
+              優先度順
+            </button>
+            <button
+              @click="sortOrder = 'deadline'"
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortOrder === 'deadline' ? 'bg-white shadow-sm border border-input text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+            >
+              <Calendar :class="['h-3.5 w-3.5', sortOrder === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
+              期限順
+            </button>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            class="h-8 gap-1"
+            @click="isCreateDialogOpen = true"
+          >
+            <Plus class="h-3 w-3" />
+            新規作成
+          </Button>
+        </div>
       </div>
     </CardHeader>
     <CardContent class="flex-1 overflow-hidden p-0 px-6 pb-6">

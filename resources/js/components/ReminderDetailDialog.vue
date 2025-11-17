@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatDate } from '@/lib/utils'
 import { ref, computed, watch } from 'vue'
-import { Clock, CheckCircle2, Edit2, Save, X } from 'lucide-vue-next'
+import { Clock, CheckCircle2, Edit2, Save, X, CheckCircle } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -48,6 +48,20 @@ const emit = defineEmits<{
 
 const isEditing = ref(false)
 const editedReminder = ref<Reminder | null>(null)
+const saveMessage = ref('')
+const messageTimer = ref<number | null>(null)
+
+const showMessage = (message: string) => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+  }, 4000)
+}
 
 // Inertiaフォーム
 const form = useForm({
@@ -161,12 +175,25 @@ const handleSave = () => {
     form.post(route('reminders.store'), {
       preserveScroll: true,
       onSuccess: () => {
-        emit('update:open', false)
-        form.reset()
-        editedReminder.value = createDefaultReminder()
+        showMessage('リマインダーを正常に作成しました。')
+        // ダミーリマインダーを作成して親コンポーネントに通知
+        const dummyReminder = {
+          reminder_id: Date.now(),
+          title: form.title,
+          description: form.description,
+          deadline: form.deadline,
+          category: form.category,
+          completed: false
+        }
+        emit('update:reminder', dummyReminder)
+        setTimeout(() => {
+          emit('update:open', false)
+          form.reset()
+          editedReminder.value = createDefaultReminder()
+        }, 2500)
       },
       onError: () => {
-        // エラーハンドリング
+        showMessage('リマインダーの作成に失敗しました。')
       }
     })
   } else if (props.reminder) {
@@ -176,11 +203,23 @@ const handleSave = () => {
       form.put(route('reminders.update', reminderId), {
         preserveScroll: true,
         onSuccess: () => {
-          emit('update:open', false)
-          isEditing.value = false
+          showMessage('リマインダーを更新しました。')
+          // 更新されたリマインダーを親コンポーネントに通知
+          const updatedReminder = {
+            ...props.reminder,
+            title: form.title,
+            description: form.description,
+            deadline: form.deadline,
+            category: form.category
+          }
+          emit('update:reminder', updatedReminder)
+          setTimeout(() => {
+            emit('update:open', false)
+            isEditing.value = false
+          }, 2500)
         },
         onError: () => {
-          // エラーハンドリング
+          showMessage('リマインダーの更新に失敗しました。')
         }
       })
     }
@@ -314,7 +353,7 @@ const closeDialog = () => {
           </div>
         </div>
 
-        <DialogFooter class="gap-2">
+        <DialogFooter class="gap-2 mt-6">
           <template v-if="isEditing">
             <Button 
               type="button"
@@ -328,6 +367,7 @@ const closeDialog = () => {
             </Button>
             <Button 
               type="submit"
+              variant="outline"
               size="sm"
               :disabled="form.processing"
             >
@@ -344,5 +384,25 @@ const closeDialog = () => {
         </DialogFooter>
       </form>
     </DialogContent>
+    
+    <!-- 下部メッセージ -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[60] p-3 text-white rounded-lg shadow-lg bg-green-500"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium">{{ saveMessage }}</span>
+        </div>
+      </div>
+    </Transition>
   </Dialog>
 </template>
