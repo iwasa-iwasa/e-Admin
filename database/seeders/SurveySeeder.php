@@ -16,13 +16,14 @@ class SurveySeeder extends Seeder
      */
     public function run(): void
     {
-        $tanaka = User::where('name', 'aaa')->first();
-        $sato = User::where('name', 'bbb')->first();
+        $users = User::take(2)->get();
 
-        if (!$tanaka || !$sato) {
-            $this->command->error('Required users not found. Run UserSeeder first.');
+        if ($users->count() < 2) {
+            $this->command->error('At least 2 users are required to run SurveySeeder.');
             return;
         }
+        $user1 = $users[0];
+        $user2 = $users[1];
 
         $surveys = [
             [
@@ -30,7 +31,7 @@ class SurveySeeder extends Seeder
                     'title' => '2025年度 忘年会の候補日アンケート',
                     'description' => '12月の忘年会について、参加可能な日程を教えてください。',
                     'deadline' => '2025-10-20 23:59:59',
-                    'created_by' => $tanaka->id,
+                    'created_by' => $user1->id,
                     'is_active' => true,
                 ],
                 'questions' => [
@@ -51,7 +52,7 @@ class SurveySeeder extends Seeder
                     'title' => 'オフィス備品の購入希望アンケート',
                     'description' => '来月の備品発注に向けて、必要な物品や優先順位をお聞かせください。',
                     'deadline' => '2025-10-18 23:59:59',
-                    'created_by' => $sato->id,
+                    'created_by' => $user2->id,
                     'is_active' => true,
                 ],
                 'questions' => [
