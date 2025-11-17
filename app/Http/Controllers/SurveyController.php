@@ -22,9 +22,16 @@ class SurveyController extends Controller
      */
     public function index()
     {
+        $userId = Auth::id();
+        
         $surveys = Survey::with(['creator', 'questions.options', 'responses.respondent'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($survey) use ($userId) {
+                $survey->has_responded = $survey->responses()->where('respondent_id', $userId)->exists();
+                $survey->respondent_names = $survey->responses->pluck('respondent.name')->filter()->values();
+                return $survey;
+            });
 
         return Inertia::render('Surveys', [
             'surveys' => $surveys,
@@ -163,8 +170,19 @@ class SurveyController extends Controller
             ])->toArray(),
         ];
 
+        $userId = Auth::id();
+        
+        $surveys = Survey::with(['creator', 'questions.options', 'responses.respondent'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($survey) use ($userId) {
+                $survey->has_responded = $survey->responses()->where('respondent_id', $userId)->exists();
+                $survey->respondent_names = $survey->responses->pluck('respondent.name')->filter()->values();
+                return $survey;
+            });
+
         return Inertia::render('Surveys', [
-            'surveys' => Survey::with(['creator', 'questions.options', 'responses.respondent'])->orderBy('created_at', 'desc')->get(),
+            'surveys' => $surveys,
             'editSurvey' => $editSurvey,
         ]);
     }
@@ -220,6 +238,14 @@ class SurveyController extends Controller
 
     public function answer(Survey $survey)
     {
+        // 既に回答済みかチェック
+        $hasResponded = $survey->responses()->where('respondent_id', Auth::id())->exists();
+        
+        if ($hasResponded) {
+            return redirect()->route('surveys')
+                ->with('error', 'このアンケートには既に回答済みです。');
+        }
+        
         $survey->load([
             'questions' => fn($query) => $query->orderBy('display_order'),
             'questions.options'

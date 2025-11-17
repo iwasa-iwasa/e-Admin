@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 use App\Models\User;
+use App\Models\Survey;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -33,6 +34,16 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $teamMembers = $user ? User::get() : [];
+        
+        // 未回答のアクティブなアンケート件数を取得
+        $unansweredSurveysCount = 0;
+        if ($user) {
+            $unansweredSurveysCount = Survey::where('is_active', true)
+                ->whereDoesntHave('responses', function ($query) use ($user) {
+                    $query->where('respondent_id', $user->id);
+                })
+                ->count();
+        }
 
         return array_merge(parent::share($request), [
             'auth' => [
@@ -43,6 +54,7 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'teamMembers' => $teamMembers,
+            'unansweredSurveysCount' => $unansweredSurveysCount,
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

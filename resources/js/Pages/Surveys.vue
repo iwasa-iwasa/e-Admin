@@ -45,8 +45,12 @@ defineOptions({
     layout: AuthenticatedLayout,
 });
 
+interface SurveyWithResponse extends App.Models.Survey {
+    has_responded?: boolean;
+}
+
 const props = defineProps<{
-    surveys: App.Models.Survey[];
+    surveys: SurveyWithResponse[];
     editingSurvey?: App.Models.Survey | null;
     editSurvey?: Object;
 }>();
@@ -74,9 +78,22 @@ const filteredSurveys = computed(() => {
                     .includes(searchQuery.value.toLowerCase()));
 
         const matchesCategory = true;
+        
+        const now = new Date();
+        const deadline = new Date(survey.deadline);
+        const isExpired = deadline < now;
 
-        const status = survey.is_active ? "active" : "closed";
-        const matchesTab = status === activeTab.value;
+        let matchesTab = false;
+        if (activeTab.value === "active") {
+            // アクティブ: アクティブかつ期限切れでない
+            matchesTab = survey.is_active && !isExpired;
+        } else if (activeTab.value === "unanswered") {
+            // 未回答: アクティブかつ未回答かつ期限切れでない
+            matchesTab = survey.is_active && !survey.has_responded && !isExpired;
+        } else if (activeTab.value === "closed") {
+            // 終了済み: 非アクティブまたは期限切れ
+            matchesTab = !survey.is_active || isExpired;
+        }
 
         return matchesSearch && matchesCategory && matchesTab;
     });
@@ -102,26 +119,7 @@ const page = usePage();
 const { toast } = useToast();
 const isEditDialogOpen = ref(false);
 
-// フラッシュメッセージの表示
-watch(
-    () => page.props.flash,
-    (flash: any) => {
-        if (flash?.success) {
-            toast({
-                title: "成功",
-                description: flash.success,
-            });
-        }
-        if (flash?.error) {
-            toast({
-                title: "エラー",
-                description: flash.error,
-                variant: "destructive",
-            });
-        }
-    },
-    { deep: true, immediate: true }
-);
+
 
 // 編集ダイアログを開く
 watch(
@@ -252,20 +250,38 @@ const handleDelete = (survey: App.Models.Survey) => {
                         <TabsTrigger value="active" class="gap-2">
                             <CheckCircle2 class="h-4 w-4" />
                             アクティブ ({{
-                                surveys.filter((s) => s.is_active).length
+                                surveys.filter((s) => {
+                                    const now = new Date();
+                                    const deadline = new Date(s.deadline);
+                                    return s.is_active && deadline >= now;
+                                }).length
+                            }})
+                        </TabsTrigger>
+                        <TabsTrigger value="unanswered" class="gap-2">
+                            <AlertCircle class="h-4 w-4" />
+                            未回答 ({{
+                                surveys.filter((s) => {
+                                    const now = new Date();
+                                    const deadline = new Date(s.deadline);
+                                    return s.is_active && !s.has_responded && deadline >= now;
+                                }).length
                             }})
                         </TabsTrigger>
                         <TabsTrigger value="closed" class="gap-2">
                             <Clock class="h-4 w-4" />
                             終了済み ({{
-                                surveys.filter((s) => !s.is_active).length
+                                surveys.filter((s) => {
+                                    const now = new Date();
+                                    const deadline = new Date(s.deadline);
+                                    return !s.is_active || deadline < now;
+                                }).length
                             }})
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
             </div>
 
-            <ScrollArea class="h-[calc(100vh-280px)]">
+            <div class="h-[calc(100vh-280px)] overflow-y-auto">
                 <div class="space-y-4 pb-6">
                     <div v-if="filteredSurveys.length === 0">
                         <Card>
@@ -371,31 +387,70 @@ const handleDelete = (survey: App.Models.Survey) => {
                                 <div
                                     class="flex items-center gap-2 flex-shrink-0"
                                 >
-                                    <Button
-                                        variant="outline"
-                                        class="gap-2"
-                                        @click="handleEdit(survey)"
-                                    >
-                                        <Edit class="h-4 w-4" />
-                                        編集
-                                    </Button>
-                                    <Button
-                                        v-if="survey.is_active"
-                                        variant="outline"
-                                        class="gap-2"
-                                        @click="handleAnswer(survey)"
-                                    >
-                                        <CheckCircle2 class="h-4 w-4" />
-                                        回答する
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        class="gap-2"
-                                        @click="handleResults(survey)"
-                                    >
-                                        <BarChart3 class="h-4 w-4" />
-                                        結果を見る
-                                    </Button>
+                                    <template v-if="activeTab === 'closed'">
+                                        <!-- 終了済みの場合は結果と削除のみ -->
+                                        <Button
+                                            variant="outline"
+                                            class="gap-2"
+                                            @click="handleResults(survey)"
+                                        >
+                                            <BarChart3 class="h-4 w-4" />
+                                            結果を見る
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            class="gap-2 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                            @click="handleDelete(survey)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                            削除
+                                        </Button>
+                                    </template>
+                                    <template v-else>
+                                        <!-- アクティブ・未回答の場合は全ボタン表示 -->
+                                        <Button
+                                            variant="outline"
+                                            class="gap-2"
+                                            @click="handleEdit(survey)"
+                                        >
+                                            <Edit class="h-4 w-4" />
+                                            編集
+                                        </Button>
+                                        <Button
+                                            v-if="survey.is_active && !survey.has_responded"
+                                            variant="outline"
+                                            class="gap-2"
+                                            @click="handleAnswer(survey)"
+                                        >
+                                            <CheckCircle2 class="h-4 w-4" />
+                                            回答する
+                                        </Button>
+                                        <Button
+                                            v-if="survey.is_active && survey.has_responded"
+                                            variant="outline"
+                                            class="gap-2 opacity-50 cursor-not-allowed"
+                                            disabled
+                                        >
+                                            <CheckCircle2 class="h-4 w-4" />
+                                            回答済み
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            class="gap-2"
+                                            @click="handleResults(survey)"
+                                        >
+                                            <BarChart3 class="h-4 w-4" />
+                                            結果を見る
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            class="gap-2 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                            @click="handleDelete(survey)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                            削除
+                                        </Button>
+                                    </template>
                                 </div>
                             </div>
                         </CardHeader>
@@ -436,9 +491,19 @@ const handleDelete = (survey: App.Models.Survey) => {
                                                 class="text-sm text-gray-400"
                                                 >まだ回答者がいません</span
                                             >
+                                            <div v-else class="flex flex-wrap gap-1">
+                                                <Badge
+                                                    v-for="name in survey.respondent_names"
+                                                    :key="name"
+                                                    variant="outline"
+                                                    class="text-xs"
+                                                >
+                                                    {{ name }}
+                                                </Badge>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="space-y-2">
+                                    <div class="space-y-2" v-if="!survey.has_responded">
                                         <div
                                             class="flex items-center gap-2 text-sm"
                                         >
@@ -455,13 +520,14 @@ const handleDelete = (survey: App.Models.Survey) => {
                         </CardContent>
                     </Card>
                 </div>
-            </ScrollArea>
+            </div>
         </main>
 
         <CreateSurveyDialog
             :open="showCreateDialog"
             :survey="editingSurvey"
             @update:open="handleDialogClose"
+            @open-dialog="showCreateDialog = true"
         />
 
         <CreateSurveyDialog
@@ -474,6 +540,7 @@ const handleDelete = (survey: App.Models.Survey) => {
                     router.get('/surveys');
                 }
             "
+            @open-dialog="isEditDialogOpen = true"
         />
     </div>
 </template>
