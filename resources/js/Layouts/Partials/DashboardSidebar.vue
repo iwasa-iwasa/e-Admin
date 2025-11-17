@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage, router } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { ref, provide, computed} from 'vue'
 import { Calendar, StickyNote, BarChart3, Mail, Home, Settings, Monitor, Trash2, Users, Bell } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -18,26 +18,52 @@ const isActive = (path: string) => {
     if (path === '/dashboard') {
         return page.url === '/dashboard'
     }
+    if (path === '/calendar') {
+        return page.url === '/calendar'
+    }
     return page.url.startsWith(path)
 }
 
-const handleMemberClick = (memberId: number) => {
-  const routeName = 'dashboard'
+const handleMemberClick = (memberId: number, path: string) => {
+  if (path.slice(0, 10) === '/dashboard') {
+    const routeName = 'dashboard'
 
-  // If the clicked member is already selected, clear the filter.
-  if (selectedMember.value === memberId) {
-    router.get(route(routeName), {}, {
-      preserveState: true,
-      replace: true,
-    })
-  } else {
-    // Otherwise, filter by the new member.
-    router.get(route(routeName), { member_id: memberId }, {
-      preserveState: true,
-      replace: true,
-    })
+    // If the clicked member is already selected, clear the filter.
+    if (selectedMember.value === memberId) {
+      router.get(route(routeName), {}, {
+        preserveState: true,
+        replace: true,
+      })
+    } else {
+      // Otherwise, filter by the new member.
+      router.get(route(routeName), { member_id: memberId }, {
+        preserveState: true,
+        replace: true,
+      })
+    }
+  }
+  if (path.slice(0, 9)=== '/calendar') {
+    const routeName = 'calendar'
+
+    // If the clicked member is already selected, clear the filter.
+    if (selectedMember.value === memberId) {
+      router.get(route(routeName), {}, {
+        preserveState: true,
+        replace: true,
+      })
+    console.log('通ったわよー');
+    } else {
+      // Otherwise, filter by the new member.
+      router.get(route(routeName), { member_id: memberId }, {
+        preserveState: true,
+        replace: true,
+      })
+    }
   }
 }
+
+// 💡 現在のURL全体を取得 (例: '/calendar?member_id=5')
+const currentURL = computed(() => page.url )
 </script>
 
 <template>
@@ -169,7 +195,7 @@ const handleMemberClick = (memberId: number) => {
             :key="member.id"
             :variant="selectedMember === member.id ? 'default' : 'ghost'"
             class="w-full justify-start gap-3"
-            @click="handleMemberClick(member.id)"
+            @click="handleMemberClick(member.id, currentURL)"
           >
             <Avatar class="h-6 w-6">
               <AvatarImage :src="member.avatar" :alt="member.name" />

@@ -14,17 +14,29 @@ class CalendarController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
-        // Fetch all events from the shared calendar
-        $events = Event::with(['creator', 'participants'])
-            ->orderBy('start_date')
-            ->get();
+        $memberId = $request->query('member_id');
+
+        // Build query for events
+        $eventsQuery = Event::with(['creator', 'participants'])
+            ->orderBy('start_date');
+
+        // If a member_id is provided in the URL, filter events to those
+        // where the member is a participant.
+        if ($memberId) {
+            $eventsQuery->whereHas('participants', function ($q) use ($memberId) {
+                $q->where('users.id', $memberId);
+            });
+        }
+
+        $events = $eventsQuery->get();
 
         return Inertia::render('Calendar', [
             'events' => $events,
+            'filteredMemberId' => $memberId ? (int)$memberId : null,
         ]);
     }
 
@@ -74,5 +86,6 @@ class CalendarController extends Controller
         $event->participants()->attach(Auth::id());
 
         return redirect()->back()->with('success', 'Event created successfully.');
+        
     }
 }
