@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3'
+import { Head, usePage, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SharedCalendar from '@/components/SharedCalendar.vue'
+import { computed } from 'vue'
 
 defineOptions({
   layout: AuthenticatedLayout,
@@ -9,7 +10,21 @@ defineOptions({
 
 const props = defineProps<{
   events: App.Models.Event[]
+  filteredMemberId?: number | null
+  teamMembers: App.Models.User[]
 }>()
+
+const filteredMember = computed(() => {
+  if (!props.filteredMemberId) return null
+  return props.teamMembers.find(member => member.id === props.filteredMemberId)
+})
+
+const clearFilter = () => {
+  router.get(route('dashboard'), {}, {
+    preserveState: true,
+    replace: true,
+  })
+}
 </script>
 
 <template>
