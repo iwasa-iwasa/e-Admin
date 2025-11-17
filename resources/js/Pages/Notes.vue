@@ -174,6 +174,7 @@ const filteredNotes = computed(() => {
   })
 })
 
+
 const authors = computed(() => Array.from(new Set(props.notes.map((note) => note.author?.name).filter(Boolean))))
 
 const handleSelectNote = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
