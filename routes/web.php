@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/surveys/{survey}/edit', [SurveyController::class, 'edit'])->name('surveys.edit');
     Route::put('/surveys/{survey}', [SurveyController::class, 'update'])->name('surveys.update');
     Route::delete('/surveys/{survey}', [SurveyController::class, 'destroy'])->name('surveys.destroy');
+    Route::post('/surveys/{survey}/restore', [SurveyController::class, 'restore'])->name('surveys.restore');
     Route::get('/surveys/{survey}/answer', [SurveyController::class, 'answer'])->name('surveys.answer');
     Route::post('/surveys/{survey}/submit', [SurveyController::class, 'submitAnswer'])->name('surveys.submit');
     //Survey Results and Export

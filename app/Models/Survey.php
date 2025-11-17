@@ -36,6 +36,8 @@ class Survey extends Model
         'created_by',
         'deadline',
         'is_active',
+        'is_deleted',
+        'deleted_at',
     ];
 
     /**
@@ -46,6 +48,8 @@ class Survey extends Model
     protected $casts = [
         'deadline' => 'datetime',
         'is_active' => 'boolean',
+        'is_deleted' => 'boolean',
+        'deleted_at' => 'datetime',
     ];
 
     /**
