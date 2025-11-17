@@ -14,6 +14,7 @@ import {
     Clock,
     BarChart2,
     X,
+    CheckCircle,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,12 +85,28 @@ const questions = ref<Question[]>([]);
 const showTemplateDialog = ref(false);
 const draftSavedAt = ref<Date | null>(null);
 const showDraftBanner = ref(false);
+const saveMessage = ref('');
+const messageType = ref<'success' | 'delete' | 'error'>('success');
+const messageTimer = ref<number | null>(null);
 
 const { toast } = useToast();
 
 const DRAFT_KEY = "survey_draft";
 const AUTO_SAVE_DELAY = 30000; // 30秒
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'success') => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  messageType.value = type
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+  }, 4000)
+}
 
 const form = useForm({
     title: "",
@@ -231,52 +248,35 @@ const removeOption = (questionId: string, optionIndex: number) => {
 
 const handleSave = (isDraft: boolean = false) => {
     // クライアント側のバリデーション
+    const errors = [];
+    
     if (!title.value.trim()) {
-        toast({
-            title: "Error",
-            description: "アンケートのタイトルを入力してください",
-            variant: "destructive",
-        });
-        return;
+        errors.push('アンケートのタイトルを入力してください');
     }
     if (!deadline.value) {
-        toast({
-            title: "Error",
-            description: "回答期限を設定してください",
-            variant: "destructive",
-        });
-        return;
+        errors.push('回答期限を設定してください');
     }
     if (questions.value.length === 0) {
-        toast({
-            title: "Error",
-            description: "最低1つの質問を追加してください",
-            variant: "destructive",
-        });
-        return;
+        errors.push('最低1つの質問を追加してください');
     }
 
     for (const question of questions.value) {
         if (!question.question.trim()) {
-            toast({
-                title: "Error",
-                description: "すべての質問を入力してください",
-                variant: "destructive",
-            });
-            return;
+            errors.push('すべての質問を入力してください');
+            break;
         }
         if (["single", "multiple", "dropdown"].includes(question.type)) {
             const validOptions = question.options.filter((opt) => opt.trim());
             if (validOptions.length < 2) {
-                toast({
-                    title: "Error",
-                    description:
-                        "選択肢形式の質問には最低2つの選択肢が必要です",
-                    variant: "destructive",
-                });
-                return;
+                errors.push('選択肢形式の質問には最低2つの選択肢が必要です');
+                break;
             }
         }
+    }
+    
+    if (errors.length > 0) {
+        showMessage(errors.join('\n'), 'error');
+        return;
     }
 
     // フォームデータを準備
@@ -297,23 +297,20 @@ const handleSave = (isDraft: boolean = false) => {
         form.put(`/surveys/${props.survey.survey_id}`, {
             preserveScroll: true,
             onSuccess: () => {
-                toast({
-                    title: "Success",
-                    description: "アンケートを更新しました",
-                });
+                showMessage('アンケートを更新しました。', 'success');
                 handleClose();
             },
             onError: (errors) => {
-                // バリデーションエラーを表示
-                const firstError = Object.values(errors)[0];
-                if (firstError) {
-                    toast({
-                        title: "Error",
-                        description: Array.isArray(firstError)
-                            ? firstError[0]
-                            : String(firstError),
-                        variant: "destructive",
-                    });
+                const errorMessages = [];
+                for (const [field, messages] of Object.entries(errors)) {
+                    if (Array.isArray(messages)) {
+                        errorMessages.push(...messages);
+                    } else {
+                        errorMessages.push(String(messages));
+                    }
+                }
+                if (errorMessages.length > 0) {
+                    showMessage(errorMessages.join('\n'), 'error');
                 }
             },
         });
@@ -326,25 +323,24 @@ const handleSave = (isDraft: boolean = false) => {
                 if (!isDraft) {
                     clearDraft();
                 }
-                toast({
-                    title: "Success",
-                    description: isDraft
-                        ? "アンケートを一時保存しました"
-                        : "アンケートを公開しました",
-                });
+                if (isDraft) {
+                    showMessage('アンケートが保存されました。', 'success')
+                } else {
+                    showMessage('アンケートを公開しました。', 'success')
+                }
                 handleClose();
             },
             onError: (errors) => {
-                // バリデーションエラーを表示
-                const firstError = Object.values(errors)[0];
-                if (firstError) {
-                    toast({
-                        title: "Error",
-                        description: Array.isArray(firstError)
-                            ? firstError[0]
-                            : String(firstError),
-                        variant: "destructive",
-                    });
+                const errorMessages = [];
+                for (const [field, messages] of Object.entries(errors)) {
+                    if (Array.isArray(messages)) {
+                        errorMessages.push(...messages);
+                    } else {
+                        errorMessages.push(String(messages));
+                    }
+                }
+                if (errorMessages.length > 0) {
+                    showMessage(errorMessages.join('\n'), 'error');
                 }
             },
         });
@@ -426,17 +422,10 @@ const saveDraft = () => {
         draftSavedAt.value = new Date();
         showDraftBanner.value = true;
 
-        toast({
-            title: "Success",
-            description: "下書きを保存しました",
-        });
+        showMessage('アンケートが保存されました。', 'success');
     } catch (error) {
         console.error("一時保存に失敗:", error);
-        toast({
-            title: "Error",
-            description: "一時保存に失敗しました",
-            variant: "destructive",
-        });
+        showMessage('一時保存に失敗しました。', 'error');
     }
 };
 
@@ -1305,4 +1294,25 @@ watch(
             </div>
         </DialogContent>
     </Dialog>
+
+    <!-- メッセージ表示 -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[9999] p-3 text-white rounded-lg shadow-lg',
+          messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium whitespace-pre-line">{{ saveMessage }}</span>
+        </div>
+      </div>
+    </Transition>
 </template>
