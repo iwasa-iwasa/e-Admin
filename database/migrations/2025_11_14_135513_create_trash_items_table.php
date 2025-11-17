@@ -15,11 +15,13 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('item_type'); // 'shared_note', 'event', 'survey' etc.
-            $table->string('item_id'); // 元のアイテムのID
+            $table->unsignedBigInteger('item_id'); // 元のアイテムのID
             $table->string('original_title'); // 元のタイトル
-            $table->timestamp('deleted_at');
-            $table->timestamp('permanent_delete_at'); // 完全削除予定日
+            $table->timestamp('deleted_at')->useCurrent();
+            $table->timestamp('permanent_delete_at')->nullable(); // 完全削除予定日
             $table->timestamps();
+
+            $table->index(['item_type', 'item_id']);
         });
     }
 
