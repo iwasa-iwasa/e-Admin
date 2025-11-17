@@ -27,13 +27,24 @@ class SurveyResponseSeeder extends Seeder
         }
 
         foreach ($surveys as $survey) {
-            // 各アンケートに5〜15件のランダムな回答を生成
-            $responseCount = rand(5, 15);
+            // 回答を作成するユーザーを取得（まだこのアンケートに回答していないユーザー）
+            $respondedUserIds = SurveyResponse::where('survey_id', $survey->survey_id)->pluck('respondent_id');
+            $availableUsers = User::whereNotIn('id', $respondedUserIds)->get();
 
-            for ($i = 0; $i < $responseCount; $i++) {
-                // ランダムなユーザーを選択
-                $user = $users->random();
+            if ($availableUsers->isEmpty()) {
+                continue; // 回答できるユーザーがいない場合はスキップ
+            }
 
+            // 作成する回答数を、利用可能なユーザー数とランダムな数（最大5）の小さい方に設定
+            $responseCount = min($availableUsers->count(), rand(1, 5));
+            $selectedUsers = $availableUsers->random($responseCount);
+
+            // Collectionのrandom()は単一オブジェクトを返す場合があるため配列に変換
+            if ($responseCount === 1) {
+                $selectedUsers = [$selectedUsers];
+            }
+
+            foreach ($selectedUsers as $user) {
                 // 回答を作成
                 $response = SurveyResponse::create([
                     'survey_id' => $survey->survey_id,
