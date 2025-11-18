@@ -301,7 +301,7 @@ const handleUndoDelete = () => {
                         />
                     </div>
                     <Tabs v-model="activeTab">
-                        <TabsList>
+                        <TabsList class="gap-1.5">
                         <TabsTrigger value="all" class="gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800">
                             <BarChart3 class="h-4 w-4" />
                             すべて ({{ surveys.length }})
