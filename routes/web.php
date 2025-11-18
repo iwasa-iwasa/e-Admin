@@ -60,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/reminders/{reminder}', [PersonalReminderController::class, 'update'])->name('reminders.update');
     Route::patch('/reminders/{reminder}/complete', [PersonalReminderController::class, 'completeReminder'])->name('reminders.complete');
     Route::post('/reminders/restore', [PersonalReminderController::class, 'restoreReminder'])->name('reminders.restore');
+    Route::delete('/reminders/{reminder}', [PersonalReminderController::class, 'destroy'])->name('reminders.destroy');
 
     // Trash
     Route::get('/trash', [\App\Http\Controllers\TrashController::class, 'index'])->name('trash');

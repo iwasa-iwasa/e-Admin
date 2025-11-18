@@ -242,7 +242,7 @@ const handleEmptyTrash = () => {
                       <RotateCcw class="h-4 w-4" />
                       元に戻す
                     </Button>
-                    <Button variant="outline" size="sm" @click="itemToDelete = item?.id" class="gap-2 text-red-600 border-red-300 hover:bg-red-50" :disabled="!item">
+                    <Button variant="outline" size="sm" @click="itemToDelete = item?.id" class="gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700" :disabled="!item">
                       <X class="h-4 w-4" />
                       完全に削除
                     </Button>
@@ -262,8 +262,8 @@ const handleEmptyTrash = () => {
           <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="itemToDelete = null">キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="handlePermanentDelete" class="bg-red-600 hover:bg-red-700">
+          <AlertDialogCancel @click="itemToDelete = null" class="hover:bg-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="handlePermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
             完全に削除
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -278,7 +278,7 @@ const handleEmptyTrash = () => {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="handleEmptyTrash" class="bg-red-600 hover:bg-red-700">
+          <AlertDialogAction @click="handleEmptyTrash" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
             ゴミ箱を空にする
           </AlertDialogAction>
         </AlertDialogFooter>
