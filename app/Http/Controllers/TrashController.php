@@ -40,6 +40,9 @@ class TrashController extends Controller
                 } elseif ($item->item_type === 'reminder') {
                     $reminder = \App\Models\Reminder::where('reminder_id', $item->item_id)->first();
                     $description = $reminder ? $reminder->description : '';
+                } elseif ($item->item_type === 'event') {
+                    $event = \App\Models\Event::withTrashed()->where('event_id', $item->item_id)->first();
+                    $description = $event ? $event->description : '';
                 }
                 
                 $mapped = [
@@ -135,6 +138,20 @@ class TrashController extends Controller
                 \Log::info('Successfully restored survey');
                 return back()->with('success', 'アンケートを復元しました。');
             }
+            
+            if ($trashItem->item_type === 'event') {
+                \DB::transaction(function () use ($trashItem) {
+                    // イベントを復元
+                    $event = \App\Models\Event::withTrashed()->where('event_id', $trashItem->item_id)->firstOrFail();
+                    $event->restore();
+                    
+                    // ゴミ箱テーブルから削除
+                    $trashItem->delete();
+                });
+                
+                \Log::info('Successfully restored event');
+                return back()->with('success', 'イベントを復元しました。');
+            }
 
             return back()->with('error', 'サポートされていないアイテムタイプです。');
         } catch (\Exception $e) {
@@ -187,6 +204,11 @@ class TrashController extends Controller
                         $survey->delete();
                     }
                 }
+                
+                if ($trashItem->item_type === 'event') {
+                    // イベントを完全削除
+                    \App\Models\Event::withTrashed()->where('event_id', $trashItem->item_id)->forceDelete();
+                }
 
                 // ゴミ箱からも削除
                 $trashItem->delete();
@@ -237,6 +259,10 @@ class TrashController extends Controller
                             $survey->responses()->delete();
                             $survey->delete();
                         }
+                    }
+                    
+                    if ($item->item_type === 'event') {
+                        \App\Models\Event::withTrashed()->where('event_id', $item->item_id)->forceDelete();
                     }
                 }
 

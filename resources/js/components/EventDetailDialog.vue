@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { formatDate } from '@/lib/utils'
-import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2 } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -14,12 +14,28 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { router } from '@inertiajs/vue3'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const props = defineProps<{ 
     event: App.Models.Event | null,
     open: boolean 
 }>()
 const emit = defineEmits(['update:open', 'edit'])
+
+
+const saveMessage = ref('')
+const messageType = ref<'success' | 'delete'>('success')
+const messageTimer = ref<number | null>(null)
+const lastDeletedEvent = ref<App.Models.Event | null>(null)
 
 const editEvent = () => {
   if (props.event) {
@@ -30,6 +46,64 @@ const editEvent = () => {
 
 const closeDialog = () => {
   emit('update:open', false)
+}
+
+const handleDelete = () => {
+  if (props.event) {
+    lastDeletedEvent.value = props.event
+    
+    router.delete(route('events.destroy', props.event.event_id), {
+      onSuccess: () => {
+        closeDialog()
+        // ダイアログを閉じた後にメッセージを表示
+        setTimeout(() => {
+          showMessage('イベントを削除しました。', 'delete')
+        }, 100)
+      },
+      onError: (errors) => {
+        console.error('Delete error:', errors)
+        lastDeletedEvent.value = null
+        showMessage('イベントの削除に失敗しました。', 'success')
+      }
+    })
+  }
+}
+
+const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  messageType.value = type
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+    lastDeletedEvent.value = null
+  }, 4000)
+}
+
+
+
+const handleUndoDelete = () => {
+  if (!lastDeletedEvent.value) return
+
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  saveMessage.value = '元に戻しています...'
+  
+  const eventToRestore = lastDeletedEvent.value
+  lastDeletedEvent.value = null
+
+  router.post(route('events.restore', eventToRestore.event_id), {}, {
+    onSuccess: () => {
+      showMessage('イベントが元に戻されました。', 'success')
+    },
+    onError: () => {
+      showMessage('元に戻す処理に失敗しました。', 'success')
+    }
+  })
 }
 
 const displayDate = computed(() => {
@@ -163,6 +237,35 @@ const recurrenceText = computed(() => {
           </div>
         </div>
 
+        <div v-if="event.progress !== undefined && event.progress !== null" class="flex items-start gap-4">
+          <div class="h-5 w-5 text-gray-400 mt-0.5 shrink-0 flex items-center justify-center">
+            <div class="w-3 h-3 rounded-full border-2 border-current"></div>
+          </div>
+          <div class="flex-1">
+            <p class="text-sm text-gray-500 mb-2">進捗 ({{ event.progress }}%)</p>
+            <div class="relative">
+              <div 
+                class="w-full h-2 rounded-lg overflow-hidden"
+                :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${event.progress}%, #e5e7eb ${event.progress}%, #e5e7eb 100%)` }"
+              >
+              </div>
+              <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <Clock class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+          <div>
+            <p class="text-sm text-gray-500">締切</p>
+            <p class="text-gray-700">{{ formatDate(event.end_date) }}{{ event.end_time && !event.is_all_day ? ' ' + formatTime(event.end_time) : '' }}</p>
+          </div>
+        </div>
+
         <div v-if="event.description" class="flex items-start gap-4">
           <Info class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
@@ -172,12 +275,50 @@ const recurrenceText = computed(() => {
         </div>
       </div>
 
-      <DialogFooter class="flex-row justify-end gap-2">
+      <DialogFooter class="flex-row justify-between gap-2">
         <Button variant="outline" @click="closeDialog">
           閉じる
         </Button>
-        <Button @click="editEvent">編集</Button>
+        <div class="flex gap-2">
+          <Button variant="outline" @click="editEvent">編集</Button>
+          <Button variant="outline" @click="handleDelete" size="sm" class="text-red-600 hover:text-red-700">
+            <Trash2 class="h-4 w-4 mr-1" />
+            削除
+          </Button>
+        </div>
       </DialogFooter>
     </DialogContent>
+
+
+    
+    <!-- メッセージ表示 -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[70] p-3 text-white rounded-lg shadow-lg',
+          messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium">{{ saveMessage }}</span>
+          <Button 
+            v-if="messageType === 'delete' && lastDeletedEvent"
+            variant="link"
+            class="text-white hover:bg-red-400 p-1 h-auto ml-2"
+            @click.stop="handleUndoDelete"
+          >
+            <Undo2 class="h-4 w-4 mr-1" />
+            <span class="underline">元に戻す</span>
+          </Button>
+        </div>
+      </div>
+    </Transition>
   </Dialog>
 </template>

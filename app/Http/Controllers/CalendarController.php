@@ -66,6 +66,7 @@ class CalendarController extends Controller
             'url' => 'nullable|url|max:500',
             'category' => 'required|string|in:会議,MTG,期限,重要,有給,業務,その他',
             'importance' => 'required|string|in:高,中,低',
+            'progress' => 'nullable|integer|min:0|max:100',
             'recurrence' => 'nullable|array',
             'recurrence.is_recurring' => 'boolean',
             'recurrence.recurrence_type' => 'required_if:recurrence.is_recurring,true|string|in:daily,weekly,monthly,yearly',
@@ -92,6 +93,7 @@ class CalendarController extends Controller
             'url' => $validated['url'] ?? null,
             'category' => $validated['category'],
             'importance' => $validated['importance'],
+            'progress' => $validated['progress'] ?? 0,
             'created_by' => auth()->id(),
         ]);
 
@@ -125,7 +127,99 @@ class CalendarController extends Controller
         // Creator should also be a participant
         $event->participants()->attach(Auth::id());
 
-        return redirect()->back()->with('success', 'Event created successfully.');
+        return redirect()->back();
         
+    }
+
+    /**
+     * Update the specified event in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Event  $event
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function update(Request $request, Event $event)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'date_range' => 'required|array|size:2',
+            'date_range.*' => 'required|date',
+            'is_all_day' => 'required|boolean',
+            'start_time' => 'nullable|required_if:is_all_day,false|date_format:H:i',
+            'end_time' => 'nullable|required_if:is_all_day,false|date_format:H:i|after:start_time',
+            'participants' => 'nullable|array',
+            'participants.*' => 'exists:users,id',
+            'location' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'url' => 'nullable|url|max:500',
+            'category' => 'required|string|in:会議,MTG,期限,重要,有給,業務,その他',
+            'importance' => 'required|string|in:高,中,低',
+            'progress' => 'nullable|integer|min:0|max:100',
+        ]);
+
+        $event->update([
+            'title' => $validated['title'],
+            'start_date' => Carbon::parse($validated['date_range'][0])->format('Y-m-d'),
+            'end_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
+            'is_all_day' => $validated['is_all_day'],
+            'start_time' => $validated['is_all_day'] ? null : $validated['start_time'],
+            'end_time' => $validated['is_all_day'] ? null : $validated['end_time'],
+            'location' => $validated['location'],
+            'description' => $validated['description'],
+            'url' => $validated['url'] ?? null,
+            'category' => $validated['category'],
+            'importance' => $validated['importance'],
+            'progress' => $validated['progress'] ?? 0,
+        ]);
+
+        // Update participants
+        if (isset($validated['participants'])) {
+            $event->participants()->sync($validated['participants']);
+        }
+
+        return redirect()->back();
+    }
+
+    /**
+     * Delete the specified event.
+     *
+     * @param  \App\Models\Event  $event
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function destroy(Event $event)
+    {
+        // Create trash item
+        \App\Models\TrashItem::create([
+            'user_id' => auth()->id(),
+            'item_type' => 'event',
+            'item_id' => $event->event_id,
+            'original_title' => $event->title,
+            'deleted_at' => now(),
+            'permanent_delete_at' => now()->addDays(30),
+        ]);
+
+        $event->delete();
+
+        return redirect()->back();
+    }
+
+    /**
+     * Restore the specified event.
+     *
+     * @param  int  $eventId
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function restore($eventId)
+    {
+        $event = Event::withTrashed()->findOrFail($eventId);
+        $event->restore();
+
+        // Remove from trash
+        \App\Models\TrashItem::where('item_type', 'event')
+            ->where('item_id', $eventId)
+            ->where('user_id', auth()->id())
+            ->delete();
+
+        return redirect()->back();
     }
 }

@@ -36,6 +36,7 @@ const form = useForm({
     content: "",
     priority: "medium",
     deadline: "",
+    progress: 0,
     tags: [] as string[],
     color: "yellow",
 });
@@ -191,6 +192,11 @@ const getColorInfo = (c: string) => {
                 <div class="space-y-2">
                     <Label for="deadline">期限（任意）</Label>
                     <Input id="deadline" type="date" v-model="form.deadline" />
+                </div>
+
+                <div class="space-y-2">
+                    <Label for="progress">進捗 (%)</Label>
+                    <Input id="progress" type="number" min="0" max="100" v-model.number="form.progress" placeholder="0" />
                 </div>
 
                 <div class="space-y-2">
