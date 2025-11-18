@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, h } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { ArrowLeft, Plus, Save, Trash2, GripVertical, Calendar as CalendarIcon, CheckSquare, Circle, Type, Star, List, Clock, BarChart2 } from 'lucide-vue-next'
+import { ArrowLeft, Plus, Save, Trash2, GripVertical, Calendar as CalendarIcon, CheckSquare, Circle, Type, Star, List, Clock, BarChart2, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -51,6 +51,9 @@ const category = ref('その他')
 const deadline = ref('')
 const questions = ref<Question[]>([])
 const showTemplateDialog = ref(false)
+const saveMessage = ref('')
+const messageType = ref<'success' | 'delete' | 'error'>('success')
+const messageTimer = ref<number | null>(null)
 
 const { toast } = useToast()
 
@@ -121,40 +124,93 @@ const removeOption = (questionId: string, optionIndex: number) => {
   })
 }
 
-const handleSave = (isDraft: boolean = false) => {
+const validateSurvey = () => {
+  const errors = []
+  
   if (!title.value.trim()) {
-    toast({ title: 'Error', description: 'アンケートのタイトルを入力してください', variant: 'destructive' })
-    return
+    errors.push('アンケートのタイトルを入力してください')
   }
   if (!deadline.value) {
-    toast({ title: 'Error', description: '回答期限を設定してください', variant: 'destructive' })
-    return
+    errors.push('回答期限を設定してください')
   }
   if (questions.value.length === 0) {
-    toast({ title: 'Error', description: '最低1つの質問を追加してください', variant: 'destructive' })
-    return
+    errors.push('最低1つの質問を追加してください')
   }
 
   for (const question of questions.value) {
     if (!question.question.trim()) {
-      toast({ title: 'Error', description: 'すべての質問を入力してください', variant: 'destructive' })
-      return
+      errors.push('すべての質問を入力してください')
+      break
     }
     if (['single', 'multiple', 'dropdown'].includes(question.type)) {
       const validOptions = question.options.filter((opt) => opt.trim())
       if (validOptions.length < 2) {
-        toast({ title: 'Error', description: '選択肢形式の質問には最低2つの選択肢が必要です', variant: 'destructive' })
-        return
+        errors.push('選択肢形式の質問には最低2つの選択肢が必要です')
+        break
       }
     }
   }
+  
+  return errors
+}
+
+const handleSave = (isDraft: boolean = false) => {
+  console.log('handleSave called with isDraft:', isDraft)
+  
+  const surveyData = {
+    title: title.value,
+    description: description.value,
+    category: category.value,
+    deadline: deadline.value,
+    questions: questions.value,
+    is_draft: isDraft
+  }
+
+  console.log('Survey data:', surveyData)
 
   if (isDraft) {
-    toast({ title: 'Success', description: 'アンケートを一時保存しました' })
+    console.log('Processing draft save...')
+    // 一時保存はバリデーションなし
+    router.post(route('surveys.store'), surveyData, {
+      preserveScroll: true,
+      onSuccess: () => {
+        console.log('Draft save success')
+        showMessage('アンケートが保存されました。', 'success')
+        setTimeout(() => {
+          router.get('/surveys')
+        }, 1500)
+      },
+      onError: (errors) => {
+        console.log('Draft save error:', errors)
+        showMessage('保存に失敗しました。', 'error')
+      }
+    })
   } else {
-    toast({ title: 'Success', description: 'アンケートを公開しました' })
+    console.log('Processing publish...')
+    // アンケート公開時はバリデーション実行
+    const errors = validateSurvey()
+    if (errors.length > 0) {
+      console.log('Validation errors:', errors)
+      const errorMessage = errors.join('\n')
+      showMessage(errorMessage, 'error')
+      return
+    }
+    
+    router.post(route('surveys.store'), surveyData, {
+      preserveScroll: true,
+      onSuccess: () => {
+        console.log('Publish success')
+        showMessage('アンケートを公開しました。', 'success')
+        setTimeout(() => {
+          router.get('/surveys')
+        }, 1500)
+      },
+      onError: (errors) => {
+        console.log('Publish error:', errors)
+        showMessage('公開に失敗しました。', 'error')
+      }
+    })
   }
-  router.get('/surveys')
 }
 
 const handleCancel = () => {
@@ -172,10 +228,28 @@ const getQuestionTypeLabel = (type: QuestionType) => {
   return template?.name || type
 }
 
+const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'success') => {
+  console.log('showMessage called:', { message, type })
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  messageType.value = type
+  
+  console.log('saveMessage.value set to:', saveMessage.value)
+  console.log('messageType.value set to:', messageType.value)
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+    console.log('Message cleared after timeout')
+  }, 4000)
+}
+
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 relative">
     <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4">
         <div class="flex items-center justify-between">
@@ -189,8 +263,8 @@ const getQuestionTypeLabel = (type: QuestionType) => {
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <Button variant="outline" @click="handleSave(true)">一時保存</Button>
-            <Button @click="handleSave(false)" class="gap-2">
+            <Button variant="outline" @click="console.log('一時保存ボタンクリック'); handleSave(true)">一時保存</Button>
+            <Button @click="console.log('公開ボタンクリック'); handleSave(false)" class="gap-2">
               <Save class="h-4 w-4" />
               アンケートを公開
             </Button>
@@ -401,11 +475,11 @@ const getQuestionTypeLabel = (type: QuestionType) => {
           </div>
 
           <div class="flex flex-col sm:hidden gap-2 pt-4">
-            <Button variant="outline" @click="handleSave(false)" class="w-full gap-2">
+            <Button variant="outline" @click="console.log('公開ボタン(モバイル)クリック'); handleSave(false)" class="w-full gap-2">
               <Save class="h-4 w-4" />
               アンケートを公開
             </Button>
-            <Button variant="outline" @click="handleSave(true)" class="w-full">一時保存</Button>
+            <Button variant="outline" @click="console.log('一時保存ボタン(モバイル)クリック'); handleSave(true)" class="w-full">一時保存</Button>
             <Button variant="outline" @click="handleCancel" class="w-full">キャンセル</Button>
           </div>
         </div>
@@ -435,5 +509,26 @@ const getQuestionTypeLabel = (type: QuestionType) => {
         </div>
       </DialogContent>
     </Dialog>
+
+    <!-- 成功メッセージ -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        :class="['absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 p-3 text-white rounded-lg shadow-lg',
+          messageType === 'success' ? 'bg-green-500' : messageType === 'delete' ? 'bg-red-500' : 'bg-red-500']"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium">{{ saveMessage }}</span>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>

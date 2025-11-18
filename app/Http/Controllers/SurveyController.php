@@ -23,6 +23,7 @@ class SurveyController extends Controller
     public function index()
     {
         $surveys = Survey::with(['creator', 'questions.options', 'responses.respondent'])
+            ->where('is_deleted', false)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -330,7 +331,7 @@ class SurveyController extends Controller
     }
 
     /**
-     * Remove the specified survey from storage.
+     * Move the specified survey to trash.
      *
      * @param  \App\Models\Survey  $survey
      * @return \Illuminate\Http\RedirectResponse
@@ -338,21 +339,41 @@ class SurveyController extends Controller
     public function destroy(Survey $survey)
     {
         try {
+            \Log::info('SurveyController destroy called for survey: ' . $survey->survey_id . ' by user: ' . Auth::id());
+            
+            // 既に削除済みかチェック
+            if ($survey->is_deleted) {
+                \Log::info('Survey already deleted: ' . $survey->survey_id);
+                return redirect()->route('surveys')
+                    ->with('error', 'このアンケートは既に削除されています。');
+            }
+            
             DB::beginTransaction();
 
-            // 関連データを削除（カスケード削除でない場合）
-            $survey->questions()->each(function ($question) {
-                $question->options()->delete();
-            });
-            $survey->questions()->delete();
-            $survey->delete();
+            // アンケートを削除済みにする
+            $survey->update(['is_deleted' => true, 'deleted_at' => now()]);
+            \Log::info('Survey marked as deleted: ' . $survey->survey_id);
+
+            // ゴミ箱に追加
+            $trashItem = \App\Models\TrashItem::create([
+                'user_id' => Auth::id(),
+                'item_type' => 'survey',
+                'item_id' => $survey->survey_id,
+                'original_title' => $survey->title,
+                'deleted_at' => now(),
+                'permanent_delete_at' => now()->addMonth(),
+            ]);
+            \Log::info('TrashItem created with ID: ' . $trashItem->id . ' for survey_id: ' . $survey->survey_id);
+            \Log::info('Survey added to trash: ' . $survey->survey_id);
 
             DB::commit();
+            \Log::info('Survey deletion completed successfully');
 
             return redirect()->route('surveys')
-                ->with('success', 'アンケートを削除しました。');
+                ->with('success', 'アンケートをゴミ箱に移動しました。');
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('SurveyController destroy error: ' . $e->getMessage());
 
             return redirect()->back()
                 ->with('error', 'アンケートの削除に失敗しました。');
@@ -517,6 +538,36 @@ class SurveyController extends Controller
         }
 
         return $stats;
+    }
+
+    /**
+     * Restore the specified survey from trash.
+     *
+     * @param  int  $surveyId
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function restore($surveyId)
+    {
+        try {
+            DB::transaction(function () use ($surveyId) {
+                $survey = Survey::findOrFail($surveyId);
+                $survey->update([
+                    'is_deleted' => false,
+                    'deleted_at' => null,
+                ]);
+                
+                \App\Models\TrashItem::where('item_type', 'survey')
+                    ->where('item_id', $surveyId)
+                    ->where('user_id', Auth::id())
+                    ->delete();
+            });
+            
+            return redirect()->route('surveys')
+                ->with('success', 'アンケートを復元しました。');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', '復元に失敗しました。');
+        }
     }
 
     /**

@@ -28,14 +28,17 @@ class TrashController extends Controller
             \Log::info('Found trash items: ' . $trashItems->count());
             
             $mappedItems = $trashItems->map(function ($item) {
-                return [
-                    'id' => (string)$item->trash_id,
+                $mapped = [
+                    'id' => (string)$item->id,
                     'type' => $item->item_type,
                     'title' => $item->original_title,
                     'deletedAt' => $item->deleted_at->format('Y-m-d H:i'),
                     'item_id' => (string)$item->item_id,
-                    'permanent_delete_at' => $item->permanent_delete_at->format('Y-m-d H:i'),
+                    'permanent_delete_at' => $item->permanent_delete_at ? $item->permanent_delete_at->format('Y-m-d H:i') : null,
                 ];
+                \Log::info('Raw item ID: ' . $item->id);
+                \Log::info('Mapped item: ', $mapped);
+                return $mapped;
             });
             
             \Log::info('Mapped items: ' . $mappedItems->toJson());
@@ -58,7 +61,7 @@ class TrashController extends Controller
         try {
             \Log::info('TrashController restore called with ID: ' . $id . ' for user: ' . Auth::id());
             
-            $trashItem = TrashItem::where('trash_id', $id)
+            $trashItem = TrashItem::where('id', $id)
                 ->where('user_id', Auth::id())
                 ->first();
                 
@@ -102,6 +105,23 @@ class TrashController extends Controller
                 \Log::info('Successfully restored reminder');
                 return back()->with('success', 'リマインダーを復元しました。');
             }
+            
+            if ($trashItem->item_type === 'survey') {
+                \DB::transaction(function () use ($trashItem) {
+                    // アンケートを復元
+                    $survey = \App\Models\Survey::where('survey_id', $trashItem->item_id)->firstOrFail();
+                    $survey->update([
+                        'is_deleted' => false,
+                        'deleted_at' => null,
+                    ]);
+                    
+                    // ゴミ箱テーブルから削除
+                    $trashItem->delete();
+                });
+                
+                \Log::info('Successfully restored survey');
+                return back()->with('success', 'アンケートを復元しました。');
+            }
 
             return back()->with('error', 'サポートされていないアイテムタイプです。');
         } catch (\Exception $e) {
@@ -115,26 +135,52 @@ class TrashController extends Controller
      */
     public function destroy($id)
     {
-        $trashItem = TrashItem::where('trash_id', $id)
-            ->where('user_id', Auth::id())
-            ->firstOrFail();
+        try {
+            \Log::info('TrashController destroy called with ID: ' . $id . ' for user: ' . Auth::id());
+            
+            $trashItem = TrashItem::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->firstOrFail();
 
-        if ($trashItem->item_type === 'shared_note') {
-            // メモを完全削除
-            \App\Models\SharedNote::where('note_id', $trashItem->item_id)
-                ->delete();
+            \DB::transaction(function () use ($trashItem) {
+                if ($trashItem->item_type === 'shared_note') {
+                    // メモを完全削除
+                    \App\Models\SharedNote::where('note_id', $trashItem->item_id)
+                        ->delete();
+                }
+                
+                if ($trashItem->item_type === 'reminder') {
+                    // リマインダーを完全削除
+                    \App\Models\Reminder::where('reminder_id', $trashItem->item_id)
+                        ->delete();
+                }
+                
+                if ($trashItem->item_type === 'survey') {
+                    // アンケートを完全削除
+                    $survey = \App\Models\Survey::where('survey_id', $trashItem->item_id)->first();
+                    if ($survey) {
+                        $survey->questions()->each(function ($question) {
+                            $question->options()->delete();
+                        });
+                        $survey->questions()->delete();
+                        $survey->responses()->each(function ($response) {
+                            $response->answers()->delete();
+                        });
+                        $survey->responses()->delete();
+                        $survey->delete();
+                    }
+                }
+
+                // ゴミ箱からも削除
+                $trashItem->delete();
+            });
+            
+            \Log::info('Successfully permanently deleted item: ' . $trashItem->original_title);
+            return back()->with('success', 'アイテムを完全に削除しました。');
+        } catch (\Exception $e) {
+            \Log::error('TrashController destroy error: ' . $e->getMessage());
+            return back()->with('error', '削除に失敗しました。');
         }
-        
-        if ($trashItem->item_type === 'reminder') {
-            // リマインダーを完全削除
-            \App\Models\Reminder::where('reminder_id', $trashItem->item_id)
-                ->delete();
-        }
-
-        // ゴミ箱からも削除
-        $trashItem->delete();
-
-        return back()->with('success', 'アイテムを完全に削除しました。');
     }
 
     /**
@@ -142,22 +188,48 @@ class TrashController extends Controller
      */
     public function emptyTrash()
     {
-        $trashItems = TrashItem::where('user_id', Auth::id())->get();
-
-        foreach ($trashItems as $item) {
-            if ($item->item_type === 'shared_note') {
-                \App\Models\SharedNote::where('note_id', $item->item_id)
-                    ->delete();
-            }
+        try {
+            \Log::info('TrashController emptyTrash called for user: ' . Auth::id());
             
-            if ($item->item_type === 'reminder') {
-                \App\Models\Reminder::where('reminder_id', $item->item_id)
-                    ->delete();
-            }
+            $trashItems = TrashItem::where('user_id', Auth::id())->get();
+            \Log::info('Found ' . $trashItems->count() . ' items to permanently delete');
+
+            \DB::transaction(function () use ($trashItems) {
+                foreach ($trashItems as $item) {
+                    if ($item->item_type === 'shared_note') {
+                        \App\Models\SharedNote::where('note_id', $item->item_id)
+                            ->delete();
+                    }
+                    
+                    if ($item->item_type === 'reminder') {
+                        \App\Models\Reminder::where('reminder_id', $item->item_id)
+                            ->delete();
+                    }
+                    
+                    if ($item->item_type === 'survey') {
+                        $survey = \App\Models\Survey::where('survey_id', $item->item_id)->first();
+                        if ($survey) {
+                            $survey->questions()->each(function ($question) {
+                                $question->options()->delete();
+                            });
+                            $survey->questions()->delete();
+                            $survey->responses()->each(function ($response) {
+                                $response->answers()->delete();
+                            });
+                            $survey->responses()->delete();
+                            $survey->delete();
+                        }
+                    }
+                }
+
+                TrashItem::where('user_id', Auth::id())->delete();
+            });
+            
+            \Log::info('Successfully emptied trash');
+            return back()->with('success', 'ゴミ箱を空にしました。');
+        } catch (\Exception $e) {
+            \Log::error('TrashController emptyTrash error: ' . $e->getMessage());
+            return back()->with('error', 'ゴミ箱を空にできませんでした。');
         }
-
-        TrashItem::where('user_id', Auth::id())->delete();
-
-        return back()->with('success', 'ゴミ箱を空にしました。');
     }
 }

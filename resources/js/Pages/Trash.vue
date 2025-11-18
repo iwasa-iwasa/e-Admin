@@ -95,8 +95,10 @@ const sortedItems = computed(() => {
 
 const handleRestore = (id: string) => {
   const item = trashItems.value.find((i) => i.id === id)
+  console.log('handleRestore called with ID:', id)
+  console.log('Generated route URL:', route('trash.restore', id))
   
-  router.post(route('trash.restore', id), {}, {
+  router.post(route('trash.restore', { id: id }), {}, {
     preserveScroll: true,
     onSuccess: () => {
       if (item) {
@@ -122,8 +124,12 @@ const handlePermanentDelete = () => {
       onSuccess: () => {
         if (item) {
           trashItems.value = trashItems.value.filter((i) => i.id !== itemToDelete.value)
-          toast({ title: `「${item.title}」を完全に削除しました` })
+          showMessage(`「${item.title}」を完全に削除しました`, 'success')
         }
+      },
+      onError: (errors) => {
+        console.error('Delete error:', errors)
+        showMessage('削除に失敗しました。', 'success')
       }
     })
     itemToDelete.value = null
@@ -135,7 +141,11 @@ const handleEmptyTrash = () => {
     preserveScroll: true,
     onSuccess: () => {
       trashItems.value = []
-      toast({ title: 'ゴミ箱を空にしました' })
+      showMessage('ゴミ箱を空にしました', 'success')
+    },
+    onError: (errors) => {
+      console.error('Empty trash error:', errors)
+      showMessage('ゴミ箱を空にできませんでした。', 'success')
     }
   })
   showEmptyTrashDialog.value = false
@@ -238,7 +248,7 @@ const handleEmptyTrash = () => {
     </main>
 
     <AlertDialog :open="itemToDelete !== null" @update:open="(open) => !open && (itemToDelete = null)">
-      <AlertDialogContent>
+      <AlertDialogContent class="bg-white">
         <AlertDialogHeader>
           <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
@@ -253,7 +263,7 @@ const handleEmptyTrash = () => {
     </AlertDialog>
 
     <AlertDialog :open="showEmptyTrashDialog" @update:open="(open) => showEmptyTrashDialog = open">
-      <AlertDialogContent>
+      <AlertDialogContent class="bg-white">
         <AlertDialogHeader>
           <AlertDialogTitle>ゴミ箱を空にしますか？</AlertDialogTitle>
           <AlertDialogDescription>すべてのアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>

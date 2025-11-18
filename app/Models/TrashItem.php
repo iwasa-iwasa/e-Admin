@@ -9,8 +9,8 @@ class TrashItem extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'trash_id';
-    public $timestamps = false;
+    protected $primaryKey = 'id';
+    public $timestamps = true;
 
     protected $fillable = [
         'user_id',
