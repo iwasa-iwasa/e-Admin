@@ -66,6 +66,7 @@ const props = defineProps<{
     surveys: SurveyWithResponse[];
     editingSurvey?: App.Models.Survey | null;
     editSurvey?: Object;
+    teamMembers?: Array<{id: number, name: string}>;
 }>();
 
 const searchQuery = ref("");
@@ -114,7 +115,10 @@ const filteredSurveys = computed(() => {
         const isExpired = deadline ? deadline < now : false;
 
         let matchesTab = false;
-        if (activeTab.value === "active") {
+        if (activeTab.value === "all") {
+            // すべて: すべてのアンケートを表示
+            matchesTab = true;
+        } else if (activeTab.value === "active") {
             // アクティブ: アクティブかつ期限切れでない
             matchesTab = survey.is_active && !isExpired;
         } else if (activeTab.value === "unanswered") {
@@ -132,8 +136,8 @@ const filteredSurveys = computed(() => {
 
 
 const getResponseRate = (survey: App.Models.Survey) => {
-    const total = props.surveys.length;
-    const responded = survey.responses?.length || 0;
+    const total = (survey.unanswered_names?.length || 0) + (survey.respondent_names?.length || 0);
+    const responded = survey.responses.length;
     return total > 0 ? (responded / total) * 100 : 0;
 };
 
@@ -261,27 +265,21 @@ const handleUndoDelete = () => {
 
 <template>
     <Head title="アンケート管理" />
-    <div class="min-h-screen bg-gray-50">
-        <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
+    <div class="max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+        <Card class="h-full overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
                         <Button
                             variant="ghost"
                             size="icon"
                             @click="router.get('/')"
+                            class="mr-1"
                         >
                             <ArrowLeft class="h-5 w-5" />
                         </Button>
-                        <div class="flex items-center gap-2">
-                            <BarChart3 class="h-6 w-6 text-blue-600" />
-                            <div>
-                                <h1 class="text-blue-600">アンケート管理</h1>
-                                <p class="text-xs text-gray-500">
-                                    総務部 共同管理
-                                </p>
-                            </div>
-                        </div>
+                        <BarChart3 class="h-6 w-6 text-blue-600" />
+                        <h1 class="text-blue-600">アンケート管理</h1>
                     </div>
                     <Button
                         variant="outline"
@@ -292,13 +290,9 @@ const handleUndoDelete = () => {
                         新しいアンケートを作成
                     </Button>
                 </div>
-            </div>
-        </header>
-
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-            <div class="mb-6 space-y-4">
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <div class="flex-1 relative">
+                <p class="text-sm text-gray-500">総務部 共同管理</p>
+                <div class="">
+                    <div class="relative mt-2 mb-1">
                         <Search
                             class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
                         />
@@ -308,10 +302,13 @@ const handleUndoDelete = () => {
                             class="pl-9"
                         />
                     </div>
-                </div>
-                <Tabs v-model="activeTab">
-                    <TabsList>
-                        <TabsTrigger value="active" class="gap-2">
+                    <Tabs v-model="activeTab">
+                        <TabsList class="gap-1.5">
+                        <TabsTrigger value="all" class="gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800">
+                            <BarChart3 class="h-4 w-4" />
+                            すべて ({{ surveys.length }})
+                        </TabsTrigger>
+                        <TabsTrigger value="active" class="gap-2 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-green-200 data-[state=active]:text-green-800">
                             <CheckCircle2 class="h-4 w-4" />
                             アクティブ ({{
                                 surveys.filter((s) => {
@@ -321,7 +318,7 @@ const handleUndoDelete = () => {
                                 }).length
                             }})
                         </TabsTrigger>
-                        <TabsTrigger value="unanswered" class="gap-2">
+                        <TabsTrigger value="unanswered" class="gap-2 bg-orange-50 text-orange-700 hover:bg-orange-100 data-[state=active]:bg-orange-200 data-[state=active]:text-orange-800">
                             <AlertCircle class="h-4 w-4" />
                             未回答 ({{
                                 surveys.filter((s) => {
@@ -331,7 +328,7 @@ const handleUndoDelete = () => {
                                 }).length
                             }})
                         </TabsTrigger>
-                        <TabsTrigger value="closed" class="gap-2">
+                        <TabsTrigger value="closed" class="gap-2 bg-gray-50 text-gray-700 hover:bg-gray-100 data-[state=active]:bg-gray-200 data-[state=active]:text-gray-800">
                             <Clock class="h-4 w-4" />
                             終了済み ({{
                                 surveys.filter((s) => {
@@ -341,27 +338,22 @@ const handleUndoDelete = () => {
                                 }).length
                             }})
                         </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                        </TabsList>
+                    </Tabs>
+                </div>
             </div>
-
-            <div class="h-[calc(100vh-280px)] overflow-y-auto">
-                <div class="space-y-4 pb-6">
-                    <div v-if="filteredSurveys.length === 0">
-                        <Card>
-                            <CardContent class="py-12 text-center">
-                                <BarChart3
-                                    class="h-12 w-12 mx-auto mb-3 text-gray-300"
-                                />
-                                <p class="text-gray-500">
-                                    {{
-                                        searchQuery
-                                            ? "該当するアンケートが見つかりません"
-                                            : "アンケートがありません"
-                                    }}
-                                </p>
-                            </CardContent>
-                        </Card>
+            
+            <ScrollArea class="flex-1">
+                <div class="p-6 space-y-4 pb-6">
+                    <div v-if="filteredSurveys.length === 0" class="text-center py-12">
+                        <BarChart3 class="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p class="text-gray-500">
+                            {{
+                                searchQuery
+                                    ? "該当するアンケートが見つかりません"
+                                    : "アンケートがありません"
+                            }}
+                        </p>
                     </div>
                     <Card
                         v-for="survey in filteredSurveys"
@@ -558,14 +550,14 @@ const handleUndoDelete = () => {
                                                     v-for="name in survey.respondent_names"
                                                     :key="name"
                                                     variant="outline"
-                                                    class="text-xs"
+                                                    class="text-xs text-green-600 border-green-300"
                                                 >
                                                     {{ name }}
                                                 </Badge>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="space-y-2" v-if="!survey.has_responded">
+                                    <div class="space-y-2">
                                         <div
                                             class="flex items-center gap-2 text-sm"
                                         >
@@ -573,8 +565,25 @@ const handleUndoDelete = () => {
                                                 class="h-4 w-4 text-orange-600"
                                             />
                                             <span class="text-orange-600"
-                                                >未回答</span
+                                                >未回答 ({{ survey.unanswered_names?.length || 0 }}名)</span
                                             >
+                                        </div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <span
+                                                v-if="!survey.unanswered_names || survey.unanswered_names.length === 0"
+                                                class="text-sm text-gray-400"
+                                                >全員回答済み</span
+                                            >
+                                            <div v-else class="flex flex-wrap gap-1">
+                                                <Badge
+                                                    v-for="name in survey.unanswered_names"
+                                                    :key="name"
+                                                    variant="outline"
+                                                    class="text-xs text-orange-600 border-orange-300"
+                                                >
+                                                    {{ name }}
+                                                </Badge>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -582,12 +591,13 @@ const handleUndoDelete = () => {
                         </CardContent>
                     </Card>
                 </div>
-            </div>
-        </main>
+            </ScrollArea>
+        </Card>
 
         <CreateSurveyDialog
             :open="showCreateDialog"
             :survey="editingSurvey"
+            :team-members="teamMembers"
             @update:open="handleDialogClose"
             @open-dialog="showCreateDialog = true"
         />
@@ -596,6 +606,7 @@ const handleUndoDelete = () => {
             v-if="props.editingSurvey"
             :open="isEditDialogOpen"
             :survey="props.editingSurvey"
+            :team-members="teamMembers"
             @update:open="
                 isEditDialogOpen = $event;
                 if (!$event) {

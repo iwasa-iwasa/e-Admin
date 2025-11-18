@@ -317,10 +317,25 @@ const editedContent = computed({
               class="h-7 w-40 text-xs"
               aria-label="期限日"
             />
+            <span class="text-xs">進捗:</span>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              v-model.number="editedNote.progress"
+              class="h-7 w-20 text-xs"
+              placeholder="0"
+            />
+            <span class="text-xs">%</span>
           </div>
-          <Badge v-else-if="currentNote.deadline" variant="outline" class="text-xs">
-            期限: {{ currentNote.deadline }}
-          </Badge>
+          <div v-else class="flex items-center gap-2">
+            <Badge v-if="currentNote.deadline" variant="outline" class="text-xs">
+              期限: {{ currentNote.deadline }}
+            </Badge>
+            <Badge v-if="currentNote.progress !== undefined && currentNote.progress !== null" variant="outline" class="text-xs">
+              進捗: {{ currentNote.progress }}%
+            </Badge>
+          </div>
         </div>
       </DialogHeader>
 

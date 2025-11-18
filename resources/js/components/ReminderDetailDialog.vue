@@ -207,7 +207,8 @@ const handleSave = () => {
           emit('update:open', false)
           form.reset()
           editedReminder.value = createDefaultReminder()
-        }, 2500)
+          isEditing.value = false
+        }, 1000)
       },
       onError: () => {
         showMessage('リマインダーの作成に失敗しました。')
@@ -261,14 +262,16 @@ const handleCancel = () => {
   emit('update:open', false)
 }
 
-const closeDialog = () => {
-  if (isEditing.value && !props.reminder) {
-    // 新規作成モードでキャンセル
-    editedReminder.value = createDefaultReminder()
-    isEditing.value = false
-    form.reset()
+const closeDialog = (isOpen: boolean) => {
+  if (!isOpen) {
+    if (isEditing.value && !props.reminder) {
+      // 新規作成モードでキャンセル
+      editedReminder.value = createDefaultReminder()
+      isEditing.value = false
+      form.reset()
+    }
+    emit('update:open', false)
   }
-  emit('update:open', false)
 }
 </script>
 

@@ -31,6 +31,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
     DialogContent,
@@ -76,6 +77,7 @@ interface QuestionTemplate {
 const props = defineProps<{
     open: boolean;
     survey?: App.Models.Survey | null;
+    teamMembers?: Array<{id: number, name: string}> | null;
 }>();
 const emit = defineEmits(["update:open", "open-dialog"]);
 
@@ -83,6 +85,7 @@ const title = ref("");
 const description = ref("");
 const deadline = ref("");
 const questions = ref<Question[]>([]);
+const selectedRespondents = ref<number[]>([]);
 const showTemplateDialog = ref(false);
 const draftSavedAt = ref<Date | null>(null);
 const showDraftBanner = ref(false);
@@ -121,6 +124,7 @@ const form = useForm({
         required: boolean;
         options: string[];
     }>,
+    respondents: [] as number[],
     isDraft: false,
 });
 
@@ -287,6 +291,7 @@ const handleSave = (isDraft: boolean = false) => {
     form.description = description.value;
     form.deadline = deadline.value;
     form.isDraft = isDraft;
+    form.respondents = selectedRespondents.value;
     form.questions = questions.value.map((q) => ({
         question: q.question,
         type: q.type,
@@ -361,6 +366,7 @@ const handleClose = () => {
     description.value = "";
     deadline.value = "";
     questions.value = [];
+    selectedRespondents.value = [];
     showTemplateDialog.value = false;
     draftSavedAt.value = null;
     showDraftBanner.value = false;
@@ -555,9 +561,33 @@ const scheduleAutoSave = () => {
 // 編集モードの判定
 const isEditMode = computed(() => !!props.survey);
 
+// 回答者選択の処理
+const toggleRespondent = (memberId: number) => {
+    const index = selectedRespondents.value.indexOf(memberId);
+    if (index > -1) {
+        selectedRespondents.value.splice(index, 1);
+    } else {
+        selectedRespondents.value.push(memberId);
+    }
+};
+
+const toggleAllRespondents = () => {
+    if (!props.teamMembers) return;
+    
+    if (selectedRespondents.value.length === props.teamMembers.length) {
+        selectedRespondents.value = [];
+    } else {
+        selectedRespondents.value = props.teamMembers.map(m => m.id);
+    }
+};
+
+const isAllSelected = computed(() => {
+    return props.teamMembers && selectedRespondents.value.length === props.teamMembers.length;
+});
+
 // 入力内容の変更を監視して自動保存をスケジュール（新規作成時のみ）
 watch(
-    [title, description, deadline, questions],
+    [title, description, deadline, questions, selectedRespondents],
     () => {
         if (props.open && !isEditMode.value) {
             scheduleAutoSave();
@@ -617,6 +647,11 @@ watch(
     () => props.open,
     (isOpen) => {
         if (isOpen) {
+            // デフォルトで全員を選択
+            if (props.teamMembers && selectedRespondents.value.length === 0) {
+                selectedRespondents.value = props.teamMembers.map(m => m.id);
+            }
+            
             if (isEditMode.value) {
                 // 編集モード: 既存データを読み込む
                 loadEditData();
@@ -723,6 +758,41 @@ watch(
                                 >
                                     {{ form.errors.deadline }}
                                 </p>
+                            </div>
+                            <div v-if="teamMembers" class="space-y-2">
+                                <Label>回答者選択</Label>
+                                <div class="border rounded-md p-3 space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-medium">選択された回答者: {{ selectedRespondents.length }}/{{ teamMembers.length }}名</span>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            @click="toggleAllRespondents"
+                                            class="text-xs"
+                                        >
+                                            {{ isAllSelected ? '全員解除' : '全員選択' }}
+                                        </Button>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1">
+                                        <Button
+                                            v-for="member in teamMembers"
+                                            :key="member.id"
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            @click="toggleRespondent(member.id)"
+                                            :class="[
+                                                'text-xs',
+                                                selectedRespondents.includes(member.id)
+                                                    ? 'bg-blue-100 text-blue-700 border-blue-300'
+                                                    : 'hover:bg-gray-50'
+                                            ]"
+                                        >
+                                            {{ member.name }}
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

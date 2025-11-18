@@ -2,13 +2,23 @@
 import { formatDate } from '@/lib/utils'
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { Bell, Plus, Clock, CheckCircle, Undo2 } from 'lucide-vue-next'
+import { Bell, Plus, Clock, CheckCircle, Undo2, Trash2 } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
-import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import ReminderDetailDialog from './ReminderDetailDialog.vue'
 
 const props = defineProps<{
   reminders: App.Models.Reminder[]
@@ -20,6 +30,7 @@ const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
 const showCompleted = ref(false)
+const reminderToDelete = ref<App.Models.Reminder | null>(null)
 
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
 const activeCount = computed(() => props.reminders.filter((r) => !r.completed).length)
@@ -103,6 +114,39 @@ const handleUndoDelete = () => {
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
 const isCreateDialogOpen = ref(false)
 
+const handleCloseDetailDialog = (isOpen: boolean) => {
+  if (!isOpen) {
+    selectedReminder.value = null
+  }
+}
+
+const handleCloseCreateDialog = (isOpen: boolean) => {
+  isCreateDialogOpen.value = isOpen
+}
+
+const handlePermanentDelete = (reminder: App.Models.Reminder) => {
+  reminderToDelete.value = reminder
+}
+
+const confirmPermanentDelete = () => {
+  if (!reminderToDelete.value) return
+  
+  const deleteId = reminderToDelete.value.reminder_id
+  const reminder = reminderToDelete.value
+  
+  router.delete(route('reminders.destroy', deleteId), {
+    onSuccess: () => {
+      showMessage(`「${reminder.title}」を完全に削除しました`, 'success')
+    },
+    onError: (errors) => {
+      console.error('Delete error:', errors)
+      showMessage('削除に失敗しました', 'success')
+    }
+  })
+  
+  reminderToDelete.value = null
+}
+
 </script>
 
 <template>
@@ -113,7 +157,7 @@ const isCreateDialogOpen = ref(false)
           <Bell class="h-5 w-5 text-blue-600" />
           <CardTitle class="text-lg">個人リマインダー</CardTitle>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
             <button
               @click="showCompleted = false"
@@ -153,39 +197,74 @@ const isCreateDialogOpen = ref(false)
     </CardHeader>
     <CardContent class="flex-1 overflow-hidden p-0 px-6 pb-6">
       <ScrollArea class="h-full">
-        <div class="space-y-3">
-          <div
+        <div class="space-y-4">
+          <Card
             v-for="reminder in displayedReminders"
             :key="reminder.reminder_id"
-            :class="['border-2 rounded-lg p-3 transition-all cursor-pointer', reminder.completed ? 'border-gray-300 bg-gray-100 opacity-60' : 'border-gray-200 bg-gray-50 hover:shadow-md']"
-            @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']')) { selectedReminder = reminder } }"
+            :class="['transition-all cursor-pointer', reminder.completed ? 'opacity-60' : 'hover:shadow-md']"
+@click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
           >
-            <div class="flex items-start gap-3">
-              <input
-                type="checkbox"
-                :checked="reminder.completed"
-                @change="handleToggleComplete(reminder.reminder_id, ($event.target as HTMLInputElement).checked)"
-                class="mt-1 h-4 w-4 text-blue-600 rounded"
-              />
-              <div class="flex-1">
-                <h4 :class="['mb-2', reminder.completed ? 'line-through text-gray-500' : '']">
-                  {{ reminder.title }}
-                </h4>
-                <p v-if="reminder.description" :class="['text-sm mb-2', reminder.completed ? 'text-gray-500 line-through' : 'text-gray-600']">
-                  {{ reminder.description }}
-                </p>
-                <div :class="['flex items-center gap-4 text-xs', reminder.completed ? 'text-gray-500' : 'text-gray-600']">
-                  <div class="flex items-center gap-1">
-                    <Clock class="h-3 w-3" />
-                    期限: {{ formatDate(reminder.deadline) }}
+            <CardHeader>
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex items-start gap-3 flex-1">
+                  <Checkbox
+                    :checked="reminder.completed"
+                    @update:checked="handleToggleComplete(reminder.reminder_id, $event)"
+                    class="mt-1"
+                  />
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <CardTitle
+                        :class="['text-lg cursor-pointer hover:text-blue-600 transition-colors', reminder.completed ? 'line-through text-gray-500' : '']"
+                      >
+                        {{ reminder.title }}
+                      </CardTitle>
+                      <Badge
+                        :variant="reminder.completed ? 'secondary' : 'outline'"
+                        :class="['text-xs', reminder.completed ? 'opacity-60' : '']"  
+                      >
+                        {{ reminder.category }}
+                      </Badge>
+                    </div>
+                    <p v-if="reminder.description" :class="['text-sm text-gray-600 mb-3', reminder.completed ? 'text-gray-500 line-through' : '']">
+                      {{ reminder.description }}
+                    </p>
+                    <div :class="['flex flex-wrap items-center gap-3 text-xs text-gray-500', reminder.completed ? 'opacity-60' : '']">
+                      <div class="flex items-center gap-1">
+                        <Clock class="h-3 w-3" />
+                        期限: {{ formatDate(reminder.deadline) }}
+                      </div>
+                    </div>
                   </div>
-                  <Badge variant="outline" :class="['text-xs', reminder.completed ? 'opacity-60' : '']">
-                    {{ reminder.category }}
-                  </Badge>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    class="gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700"
+                    @click.stop="handlePermanentDelete(reminder)"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                    完全に削除
+                  </Button>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardHeader>
+            <CardContent>
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-gray-600">ステータス</span>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                  <CheckCircle v-if="reminder.completed" class="h-4 w-4 text-green-600" />
+                  <Clock v-else class="h-4 w-4 text-blue-600" />
+                  <span :class="reminder.completed ? 'text-green-600' : 'text-blue-600'">
+                    {{ reminder.completed ? '完了済み' : 'アクティブ' }}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </ScrollArea>
     </CardContent>
@@ -193,16 +272,31 @@ const isCreateDialogOpen = ref(false)
     <ReminderDetailDialog
       :reminder="selectedReminder"
       :open="selectedReminder !== null"
-      @update:open="(isOpen) => !isOpen && (selectedReminder = null)"
+      @update:open="handleCloseDetailDialog"
       @update:reminder="handleUpdateReminder"
     />
 
     <ReminderDetailDialog
       :reminder="null"
       :open="isCreateDialogOpen"
-      @update:open="isCreateDialogOpen = $event"
+      @update:open="handleCloseCreateDialog"
       @update:reminder="handleUpdateReminder"
     />
+
+    <AlertDialog :open="reminderToDelete !== null">
+      <AlertDialogContent class="bg-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
+          <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="reminderToDelete = null" class="hover:bg-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="confirmPermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
+            完全に削除
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     
     <!-- メッセージ表示 -->
     <Transition

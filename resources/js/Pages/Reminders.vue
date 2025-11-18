@@ -8,6 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
@@ -29,6 +39,7 @@ const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
+const reminderToDelete = ref<App.Models.Reminder | null>(null)
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
   if (messageTimer.value) {
@@ -102,18 +113,27 @@ const handleUndoDelete = () => {
   })
 }
 
-const handleDeletePermanently = (id: number) => {
-  if (confirm('このリマインダーを完全に削除しますか？この操作は元に戻せません。')) {
-    router.delete(route('reminders.destroy', id), {
-      preserveScroll: true,
-      onSuccess: () => {
-        showMessage('リマインダーを完全に削除しました。', 'success')
-      },
-      onError: () => {
-        showMessage('削除に失敗しました。', 'success')
-      }
-    })
-  }
+const handleDeletePermanently = (reminder: App.Models.Reminder) => {
+  reminderToDelete.value = reminder
+}
+
+const confirmPermanentDelete = () => {
+  if (!reminderToDelete.value) return
+  
+  const deleteId = reminderToDelete.value.reminder_id
+  const reminder = reminderToDelete.value
+  
+  router.delete(route('reminders.destroy', deleteId), {
+    onSuccess: () => {
+      showMessage(`「${reminder.title}」を完全に削除しました`, 'success')
+    },
+    onError: (errors) => {
+      console.error('Delete error:', errors)
+      showMessage('削除に失敗しました', 'success')
+    }
+  })
+  
+  reminderToDelete.value = null
 }
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {
   // メッセージ表示はReminderDetailDialog内で処理される
@@ -182,8 +202,9 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
                         <Badge variant="outline" class="text-xs">{{ reminder.category }}</Badge>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" @click.stop="handleDeletePermanently(reminder.reminder_id)">
-                      <Trash2 class="h-4 w-4 text-red-500" />
+                    <Button variant="outline" size="sm" class="gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700" @click.stop="handleDeletePermanently(reminder)">
+                      <Trash2 class="h-4 w-4" />
+                      完全に削除
                     </Button>
                   </div>
                 </div>
@@ -231,8 +252,9 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
                         <Badge variant="outline" class="text-xs opacity-60">{{ reminder.category }}</Badge>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" @click="handleDeletePermanently(reminder.reminder_id)">
-                      <Trash2 class="h-4 w-4 text-red-500" />
+                    <Button variant="outline" size="sm" class="gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700" @click="handleDeletePermanently(reminder)">
+                      <Trash2 class="h-4 w-4" />
+                      完全に削除
                     </Button>
                   </div>
                 </div>
@@ -256,6 +278,21 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
       @update:open="(open) => { isCreateDialogOpen = open; if (!open) isCreatingNew = false }"
       @update:reminder="handleUpdateReminder"
     />
+
+    <AlertDialog :open="reminderToDelete !== null">
+      <AlertDialogContent class="bg-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
+          <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="reminderToDelete = null" class="hover:bg-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="confirmPermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
+            完全に削除
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     
     <!-- メッセージ表示 -->
     <Transition

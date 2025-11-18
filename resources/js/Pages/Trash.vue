@@ -21,6 +21,7 @@ interface TrashItem {
   id: string
   type: ItemType
   title: string
+  description: string
   deletedAt: string
   item_id: string
   permanent_delete_at: string
@@ -117,23 +118,32 @@ const handleRestore = (id: string) => {
 
 
 const handlePermanentDelete = () => {
-  if (itemToDelete.value) {
-    const item = trashItems.value.find((i) => i.id === itemToDelete.value)
-    router.delete(route('trash.destroy', itemToDelete.value), {
-      preserveScroll: true,
-      onSuccess: () => {
-        if (item) {
-          trashItems.value = trashItems.value.filter((i) => i.id !== itemToDelete.value)
-          showMessage(`「${item.title}」を完全に削除しました`, 'success')
-        }
-      },
-      onError: (errors) => {
-        console.error('Delete error:', errors)
-        showMessage('削除に失敗しました。', 'success')
-      }
-    })
-    itemToDelete.value = null
+  console.log('handlePermanentDelete called')
+  console.log('itemToDelete.value:', itemToDelete.value)
+  
+  if (!itemToDelete.value) {
+    console.log('No item to delete')
+    return
   }
+  
+  const deleteId = itemToDelete.value
+  const item = trashItems.value.find((i) => i.id === deleteId)
+  console.log('Found item:', item)
+  console.log('Route URL:', route('trash.destroy', deleteId))
+  
+  router.delete(route('trash.destroy', deleteId), {
+    onSuccess: () => {
+      console.log('Delete success')
+      trashItems.value = trashItems.value.filter((i) => i.id !== deleteId)
+      showMessage(`「${item?.title || 'アイテム'}」を完全に削除しました`, 'success')
+    },
+    onError: (errors) => {
+      console.log('Delete error:', errors)
+      showMessage('削除に失敗しました', 'success')
+    }
+  })
+  
+  itemToDelete.value = null
 }
 
 const handleEmptyTrash = () => {
@@ -154,43 +164,34 @@ const handleEmptyTrash = () => {
 </script>
 
 <template>
-  <Head title="ゴミ箱" />
-  <div class="min-h-screen bg-gray-50">
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <Button variant="ghost" size="icon" @click="router.get('/')">
-              <ArrowLeft class="h-5 w-5" />
-            </Button>
+  <div>
+    <Head title="ゴミ箱" />
+    <div class="max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+      <Card class="h-full overflow-hidden">
+        <div class="p-4 border-b border-gray-200">
+          <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
+              <Button variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
+                <ArrowLeft class="h-5 w-5" />
+              </Button>
               <Trash2 class="h-6 w-6 text-gray-600" />
-              <div>
-                <h1 class="text-gray-900">ゴミ箱</h1>
-                <p class="text-xs text-gray-500">削除されたアイテム ({{ trashItems.length }}件)</p>
-              </div>
+              <h1>ゴミ箱</h1>
             </div>
+            <Button v-if="trashItems.length > 0" variant="outline" @click="showEmptyTrashDialog = true" class="gap-2">
+              <Trash2 class="h-4 w-4" />
+              ゴミ箱を空にする
+            </Button>
           </div>
-          <Button v-if="trashItems.length > 0" variant="outline" @click="showEmptyTrashDialog = true" class="gap-2">
-            <Trash2 class="h-4 w-4" />
-            ゴミ箱を空にする
-          </Button>
+          <p class="text-sm text-gray-500">削除されたアイテム ({{ trashItems.length }}件)</p>
         </div>
-      </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      <div v-if="trashItems.length === 0">
-        <Card>
-          <CardContent class="py-16 text-center">
+        <div v-if="trashItems.length === 0" class="flex-1 flex items-center justify-center">
+          <div class="text-center py-16">
             <Trash2 class="h-16 w-16 mx-auto mb-4 text-gray-300" />
             <h2 class="mb-2 text-gray-900">ゴミ箱は空です</h2>
             <p class="text-gray-500">削除されたアイテムはここに表示されます</p>
-          </CardContent>
-        </Card>
-      </div>
-      <Card v-else>
-        <ScrollArea class="h-[calc(100vh-200px)]">
+          </div>
+        </div>
+        <ScrollArea v-else class="h-[calc(100vh-240px)]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -209,6 +210,7 @@ const handleEmptyTrash = () => {
                   <ArrowUp v-if="sortField === 'deletedAt' && sortOrder === 'asc'" class="h-4 w-4 inline ml-1" />
                   <ArrowDown v-if="sortField === 'deletedAt' && sortOrder === 'desc'" class="h-4 w-4 inline ml-1" />
                 </TableHead>
+                <TableHead>詳細</TableHead>
                 <TableHead class="text-right">アクション</TableHead>
               </TableRow>
             </TableHeader>
@@ -228,13 +230,19 @@ const handleEmptyTrash = () => {
                 </TableCell>
                 <TableCell>{{ item?.title || '不明' }}</TableCell>
                 <TableCell class="text-gray-600">{{ item?.deletedAt || '不明' }}</TableCell>
+                <TableCell class="text-gray-500 text-sm max-w-xs">
+                  <span v-if="item?.description" class="line-clamp-2">
+                    {{ item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description }}
+                  </span>
+                  <span v-else class="italic">詳細なし</span>
+                </TableCell>
                 <TableCell class="text-right">
                   <div class="flex items-center justify-end gap-2">
                     <Button variant="outline" size="sm" @click="handleRestore(item.id)" class="gap-2" :disabled="!item">
                       <RotateCcw class="h-4 w-4" />
                       元に戻す
                     </Button>
-                    <Button variant="outline" size="sm" @click="itemToDelete = item.id" class="gap-2 bg-red-500 hover:bg-red-600 hover:text-white" :disabled="!item">
+                    <Button variant="outline" size="sm" @click="itemToDelete = item?.id" class="gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700" :disabled="!item">
                       <X class="h-4 w-4" />
                       完全に削除
                     </Button>
@@ -245,17 +253,17 @@ const handleEmptyTrash = () => {
           </Table>
         </ScrollArea>
       </Card>
-    </main>
+    </div>
 
-    <AlertDialog :open="itemToDelete !== null" @update:open="(open) => !open && (itemToDelete = null)">
+    <AlertDialog :open="itemToDelete !== null">
       <AlertDialogContent class="bg-white">
         <AlertDialogHeader>
           <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="handlePermanentDelete" class="bg-red-600 hover:bg-red-700">
+          <AlertDialogCancel @click="itemToDelete = null" class="hover:bg-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="handlePermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
             完全に削除
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -270,7 +278,7 @@ const handleEmptyTrash = () => {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="handleEmptyTrash" class="bg-red-600 hover:bg-red-700">
+          <AlertDialogAction @click="handleEmptyTrash" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
             ゴミ箱を空にする
           </AlertDialogAction>
         </AlertDialogFooter>
