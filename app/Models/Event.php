@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 use Carbon\Carbon;
 
@@ -13,7 +14,7 @@ use App\Models\EventAttachment;
 #[TypeScript]
 class Event extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The table associated with the model.
@@ -42,6 +43,9 @@ class Event extends Model
         'url',
         'category',
         'importance',
+        'progress',
+        'deadline_date',
+        'deadline_time',
         'start_date',
         'start_time',
         'end_date',

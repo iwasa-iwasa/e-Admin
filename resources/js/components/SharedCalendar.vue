@@ -26,6 +26,8 @@ const isEventFormOpen = ref(false)
 const editingEvent = ref<App.Models.Event | null>(null)
 const fullCalendar = ref<any>(null)
 const calendarTitle = ref('')
+const hoveredEvent = ref<any>(null)
+const hoverPosition = ref({ x: 0, y: 0 })
 
 const openCreateDialog = () => {
   editingEvent.value = null
@@ -114,6 +116,14 @@ const calendarOptions = computed(() => ({
   },
   eventClick: (info: any) => {
     selectedEvent.value = info.event.extendedProps
+  },
+  eventMouseEnter: (info: any) => {
+    hoveredEvent.value = info.event.extendedProps
+    const rect = info.el.getBoundingClientRect()
+    hoverPosition.value = { x: rect.left + rect.width / 2, y: rect.top - 10 }
+  },
+  eventMouseLeave: () => {
+    hoveredEvent.value = null
   },
   datesSet: (info: any) => {
     calendarTitle.value = info.view.title
@@ -214,6 +224,40 @@ const changeView = (view: string) => {
       @update:open="isEventFormOpen = $event"
       :event="editingEvent"
     />
+
+    <!-- ホバー表示 -->
+    <Transition
+      enter-active-class="transition ease-out duration-200"
+      enter-from-class="transform opacity-0 scale-95"
+      enter-to-class="transform opacity-100 scale-100"
+      leave-active-class="transition ease-in duration-150"
+      leave-from-class="transform opacity-100 scale-100"
+      leave-to-class="transform opacity-0 scale-95"
+    >
+      <div
+        v-if="hoveredEvent"
+        class="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs pointer-events-none"
+        :style="{ left: hoverPosition.x + 'px', top: hoverPosition.y + 'px', transform: 'translateX(-50%) translateY(-100%)' }"
+      >
+        <div class="space-y-2">
+          <div class="font-semibold text-sm">{{ hoveredEvent.title }}</div>
+          <div v-if="hoveredEvent.progress !== undefined && hoveredEvent.progress !== null" class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">進捗:</span>
+            <div 
+              class="flex-1 h-1.5 rounded-full overflow-hidden"
+              :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${hoveredEvent.progress}%, #e5e7eb ${hoveredEvent.progress}%, #e5e7eb 100%)` }"
+            >
+            </div>
+            <span class="text-xs text-gray-600">{{ hoveredEvent.progress }}%</span>
+          </div>
+          <div class="text-xs text-gray-600">
+            <span class="text-gray-500">締切:</span> 
+            {{ new Date(hoveredEvent.end_date).toLocaleDateString('ja-JP') }}
+            {{ hoveredEvent.end_time && !hoveredEvent.is_all_day ? ' ' + hoveredEvent.end_time.slice(0, 5) : '' }}
+          </div>
+        </div>
+      </div>
+    </Transition>
   </Card>
 </template>
 

@@ -13,6 +13,7 @@ import {
     Link as LinkIcon,
     Repeat,
     Paperclip,
+    CheckCircle,
 } from "lucide-vue-next";
 import {
     Dialog,
@@ -37,7 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/components/ui/toast/use-toast";
+
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import { TimePicker } from "vue-material-time-picker";
 import { ja } from "date-fns/locale"
@@ -59,7 +60,9 @@ const isEditMode = computed(() => !!props.event);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const page = usePage()
-const { toast } = useToast()
+const saveMessage = ref('')
+const messageType = ref<'success' | 'error'>('success')
+const messageTimer = ref<number | null>(null)
 
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 // Current authenticated user id from Inertia page props
@@ -77,6 +80,8 @@ const form = useForm({
   url: '',
   category: '会議',
   importance: '中',
+  progress: 0,
+
   recurrence: {
     is_recurring: false,
     recurrence_type: 'daily',
@@ -118,6 +123,8 @@ watch(() => props.open, (isOpen) => {
       form.url = eventData.url || '';
       form.category = eventData.category || '会議';
       form.importance = eventData.importance || '中';
+      form.progress = eventData.progress || 0;
+
       
       if (eventData.recurrence) {
         form.recurrence.is_recurring = true;
@@ -187,11 +194,7 @@ const handleFileChange = (event: Event) => {
     if (target.files) {
         Array.from(target.files).forEach(file => {
             if (file.size > MAX_FILE_SIZE) {
-                toast({
-                    title: "ファイルサイズエラー",
-                    description: `${file.name} はサイズ上限 (${(MAX_FILE_SIZE / (1024 * 1024)).toFixed(0)}MB) を超えています。`,
-                    variant: "destructive",
-                });
+                showMessage(`${file.name} はサイズ上限 (${(MAX_FILE_SIZE / (1024 * 1024)).toFixed(0)}MB) を超えています。`, 'error');
             } else {
                 form.attachments.new_files.push(file);
             }
@@ -239,18 +242,17 @@ const handleSave = () => {
 
   const options = {
     onSuccess: () => {
-      toast({ title: "Success", description: `予定を${isEditMode.value ? '更新' : '作成'}しました` })
       handleClose()
+      // ダイアログを閉じた後にメッセージを表示
+      setTimeout(() => {
+        showMessage(`予定を${isEditMode.value ? '更新' : '作成'}しました`, 'success')
+      }, 100)
     },
     onError: (errors: any) => {
       console.log(errors)
       // Pick the first error and show it.
       const firstError = Object.values(errors)[0]
-      toast({
-            title: "Error",
-            description: firstError,
-            variant: "destructive",
-        });
+      showMessage(firstError || '保存に失敗しました', 'error')
     }
   };
 
@@ -287,6 +289,19 @@ const getCategoryColor = (cat: string) => {
         default: return "bg-gray-500";
     }
 };
+
+const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  messageType.value = type
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+  }, 4000)
+}
 </script>
 
 <template>
@@ -353,6 +368,30 @@ const getCategoryColor = (cat: string) => {
                                             </Label>
                                             <Input id="location" placeholder="例：会議室A、オンライン（Zoom）" v-model="form.location" />
                                         </div>
+                                        <div class="space-y-2">
+                                            <Label for="progress">進捗 ({{ form.progress }}%)</Label>
+                                            <div class="relative">
+                                                <div 
+                                                    class="w-full h-2 rounded-lg overflow-hidden mb-2"
+                                                    :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${form.progress}%, #e5e7eb ${form.progress}%, #e5e7eb 100%)` }"
+                                                >
+                                                </div>
+                                                <input 
+                                                    id="progress" 
+                                                    type="range" 
+                                                    min="0" 
+                                                    max="100" 
+                                                    v-model.number="form.progress" 
+                                                    class="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider absolute top-0"
+                                                />
+                                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                    <span>0%</span>
+                                                    <span>50%</span>
+                                                    <span>100%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     </TabsContent>
             
                                     <TabsContent value="datetime" class="space-y-4 min-h-[400px]">
@@ -556,5 +595,26 @@ const getCategoryColor = (cat: string) => {
                                 {{ isEditMode ? '保存' : '作成' }}
                             </Button>
                         </DialogFooter>        </DialogContent>
+    
+    <!-- メッセージ表示 -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[70] p-3 text-white rounded-lg shadow-lg',
+          messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium">{{ saveMessage }}</span>
+        </div>
+      </div>
+    </Transition>
     </Dialog>
 </template>

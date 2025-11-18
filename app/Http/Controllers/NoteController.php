@@ -50,6 +50,7 @@ class NoteController extends Controller
             'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'deadline' => ['nullable', 'date'],
+            'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
         $note = SharedNote::create([
@@ -59,6 +60,7 @@ class NoteController extends Controller
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
             'deadline' => $validated['deadline'],
+            'progress' => $validated['progress'] ?? 0,
         ]);
 
         return back()->with('success', '新しい共有メモを作成しました！');
@@ -95,6 +97,7 @@ class NoteController extends Controller
             'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'deadline' => ['nullable', 'date'],
+            'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
         $note->update([
@@ -103,6 +106,7 @@ class NoteController extends Controller
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
             'deadline' => $validated['deadline'],
+            'progress' => $validated['progress'] ?? 0,
         ]);
 
         return back()->with('success', 'メモを更新しました。');
