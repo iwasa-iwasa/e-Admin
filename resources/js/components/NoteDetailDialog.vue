@@ -272,55 +272,59 @@ const editedContent = computed({
   <Dialog :open="open" @update:open="closeDialog">
     <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]">
       <DialogHeader>
-        <div class="flex flex-col items-start justify-between gap-4">
-          <DialogTitle class="flex-1">
-            <Input
-              v-if="isEditing && editedNote"
-              v-model="editedNote.title"
-              class="h-8"
-              aria-label="メモタイトル"
-            />
-            <template v-else>{{ currentNote.title }}</template>
-          </DialogTitle>
-          <div class="flex items-center gap-2">
-            <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
-              {{ getPriorityInfo(currentNote.priority as Priority).label }}
+        <div class="flex flex-col items-startgap-4">
+          <div class="flex items-center  justify-between ">
+            <DialogTitle class="flex-1">
+              <Input
+                v-if="isEditing && editedNote"
+                v-model="editedNote.title"
+                class="h-8"
+                aria-label="メモタイトル"
+              />
+              <template v-else>{{ currentNote.title }}</template>
+            </DialogTitle>
+            <div class="flex items-center gap-2 ">
+              <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
+                {{ getPriorityInfo(currentNote.priority as Priority).label }}
+              </Badge>
+              <Button
+                v-if="currentNote.is_pinned !== undefined"
+                variant="outline"
+                size="sm"
+                @click="handleTogglePin"
+                :class="currentNote.is_pinned ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100' : 'hover:bg-gray-50'"
+                aria-label="ピン留めの切り替え"
+                class="gap-1"
+              >
+                <MapPin class="h-4 w-4" :class="{ 'fill-yellow-500 text-yellow-500': currentNote.is_pinned }" />
+                <span class="text-xs">{{ currentNote.is_pinned ? 'ピン解除' : 'ピン留め' }}</span>
+              </Button>
+            </div>
+          </div>
+        <div class="flex gap-3 mt-4">
+              <Input
+                type="date"
+                v-model="editedDeadline"
+                class="h-7 w-40 text-xs"
+                aria-label="期限日"
+              />
+            <div class="flex items-center gap-1">
+              <Clock class="h-4 w-4" />
+              <span>{{ formatDate(currentNote.updated_at || currentNote.created_at) }}</span>
+            </div>
+            <div v-if="isEditing && editedNote" class="flex items-center gap-2">
+              <span class="text-xs">期限:</span>
+              <Input
+                type="date"
+                v-model="editedDeadline"
+                class="h-7 w-40 text-xs"
+                aria-label="期限日"
+              />
+            </div>
+            <Badge v-else-if="currentNote.deadline" variant="outline" class="text-xs">
+              期限: {{ currentNote.deadline }}
             </Badge>
-            <Button
-              v-if="currentNote.is_pinned !== undefined"
-              variant="outline"
-              size="sm"
-              @click="handleTogglePin"
-              :class="currentNote.is_pinned ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100' : 'hover:bg-gray-50'"
-              aria-label="ピン留めの切り替え"
-              class="gap-1"
-            >
-              <MapPin class="h-4 w-4" :class="{ 'fill-yellow-500 text-yellow-500': currentNote.is_pinned }" />
-              <span class="text-xs">{{ currentNote.is_pinned ? 'ピン解除' : 'ピン留め' }}</span>
-            </Button>
           </div>
-            <Input
-              type="date"
-              v-model="editedDeadline"
-              class="h-7 w-40 text-xs"
-              aria-label="期限日"
-            />
-          <div class="flex items-center gap-1">
-            <Clock class="h-4 w-4" />
-            <span>{{ formatDate(currentNote.updated_at || currentNote.created_at) }}</span>
-          </div>
-          <div v-if="isEditing && editedNote" class="flex items-center gap-2">
-            <span class="text-xs">期限:</span>
-            <Input
-              type="date"
-              v-model="editedDeadline"
-              class="h-7 w-40 text-xs"
-              aria-label="期限日"
-            />
-          </div>
-          <Badge v-else-if="currentNote.deadline" variant="outline" class="text-xs">
-            期限: {{ currentNote.deadline }}
-          </Badge>
         </div>
       </DialogHeader>
 
