@@ -48,7 +48,7 @@ class SurveyResponseSeeder extends Seeder
                 // 回答を作成
                 $response = SurveyResponse::create([
                     'survey_id' => $survey->survey_id,
-                    'respondent_id' => $user->id,
+                    'respondent_id' => is_object($user) ? $user->id : $user['id'],
                     'submitted_at' => now()->subDays(rand(0, 30))->subHours(rand(0, 23)),
                 ]);
 
