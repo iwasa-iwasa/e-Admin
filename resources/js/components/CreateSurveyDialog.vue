@@ -15,6 +15,7 @@ import {
     BarChart2,
     X,
     CheckCircle,
+    Undo2,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +77,7 @@ const props = defineProps<{
     open: boolean;
     survey?: App.Models.Survey | null;
 }>();
-const emit = defineEmits(["update:open"]);
+const emit = defineEmits(["update:open", "open-dialog"]);
 
 const title = ref("");
 const description = ref("");
@@ -88,6 +89,8 @@ const showDraftBanner = ref(false);
 const saveMessage = ref('');
 const messageType = ref<'success' | 'delete' | 'error'>('success');
 const messageTimer = ref<number | null>(null);
+const deletedDraft = ref<DraftData | null>(null);
+const undoTimer = ref<number | null>(null);
 
 const { toast } = useToast();
 
@@ -403,10 +406,7 @@ const saveDraft = () => {
             !description.value.trim() &&
             questions.value.length === 0
         ) {
-            toast({
-                title: "Info",
-                description: "保存する内容がありません",
-            });
+            showMessage('保存する内容がありません', 'error');
             return;
         }
 
@@ -459,15 +459,55 @@ const loadDraft = () => {
 // 一時保存データの削除
 const clearDraft = () => {
     try {
+        const saved = localStorage.getItem(DRAFT_KEY);
+        if (saved) {
+            deletedDraft.value = JSON.parse(saved);
+        }
+        
         localStorage.removeItem(DRAFT_KEY);
         draftSavedAt.value = null;
         showDraftBanner.value = false;
-        toast({
-            title: "Success",
-            description: "下書きを削除しました",
-        });
+        showMessage('下書きを削除しました。', 'delete');
+        
+        // 10秒後に削除されたデータをクリア
+        if (undoTimer.value) {
+            clearTimeout(undoTimer.value);
+        }
+        undoTimer.value = setTimeout(() => {
+            deletedDraft.value = null;
+        }, 10000);
     } catch (error) {
         console.error("下書き削除に失敗:", error);
+    }
+};
+
+// 下書き削除の取り消し
+const undoDeleteDraft = () => {
+    if (deletedDraft.value) {
+        try {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(deletedDraft.value));
+            draftSavedAt.value = new Date(deletedDraft.value.saved_at);
+            showDraftBanner.value = true;
+            
+            title.value = deletedDraft.value.title || "";
+            description.value = deletedDraft.value.description || "";
+            deadline.value = deletedDraft.value.deadline || "";
+            questions.value = deletedDraft.value.questions || [];
+            
+            deletedDraft.value = null;
+            if (undoTimer.value) {
+                clearTimeout(undoTimer.value);
+                undoTimer.value = null;
+            }
+            
+            showMessage('下書きを復元しました。', 'success');
+            
+            // ダイアログを開く
+            emit("open-dialog");
+        } catch (error) {
+            console.error("下書き復元に失敗:", error);
+            showMessage('下書きの復元に失敗しました。', 'error');
+        }
     }
 };
 
@@ -1225,7 +1265,7 @@ watch(
     </Dialog>
 
     <Dialog v-model:open="showTemplateDialog">
-        <DialogContent class="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent class="max-w-3xl max-h-[80vh] overflow-y-auto z-[60]">
             <DialogHeader>
                 <DialogTitle>質問形式を選択</DialogTitle>
                 <DialogDescription
@@ -1273,12 +1313,21 @@ watch(
     >
       <div 
         v-if="saveMessage"
-        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[9999] p-3 text-white rounded-lg shadow-lg',
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[70] p-3 text-white rounded-lg shadow-lg pointer-events-auto',
           messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
       >
         <div class="flex items-center gap-2">
           <CheckCircle class="h-5 w-5" />
           <span class="font-medium whitespace-pre-line">{{ saveMessage }}</span>
+          <Button 
+            v-if="messageType === 'delete' && deletedDraft"
+            variant="ghost"
+            size="sm"
+            @click="undoDeleteDraft"
+            class="ml-2 text-white hover:bg-white/20"
+          >
+            元に戻す
+          </Button>
         </div>
       </div>
     </Transition>

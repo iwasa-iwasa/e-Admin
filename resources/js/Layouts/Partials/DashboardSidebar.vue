@@ -13,6 +13,7 @@ const page = usePage()
 
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 const selectedMember = computed(() => page.props.filteredMemberId as number | null)
+const unansweredSurveysCount = computed(() => page.props.unansweredSurveysCount as number)
 
 const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -141,8 +142,8 @@ const currentURL = computed(() => page.url )
         <Link href="/surveys">
           <BarChart3 class="h-5 w-5" />
           アンケート管理
-          <Badge variant="secondary" class="ml-auto">
-            2件
+          <Badge v-if="unansweredSurveysCount > 0" variant="secondary" class="ml-auto">
+            {{ unansweredSurveysCount }}件
           </Badge>
         </Link>
       </Button>
