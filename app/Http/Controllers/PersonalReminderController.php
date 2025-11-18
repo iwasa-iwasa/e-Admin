@@ -201,5 +201,51 @@ class PersonalReminderController extends Controller
             return redirect()->back()->withErrors(['error' => 'タスクの復元に失敗しました']);
         }
     }
+
+    /**
+     * Permanently delete the specified reminder.
+     *
+     * @param  int  $reminder
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function destroy($reminder)
+    {
+        \Log::info('Destroy reminder called', [
+            'reminder_id' => $reminder,
+            'auth_id' => auth()->id()
+        ]);
+        
+        $reminderModel = Reminder::where('reminder_id', $reminder)
+            ->where('user_id', auth()->id())
+            ->first();
+            
+        if (!$reminderModel) {
+            \Log::error('Reminder not found or permission denied', ['reminder_id' => $reminder, 'auth_id' => auth()->id()]);
+            return redirect()->back()->withErrors(['error' => 'リマインダーが見つからないか権限がありません']);
+        }
+        
+        try {
+            DB::transaction(function () use ($reminderModel, $reminder) {
+                \Log::info('Starting destroy transaction', ['reminder_id' => $reminderModel->reminder_id]);
+                
+                // TrashItemからも削除
+                TrashItem::where('item_type', 'reminder')
+                    ->where('item_id', $reminder)
+                    ->where('user_id', auth()->id())
+                    ->delete();
+                
+                // リマインダー本体を削除
+                $reminderModel->delete();
+                
+                \Log::info('Reminder permanently deleted', ['reminder_id' => $reminder]);
+            });
+            
+            \Log::info('Destroy transaction successful');
+            return redirect()->back();
+        } catch (\Exception $e) {
+            \Log::error('Destroy reminder error: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'リマインダーの削除に失敗しました']);
+        }
+    }
 }
 
