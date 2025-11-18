@@ -339,10 +339,9 @@ const handleRemoveTag = (tagToRemove: string) => {
 
 <template>
   <Head title="共有メモ" />
-  <div class="h-[calc(91vh-4rem)] bg-gray-50 flex relative overflow-hidden">
-
-
-    <div class="w-full md:w-96 lg:w-[420px] bg-white border-r border-gray-200 flex flex-col h-full overflow-hidden">
+  <div class="flex gap-6 max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+    <Card class="flex-1 flex h-full overflow-hidden">
+      <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-gray-200">
       <div class="p-4 border-b border-gray-200">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
@@ -498,9 +497,9 @@ const handleRemoveTag = (tagToRemove: string) => {
           </Card>
         </div>
       </ScrollArea>
-    </div>
+      </div>
 
-    <div class="flex-1 flex flex-col bg-white relative h-full overflow-hidden">
+      <div class="flex-1 flex flex-col relative h-full overflow-hidden">
       <template v-if="selectedNote">
         <div class="flex-shrink-0 p-3 border-b border-gray-200">
           <div class="flex items-start justify-between mb-3">
@@ -651,7 +650,8 @@ const handleRemoveTag = (tagToRemove: string) => {
           <p>メモを選択してください</p>
         </div>
       </div>
-    </div>
+      </div>
+    </Card>
     <CreateNoteDialog :open="isCreateDialogOpen" @update:open="isCreateDialogOpen = $event" />
     
     <!-- 下部メッセージ -->
