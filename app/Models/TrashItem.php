@@ -22,6 +22,9 @@ class TrashItem extends Model
     ];
 
     protected $casts = [
+        'id' => 'integer',
+        'user_id' => 'integer',
+        'item_id' => 'integer',
         'deleted_at' => 'datetime',
         'permanent_delete_at' => 'datetime',
     ];

@@ -10,7 +10,6 @@ use Carbon\Carbon;
 use App\Models\EventRecurrence;
 use App\Models\EventAttachment;
 
-#[TypeScript]
 class Event extends Model
 {
     use HasFactory;
@@ -56,7 +55,16 @@ class Event extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'event_id' => 'integer',
+        'calendar_id' => 'integer',
+        'start_date' => 'date',
+        'start_time' => 'datetime:H:i',
+        'end_date' => 'date',
+        'end_time' => 'datetime:H:i',
         'is_all_day' => 'boolean',
+        'created_by' => 'integer',
+        'is_deleted' => 'boolean',
+        'deleted_at' => 'datetime',
     ];
 
     /**

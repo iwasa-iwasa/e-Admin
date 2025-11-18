@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class EventAttachment extends Model
 {
     use HasFactory;
@@ -44,6 +44,18 @@ class EventAttachment extends Model
      * @var bool
      */
     public $timestamps = false; // Only has uploaded_at
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'attachment_id' => 'integer',
+        'event_id' => 'integer',
+        'file_size' => 'integer',
+        'uploaded_at' => 'datetime',
+    ];
 
     /**
      * Get the event that this attachment belongs to.

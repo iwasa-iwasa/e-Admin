@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class SharedNote extends Model
 {
     use HasFactory;
@@ -47,8 +47,11 @@ class SharedNote extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'note_id' => 'integer',
+        'author_id' => 'integer',
         'deadline' => 'date',
         'is_deleted' => 'boolean',
+        'deleted_at' => 'datetime',
     ];
 
     /**
