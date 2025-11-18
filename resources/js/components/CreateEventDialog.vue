@@ -226,10 +226,10 @@ const toggleByDay = (day: string) => {
 };
 
 const handleSave = () => {
-  const transformData = (data: typeof form) => {
+  const transformData = (data: any) => {
     const transformed: Record<string, any> = {
         ...data,
-        participants: data.participants.map(p => p.id)
+        participants: data.participants.map((p: App.Models.User) => p.id)
     };
     if (isEditMode.value) {
         transformed._method = 'put';
@@ -245,7 +245,7 @@ const handleSave = () => {
     onError: (errors: any) => {
       console.log(errors)
       // Pick the first error and show it.
-      const firstError = Object.values(errors)[0]
+      const firstError = Object.values(errors)[0] as string
       toast({
             title: "Error",
             description: firstError,

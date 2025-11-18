@@ -125,10 +125,17 @@ class Event extends Model
             return null;
         }
 
+        // Format dtstart with UTC timezone to avoid timezone conversion issues
+        $startDate = $this->start_date instanceof Carbon 
+            ? $this->start_date->toDateString() 
+            : (string) $this->start_date;
+        $startTime = $this->start_time ?? '00:00:00';
+        $dtstart = $startDate . 'T' . $startTime . 'Z'; // Add 'Z' to indicate UTC
+        
         $rrule = [
             'freq' => $this->recurrence->recurrence_type,
             'interval' => $this->recurrence->recurrence_interval,
-            'dtstart' => $this->start_date . 'T' . ($this->start_time ?? '00:00:00'),
+            'dtstart' => $dtstart,
             'until' => $this->recurrence->end_date ? $this->recurrence->end_date->format('Y-m-d') : null,
         ];
 

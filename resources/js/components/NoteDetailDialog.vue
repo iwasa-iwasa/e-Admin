@@ -155,6 +155,18 @@ watch(() => editedNote.value?.deadline, (newDeadline) => {
   }
 })
 
+const editedDeadline = computed({
+  get: (): string => {
+    // Ensure the input always receives a string (empty when null)
+    return editedNote.value?.deadline ?? ''
+  },
+  set: (val: string) => {
+    // Convert empty string back to null for the note model
+    if (!editedNote.value) return
+    editedNote.value.deadline = val === '' ? null : val
+  }
+})
+
 const handleAddTag = () => {
   if (tagInput.value.trim() && editedNote.value) {
     const newTag = tagInput.value.trim()
@@ -163,7 +175,7 @@ const handleAddTag = () => {
       if (!editedNote.value.tags) {
         editedNote.value.tags = []
       }
-      editedNote.value.tags.push({ tag_name: newTag })
+      editedNote.value.tags.push({ tag_id: 0, tag_name: newTag })
       tagInput.value = ''
     }
   }
@@ -235,13 +247,32 @@ const handleUndoDelete = () => {
   })
 }
 
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  try {
+    return new Date(dateString).toLocaleDateString()
+  } catch {
+    return ''
+  }
+}
+
+const editedContent = computed({
+  get: (): string => {
+    return editedNote.value?.content ?? ''
+  },
+  set: (val: string) => {
+    if (!editedNote.value) return
+    editedNote.value.content = val === '' ? null : val
+  }
+})
+
 </script>
 
 <template>
   <Dialog :open="open" @update:open="closeDialog">
     <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]">
       <DialogHeader>
-        <div class="flex items-start justify-between gap-4">
+        <div class="flex flex-col items-start justify-between gap-4">
           <DialogTitle class="flex-1">
             <Input
               v-if="isEditing && editedNote"
@@ -268,21 +299,21 @@ const handleUndoDelete = () => {
               <span class="text-xs">{{ currentNote.is_pinned ? 'ピン解除' : 'ピン留め' }}</span>
             </Button>
           </div>
-        </div>
-        <div class="flex items-center gap-4 text-sm text-gray-600 pt-2">
-          <div class="flex items-center gap-1">
-            <User class="h-4 w-4" />
-            <span>{{ currentNote.author?.name || 'N/A' }}</span>
-          </div>
+            <Input
+              type="date"
+              v-model="editedDeadline"
+              class="h-7 w-40 text-xs"
+              aria-label="期限日"
+            />
           <div class="flex items-center gap-1">
             <Clock class="h-4 w-4" />
-            <span>{{ new Date(currentNote.updated_at || currentNote.created_at).toLocaleDateString() }}</span>
+            <span>{{ formatDate(currentNote.updated_at || currentNote.created_at) }}</span>
           </div>
           <div v-if="isEditing && editedNote" class="flex items-center gap-2">
             <span class="text-xs">期限:</span>
             <Input
               type="date"
-              v-model="editedNote.deadline"
+              v-model="editedDeadline"
               class="h-7 w-40 text-xs"
               aria-label="期限日"
             />
@@ -368,7 +399,7 @@ const handleUndoDelete = () => {
           </div>
           <Textarea
             v-if="isEditing && editedNote"
-            v-model="editedNote.content"
+            v-model="editedContent"
             class="min-h-[200px] whitespace-pre-line bg-white"
             aria-label="メモ内容"
           />

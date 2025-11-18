@@ -120,7 +120,7 @@ const calendarDays = computed(() => {
   const startingDayOfWeek = firstDay.getDay()
   const daysInMonth = lastDay.getDate()
 
-  const days = []
+  const days: (number | null)[] = []
   for (let i = 0; i < startingDayOfWeek; i++) {
     days.push(null)
   }
@@ -291,7 +291,7 @@ const weekDays = ['日', '月', '火', '水', '木', '金', '土']
               <DialogTitle class="text-xl mb-2">{{ selectedEvent.title }}</DialogTitle>
               <div class="flex items-center gap-2">
                 <Avatar class="h-6 w-6" :style="{ backgroundColor: selectedEvent.color }">
-                  <AvatarFallback class="text-white text-xs">{{ members.find((m) => m.id === selectedEvent.memberId)?.initial }}</AvatarFallback>
+                  <AvatarFallback class="text-white text-xs">{{ members.find((m) => m.id === selectedEvent?.memberId)?.initial }}</AvatarFallback>
                 </Avatar>
                 <span class="text-sm text-gray-600">{{ selectedEvent.memberName }}</span>
                 <Badge v-if="selectedEvent.memberId === currentUser?.id" variant="secondary" class="text-xs">自分の予定</Badge>

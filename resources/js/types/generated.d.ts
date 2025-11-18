@@ -33,6 +33,11 @@ is_deleted: boolean;
 created_at: string | null;
 updated_at: string | null;
 deleted_at: string | null;
+rrule?: string;
+duration?: string;
+recurrence: EventRecurrence | null;
+attachments: EventAttachment[];
+participants: User[];
 };
 export type EventRecurrence = {
 recurrence_id: number;
@@ -79,6 +84,9 @@ is_deleted: boolean;
 created_at: string | null;
 updated_at: string | null;
 deleted_at: string | null;
+tags: NoteTag[];
+author: User;
+is_pinned: boolean;
 };
 export type SurveyAnswer = {
 answer_id: number;
@@ -98,6 +106,9 @@ is_deleted: boolean;
 created_at: string | null;
 updated_at: string | null;
 deleted_at: string | null;
+creator: User;
+questions: SurveyQuestion[];
+responses: SurveyResponse[];
 };
 export type SurveyQuestion = {
 question_id: number;
@@ -118,6 +129,8 @@ response_id: number;
 survey_id: number;
 respondent_id: number;
 submitted_at: string | null;
+answers: SurveyAnswer[];
+respondent: User;
 };
 export type TrashItem = {
 id: number;
@@ -140,5 +153,6 @@ role: string;
 is_active: boolean;
 created_at: string | null;
 updated_at: string | null;
+avatar: string | null;
 };
 }

@@ -251,7 +251,7 @@ const removeOption = (questionId: string, optionIndex: number) => {
 
 const handleSave = (isDraft: boolean = false) => {
     // クライアント側のバリデーション
-    const errors = [];
+    const errors: string[] = [];
     
     if (!title.value.trim()) {
         errors.push('アンケートのタイトルを入力してください');
@@ -304,7 +304,7 @@ const handleSave = (isDraft: boolean = false) => {
                 handleClose();
             },
             onError: (errors) => {
-                const errorMessages = [];
+                const errorMessages: any[] = [];
                 for (const [field, messages] of Object.entries(errors)) {
                     if (Array.isArray(messages)) {
                         errorMessages.push(...messages);
@@ -334,7 +334,7 @@ const handleSave = (isDraft: boolean = false) => {
                 handleClose();
             },
             onError: (errors) => {
-                const errorMessages = [];
+                const errorMessages: any[] = [];
                 for (const [field, messages] of Object.entries(errors)) {
                     if (Array.isArray(messages)) {
                         errorMessages.push(...messages);
@@ -831,7 +831,7 @@ watch(
                                                         updateOption(
                                                             question.id,
                                                             optionIndex,
-                                                            $event
+                                                            String($event)
                                                         )
                                                     "
                                                     class="flex-1"
@@ -889,7 +889,7 @@ watch(
                                                         updateOption(
                                                             question.id,
                                                             optionIndex,
-                                                            $event
+                                                            String($event)
                                                         )
                                                     "
                                                     class="flex-1"
@@ -950,7 +950,7 @@ watch(
                                                         updateOption(
                                                             question.id,
                                                             optionIndex,
-                                                            $event
+                                                            String($event)
                                                         )
                                                     "
                                                     class="flex-1"
@@ -1038,7 +1038,7 @@ watch(
                                                         updateQuestion(
                                                             question.id,
                                                             'scaleMin',
-                                                            parseInt($event)
+                                                            parseInt(String($event))
                                                         )
                                                     "
                                                 />
@@ -1054,7 +1054,7 @@ watch(
                                                         updateQuestion(
                                                             question.id,
                                                             'scaleMax',
-                                                            parseInt($event)
+                                                            parseInt(String($event))
                                                         )
                                                     "
                                                 />
@@ -1079,7 +1079,7 @@ watch(
                                                             updateQuestion(
                                                                 question.id,
                                                                 'scaleMin',
-                                                                parseInt($event)
+                                                                parseInt(String($event))
                                                             )
                                                         "
                                                     />
@@ -1096,7 +1096,7 @@ watch(
                                                             updateQuestion(
                                                                 question.id,
                                                                 'scaleMax',
-                                                                parseInt($event)
+                                                                parseInt(String($event))
                                                             )
                                                         "
                                                     />

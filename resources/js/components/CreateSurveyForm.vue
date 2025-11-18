@@ -125,7 +125,7 @@ const removeOption = (questionId: string, optionIndex: number) => {
 }
 
 const validateSurvey = () => {
-  const errors = []
+  const errors: string[] = []
   
   if (!title.value.trim()) {
     errors.push('アンケートのタイトルを入力してください')
@@ -357,7 +357,7 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                     <div class="space-y-2">
                       <div v-for="(option, optionIndex) in question.options" :key="optionIndex" class="flex items-center gap-2">
                         <div class="w-4 h-4 rounded-full border-2 border-gray-400 flex-shrink-0" />
-                        <Input :placeholder="`選択肢 ${optionIndex + 1}`" :model-value="option" @update:model-value="updateOption(question.id, optionIndex, $event)" class="flex-1" />
+                        <Input :placeholder="`選択肢 ${optionIndex + 1}`" :model-value="option" @update:model-value="updateOption(question.id, optionIndex, String($event))" class="flex-1" />
                         <Button v-if="question.options.length > 2" variant="ghost" size="sm" @click="removeOption(question.id, optionIndex)">
                           <Trash2 class="h-4 w-4" />
                         </Button>
@@ -373,7 +373,7 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                     <div class="space-y-2">
                         <div v-for="(option, optionIndex) in question.options" :key="optionIndex" class="flex items-center gap-2">
                             <div class="w-4 h-4 rounded border-2 border-gray-400 flex-shrink-0"></div>
-                            <Input :placeholder="`選択肢 ${optionIndex + 1}`" :model-value="option" @update:model-value="updateOption(question.id, optionIndex, $event)" class="flex-1" />
+                            <Input :placeholder="`選択肢 ${optionIndex + 1}`" :model-value="option" @update:model-value="updateOption(question.id, optionIndex, String($event))" class="flex-1" />
                             <Button v-if="question.options.length > 2" variant="ghost" size="sm" @click="removeOption(question.id, optionIndex)">
                                 <Trash2 class="h-4 w-4" />
                             </Button>
@@ -389,7 +389,7 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                       <div class="space-y-2">
                           <div v-for="(option, optionIndex) in question.options" :key="optionIndex" class="flex items-center gap-2">
                               <span class="text-sm text-gray-500 w-6">{{ optionIndex + 1 }}.</span>
-                              <Input :placeholder="`選択肢 ${optionIndex + 1}`" :model-value="option" @update:model-value="updateOption(question.id, optionIndex, $event)" class="flex-1" />
+                              <Input :placeholder="`選択肢 ${optionIndex + 1}`" :model-value="option" @update:model-value="updateOption(question.id, optionIndex, String($event))" class="flex-1" />
                               <Button v-if="question.options.length > 2" variant="ghost" size="sm" @click="removeOption(question.id, optionIndex)">
                                   <Trash2 class="h-4 w-4" />
                               </Button>
@@ -415,11 +415,11 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                     <div class="grid grid-cols-2 gap-3">
                       <div class="space-y-2">
                         <Label>最小値</Label>
-                        <Input type="number" :model-value="question.scaleMin || 1" @update:model-value="updateQuestion(question.id, 'scaleMin', parseInt($event))" />
+                        <Input type="number" :model-value="question.scaleMin || 1" @update:model-value="updateQuestion(question.id, 'scaleMin', parseInt(String($event)))" />
                       </div>
                       <div class="space-y-2">
                         <Label>最大値</Label>
-                        <Input type="number" :model-value="question.scaleMax || 5" @update:model-value="updateQuestion(question.id, 'scaleMax', parseInt($event))" />
+                        <Input type="number" :model-value="question.scaleMax || 5" @update:model-value="updateQuestion(question.id, 'scaleMax', parseInt(String($event)))" />
                       </div>
                     </div>
                   </div>
@@ -428,11 +428,11 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                       <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-2">
                           <Label>最小値</Label>
-                          <Input type="number" :model-value="question.scaleMin || 1" @update:model-value="updateQuestion(question.id, 'scaleMin', parseInt($event))" />
+                          <Input type="number" :model-value="question.scaleMin || 1" @update:model-value="updateQuestion(question.id, 'scaleMin', parseInt(String($event)))" />
                         </div>
                         <div class="space-y-2">
                           <Label>最大値</Label>
-                          <Input type="number" :model-value="question.scaleMax || 5" @update:model-value="updateQuestion(question.id, 'scaleMax', parseInt($event))" />
+                          <Input type="number" :model-value="question.scaleMax || 5" @update:model-value="updateQuestion(question.id, 'scaleMax', parseInt(String($event)))" />
                         </div>
                       </div>
                       <div class="grid grid-cols-2 gap-3">

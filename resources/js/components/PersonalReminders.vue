@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
-import ReminderDetailDialog from './ReminderDetailDialog.vue'
+import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
 
 const props = defineProps<{
   reminders: App.Models.Reminder[]

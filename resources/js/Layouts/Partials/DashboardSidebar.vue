@@ -199,7 +199,7 @@ const currentURL = computed(() => page.url )
             @click="handleMemberClick(member.id, currentURL)"
           >
             <Avatar class="h-6 w-6">
-              <AvatarImage :src="member.avatar" :alt="member.name" />
+              <AvatarImage :src="member.avatar || ''" :alt="member.name" />
               <AvatarFallback>{{ member.name.charAt(0) }}</AvatarFallback>
             </Avatar>
             {{ member.name }}
