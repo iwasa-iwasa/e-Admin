@@ -15,6 +15,8 @@ import {
     Calendar as CalendarIcon,
     Edit,
     Trash2,
+    CheckCircle,
+    Undo2,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,9 +39,19 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CreateSurveyDialog from "@/components/CreateSurveyDialog.vue";
-import { useToast } from "@/components/ui/toast/use-toast";
+
 
 defineOptions({
     layout: AuthenticatedLayout,
@@ -61,6 +73,23 @@ const activeTab = ref("active");
 const isCreateSurveyDialogOpen = ref(false);
 const showCreateDialog = ref(false);
 const editingSurvey = ref(null);
+const surveyToDelete = ref<App.Models.Survey | null>(null);
+const saveMessage = ref('');
+const messageType = ref<'success' | 'delete'>('success');
+const messageTimer = ref<number | null>(null);
+const lastDeletedSurvey = ref<App.Models.Survey | null>(null);
+
+const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value);
+  }
+  saveMessage.value = message;
+  messageType.value = type;
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = '';
+    lastDeletedSurvey.value = null;
+  }, 4000);
+};
 
 const filteredSurveys = computed(() => {
     return props.surveys.filter((survey) => {
@@ -116,7 +145,6 @@ const getDaysUntilDeadline = (deadline: string) => {
 };
 
 const page = usePage();
-const { toast } = useToast();
 const isEditDialogOpen = ref(false);
 
 
@@ -144,6 +172,14 @@ watch(
     { immediate: true }
 );
 
+// 削除ダイアログの状態を監視
+watch(
+    () => surveyToDelete.value,
+    (survey) => {
+        console.log('surveyToDelete changed:', survey);
+    }
+);
+
 // ハンドラ関数
 const handleCreate = () => {
     editingSurvey.value = null;
@@ -168,30 +204,56 @@ const handleDialogClose = () => {
     editingSurvey.value = null;
 };
 
-// 削除処理
+// 削除確認ダイアログを表示
 const handleDelete = (survey: App.Models.Survey) => {
-    if (
-        window.confirm(
-            "本当にこのアンケートを削除しますか？この操作は取り消せません。"
-        )
-    ) {
-        router.delete(`/surveys/${survey.survey_id}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toast({
-                    title: "Success",
-                    description: "アンケートを削除しました",
-                });
+    console.log('handleDelete called for survey:', survey.survey_id);
+    surveyToDelete.value = survey;
+    console.log('surveyToDelete set to:', surveyToDelete.value);
+};
+
+// 実際の削除処理
+const confirmDelete = () => {
+    console.log('confirmDelete called');
+    if (surveyToDelete.value) {
+        const surveyId = surveyToDelete.value.survey_id;
+        console.log('Deleting survey:', surveyId);
+        lastDeletedSurvey.value = surveyToDelete.value;
+        router.delete(`/surveys/${surveyId}`, {
+            onSuccess: (page) => {
+                console.log('Delete success:', page);
+                surveyToDelete.value = null;
+                showMessage('アンケートを削除しました。', 'delete');
             },
-            onError: () => {
-                toast({
-                    title: "Error",
-                    description: "アンケートの削除に失敗しました",
-                    variant: "destructive",
-                });
+            onError: (errors) => {
+                console.error('Delete error:', errors);
+                surveyToDelete.value = null;
+                lastDeletedSurvey.value = null;
+                showMessage('アンケートの削除に失敗しました', 'success');
             },
         });
     }
+};
+
+// 元に戻す処理
+const handleUndoDelete = () => {
+    if (!lastDeletedSurvey.value) return;
+    
+    if (messageTimer.value) {
+        clearTimeout(messageTimer.value);
+    }
+    saveMessage.value = '元に戻しています...';
+    
+    const surveyToRestore = lastDeletedSurvey.value;
+    lastDeletedSurvey.value = null;
+    
+    router.post(`/surveys/${surveyToRestore.survey_id}/restore`, {}, {
+        onSuccess: () => {
+            showMessage('アンケートが元に戻されました。', 'success');
+        },
+        onError: () => {
+            showMessage('元に戻す処理に失敗しました。', 'success');
+        }
+    });
 };
 </script>
 
@@ -542,5 +604,52 @@ const handleDelete = (survey: App.Models.Survey) => {
             "
             @open-dialog="isEditDialogOpen = true"
         />
+
+        <AlertDialog :open="surveyToDelete !== null">
+            <AlertDialogContent class="bg-white">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>アンケートを削除しますか？</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        「{{ surveyToDelete?.title }}」をゴミ箱に移動します。ゴミ箱から後で復元できます。
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel @click="surveyToDelete = null">キャンセル</AlertDialogCancel>
+                    <AlertDialogAction @click="confirmDelete" class="bg-red-600 hover:bg-red-700">
+                        ゴミ箱に移動
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <!-- メッセージ表示 -->
+        <Transition
+            enter-active-class="transition ease-out duration-300"
+            enter-from-class="transform opacity-0 translate-y-full"
+            enter-to-class="transform opacity-100 translate-y-0"
+            leave-active-class="transition ease-in duration-200"
+            leave-from-class="transform opacity-100 translate-y-0"
+            leave-to-class="transform opacity-0 translate-y-full"
+        >
+            <div 
+                v-if="saveMessage"
+                :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 p-3 text-white rounded-lg shadow-lg',
+                  messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+            >
+                <div class="flex items-center gap-2">
+                    <CheckCircle class="h-5 w-5" />
+                    <span class="font-medium">{{ saveMessage }}</span>
+                    <Button 
+                        v-if="messageType === 'delete' && lastDeletedSurvey"
+                        variant="link"
+                        class="text-white hover:bg-red-400 p-1 h-auto ml-2"
+                        @click.stop="handleUndoDelete"
+                    >
+                        <Undo2 class="h-4 w-4 mr-1" />
+                        <span class="underline">元に戻す</span>
+                    </Button>
+                </div>
+            </div>
+        </Transition>
     </div>
 </template>
