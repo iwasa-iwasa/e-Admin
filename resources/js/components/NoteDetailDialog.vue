@@ -286,16 +286,23 @@ const handleUndoDelete = () => {
               class="h-7 w-40 text-xs"
               aria-label="期限日"
             />
-            <span class="text-xs">進捗:</span>
-            <Input
-              type="number"
-              min="0"
-              max="100"
-              v-model.number="editedNote.progress"
-              class="h-7 w-20 text-xs"
-              placeholder="0"
-            />
-            <span class="text-xs">%</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs whitespace-nowrap">進捗 ({{ editedNote.progress || 0 }}%):</span>
+              <div class="relative w-24">
+                <div 
+                  class="w-full h-2 rounded-lg overflow-hidden"
+                  :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editedNote.progress || 0}%, #e5e7eb ${editedNote.progress || 0}%, #e5e7eb 100%)` }"
+                >
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  v-model.number="editedNote.progress" 
+                  class="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider absolute top-0"
+                />
+              </div>
+            </div>
           </div>
           <div v-else class="flex items-center gap-2">
             <Badge v-if="currentNote.deadline" variant="outline" class="text-xs">

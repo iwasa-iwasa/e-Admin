@@ -65,7 +65,7 @@ class CalendarController extends Controller
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
             'category' => 'required|string|in:会議,MTG,期限,重要,有給,業務,その他',
-            'importance' => 'required|string|in:高,中,低',
+            'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
             'recurrence' => 'nullable|array',
             'recurrence.is_recurring' => 'boolean',
@@ -127,6 +127,15 @@ class CalendarController extends Controller
         // Creator should also be a participant
         $event->participants()->attach(Auth::id());
 
+        // Save to shared notes if description exists
+        if (!empty($validated['description'])) {
+            \App\Models\Note::create([
+                'title' => $validated['title'],
+                'content' => $validated['description'],
+                'created_by' => auth()->id(),
+            ]);
+        }
+
         return redirect()->back();
         
     }
@@ -153,7 +162,7 @@ class CalendarController extends Controller
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
             'category' => 'required|string|in:会議,MTG,期限,重要,有給,業務,その他',
-            'importance' => 'required|string|in:高,中,低',
+            'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
         ]);
 

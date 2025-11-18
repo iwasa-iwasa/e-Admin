@@ -346,7 +346,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                             </Select>
                                         </div>
                                         <div class="space-y-2">
-                                            <Label for="importance">重要度</Label>
+                                            <Label for="importance">優先度</Label>
                                             <Select v-model="form.importance">
                                                 <SelectTrigger id="importance">
                                                     <div class="flex items-center gap-2">
@@ -355,9 +355,15 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                     </div>
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="高">高</SelectItem>
-                                                    <SelectItem value="中">中</SelectItem>
-                                                    <SelectItem value="低">低</SelectItem>
+                                                    <SelectItem value="高">
+                                                        <Badge class="bg-red-600 text-white">重要</Badge>
+                                                    </SelectItem>
+                                                    <SelectItem value="中">
+                                                        <Badge class="bg-yellow-500 text-white">中</Badge>
+                                                    </SelectItem>
+                                                    <SelectItem value="低">
+                                                        <Badge class="bg-gray-400 text-white">低</Badge>
+                                                    </SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -368,7 +374,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                             </Label>
                                             <Input id="location" placeholder="例：会議室A、オンライン（Zoom）" v-model="form.location" />
                                         </div>
-                                        <div class="space-y-2">
+                                        <div v-if="isEditMode" class="space-y-2">
                                             <Label for="progress">進捗 ({{ form.progress }}%)</Label>
                                             <div class="relative">
                                                 <div 

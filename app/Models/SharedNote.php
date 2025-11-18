@@ -38,6 +38,7 @@ class SharedNote extends Model
         'color',
         'priority',
         'deadline',
+        'progress',
         'is_deleted',
     ];
 

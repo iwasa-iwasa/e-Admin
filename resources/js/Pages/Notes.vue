@@ -426,7 +426,7 @@ const handleRemoveTag = (tagToRemove: string) => {
               :class="sortKey === 'priority' ? 'shadow-md' : 'hover:bg-gray-50'"
             >
               <AlertCircle class="h-3.5 w-3.5 mr-1.5" />
-              <span>重要度順</span>
+              <span>優先度順</span>
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'priority'" 
@@ -544,7 +544,7 @@ const handleRemoveTag = (tagToRemove: string) => {
                 />
               </div>
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">重要度</label>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">優先度</label>
                 <Select v-model="editedPriority">
                   <SelectTrigger class="h-8 text-xs border-input">
                     <div class="flex items-center gap-2">

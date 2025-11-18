@@ -185,9 +185,18 @@ const sortedNotes = computed(() => {
             @click="selectedNote = note"
           >
             <div class="flex items-start justify-between mb-2">
-              <h4 class="flex-1">
-                {{ note.title }}
-              </h4>
+              <div class="flex-1">
+                <h4 class="mb-1">{{ note.title }}</h4>
+                <div v-if="note.progress !== undefined && note.progress !== null" class="flex items-center gap-2">
+                  <div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      class="h-full bg-blue-500 transition-all duration-300" 
+                      :style="{ width: `${note.progress}%` }"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-600">{{ note.progress }}%</span>
+                </div>
+              </div>
               <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5']">
                 {{ getPriorityInfo(note.priority as Priority).label }}
               </Badge>

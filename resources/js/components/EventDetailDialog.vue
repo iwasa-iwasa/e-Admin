@@ -320,5 +320,6 @@ const recurrenceText = computed(() => {
         </div>
       </div>
     </Transition>
-  </Dialog>
+
+</Dialog>
 </template>

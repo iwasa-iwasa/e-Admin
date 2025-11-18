@@ -106,7 +106,7 @@
                     <SelectItem value="高">
                       <div class="flex items-center gap-2">
                         <AlertCircle class="h-4 w-4 text-red-600" />
-                        高
+                        重要
                       </div>
                     </SelectItem>
                     <SelectItem value="中">
