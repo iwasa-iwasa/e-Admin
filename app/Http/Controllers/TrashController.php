@@ -28,16 +28,29 @@ class TrashController extends Controller
             \Log::info('Found trash items: ' . $trashItems->count());
             
             $mappedItems = $trashItems->map(function ($item) {
+                $description = '';
+                
+                // アイテムタイプに応じて詳細情報を取得
+                if ($item->item_type === 'shared_note') {
+                    $note = \App\Models\SharedNote::where('note_id', $item->item_id)->first();
+                    $description = $note ? $note->content : '';
+                } elseif ($item->item_type === 'survey') {
+                    $survey = \App\Models\Survey::where('survey_id', $item->item_id)->first();
+                    $description = $survey ? $survey->description : '';
+                } elseif ($item->item_type === 'reminder') {
+                    $reminder = \App\Models\Reminder::where('reminder_id', $item->item_id)->first();
+                    $description = $reminder ? $reminder->description : '';
+                }
+                
                 $mapped = [
                     'id' => (string)$item->id,
                     'type' => $item->item_type,
                     'title' => $item->original_title,
+                    'description' => $description,
                     'deletedAt' => $item->deleted_at->format('Y-m-d H:i'),
                     'item_id' => (string)$item->item_id,
                     'permanent_delete_at' => $item->permanent_delete_at ? $item->permanent_delete_at->format('Y-m-d H:i') : null,
                 ];
-                \Log::info('Raw item ID: ' . $item->id);
-                \Log::info('Mapped item: ', $mapped);
                 return $mapped;
             });
             
@@ -140,25 +153,29 @@ class TrashController extends Controller
             
             $trashItem = TrashItem::where('id', $id)
                 ->where('user_id', Auth::id())
-                ->firstOrFail();
+                ->first();
+                
+            if (!$trashItem) {
+                \Log::error('TrashItem not found for ID: ' . $id);
+                return back()->with('error', 'アイテムが見つかりません。');
+            }
 
             \DB::transaction(function () use ($trashItem) {
                 if ($trashItem->item_type === 'shared_note') {
                     // メモを完全削除
-                    \App\Models\SharedNote::where('note_id', $trashItem->item_id)
-                        ->delete();
+                    \App\Models\SharedNote::where('note_id', $trashItem->item_id)->delete();
                 }
                 
                 if ($trashItem->item_type === 'reminder') {
                     // リマインダーを完全削除
-                    \App\Models\Reminder::where('reminder_id', $trashItem->item_id)
-                        ->delete();
+                    \App\Models\Reminder::where('reminder_id', $trashItem->item_id)->delete();
                 }
                 
                 if ($trashItem->item_type === 'survey') {
                     // アンケートを完全削除
                     $survey = \App\Models\Survey::where('survey_id', $trashItem->item_id)->first();
                     if ($survey) {
+                        // 関連データを削除
                         $survey->questions()->each(function ($question) {
                             $question->options()->delete();
                         });
@@ -179,7 +196,8 @@ class TrashController extends Controller
             return back()->with('success', 'アイテムを完全に削除しました。');
         } catch (\Exception $e) {
             \Log::error('TrashController destroy error: ' . $e->getMessage());
-            return back()->with('error', '削除に失敗しました。');
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return back()->with('error', '削除に失敗しました: ' . $e->getMessage());
         }
     }
 
