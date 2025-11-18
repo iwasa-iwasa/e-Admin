@@ -75,4 +75,20 @@ class Survey extends Model
     {
         return $this->hasMany(SurveyResponse::class, 'survey_id', 'survey_id');
     }
+
+    /**
+     * Get the designated respondents for the survey.
+     */
+    public function respondents()
+    {
+        return $this->hasMany(SurveyRespondent::class, 'survey_id', 'survey_id');
+    }
+
+    /**
+     * Get the users who are designated to respond to this survey.
+     */
+    public function designatedUsers()
+    {
+        return $this->belongsToMany(User::class, 'survey_respondents', 'survey_id', 'user_id');
+    }
 }

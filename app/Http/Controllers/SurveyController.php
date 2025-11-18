@@ -24,18 +24,40 @@ class SurveyController extends Controller
     {
         $userId = Auth::id();
         
-        $surveys = Survey::with(['creator', 'questions.options', 'responses.respondent'])
+        $surveys = Survey::with(['creator', 'questions.options', 'responses.respondent', 'designatedUsers'])
             ->where('is_deleted', false)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($survey) use ($userId) {
                 $survey->has_responded = $survey->responses()->where('respondent_id', $userId)->exists();
+                
+                // 回答済み者の名前
                 $survey->respondent_names = $survey->responses->pluck('respondent.name')->filter()->values();
+                
+                // 未回答者の名前
+                $respondedUserIds = $survey->responses->pluck('respondent_id')->toArray();
+                $survey->unanswered_names = $survey->designatedUsers
+                    ->whereNotIn('id', $respondedUserIds)
+                    ->pluck('name')
+                    ->values();
+                
                 return $survey;
+            });
+
+        // チームメンバーを取得
+        $teamMembers = \App\Models\User::select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                ];
             });
 
         return Inertia::render('Surveys', [
             'surveys' => $surveys,
+            'teamMembers' => $teamMembers,
         ]);
     }
 
@@ -57,6 +79,8 @@ class SurveyController extends Controller
             'questions.*.required' => ['boolean'],
             'questions.*.options' => ['array'],
             'questions.*.options.*' => ['string'],
+            'respondents' => ['array'],
+            'respondents.*' => ['integer', 'exists:users,id'],
             'isDraft' => ['boolean'],
         ], [
             'title.required' => 'アンケートタイトルは必須です。',
@@ -128,9 +152,16 @@ class SurveyController extends Controller
                         }
                     }
                 }
+            }
 
-                // スケール形式の質問の場合、最小値・最大値を保存（必要に応じて）
-                // 現在のスキーマではスケール値は保存されないため、必要に応じて拡張可能
+            // 回答者を保存
+            if (!empty($request->respondents)) {
+                foreach ($request->respondents as $userId) {
+                    \App\Models\SurveyRespondent::create([
+                        'survey_id' => $survey->survey_id,
+                        'user_id' => $userId,
+                    ]);
+                }
             }
 
             DB::commit();
@@ -182,9 +213,21 @@ class SurveyController extends Controller
                 return $survey;
             });
 
+        // チームメンバーを取得
+        $teamMembers = \App\Models\User::select('id', 'name')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                ];
+            });
+
         return Inertia::render('Surveys', [
             'surveys' => $surveys,
             'editSurvey' => $editSurvey,
+            'teamMembers' => $teamMembers,
         ]);
     }
 
@@ -437,13 +480,19 @@ class SurveyController extends Controller
     public function results(Survey $survey)
     {
         // アンケート本体と質問を取得
-        $survey->load(['questions.options', 'creator']);
+        $survey->load(['questions.options', 'creator', 'designatedUsers']);
 
         // このアンケートの回答データを取得
         $responses = $survey->responses()
             ->with(['answers.question', 'respondent'])
             ->latest('submitted_at')
             ->get();
+
+        // 未回答者を取得
+        $respondedUserIds = $responses->pluck('respondent_id')->toArray();
+        $unansweredUsers = $survey->designatedUsers
+            ->whereNotIn('id', $respondedUserIds)
+            ->values();
 
         // 統計データの計算
         $statistics = $this->calculateStatistics($survey, $responses);
@@ -452,6 +501,7 @@ class SurveyController extends Controller
             'survey' => $survey,
             'responses' => $responses,
             'statistics' => $statistics,
+            'unansweredUsers' => $unansweredUsers,
         ]);
     }
 

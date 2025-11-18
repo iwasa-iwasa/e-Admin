@@ -229,8 +229,7 @@ const COLORS = [
     "#84cc16",
 ];
 
-const departmentFilter = ref("all");
-const periodFilter = ref("all");
+
 
 const { toast } = useToast();
 
@@ -238,6 +237,7 @@ const props = defineProps<{
     survey?: App.Models.Survey;
     responses?: App.Models.SurveyResponse[];
     statistics?: any;
+    unansweredUsers?: Array<{id: number, name: string}>;
 }>();
 
 const handleDownloadCSV = () => {
@@ -259,11 +259,10 @@ const handleDownloadCSV = () => {
 
 // 実際のデータから計算
 const responseRate = computed(() => {
-    if (!props.survey || !props.responses) {
+    if (!props.responses) {
         return 0;
     }
-    // 総ユーザー数は仮に設定（実際の実装ではユーザー数を取得）
-    const totalUsers = 10; // 仮の値
+    const totalUsers = (props.responses.length || 0) + (props.unansweredUsers?.length || 0);
     const respondedCount = props.responses.length;
     return totalUsers > 0 ? (respondedCount / totalUsers) * 100 : 0;
 });
@@ -281,7 +280,7 @@ const surveyData = computed(() => {
             status: props.survey.is_active ? "active" : "closed",
             category: "イベント", // カテゴリは現在DBに保存されていないため
             totalRespondents: props.responses?.length || 0,
-            totalNonRespondents: 0, // 仮の値
+            totalNonRespondents: props.unansweredUsers?.length || 0,
             questions:
                 props.survey.questions?.map((q: any) => {
                     const questionStats =
@@ -371,34 +370,31 @@ const getQuestionResponses = (
 
 <template>
     <Head title="アンケート結果" />
-    <div class="min-h-screen bg-gray-50">
-        <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+    <div class="max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+        <Card class="h-full overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
                         <Button
                             variant="ghost"
                             size="icon"
                             @click="router.get('/surveys')"
+                            class="mr-1"
                         >
                             <ArrowLeft class="h-5 w-5" />
                         </Button>
-                        <div>
-                            <h1 class="text-blue-600">アンケート結果</h1>
-                            <p class="text-xs text-gray-500">集計結果の分析</p>
-                        </div>
+                        <h1 class="text-blue-600">アンケート結果</h1>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <Button @click="handleDownloadCSV" variant="outline" class="gap-2">
-                            <Download class="h-4 w-4" />
-                            CSVダウンロード
-                        </Button>
-                    </div>
+                    <Button @click="handleDownloadCSV" variant="outline" class="gap-2">
+                        <Download class="h-4 w-4" />
+                        CSVダウンロード
+                    </Button>
                 </div>
+                <p class="text-sm text-gray-500">集計結果の分析</p>
             </div>
-        </header>
-
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+            
+            <ScrollArea class="h-[calc(100vh-240px)]">
+                <div class="p-6 space-y-6">
             <Card class="mb-6">
                 <CardHeader>
                     <div class="flex items-start justify-between">
@@ -444,7 +440,7 @@ const getQuestionResponses = (
                         <div
                             class="bg-blue-50 border border-blue-200 rounded-lg p-4"
                         >
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-3 mb-3">
                                 <div class="p-3 bg-blue-100 rounded-lg">
                                     <CheckCircle2
                                         class="h-6 w-6 text-blue-600"
@@ -459,11 +455,20 @@ const getQuestionResponses = (
                                     </p>
                                 </div>
                             </div>
+                            <div class="flex flex-wrap gap-1">
+                                <span v-if="surveyData.totalRespondents === 0" class="text-sm text-gray-400">まだ回答者がいません</span>
+                                <Badge v-else v-for="response in (props.responses || [])"
+                                    :key="response.response_id"
+                                    variant="outline"
+                                    class="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                                    {{ response.respondent?.name || '匿名' }}
+                                </Badge>
+                            </div>
                         </div>
                         <div
                             class="bg-orange-50 border border-orange-200 rounded-lg p-4"
                         >
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-3 mb-3">
                                 <div class="p-3 bg-orange-100 rounded-lg">
                                     <AlertCircle
                                         class="h-6 w-6 text-orange-600"
@@ -475,6 +480,15 @@ const getQuestionResponses = (
                                         {{ surveyData.totalNonRespondents }}名
                                     </p>
                                 </div>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                <span v-if="surveyData.totalNonRespondents === 0" class="text-sm text-gray-400">全員回答済み</span>
+                                <Badge v-else v-for="user in (props.unansweredUsers || [])"
+                                    :key="user.id"
+                                    variant="outline"
+                                    class="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                                    {{ user.name }}
+                                </Badge>
                             </div>
                         </div>
                         <div
@@ -502,42 +516,7 @@ const getQuestionResponses = (
                 </CardContent>
             </Card>
 
-            <Card class="mb-6">
-                <CardContent class="pt-6">
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-2">
-                            <Filter class="h-4 w-4 text-gray-500" />
-                            <span class="text-sm text-gray-600"
-                                >フィルター:</span
-                            >
-                        </div>
-                        <Select v-model="departmentFilter">
-                            <SelectTrigger class="w-[180px]">
-                                <SelectValue placeholder="部署で絞り込み" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all"
-                                    >すべての部署</SelectItem
-                                >
-                                <SelectItem value="soumu">総務部</SelectItem>
-                                <SelectItem value="jinji">人事部</SelectItem>
-                                <SelectItem value="keiri">経理部</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select v-model="periodFilter">
-                            <SelectTrigger class="w-[180px]">
-                                <SelectValue placeholder="期間で絞り込み" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">全期間</SelectItem>
-                                <SelectItem value="today">今日</SelectItem>
-                                <SelectItem value="week">今週</SelectItem>
-                                <SelectItem value="month">今月</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardContent>
-            </Card>
+
 
             <div class="space-y-6">
                 <div class="flex items-center justify-between">
@@ -895,6 +874,8 @@ const getQuestionResponses = (
                     </CardContent>
                 </Card>
             </div>
-        </main>
+                </div>
+            </ScrollArea>
+        </Card>
     </div>
 </template>
