@@ -42,6 +42,7 @@ const emit = defineEmits<{
 
 const isEditing = ref(false)
 const editedNote = ref<App.Models.SharedNote | null>(null)
+const participantSelectValue = ref<string | null>(null)
 const tagInput = ref('')
 const saveMessage = ref('')
 const currentUserId = computed(() => (usePage().props as any).auth?.user?.id ?? null)
@@ -71,6 +72,7 @@ watch(() => props.note, (newNote) => {
     editedNote.value = null
   }
   isEditing.value = false
+  participantSelectValue.value = null
   tagInput.value = ''
 }, { deep: true })
 
@@ -117,10 +119,30 @@ const handleEdit = () => {
 }
 
 const handleSave = () => {
-  if (editedNote.value) {
-    emit('save', editedNote.value)
-    isEditing.value = false
+  if (!editedNote.value) return
+  
+  const updateData = {
+    title: editedNote.value.title,
+    content: editedNote.value.content,
+    deadline: editedNote.value.deadline || null,
+    priority: editedNote.value.priority,
+    color: editedNote.value.color,
+    tags: editedNote.value.tags?.map(tag => tag.tag_name) || [],
+    participants: editedNote.value.participants?.map(p => p.id) || []
   }
+  
+  router.put(route('shared-notes.update', editedNote.value.note_id), updateData, {
+    preserveScroll: true,
+    preserveState: true,
+    onSuccess: () => {
+      emit('save', editedNote.value!)
+      isEditing.value = false
+      showMessage('メモが保存されました。', 'success')
+    },
+    onError: () => {
+      showMessage('保存に失敗しました。', 'success')
+    }
+  })
 }
 
 const handleTogglePin = () => {
@@ -202,6 +224,8 @@ const handleAddParticipant = (memberId: unknown) => {
     }
     editedNote.value.participants.push(member)
   }
+  // Selectの値をクリア
+  participantSelectValue.value = null
 }
 
 const handleRemoveParticipant = (participantId: number) => {
@@ -292,8 +316,8 @@ const editedContent = computed({
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="closeDialog">
-    <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]">
+  <Dialog :open="open" @update:open="closeDialog" :modal="true">
+    <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]" @click.stop>
       <DialogHeader>
         <div class="flex flex-col items-startgap-4">
           <div class="flex items-center  justify-between ">
@@ -459,7 +483,7 @@ const editedContent = computed({
             </div>
           </template>
           <template v-else>
-            <Select @update:model-value="handleAddParticipant">
+            <Select v-model="participantSelectValue" @update:model-value="handleAddParticipant">
               <SelectTrigger class="h-8 text-xs">
                 <SelectValue placeholder="メンバーを選択..." />
               </SelectTrigger>

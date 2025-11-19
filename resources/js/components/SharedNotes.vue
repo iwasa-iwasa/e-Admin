@@ -37,10 +37,8 @@ const handleUpdateNote = (updatedNote: App.Models.SharedNote) => {
 }
 
 const handleSaveNote = (updatedNote: App.Models.SharedNote) => {
-  // Save the note via API call
-  // This is a simplified version - in a real app you'd make an API call
+  // NoteDetailDialogで既に保存処理を行っているので、ここではローカル更新のみ
   handleUpdateNote(updatedNote)
-  showMessage('メモが保存されました。')
 }
 
 const handleDeleteNote = (deletedNote: App.Models.SharedNote) => {
