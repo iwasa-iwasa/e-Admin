@@ -166,7 +166,7 @@ const handleEmptyTrash = () => {
 <template>
   <div>
     <Head title="ゴミ箱" />
-    <div class="max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+    <div class="max-w-[1800px] mx-auto h-full p-6">
       <Card class="h-full overflow-hidden">
         <div class="p-4 border-b border-gray-200">
           <div class="flex items-center justify-between mb-4">

@@ -265,7 +265,7 @@ const handleUndoDelete = () => {
 
 <template>
     <Head title="アンケート管理" />
-    <div class="max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+    <div class="max-w-[1800px] mx-auto h-full p-6">
         <Card class="h-full overflow-hidden flex flex-col">
             <div class="p-4 border-b border-gray-200">
                 <div class="flex items-center justify-between mb-4">

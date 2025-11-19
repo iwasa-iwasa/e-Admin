@@ -68,7 +68,8 @@ const currentURL = computed(() => page.url )
 </script>
 
 <template>
-  <aside class="w-64 bg-white border-r border-gray-200 flex flex-col overflow-y-auto h-screen">
+  <aside class="w-64 bg-white border-r border-gray-200 flex flex-col h-screen">
+    <ScrollArea>
     
     <!-- ナビゲーション -->
     
@@ -210,5 +211,6 @@ const currentURL = computed(() => page.url )
         </div>
       </ScrollArea>
     </nav>
+  </ScrollArea>
   </aside>
 </template>
