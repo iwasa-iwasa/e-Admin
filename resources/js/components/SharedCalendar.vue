@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import { all } from 'axios'
+import ScrollArea from './ui/scroll-area/ScrollArea.vue'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -212,9 +213,11 @@ const changeView = (view: any) => {
     </CardHeader>
 
     <CardContent class="flex flex-1 overflow-y-auto">
+      <ScrollArea class="h-full">
       <div class="w-full h-full flex-1">
         <FullCalendar ref="fullCalendar" :options="calendarOptions"/>
       </div>
+      </ScrollArea>
     </CardContent>
 
     <CardContent>
