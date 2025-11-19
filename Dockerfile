@@ -35,10 +35,13 @@ RUN npm install && npm run build
 # 8. パーミッションの設定
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 9. Apacheの設定 (DocumentRootをpublicに向ける)
+# 9. Apacheの設定 (DocumentRootをpublicに向ける & .htaccessを有効化)
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+
+# ここが追加箇所です：AllowOverride None を AllowOverride All に書き換える
+RUN sed -ri -e 's!AllowOverride None!AllowOverride All!g' /etc/apache2/apache2.conf
 
 # 10. mod_rewriteを有効化 (Laravelのルーティングに必要)
 RUN a2enmod rewrite
