@@ -310,7 +310,7 @@ const handleUndoDelete = () => {
                         </TabsTrigger>
                         <TabsTrigger value="active" class="gap-2 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-green-200 data-[state=active]:text-green-800">
                             <CheckCircle2 class="h-4 w-4" />
-                            アクティブ ({{
+                            回答受付中 ({{
                                 surveys.filter((s) => {
                                     const now = new Date();
                                     const deadline = s.deadline ? new Date(s.deadline) : null;

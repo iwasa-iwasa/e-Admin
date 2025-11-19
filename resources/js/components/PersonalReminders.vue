@@ -164,7 +164,7 @@ const confirmPermanentDelete = () => {
               :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', !showCompleted ? 'bg-white shadow-sm border border-input text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <Clock :class="['h-3.5 w-3.5', !showCompleted ? 'text-blue-500' : 'text-gray-400']" />
-              アクティブ
+              未完了
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ activeCount }}
               </Badge>
@@ -260,7 +260,7 @@ const confirmPermanentDelete = () => {
                   <CheckCircle v-if="reminder.completed" class="h-4 w-4 text-green-600" />
                   <Clock v-else class="h-4 w-4 text-blue-600" />
                   <span :class="reminder.completed ? 'text-green-600' : 'text-blue-600'">
-                    {{ reminder.completed ? '完了済み' : 'アクティブ' }}
+                    {{ reminder.completed ? '完了済み' : '未完了' }}
                   </span>
                 </div>
               </div>
