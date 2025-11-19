@@ -176,7 +176,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
         <Card>
           <CardHeader>
             <CardTitle class="flex items-center justify-between">
-              <span>アクティブ</span>
+              <span>未完了</span>
               <Badge>{{ activeReminders.length }}件</Badge>
             </CardTitle>
           </CardHeader>
@@ -210,7 +210,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
                 </div>
                 <div v-if="activeReminders.length === 0" class="text-center py-12 text-gray-500">
                   <Bell class="h-12 w-12 mx-auto mb-4 opacity-30" />
-                  <p>アクティブなリマインダーはありません</p>
+                  <p>未完了のリマインダーはありません</p>
                 </div>
               </div>
             </ScrollArea>

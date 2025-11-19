@@ -427,7 +427,7 @@ const getQuestionResponses = (
                                 >
                                     {{
                                         surveyData.status === "active"
-                                            ? "アクティブ"
+                                            ? "未完了"
                                             : "終了"
                                     }}
                                 </Badge>
