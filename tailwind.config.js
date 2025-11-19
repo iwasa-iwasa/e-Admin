@@ -101,5 +101,16 @@ export default {
     	}
     },
 
-    plugins: [forms, require("tailwindcss-animate")],
+    plugins: [forms, require("tailwindcss-animate"), function({ addUtilities }) {
+        addUtilities({
+            '.scrollbar-hide': {
+                /* Firefox */
+                'scrollbar-width': 'none',
+                /* Chrome, Safari and Opera */
+                '&::-webkit-scrollbar': {
+                    'display': 'none',
+                },
+            },
+        })
+    }],
 };

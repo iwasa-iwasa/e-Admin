@@ -299,7 +299,7 @@ const handleSurveySubmit = () => {
               </Badge>
             </Button>
           </PopoverTrigger>
-          <PopoverContent class="w-[420px] p-0" align="end">
+          <PopoverContent class="w-[420px] p-0 max-h-[80vh] flex flex-col" align="end">
             <div class="p-4 border-b border-gray-200">
               <h3 class="flex items-center gap-2">
                 <Bell class="h-5 w-5 text-blue-600" />
@@ -309,9 +309,9 @@ const handleSurveySubmit = () => {
                 重要な予定、メモ、アンケートをまとめて確認
               </p>
             </div>
-
-            <ScrollArea class="max-h-[600px]">
-              <!-- 重要な予定 -->
+            
+            <!-- 重要な予定 -->
+            <div class="flex-1 overflow-y-auto scrollbar-hide">
               <div v-if="importantEvents.length > 0" class="p-3 border-b border-gray-200">
                 <div class="flex items-center gap-2 mb-2">
                   <Calendar class="h-4 w-4 text-red-500" />
@@ -322,73 +322,73 @@ const handleSurveySubmit = () => {
                 </div>
                 <div class="space-y-2">
                   <div
-                    v-for="event in importantEvents"
-                    :key="event.id"
-                    class="p-2 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 cursor-pointer transition-colors"
-                    @click="selectedEvent = event"
-                  >
-                    <div class="text-sm mb-1">{{ event.title }}</div>
-                    <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>{{ event.date }}</span>
-                      <Badge variant="outline" class="text-xs">
-                        {{ event.assignee }}
-                      </Badge>
+                  v-for="event in importantEvents"
+                  :key="event.id"
+                      class="p-2 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 cursor-pointer transition-colors"
+                      @click="selectedEvent = event"
+                    >
+                      <div class="text-sm mb-1">{{ event.title }}</div>
+                      <div class="text-xs text-gray-600 flex items-center justify-between">
+                        <span>{{ event.date }}</span>
+                        <Badge variant="outline" class="text-xs">
+                          {{ event.assignee }}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <!-- 重要なメモ -->
-              <div v-if="importantNotes.length > 0" class="p-3 border-b border-gray-200">
-                <div class="flex items-center gap-2 mb-2">
-                  <StickyNote class="h-4 w-4 text-yellow-600" />
-                  <h4 class="text-sm">重要なメモ</h4>
-                  <Badge class="ml-auto text-xs bg-yellow-500">
-                    {{ importantNotes.length }}件
-                  </Badge>
-                </div>
-                <div class="space-y-2">
-                  <div
-                    v-for="note in importantNotes"
-                    :key="note.id"
-                    class="p-2 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors"
-                    @click="selectedNote = note"
-                  >
-                    <div class="text-sm mb-1">{{ note.title }}</div>
-                    <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>期限: {{ note.deadline }}</span>
-                      <Badge variant="outline" class="text-xs">
-                        {{ note.author }}
-                      </Badge>
+  
+                <!-- 重要なメモ -->
+                <div v-if="importantNotes.length > 0" class="p-3 border-b border-gray-200">
+                  <div class="flex items-center gap-2 mb-2">
+                    <StickyNote class="h-4 w-4 text-yellow-600" />
+                    <h4 class="text-sm">重要なメモ</h4>
+                    <Badge class="ml-auto text-xs bg-yellow-500">
+                      {{ importantNotes.length }}件
+                    </Badge>
+                  </div>
+                  <div class="space-y-2">
+                    <div
+                      v-for="note in importantNotes"
+                      :key="note.id"
+                      class="p-2 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors"
+                      @click="selectedNote = note"
+                    >
+                      <div class="text-sm mb-1">{{ note.title }}</div>
+                      <div class="text-xs text-gray-600 flex items-center justify-between">
+                        <span>期限: {{ note.deadline }}</span>
+                        <Badge variant="outline" class="text-xs">
+                          {{ note.author }}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <!-- 未完了アンケート -->
-              <div v-if="pendingSurveys.length > 0" class="p-3">
-                <div class="flex items-center gap-2 mb-2">
-                  <BarChart3 class="h-4 w-4 text-blue-600" />
-                  <h4 class="text-sm">未回答アンケート</h4>
-                  <Badge class="ml-auto text-xs bg-blue-500">
-                    {{ pendingSurveys.length }}件
-                  </Badge>
-                </div>
-                <div class="space-y-2">
-                  <div
-                    v-for="survey in pendingSurveys"
-                    :key="survey.id"
-                    class="p-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors"
-                    @click="selectedSurvey = survey"
-                  >
-                    <div class="text-sm mb-1">{{ survey.title }}</div>
-                    <div class="text-xs text-gray-600">
-                      回答期限: {{ survey.deadline }}
+  
+                <!-- 未完了アンケート -->
+                <div v-if="pendingSurveys.length > 0" class="p-3">
+                  <div class="flex items-center gap-2 mb-2">
+                    <BarChart3 class="h-4 w-4 text-blue-600" />
+                    <h4 class="text-sm">未回答アンケート</h4>
+                    <Badge class="ml-auto text-xs bg-blue-500">
+                      {{ pendingSurveys.length }}件
+                    </Badge>
+                  </div>
+                  <div class="space-y-2">
+                    <div
+                      v-for="survey in pendingSurveys"
+                      :key="survey.id"
+                      class="p-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors"
+                      @click="selectedSurvey = survey"
+                    >
+                      <div class="text-sm mb-1">{{ survey.title }}</div>
+                      <div class="text-xs text-gray-600">
+                        回答期限: {{ survey.deadline }}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </ScrollArea>
+            </div>
           </PopoverContent>
         </Popover>
 
