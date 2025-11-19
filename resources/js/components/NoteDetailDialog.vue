@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { User, Clock, Edit2, Save, X, MapPin, Trash2, CheckCircle, Undo2 } from 'lucide-vue-next'
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,8 @@ type Priority = 'high' | 'medium' | 'low'
 interface Props {
   note: App.Models.SharedNote | null
   open: boolean
+  teamMembers?: App.Models.User[]
+  totalUsers?: number
 }
 
 const props = defineProps<Props>()
@@ -42,6 +44,19 @@ const isEditing = ref(false)
 const editedNote = ref<App.Models.SharedNote | null>(null)
 const tagInput = ref('')
 const saveMessage = ref('')
+const currentUserId = computed(() => (usePage().props as any).auth?.user?.id ?? null)
+
+const isAllUsers = (participants: any[]) => {
+  return participants && props.totalUsers && participants.length === props.totalUsers
+}
+
+const canEditParticipants = computed(() => {
+  if (!props.note) return false
+  // 作成者は常に編集可能
+  if (props.note.author?.id === currentUserId.value) return true
+  // 参加者のみ編集可能
+  return props.note.participants?.some(p => p.id === currentUserId.value) || false
+})
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const lastDeletedNote = ref<App.Models.SharedNote | null>(null)
@@ -176,6 +191,25 @@ const handleRemoveTag = (tagToRemove: string) => {
   }
 }
 
+const handleAddParticipant = (memberId: unknown) => {
+  if (memberId === null || memberId === undefined || !editedNote.value) return
+  const id = Number(memberId as any)
+  if (Number.isNaN(id)) return
+  const member = props.teamMembers?.find((m) => m.id === id)
+  if (member && !editedNote.value.participants?.find((p) => p.id === member.id)) {
+    if (!editedNote.value.participants) {
+      editedNote.value.participants = []
+    }
+    editedNote.value.participants.push(member)
+  }
+}
+
+const handleRemoveParticipant = (participantId: number) => {
+  if (editedNote.value?.participants) {
+    editedNote.value.participants = editedNote.value.participants.filter((p) => p.id !== participantId)
+  }
+}
+
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
   if (messageTimer.value) {
     clearTimeout(messageTimer.value)
@@ -296,6 +330,19 @@ const editedContent = computed({
             <User class="h-4 w-4" />
             <span>{{ currentNote.author?.name || 'N/A' }}</span>
           </div>
+          <div v-if="currentNote.participants && currentNote.participants.length > 0" class="flex items-center gap-1">
+            <Badge v-if="isAllUsers(currentNote.participants)" variant="secondary" class="text-xs px-1 py-0">
+              全員
+            </Badge>
+            <template v-else>
+              <Badge v-for="participant in currentNote.participants.slice(0, 2)" :key="participant.id" variant="secondary" class="text-xs px-1 py-0">
+                {{ participant.name }}
+              </Badge>
+              <Badge v-if="currentNote.participants.length > 2" variant="secondary" class="text-xs px-1 py-0">
+                +{{ currentNote.participants.length - 2 }}
+              </Badge>
+            </template>
+          </div>
           <div class="flex items-center gap-1">
             <Clock class="h-4 w-4" />
             <span>{{ new Date(currentNote.updated_at || currentNote.created_at).toLocaleDateString() }}</span>
@@ -397,6 +444,40 @@ const editedContent = computed({
               <X class="h-2 w-2" />
             </button>
           </Badge>
+        </div>
+        <!-- 参加者編集UI -->
+        <div v-if="isEditing && editedNote" class="space-y-2 mt-3">
+          <label class="text-xs font-medium text-gray-700 block">共有メンバー</label>
+          <template v-if="!canEditParticipants">
+            <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+              共有メンバーの変更は作成者または参加者のみ可能です
+            </div>
+          </template>
+          <template v-else-if="isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId">
+            <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+              全員共有のメモは作成者のみが共有設定を変更できます
+            </div>
+          </template>
+          <template v-else>
+            <Select @update:model-value="handleAddParticipant">
+              <SelectTrigger class="h-8 text-xs">
+                <SelectValue placeholder="メンバーを選択..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="member in props.teamMembers?.filter(m => !editedNote.participants?.find(p => p.id === m.id) && m.id !== editedNote.author?.id)" :key="member.id" :value="member.id">
+                  {{ member.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </template>
+          <div v-if="editedNote.participants && editedNote.participants.length > 0" class="flex flex-wrap gap-1">
+            <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">
+              {{ participant.name }}
+              <button v-if="canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                <X class="h-2 w-2" />
+              </button>
+            </Badge>
+          </div>
         </div>
       </div>
 

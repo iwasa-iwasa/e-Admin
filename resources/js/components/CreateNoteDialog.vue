@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useForm } from "@inertiajs/vue3";
+import { ref, computed } from "vue";
+import { useForm, usePage } from "@inertiajs/vue3";
 import { Save, X, CheckCircle } from "lucide-vue-next";
 import {
     Dialog,
@@ -23,11 +23,13 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Priority = "high" | "medium" | "low";
 
-defineProps<{
+const props = defineProps<{
     open: boolean;
+    teamMembers?: App.Models.User[];
 }>();
 const emit = defineEmits(["update:open"]);
 
@@ -38,6 +40,7 @@ const form = useForm<{
     deadline: string;
     tags: string[];
     color: string;
+    participants: number[];
 }>({
     title: "",
     content: "",
@@ -45,11 +48,15 @@ const form = useForm<{
     deadline: "",
     tags: [] as string[],
     color: "yellow",
+    participants: [] as number[],
 });
 
 const tagInput = ref("");
+const selectedParticipants = ref<App.Models.User[]>([]);
+const activeTab = ref("basic");
 
 const { toast } = useToast();
+const currentUserId = computed(() => (usePage().props as any).auth?.user?.id ?? null)
 const saveMessage = ref('')
 const messageTimer = ref<number | null>(null)
 
@@ -96,7 +103,10 @@ const handleSave = () => {
 const handleClose = () => {
     form.reset();
     form.tags = [];
+    form.participants = [];
+    selectedParticipants.value = [];
     tagInput.value = "";
+    activeTab.value = "basic";
     emit("update:open", false);
 };
 
@@ -110,6 +120,22 @@ const handleAddTag = () => {
 const handleRemoveTag = (tagToRemove: string) => {
     form.tags = form.tags.filter((tag) => tag !== tagToRemove);
 };
+
+const handleAddParticipant = (memberId: unknown) => {
+    if (memberId === null || memberId === undefined) return
+    const id = Number(memberId as any)
+    if (Number.isNaN(id)) return
+    const member = props.teamMembers?.find((m) => m.id === id)
+    if (member && !selectedParticipants.value.find((p) => p.id === member.id)) {
+        selectedParticipants.value.push(member)
+        form.participants.push(member.id)
+    }
+}
+
+const handleRemoveParticipant = (participantId: number) => {
+    selectedParticipants.value = selectedParticipants.value.filter((p) => p.id !== participantId)
+    form.participants = form.participants.filter((id) => id !== participantId)
+}
 
 const getPriorityInfo = (p: Priority) => {
     switch (p) {
@@ -136,7 +162,7 @@ const getColorInfo = (c: string) => {
 
 <template>
     <Dialog :open="open" @update:open="handleClose">
-        <DialogContent class="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent class="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>新しい共有メモを作成</DialogTitle>
                 <DialogDescription>
@@ -144,139 +170,177 @@ const getColorInfo = (c: string) => {
                 </DialogDescription>
             </DialogHeader>
 
-            <div class="space-y-4 py-4">
-                <div class="space-y-2">
-                    <Label for="title">タイトル *</Label>
-                    <Input
-                        id="title"
-                        placeholder="メモのタイトル"
-                        v-model="form.title"
-                        autofocus
-                    />
-                </div>
+            <Tabs v-model="activeTab" class="w-full">
+                <TabsList class="grid w-full grid-cols-2">
+                    <TabsTrigger value="basic">基本情報</TabsTrigger>
+                    <TabsTrigger value="settings">その他設定</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="basic" class="space-y-4 mt-4">
+                    <div class="space-y-2">
+                        <Label for="title">タイトル *</Label>
+                        <Input
+                            id="title"
+                            placeholder="メモのタイトル"
+                            v-model="form.title"
+                            autofocus
+                        />
+                    </div>
 
-                <div class="space-y-2">
-                    <Label for="content">内容</Label>
-                    <Textarea
-                        id="content"
-                        placeholder="メモの内容を入力..."
-                        v-model="form.content"
-                        rows="6"
-                    />
-                </div>
+                    <div class="space-y-2">
+                        <Label for="content">内容</Label>
+                        <Textarea
+                            id="content"
+                            placeholder="メモの内容を入力..."
+                            v-model="form.content"
+                            rows="8"
+                        />
+                    </div>
 
-                <div class="space-y-2">
-                    <Label for="priority">優先度</Label>
-                    <Select v-model="form.priority">
-                        <SelectTrigger id="priority">
-                            <div class="flex items-center gap-2">
-                                <Badge
-                                    :class="getPriorityInfo(form.priority).className"
-                                >
-                                    {{ getPriorityInfo(form.priority).label }}
-                                </Badge>
-                            </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="high">
-                                <Badge class="bg-red-600 text-white"
-                                    >重要</Badge
-                                >
-                            </SelectItem>
-                            <SelectItem value="medium">
-                                <Badge class="bg-yellow-500 text-white"
-                                    >中</Badge
-                                >
-                            </SelectItem>
-                            <SelectItem value="low">
-                                <Badge class="bg-gray-400 text-white">低</Badge>
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                    <div class="space-y-2">
+                        <Label for="priority">優先度</Label>
+                        <Select v-model="form.priority">
+                            <SelectTrigger id="priority">
+                                <div class="flex items-center gap-2">
+                                    <Badge
+                                        :class="getPriorityInfo(form.priority).className"
+                                    >
+                                        {{ getPriorityInfo(form.priority).label }}
+                                    </Badge>
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="high">
+                                    <Badge class="bg-red-600 text-white"
+                                        >重要</Badge
+                                    >
+                                </SelectItem>
+                                <SelectItem value="medium">
+                                    <Badge class="bg-yellow-500 text-white"
+                                        >中</Badge
+                                    >
+                                </SelectItem>
+                                <SelectItem value="low">
+                                    <Badge class="bg-gray-400 text-white">低</Badge>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </TabsContent>
+                
+                <TabsContent value="settings" class="space-y-4 mt-4">
+                    <div class="space-y-2">
+                        <Label for="deadline">期限（任意）</Label>
+                        <Input id="deadline" type="datetime-local" v-model="form.deadline" />
+                    </div>
 
-                <div class="space-y-2">
-                    <Label for="deadline">期限（任意）</Label>
-                    <Input id="deadline" type="datetime-local" v-model="form.deadline" />
-                </div>
-
-
-
-                <div class="space-y-2">
-                    <Label for="color">メモの色</Label>
-                    <Select v-model="form.color">
-                        <SelectTrigger id="color">
-                            <div class="flex items-center gap-2">
-                                <div
-                                    :class="[
-                                        'w-4 h-4 rounded',
-                                        getColorInfo(form.color).bg,
-                                    ]"
-                                ></div>
-                                <span>{{ getColorInfo(form.color).label }}</span>
-                            </div>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem
-                                v-for="c in [
-                                    'yellow',
-                                    'blue',
-                                    'green',
-                                    'pink',
-                                    'purple',
-                                ]"
-                                :key="c"
-                                :value="c"
-                            >
+                    <div class="space-y-2">
+                        <Label for="color">メモの色</Label>
+                        <Select v-model="form.color">
+                            <SelectTrigger id="color">
                                 <div class="flex items-center gap-2">
                                     <div
                                         :class="[
                                             'w-4 h-4 rounded',
-                                            getColorInfo(c).bg,
+                                            getColorInfo(form.color).bg,
                                         ]"
                                     ></div>
-                                    <span>{{ getColorInfo(c).label }}</span>
+                                    <span>{{ getColorInfo(form.color).label }}</span>
                                 </div>
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="c in [
+                                        'yellow',
+                                        'blue',
+                                        'green',
+                                        'pink',
+                                        'purple',
+                                    ]"
+                                    :key="c"
+                                    :value="c"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <div
+                                            :class="[
+                                                'w-4 h-4 rounded',
+                                                getColorInfo(c).bg,
+                                            ]"
+                                        ></div>
+                                        <span>{{ getColorInfo(c).label }}</span>
+                                    </div>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <div class="space-y-2">
-                    <Label for="tags">タグ</Label>
-                    <div class="flex gap-2">
-                        <Input
-                            id="tags"
-                            placeholder="タグを追加..."
-                            v-model="tagInput"
-                            @keypress.enter.prevent="handleAddTag"
-                        />
-                        <Button
-                            type="button"
-                            variant="outline"
-                            @click="handleAddTag"
-                        >
-                            追加
-                        </Button>
+                    <div class="space-y-3">
+                        <Label for="participants">共有メンバー（空白の場合は全員に表示）</Label>
+                        <div class="text-xs text-gray-500 mb-2">
+                            利用可能メンバー: {{ props.teamMembers?.length || 0 }}人
+                        </div>
+                        <Select @update:model-value="handleAddParticipant">
+                            <SelectTrigger id="participants" class="min-h-[40px]">
+                                <SelectValue placeholder="メンバーを選択..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId && !selectedParticipants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
+                                    {{ member.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border rounded-md bg-gray-50">
+                            <div class="text-xs font-medium text-gray-700 mb-2">選択されたメンバー:</div>
+                            <div class="flex flex-wrap gap-2">
+                                <Badge v-for="participant in selectedParticipants" :key="participant.id" variant="secondary" class="gap-2 px-3 py-1">
+                                    {{ participant.name }}
+                                    <button @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                                        <X class="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            </div>
+                        </div>
+                        <div v-else class="min-h-[40px] p-3 border rounded-md bg-blue-50 text-blue-700 text-sm">
+                            メンバーが選択されていません（全員に表示されます）
+                        </div>
                     </div>
-                    <div
-                        v-if="form.tags.length > 0"
-                        class="flex flex-wrap gap-2 mt-2"
-                    >
-                        <Badge
-                            v-for="tag in form.tags"
-                            :key="tag"
-                            variant="secondary"
-                            class="gap-2"
+
+                    <div class="space-y-2">
+                        <Label for="tags">タグ</Label>
+                        <div class="flex gap-2">
+                            <Input
+                                id="tags"
+                                placeholder="タグを追加..."
+                                v-model="tagInput"
+                                @keypress.enter.prevent="handleAddTag"
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                @click="handleAddTag"
+                            >
+                                追加
+                            </Button>
+                        </div>
+                        <div
+                            v-if="form.tags.length > 0"
+                            class="flex flex-wrap gap-2 mt-2"
                         >
-                            {{ tag }}
-                            <button @click="handleRemoveTag(tag)">
-                                <X class="h-3 w-3" />
-                            </button>
-                        </Badge>
+                            <Badge
+                                v-for="tag in form.tags"
+                                :key="tag"
+                                variant="secondary"
+                                class="gap-2"
+                            >
+                                {{ tag }}
+                                <button @click="handleRemoveTag(tag)">
+                                    <X class="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </TabsContent>
+            </Tabs>
 
             <DialogFooter>
                 <Button variant="outline" @click="handleClose">

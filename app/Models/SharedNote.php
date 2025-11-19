@@ -95,4 +95,12 @@ class SharedNote extends Model
     {
         return $this->belongsToMany(User::class, 'pinned_notes', 'note_id', 'user_id')->withTimestamps();
     }
+
+    /**
+     * この共有ノートの参加者を取得します。
+     */
+    public function participants(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'shared_note_participants', 'note_id', 'user_id')->withTimestamps();
+    }
 }

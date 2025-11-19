@@ -18,8 +18,15 @@ class NoteController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $notes = SharedNote::with(['author', 'tags'])
+        $notes = SharedNote::with(['author', 'tags', 'participants'])
             ->active()
+            ->where(function($query) use ($user) {
+                $query->where('author_id', $user->id)
+                      ->orWhereHas('participants', function($q) use ($user) {
+                          $q->where('users.id', $user->id);
+                      })
+                      ->orWhereDoesntHave('participants');
+            })
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -34,8 +41,15 @@ class NoteController extends Controller
         // is_pinnedを優先してソート（ピン留めが先頭）、次に更新日でソート（DB取得時に適用済み）
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
+        // 現在のユーザーと同じ部署のメンバーを取得（作成者以外）
+        $teamMembers = \App\Models\User::where('department', $user->department)
+            ->where('id', '!=', $user->id)
+            ->get();
+
         return Inertia::render('Notes', [
             'notes' => $sortedNotes->values(), // ソート後にキーをリセット
+            'totalUsers' => \App\Models\User::where('department', $user->department)->count(),
+            'teamMembers' => $teamMembers,
         ]);
     }
 
@@ -51,6 +65,8 @@ class NoteController extends Controller
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'participants' => ['nullable', 'array'],
+            'participants.*' => ['exists:users,id'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -72,6 +88,11 @@ class NoteController extends Controller
             'deadline_time' => $deadlineTime,
             'progress' => $validated['progress'] ?? 0,
         ]);
+
+        // Add participants (if empty, everyone can see it)
+        if (isset($validated['participants']) && !empty($validated['participants'])) {
+            $note->participants()->attach($validated['participants']);
+        }
 
         return back()->with('success', '新しい共有メモを作成しました！');
     }
@@ -108,6 +129,8 @@ class NoteController extends Controller
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'participants' => ['nullable', 'array'],
+            'participants.*' => ['exists:users,id'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -128,6 +151,11 @@ class NoteController extends Controller
             'deadline_time' => $deadlineTime,
             'progress' => $validated['progress'] ?? 0,
         ]);
+
+        // Update participants
+        if (isset($validated['participants'])) {
+            $note->participants()->sync($validated['participants']);
+        }
 
         return back()->with('success', 'メモを更新しました。');
     }

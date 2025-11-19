@@ -19,6 +19,7 @@ const props = defineProps<{
   personalReminders: App.Models.Reminder[];
   filteredMemberId?: number | null
   teamMembers: App.Models.User[]
+  totalUsers: number
 }>()
 
 const filteredMember = computed(() => {
@@ -52,7 +53,7 @@ const clearFilter = () => {
         </div>
         <div class="flex-[2.1] space-y-6 h-full flex flex-col">
             <div class="flex-[1.1] min-h-0">
-            <SharedNotes :notes="sharedNotes" />
+            <SharedNotes :notes="sharedNotes" :totalUsers="totalUsers" :teamMembers="teamMembers" />
             </div>
             <div class="flex-[1.1] min-h-0">
             <PersonalReminders :reminders="personalReminders" />

@@ -129,7 +129,7 @@ class CalendarController extends Controller
 
         // Save to shared notes if description exists
         if (!empty($validated['description'])) {
-            \App\Models\SharedNote::create([
+            $sharedNote = \App\Models\SharedNote::create([
                 'title' => $validated['title'],
                 'content' => $validated['description'],
                 'priority' => $validated['importance'] === '重要' ? 'high' : ($validated['importance'] === '中' ? 'medium' : 'low'),
@@ -138,6 +138,11 @@ class CalendarController extends Controller
                 'deadline_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
                 'deadline_time' => $validated['is_all_day'] ? '23:59:00' : $validated['end_time'],
             ]);
+            
+            // Add participants to shared note
+            if (isset($validated['participants'])) {
+                $sharedNote->participants()->attach($validated['participants']);
+            }
         }
 
         return redirect()->back();
