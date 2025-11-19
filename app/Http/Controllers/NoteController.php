@@ -49,9 +49,18 @@ class NoteController extends Controller
             'content' => ['nullable', 'string'],
             'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
-            'deadline' => ['nullable', 'date'],
+            'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
+
+        // deadlineをdeadline_dateとdeadline_timeに分割
+        $deadlineDate = null;
+        $deadlineTime = null;
+        if (!empty($validated['deadline'])) {
+            $datetime = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['deadline']);
+            $deadlineDate = $datetime->format('Y-m-d');
+            $deadlineTime = $datetime->format('H:i:s');
+        }
 
         $note = SharedNote::create([
             'title' => $validated['title'],
@@ -59,7 +68,8 @@ class NoteController extends Controller
             'author_id' => Auth::id(),
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
-            'deadline' => $validated['deadline'],
+            'deadline_date' => $deadlineDate,
+            'deadline_time' => $deadlineTime,
             'progress' => $validated['progress'] ?? 0,
         ]);
 
@@ -96,16 +106,26 @@ class NoteController extends Controller
             'content' => ['nullable', 'string'],
             'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
-            'deadline' => ['nullable', 'date'],
+            'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
+
+        // deadlineをdeadline_dateとdeadline_timeに分割
+        $deadlineDate = null;
+        $deadlineTime = null;
+        if (!empty($validated['deadline'])) {
+            $datetime = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['deadline']);
+            $deadlineDate = $datetime->format('Y-m-d');
+            $deadlineTime = $datetime->format('H:i:s');
+        }
 
         $note->update([
             'title' => $validated['title'],
             'content' => $validated['content'],
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
-            'deadline' => $validated['deadline'],
+            'deadline_date' => $deadlineDate,
+            'deadline_time' => $deadlineTime,
             'progress' => $validated['progress'] ?? 0,
         ]);
 

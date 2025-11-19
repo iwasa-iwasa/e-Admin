@@ -48,7 +48,10 @@ const lastDeletedNote = ref<App.Models.SharedNote | null>(null)
 
 watch(() => props.note, (newNote) => {
   if (newNote) {
-    editedNote.value = { ...newNote }
+    editedNote.value = { 
+      ...newNote,
+      deadline: formatDateTimeForInput(newNote.deadline_date, newNote.deadline_time)
+    }
   } else {
     editedNote.value = null
   }
@@ -124,34 +127,20 @@ const closeDialog = () => {
     emit('update:open', false)
 }
 
-// Format date for input[type="date"] (YYYY-MM-DD format)
-const formatDateForInput = (dateString: string | null | undefined): string => {
-  if (!dateString) return ''
+// Format datetime for input[type="datetime-local"] from deadline_date and deadline_time
+const formatDateTimeForInput = (deadlineDate: string | null | undefined, deadlineTime: string | null | undefined): string => {
+  if (!deadlineDate) return ''
   
-  // If already in YYYY-MM-DD format, return as is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return dateString
-  }
-  
-  // Try to parse and format the date
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return ''
-    
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    
-    return `${year}-${month}-${day}`
-  } catch {
-    return ''
-  }
+  const time = deadlineTime ? deadlineTime.substring(0, 5) : '23:59' // HH:mm format
+  return `${deadlineDate}T${time}`
 }
 
 // Watch for deadline changes and format them
 watch(() => editedNote.value?.deadline, (newDeadline) => {
   if (editedNote.value && newDeadline) {
-    editedNote.value.deadline = formatDateForInput(newDeadline)
+    const [date, time] = newDeadline.split('T')
+    editedNote.value.deadline_date = date
+    editedNote.value.deadline_time = time ? `${time}:00` : '23:59:00'
   }
 })
 
@@ -301,28 +290,45 @@ const editedContent = computed({
               </Button>
             </div>
           </div>
-        <div class="flex gap-3 mt-4">
-              <Input
-                type="date"
-                v-model="editedDeadline"
-                class="h-7 w-40 text-xs"
-                aria-label="期限日"
-              />
-            <div class="flex items-center gap-1">
-              <Clock class="h-4 w-4" />
-              <span>{{ formatDate(currentNote.updated_at || currentNote.created_at) }}</span>
+        </div>
+        <div class="flex items-center gap-4 text-sm text-gray-600 pt-2">
+          <div class="flex items-center gap-1">
+            <User class="h-4 w-4" />
+            <span>{{ currentNote.author?.name || 'N/A' }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <Clock class="h-4 w-4" />
+            <span>{{ new Date(currentNote.updated_at || currentNote.created_at).toLocaleDateString() }}</span>
+          </div>
+          <div v-if="isEditing && editedNote" class="flex items-center gap-2">
+            <span class="text-xs">期限:</span>
+            <Input
+              type="datetime-local"
+              v-model="editedNote.deadline"
+              class="h-7 w-48 text-xs"
+              aria-label="期限日時"
+            />
+            <div class="flex items-center gap-2">
+              <span class="text-xs whitespace-nowrap">進捗 ({{ editedNote.progress || 0 }}%):</span>
+              <div class="relative w-24">
+                <div 
+                  class="w-full h-2 rounded-lg overflow-hidden"
+                  :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editedNote.progress || 0}%, #e5e7eb ${editedNote.progress || 0}%, #e5e7eb 100%)` }"
+                >
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  v-model.number="editedNote.progress" 
+                  class="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider absolute top-0"
+                />
+              </div>
             </div>
-            <div v-if="isEditing && editedNote" class="flex items-center gap-2">
-              <span class="text-xs">期限:</span>
-              <Input
-                type="date"
-                v-model="editedDeadline"
-                class="h-7 w-40 text-xs"
-                aria-label="期限日"
-              />
-            </div>
-            <Badge v-else-if="currentNote.deadline" variant="outline" class="text-xs">
-              期限: {{ currentNote.deadline }}
+          </div>
+          <div v-else class="flex items-center gap-2">
+            <Badge variant="outline" class="text-xs">
+              {{ currentNote.deadline_date ? '期限' : '作成日' }}: {{ currentNote.deadline_date ? `${new Date(currentNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(currentNote.deadline_time || '23:59:00').substring(0, 5)}` : new Date(currentNote.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
             </Badge>
           </div>
         </div>

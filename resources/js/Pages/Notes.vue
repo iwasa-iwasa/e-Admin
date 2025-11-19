@@ -426,7 +426,7 @@ const handleRemoveTag = (tagToRemove: string) => {
               :class="sortKey === 'priority' ? 'shadow-md' : 'hover:bg-gray-50'"
             >
               <AlertCircle class="h-3.5 w-3.5 mr-1.5" />
-              <span>重要度順</span>
+              <span>優先度順</span>
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'priority'" 
@@ -516,11 +516,11 @@ const handleRemoveTag = (tagToRemove: string) => {
                 </div>
                 <div class="flex items-center gap-1">
                   <Calendar class="h-3 w-3" />
-                  <span>{{ selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleDateString('ja-JP') : '' }}</span>
+                  <span>{{ selectedNote.deadline_date ? new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
-                  <span>{{ selectedNote.updated_at ? new Date(selectedNote.updated_at).toLocaleDateString('ja-JP') : '' }}</span>
+                  <span>{{ selectedNote.deadline_date ? (selectedNote.deadline_time || '23:59:00').substring(0, 5) : new Date(selectedNote.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) }}</span>
                 </div>
               </div>
             </div>
@@ -538,13 +538,13 @@ const handleRemoveTag = (tagToRemove: string) => {
               <div>
                 <label class="text-xs font-medium text-gray-700 mb-1 block">期限</label>
                 <Input
-                  type="date"
+                  type="datetime-local"
                   v-model="editedDeadline"
                   class="h-8 text-xs"
                 />
               </div>
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">重要度</label>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">優先度</label>
                 <Select v-model="editedPriority">
                   <SelectTrigger class="h-8 text-xs border-input">
                     <div class="flex items-center gap-2">

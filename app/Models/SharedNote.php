@@ -37,7 +37,9 @@ class SharedNote extends Model
         'author_id',
         'color',
         'priority',
-        'deadline',
+        'deadline_date',
+        'deadline_time',
+        'progress',
         'is_deleted',
     ];
 
@@ -94,4 +96,3 @@ class SharedNote extends Model
         return $this->belongsToMany(User::class, 'pinned_notes', 'note_id', 'user_id')->withTimestamps();
     }
 }
-    

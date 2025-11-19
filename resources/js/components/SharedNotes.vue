@@ -185,9 +185,18 @@ const sortedNotes = computed(() => {
             @click="selectedNote = note"
           >
             <div class="flex items-start justify-between mb-2">
-              <h4 class="flex-1">
-                {{ note.title }}
-              </h4>
+              <div class="flex-1">
+                <h4 class="mb-1">{{ note.title }}</h4>
+                <div v-if="note.progress !== undefined && note.progress !== null" class="flex items-center gap-2">
+                  <div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      class="h-full bg-blue-500 transition-all duration-300" 
+                      :style="{ width: `${note.progress}%` }"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-600">{{ note.progress }}%</span>
+                </div>
+              </div>
               <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5']">
                 {{ getPriorityInfo(note.priority as Priority).label }}
               </Badge>
@@ -206,11 +215,11 @@ const sortedNotes = computed(() => {
                   <User class="h-3 w-3" />
                   {{ note.author?.name || 'N/A' }}
                 </div>
-                <Badge v-if="note.deadline" variant="outline" class="text-xs h-5">
-                  期限: {{ note.deadline }}
+                <Badge variant="outline" class="text-xs h-5">
+                  {{ note.deadline_date ? '期限' : '作成日' }}: {{ note.deadline_date ? `${new Date(note.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(note.deadline_time || '23:59:00').substring(0, 5)}` : new Date(note.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
                 </Badge>
               </div>
-              <span>{{ note.created_at ? new Date(note.created_at).toLocaleDateString() : '' }}</span>
+              <span>{{ new Date(note.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\//g, '-') }}</span>
             </div>
           </div>
         </div>

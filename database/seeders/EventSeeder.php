@@ -33,7 +33,7 @@ class EventSeeder extends Seeder
 
         // サンプルイベントデータを100件生成
         $categories = ['会議', 'MTG', '業務', '期限', '有給', '重要'];
-        $importances = ['高', '中', '低'];
+        $importances = ['重要', '中', '低'];
         $locations = ['大会議室', '会議室A', '会議室B', '研修室', 'オンライン', ''];
         $faker = \Faker\Factory::create('ja_JP');
            // すべてのユーザーを取得
@@ -70,7 +70,7 @@ class EventSeeder extends Seeder
                 'end_date' => $endDate,
                 'end_time' => sprintf('%02d:00', $endHour),
                 'is_all_day' => false,
-                // 'user_id' => $randomUser->id,
+                'progress' => rand(0, 100),
             ];
         }
 
