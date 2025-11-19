@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Checkbox } from '@/components/ui/checkbox'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -207,10 +207,11 @@ const confirmPermanentDelete = () => {
             <CardHeader>
               <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-3 flex-1">
-                  <Checkbox
+                  <input
+                    type="checkbox"
                     :checked="reminder.completed"
-                    @update:checked="handleToggleComplete(reminder.reminder_id, $event)"
-                    class="mt-1"
+                    @change="handleToggleComplete(reminder.reminder_id, ($event.target as HTMLInputElement).checked)"
+                    class="mt-1 h-4 w-4 text-blue-600 rounded"
                   />
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2">
