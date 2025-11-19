@@ -516,11 +516,11 @@ const handleRemoveTag = (tagToRemove: string) => {
                 </div>
                 <div class="flex items-center gap-1">
                   <Calendar class="h-3 w-3" />
-                  <span>{{ new Date(selectedNote.created_at).toLocaleDateString('ja-JP') }}</span>
+                  <span>{{ selectedNote.deadline_date ? new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
-                  <span>{{ new Date(selectedNote.updated_at).toLocaleDateString('ja-JP') }}</span>
+                  <span>{{ selectedNote.deadline_date ? (selectedNote.deadline_time || '23:59:00').substring(0, 5) : new Date(selectedNote.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) }}</span>
                 </div>
               </div>
             </div>
@@ -538,7 +538,7 @@ const handleRemoveTag = (tagToRemove: string) => {
               <div>
                 <label class="text-xs font-medium text-gray-700 mb-1 block">期限</label>
                 <Input
-                  type="date"
+                  type="datetime-local"
                   v-model="editedDeadline"
                   class="h-8 text-xs"
                 />

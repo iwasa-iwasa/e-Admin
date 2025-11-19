@@ -37,7 +37,8 @@ class SharedNote extends Model
         'author_id',
         'color',
         'priority',
-        'deadline',
+        'deadline_date',
+        'deadline_time',
         'progress',
         'is_deleted',
     ];
@@ -48,7 +49,7 @@ class SharedNote extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'deadline' => 'date',
+        'deadline_date' => 'date',
         'is_deleted' => 'boolean',
     ];
 

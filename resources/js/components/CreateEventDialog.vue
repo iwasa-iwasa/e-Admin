@@ -271,7 +271,7 @@ const handleClose = () => {
 
 const getImportanceColor = (imp: string) => {
     switch (imp) {
-        case "高": return "text-red-600";
+        case "重要": return "text-red-600";
         case "中": return "text-yellow-600";
         case "低": return "text-gray-600";
         default: return "text-gray-600";
@@ -355,7 +355,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                     </div>
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="高">
+                                                    <SelectItem value="重要">
                                                         <Badge class="bg-red-600 text-white">重要</Badge>
                                                     </SelectItem>
                                                     <SelectItem value="中">

@@ -190,7 +190,7 @@ const getColorInfo = (c: string) => {
 
                 <div class="space-y-2">
                     <Label for="deadline">期限（任意）</Label>
-                    <Input id="deadline" type="date" v-model="form.deadline" />
+                    <Input id="deadline" type="datetime-local" v-model="form.deadline" />
                 </div>
 
 
