@@ -92,16 +92,31 @@ const calendarOptions = computed((): CalendarOptions => ({
 
     // Non-recurring events
     if (event.is_all_day) {
-        // For all-day events, the end date is exclusive.
-        // Add one day to the end date for it to display correctly.
-        // IMPORTANT: Create date in UTC to avoid timezone shifts.
-        const startDate = new Date(event.start_date + 'T00:00:00Z');
-        const endDate = new Date(event.end_date + 'T00:00:00Z');
-        endDate.setUTCDate(endDate.getUTCDate() + 1);
+        // For all-day events, use the date string directly to avoid timezone conversion issues.
+        // FullCalendar expects 'YYYY-MM-DD' format for all-day events.
+        // The end date is exclusive in FullCalendar, so we need to add one day.
+        const startDateStr = event.start_date.split('T')[0];
+        const endDateStr = event.end_date.split('T')[0];
+        
+        // Parse date string and add one day without timezone conversion
+        // Split the date string to avoid any timezone issues
+        const [endYear, endMonth, endDay] = endDateStr.split('-').map(Number);
+        
+        // Create a date object in local timezone to add one day
+        // Using UTC methods but with local date values to avoid timezone shifts
+        const endDate = new Date(endYear, endMonth - 1, endDay);
+        endDate.setDate(endDate.getDate() + 1);
+        
+        // Format back to YYYY-MM-DD using local date methods
+        const year = endDate.getFullYear();
+        const month = String(endDate.getMonth() + 1).padStart(2, '0');
+        const day = String(endDate.getDate()).padStart(2, '0');
+        const endDateFormatted = `${year}-${month}-${day}`;
+        
         return {
             ...commonProps,
-            start: startDate.toISOString().split('T')[0], // Format back to 'YYYY-MM-DD' in UTC
-            end: endDate.toISOString().split('T')[0], // Format back to 'YYYY-MM-DD' in UTC
+            start: startDateStr,
+            end: endDateFormatted,
         };
     }
 
