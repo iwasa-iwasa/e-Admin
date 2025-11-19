@@ -2,12 +2,9 @@
 import { Head, usePage, router } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-// @ts-ignore
-import SharedCalendar from '@/Components/SharedCalendar.vue'
-// @ts-ignore
-import SharedNotes from '@/Components/SharedNotes.vue'
-// @ts-ignore
-import PersonalReminders from '@/Components/PersonalReminders.vue'
+import SharedCalendar from '@/components/SharedCalendar.vue'
+import SharedNotes from '@/components/SharedNotes.vue'
+import PersonalReminders from '@/components/PersonalReminders.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { X } from 'lucide-vue-next'
@@ -17,9 +14,9 @@ defineOptions({
 })
 
 const props = defineProps<{
-  events: Object[]
-  sharedNotes: Object[]
-  personalReminders: Object[]
+  events: App.Models.Event[];
+  sharedNotes: App.Models.SharedNote[];
+  personalReminders: App.Models.Reminder[];
   filteredMemberId?: number | null
   teamMembers: App.Models.User[]
 }>()
@@ -39,7 +36,7 @@ const clearFilter = () => {
 
 <template>
     <Head title="ホーム" />
-    <div class="flex gap-6 max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+    <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-6">
         <div class="flex-[2.9] h-full flex flex-col">
             <div v-if="filteredMember" class="mb-4">
               <Badge variant="secondary" class="flex items-center gap-2 text-sm py-1 px-3">
@@ -50,15 +47,15 @@ const clearFilter = () => {
               </Badge>
             </div>
             <div class="flex-1 min-h-0">
-              <SharedCalendar :events="props.events" />
+              <SharedCalendar :events="events" />
             </div>
         </div>
         <div class="flex-[2.1] space-y-6 h-full flex flex-col">
             <div class="flex-[1.1] min-h-0">
-            <SharedNotes :notes="props.sharedNotes" />
+            <SharedNotes :notes="sharedNotes" />
             </div>
             <div class="flex-[1.1] min-h-0">
-            <PersonalReminders :reminders="props.personalReminders" />
+            <PersonalReminders :reminders="personalReminders" />
             </div>
         </div>
     </div>

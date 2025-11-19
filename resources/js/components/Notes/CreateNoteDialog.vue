@@ -31,7 +31,14 @@ defineProps<{
 }>();
 const emit = defineEmits(["update:open"]);
 
-const form = useForm({
+const form = useForm<{
+    title: string;
+    content: string;
+    priority: Priority;
+    deadline: string;
+    tags: string[];
+    color: string;
+}> ({
     title: "",
     content: "",
     priority: "medium",

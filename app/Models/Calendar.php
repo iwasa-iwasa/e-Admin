@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
 class Calendar extends Model
 {
     use HasFactory;
@@ -40,6 +39,16 @@ class Calendar extends Model
     protected $fillable = [
         'calendar_name',
         'calendar_type',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'calendar_id' => 'integer',
+        'created_at' => 'datetime',
     ];
 
     /**

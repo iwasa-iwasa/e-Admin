@@ -87,7 +87,7 @@ const showMessage = (message: string, type: 'success' | 'delete' = 'success') =>
 watch(selectedNote, (newNote) => {
   if (newNote) {
     editedTitle.value = newNote.title
-    editedContent.value = newNote.content
+    editedContent.value = newNote.content || ''
     editedDeadline.value = newNote.deadline || ''
     editedPriority.value = newNote.priority as Priority
     editedColor.value = newNote.color
@@ -112,7 +112,7 @@ watch(() => props.notes, (newNotes, oldNotes) => {
   
   // 既存の選択されたメモの更新処理
   if (selectedNote.value) {
-    const updatedSelectedNote = newNotes.find(note => note.note_id === selectedNote.value.note_id);
+    const updatedSelectedNote = newNotes.find(note => note.note_id === selectedNote.value?.note_id);
     if (updatedSelectedNote) {
       selectedNote.value = updatedSelectedNote;
     }
@@ -134,8 +134,8 @@ const filteredNotes = computed(() => {
       note.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       (note.content && note.content.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
       (note.author && note.author.name.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
-      note.created_at.includes(searchQuery.value) ||
-      note.updated_at.includes(searchQuery.value)
+      note.created_at?.includes(searchQuery.value) ||
+      note.updated_at?.includes(searchQuery.value)
 
     const matchesAuthor = filterAuthor.value === 'all' || (note.author && note.author.name === filterAuthor.value)
 
@@ -162,7 +162,7 @@ const filteredNotes = computed(() => {
       const bDeadline = b.deadline || '9999-12-31'
       sortResult = aDeadline.localeCompare(bDeadline)
     } else {
-      sortResult = new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      sortResult = new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
     }
     
     if (sortResult !== 0) {
@@ -170,7 +170,7 @@ const filteredNotes = computed(() => {
     }
 
     // 3. デフォルト: 更新日時（新しい順）
-    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
   })
 })
 
@@ -218,7 +218,7 @@ const handleSaveNote = () => {
 const handleDeleteNote = () => {
   if (!selectedNote.value) return
   
-  const currentIndex = filteredNotes.value.findIndex(note => note.note_id === selectedNote.value.note_id)
+  const currentIndex = selectedNote.value ? filteredNotes.value.findIndex(note => note.note_id === selectedNote.value?.note_id) : -1
   const nextNote = filteredNotes.value[currentIndex + 1] || filteredNotes.value[currentIndex - 1] || null
   
   lastDeletedNote.value = selectedNote.value;
@@ -292,12 +292,12 @@ const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
     if (note.is_pinned) {
         router.delete(route('notes.unpin', noteId), {
             preserveScroll: true,
-            onSuccess: () => scrollToNote(noteId)
+            onSuccess: () => scrollToNote(String(noteId))
         });
     } else {
         router.post(route('notes.pin', noteId), {}, {
             preserveScroll: true,
-            onSuccess: () => scrollToNote(noteId)
+            onSuccess: () => scrollToNote(String(noteId))
         });
     }
 };
@@ -339,7 +339,7 @@ const handleRemoveTag = (tagToRemove: string) => {
 
 <template>
   <Head title="共有メモ" />
-  <div class="flex gap-6 max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+  <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-6">
     <Card class="flex-1 flex h-full overflow-hidden">
       <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-gray-200">
       <div class="p-4 border-b border-gray-200">
@@ -490,7 +490,7 @@ const handleRemoveTag = (tagToRemove: string) => {
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
-                  <span>{{ new Date(note.updated_at).toLocaleString('ja-JP') }}</span>
+                  <span>{{ note.updated_at ? new Date(note.updated_at).toLocaleString('ja-JP') : '' }}</span>
                 </div>
               </div>
             </div>

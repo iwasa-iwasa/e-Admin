@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class Reminder extends Model
 {
     use HasFactory;
@@ -46,9 +46,13 @@ class Reminder extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'reminder_id' => 'integer',
+        'user_id' => 'integer',
+        'deadline' => 'date',
         'completed' => 'boolean',
         'completed_at' => 'datetime',
-        'deadline' => 'datetime',
+        'is_deleted' => 'boolean',
+        'deleted_at' => 'datetime',
     ];
 
     /**

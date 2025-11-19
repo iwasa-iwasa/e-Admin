@@ -410,7 +410,7 @@ const getQuestionResponses = (
                             >
                                 <div class="flex items-center gap-1">
                                     <CalendarIcon class="h-4 w-4" />
-                                    締切: {{ formatDate(surveyData.deadline) }}
+                                    締切: {{ surveyData.deadline ? formatDate(surveyData.deadline) : '' }}
                                 </div>
                                 <div class="flex items-center gap-1">
                                     作成者: {{ surveyData.createdBy }}

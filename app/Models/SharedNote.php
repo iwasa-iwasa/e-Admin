@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class SharedNote extends Model
 {
     use HasFactory;
@@ -49,8 +49,11 @@ class SharedNote extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'deadline_date' => 'date',
+        'note_id' => 'integer',
+        'author_id' => 'integer',
+        'deadline' => 'date',
         'is_deleted' => 'boolean',
+        'deleted_at' => 'datetime',
     ];
 
     /**
@@ -93,4 +96,3 @@ class SharedNote extends Model
         return $this->belongsToMany(User::class, 'pinned_notes', 'note_id', 'user_id')->withTimestamps();
     }
 }
-    

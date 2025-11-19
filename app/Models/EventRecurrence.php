@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class EventRecurrence extends Model
 {
     use HasFactory;
@@ -53,8 +53,12 @@ class EventRecurrence extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'recurrence_id' => 'integer',
+        'event_id' => 'integer',
+        'recurrence_interval' => 'integer',
         'end_date' => 'date',
         'by_day' => 'array',
+        'by_set_pos' => 'integer',
     ];
 
     /**

@@ -144,6 +144,18 @@ watch(() => editedNote.value?.deadline, (newDeadline) => {
   }
 })
 
+const editedDeadline = computed({
+  get: (): string => {
+    // Ensure the input always receives a string (empty when null)
+    return editedNote.value?.deadline ?? ''
+  },
+  set: (val: string) => {
+    // Convert empty string back to null for the note model
+    if (!editedNote.value) return
+    editedNote.value.deadline = val === '' ? null : val
+  }
+})
+
 const handleAddTag = () => {
   if (tagInput.value.trim() && editedNote.value) {
     const newTag = tagInput.value.trim()
@@ -152,7 +164,7 @@ const handleAddTag = () => {
       if (!editedNote.value.tags) {
         editedNote.value.tags = []
       }
-      editedNote.value.tags.push({ tag_name: newTag })
+      editedNote.value.tags.push({ tag_id: 0, tag_name: newTag })
       tagInput.value = ''
     }
   }
@@ -224,38 +236,59 @@ const handleUndoDelete = () => {
   })
 }
 
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  try {
+    return new Date(dateString).toLocaleDateString()
+  } catch {
+    return ''
+  }
+}
+
+const editedContent = computed({
+  get: (): string => {
+    return editedNote.value?.content ?? ''
+  },
+  set: (val: string) => {
+    if (!editedNote.value) return
+    editedNote.value.content = val === '' ? null : val
+  }
+})
+
 </script>
 
 <template>
   <Dialog :open="open" @update:open="closeDialog">
     <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]">
       <DialogHeader>
-        <div class="flex items-start justify-between gap-4">
-          <DialogTitle class="flex-1">
-            <Input
-              v-if="isEditing && editedNote"
-              v-model="editedNote.title"
-              class="h-8"
-              aria-label="メモタイトル"
-            />
-            <template v-else>{{ currentNote.title }}</template>
-          </DialogTitle>
-          <div class="flex items-center gap-2">
-            <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
-              {{ getPriorityInfo(currentNote.priority as Priority).label }}
-            </Badge>
-            <Button
-              v-if="currentNote.is_pinned !== undefined"
-              variant="outline"
-              size="sm"
-              @click="handleTogglePin"
-              :class="currentNote.is_pinned ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100' : 'hover:bg-gray-50'"
-              aria-label="ピン留めの切り替え"
-              class="gap-1"
-            >
-              <MapPin class="h-4 w-4" :class="{ 'fill-yellow-500 text-yellow-500': currentNote.is_pinned }" />
-              <span class="text-xs">{{ currentNote.is_pinned ? 'ピン解除' : 'ピン留め' }}</span>
-            </Button>
+        <div class="flex flex-col items-startgap-4">
+          <div class="flex items-center  justify-between ">
+            <DialogTitle class="flex-1">
+              <Input
+                v-if="isEditing && editedNote"
+                v-model="editedNote.title"
+                class="h-8"
+                aria-label="メモタイトル"
+              />
+              <template v-else>{{ currentNote.title }}</template>
+            </DialogTitle>
+            <div class="flex items-center gap-2 ">
+              <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
+                {{ getPriorityInfo(currentNote.priority as Priority).label }}
+              </Badge>
+              <Button
+                v-if="currentNote.is_pinned !== undefined"
+                variant="outline"
+                size="sm"
+                @click="handleTogglePin"
+                :class="currentNote.is_pinned ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100' : 'hover:bg-gray-50'"
+                aria-label="ピン留めの切り替え"
+                class="gap-1"
+              >
+                <MapPin class="h-4 w-4" :class="{ 'fill-yellow-500 text-yellow-500': currentNote.is_pinned }" />
+                <span class="text-xs">{{ currentNote.is_pinned ? 'ピン解除' : 'ピン留め' }}</span>
+              </Button>
+            </div>
           </div>
         </div>
         <div class="flex items-center gap-4 text-sm text-gray-600 pt-2">
@@ -296,9 +329,6 @@ const handleUndoDelete = () => {
           <div v-else class="flex items-center gap-2">
             <Badge variant="outline" class="text-xs">
               {{ currentNote.deadline_date ? '期限' : '作成日' }}: {{ currentNote.deadline_date ? `${new Date(currentNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(currentNote.deadline_time || '23:59:00').substring(0, 5)}` : new Date(currentNote.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
-            </Badge>
-            <Badge v-if="currentNote.progress !== undefined && currentNote.progress !== null" variant="outline" class="text-xs">
-              進捗: {{ currentNote.progress }}%
             </Badge>
           </div>
         </div>
@@ -379,7 +409,7 @@ const handleUndoDelete = () => {
           </div>
           <Textarea
             v-if="isEditing && editedNote"
-            v-model="editedNote.content"
+            v-model="editedContent"
             class="min-h-[200px] whitespace-pre-line bg-white"
             aria-label="メモ内容"
           />

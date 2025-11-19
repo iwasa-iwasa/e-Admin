@@ -161,6 +161,35 @@ watch(() => editedNote.value?.deadline, (newDeadline) => {
   }
 })
 
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  try {
+    return new Date(dateString).toLocaleDateString()
+  } catch {
+    return ''
+  }
+}
+
+const editedDeadline = computed({
+  get: (): string => {
+    return editedNote.value?.deadline ?? ''
+  },
+  set: (val: string) => {
+    if (!editedNote.value) return
+    editedNote.value.deadline = val === '' ? null : val
+  }
+})
+
+const editedContent = computed({
+  get: (): string => {
+    return editedNote.value?.content ?? ''
+  },
+  set: (val: string) => {
+    if (!editedNote.value) return
+    editedNote.value.content = val === '' ? null : val
+  }
+})
+
 </script>
 
 <template>
@@ -210,13 +239,13 @@ watch(() => editedNote.value?.deadline, (newDeadline) => {
           </div>
           <div class="flex items-center gap-1">
             <Clock class="h-4 w-4" />
-            <span>{{ new Date(currentNote.updated_at || currentNote.created_at).toLocaleDateString() }}</span>
+            <span>{{ formatDate(currentNote.updated_at || currentNote.created_at) }}</span>
           </div>
           <div v-if="isEditing && editedNote" class="flex items-center gap-2">
             <span class="text-xs">期限:</span>
             <Input
               type="date"
-              v-model="editedNote.deadline"
+              v-model="editedDeadline"
               class="h-7 w-40 text-xs"
               aria-label="期限日"
             />
@@ -231,7 +260,7 @@ watch(() => editedNote.value?.deadline, (newDeadline) => {
         <div :class="[getColorClass(currentNote.color), 'border-2 rounded-lg p-6']">
           <Textarea
             v-if="isEditing && editedNote"
-            v-model="editedNote.content"
+            v-model="editedContent"
             class="min-h-[200px] whitespace-pre-line bg-white"
             aria-label="メモ内容"
           />

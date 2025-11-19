@@ -59,6 +59,7 @@ defineOptions({
 
 interface SurveyWithResponse extends App.Models.Survey {
     has_responded?: boolean;
+    respondent_names?: any[];
 }
 
 const props = defineProps<{
@@ -110,8 +111,8 @@ const filteredSurveys = computed(() => {
         const matchesCategory = true;
         
         const now = new Date();
-        const deadline = new Date(survey.deadline);
-        const isExpired = deadline < now;
+        const deadline = survey.deadline ? survey.deadline ? new Date(survey.deadline) : null : null;
+        const isExpired = deadline ? deadline < now : false;
 
         let matchesTab = false;
         if (activeTab.value === "all") {
@@ -140,7 +141,8 @@ const getResponseRate = (survey: App.Models.Survey) => {
     return total > 0 ? (responded / total) * 100 : 0;
 };
 
-const getDaysUntilDeadline = (deadline: string) => {
+const getDaysUntilDeadline = (deadline: string | null) => {
+    if (!deadline) return 0;
     const today = new Date();
     const deadlineDate = new Date(deadline);
     const diffTime = deadlineDate.getTime() - today.getTime();
@@ -169,7 +171,7 @@ watch(
     () => props.editSurvey,
     (survey) => {
         if (survey) {
-            editingSurvey.value = survey;
+            editingSurvey.value = survey as any;
             showCreateDialog.value = true;
         }
     },
@@ -191,7 +193,7 @@ const handleCreate = () => {
 };
 
 const handleEdit = (survey: App.Models.Survey) => {
-    editingSurvey.value = survey;
+    editingSurvey.value = survey as any;
     showCreateDialog.value = true;
 };
 
@@ -311,8 +313,8 @@ const handleUndoDelete = () => {
                             アクティブ ({{
                                 surveys.filter((s) => {
                                     const now = new Date();
-                                    const deadline = new Date(s.deadline);
-                                    return s.is_active && deadline >= now;
+                                    const deadline = s.deadline ? new Date(s.deadline) : null;
+                                    return s.is_active && (deadline ? deadline >= now : false);
                                 }).length
                             }})
                         </TabsTrigger>
@@ -321,8 +323,8 @@ const handleUndoDelete = () => {
                             未回答 ({{
                                 surveys.filter((s) => {
                                     const now = new Date();
-                                    const deadline = new Date(s.deadline);
-                                    return s.is_active && !s.has_responded && deadline >= now;
+                                    const deadline = s.deadline ? new Date(s.deadline) : null;
+                                    return s.is_active && !s.has_responded && (deadline ? deadline >= now : false);
                                 }).length
                             }})
                         </TabsTrigger>
@@ -331,8 +333,8 @@ const handleUndoDelete = () => {
                             終了済み ({{
                                 surveys.filter((s) => {
                                     const now = new Date();
-                                    const deadline = new Date(s.deadline);
-                                    return !s.is_active || deadline < now;
+                                    const deadline = s.deadline ? new Date(s.deadline) : null;
+                                    return !s.is_active || (deadline ? deadline < now : true);
                                 }).length
                             }})
                         </TabsTrigger>
@@ -421,9 +423,7 @@ const handleUndoDelete = () => {
                                             <CalendarIcon class="h-3 w-3" />
                                             期限:
                                             {{
-                                                new Date(
-                                                    survey.deadline
-                                                ).toLocaleDateString()
+                                                new Date(survey.deadline || 0).toLocaleDateString()
                                             }}
                                         </div>
                                         <div class="flex items-center gap-1">

@@ -3,6 +3,8 @@ export interface User {
     name: string;
     email: string;
     email_verified_at?: string;
+    department: string;
+    role: string;
 }
 
 export type PageProps<
