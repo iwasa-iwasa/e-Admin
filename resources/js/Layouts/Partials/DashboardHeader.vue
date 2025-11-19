@@ -175,6 +175,13 @@ const pendingSurveys: Survey[] = [
 ]
 
 const totalNotifications = importantEvents.length + importantNotes.length + pendingSurveys.length
+
+const handleSurveySubmit = () => {
+  if (typeof window !== 'undefined') {
+    window.alert('アンケートを送信しました')
+  }
+  selectedSurvey.value = null
+}
 </script>
 
 <template>
@@ -420,14 +427,14 @@ const totalNotifications = importantEvents.length + importantNotes.length + pend
 
     <!-- イベント詳細ダイアログ -->
     <EventDetailDialog
-      :event="selectedEvent"
+      :event="selectedEvent as any"
       :open="selectedEvent !== null"
       @update:open="(isOpen) => !isOpen && (selectedEvent = null)"
     />
 
     <!-- メモ詳細ダイアログ -->
     <NoteDetailDialog
-      :note="selectedNote"
+      :note="selectedNote as any"
       :open="selectedNote !== null"
       @update:open="(isOpen) => !isOpen && (selectedNote = null)"
     />
@@ -465,7 +472,7 @@ const totalNotifications = importantEvents.length + importantNotes.length + pend
             <Button variant="outline" @click="selectedSurvey = null">
               後で回答
             </Button>
-            <Button @click="() => { alert('アンケートを送信しました'); selectedSurvey = null; }">
+            <Button @click="handleSurveySubmit">
               送信
             </Button>
           </DialogFooter>

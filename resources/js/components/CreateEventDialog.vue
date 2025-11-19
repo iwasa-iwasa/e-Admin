@@ -229,10 +229,10 @@ const toggleByDay = (day: string) => {
 };
 
 const handleSave = () => {
-  const transformData = (data: typeof form) => {
+  const transformData = (data: any) => {
     const transformed: Record<string, any> = {
         ...data,
-        participants: data.participants.map(p => p.id)
+        participants: data.participants.map((p: App.Models.User) => p.id)
     };
     if (isEditMode.value) {
         transformed._method = 'put';

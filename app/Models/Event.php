@@ -11,7 +11,6 @@ use Carbon\Carbon;
 use App\Models\EventRecurrence;
 use App\Models\EventAttachment;
 
-#[TypeScript]
 class Event extends Model
 {
     use HasFactory, SoftDeletes;
@@ -60,7 +59,16 @@ class Event extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'event_id' => 'integer',
+        'calendar_id' => 'integer',
+        'start_date' => 'date',
+        'start_time' => 'datetime:H:i',
+        'end_date' => 'date',
+        'end_time' => 'datetime:H:i',
         'is_all_day' => 'boolean',
+        'created_by' => 'integer',
+        'is_deleted' => 'boolean',
+        'deleted_at' => 'datetime',
     ];
 
     /**
@@ -121,10 +129,17 @@ class Event extends Model
             return null;
         }
 
+        // Format dtstart with UTC timezone to avoid timezone conversion issues
+        $startDate = $this->start_date instanceof Carbon 
+            ? $this->start_date->toDateString() 
+            : (string) $this->start_date;
+        $startTime = $this->start_time ?? '00:00:00';
+        $dtstart = $startDate . 'T' . $startTime . 'Z'; // Add 'Z' to indicate UTC
+        
         $rrule = [
             'freq' => $this->recurrence->recurrence_type,
             'interval' => $this->recurrence->recurrence_interval,
-            'dtstart' => $this->start_date . 'T' . ($this->start_time ?? '00:00:00'),
+            'dtstart' => $dtstart,
             'until' => $this->recurrence->end_date ? $this->recurrence->end_date->format('Y-m-d') : null,
         ];
 

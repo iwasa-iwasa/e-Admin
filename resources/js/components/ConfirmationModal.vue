@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Modal from '@/Components/Modal.vue';
+import Modal from '@/components/Modal.vue';
 import { Button } from '@/components/ui/button';
 
 const props = defineProps<{

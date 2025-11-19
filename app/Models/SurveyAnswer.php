@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class SurveyAnswer extends Model
 {
     use HasFactory;
@@ -43,6 +43,18 @@ class SurveyAnswer extends Model
      * @var bool
      */
     public $timestamps = false;
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'answer_id' => 'integer',
+        'response_id' => 'integer',
+        'question_id' => 'integer',
+        'selected_option_id' => 'integer',
+    ];
 
     /**
      * Get the response that this answer belongs to.

@@ -9,7 +9,7 @@ import { Toaster } from '@/components/ui/toast'
     <DashboardSidebar />
     <div class="flex-1 flex flex-col overflow-hidden">
       <DashboardHeader />
-      <main class="flex-1 overflow-hidden p-6">
+      <main class="flex-1 overflow-hidden">
         <slot />
       </main>
     </div>
