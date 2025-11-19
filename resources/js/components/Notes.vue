@@ -285,7 +285,7 @@ const sortedNotes = computed(() => {
                                     期限: {{ note.deadline }}
                                 </Badge>
                             </div>
-                            <span class="text-gray-500">{{ new Date(note.updated_at).toLocaleDateString() }}</span>
+                            <span class="text-gray-500">{{ note.updated_at ? new Date(note.updated_at).toLocaleDateString() : '' }}</span>
                         </div>
                     </div>
                 </div>

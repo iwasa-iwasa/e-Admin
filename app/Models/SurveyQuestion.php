@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class SurveyQuestion extends Model
 {
     use HasFactory;
@@ -51,7 +51,10 @@ class SurveyQuestion extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'question_id' => 'integer',
+        'survey_id' => 'integer',
         'is_required' => 'boolean',
+        'display_order' => 'integer',
     ];
 
     /**
@@ -75,6 +78,6 @@ class SurveyQuestion extends Model
      */
     public function answers()
     {
-        return $this->hasMany(Answer::class, 'question_id');
+        // return $this->hasMany(Answer::class, 'question_id');
     }
 }

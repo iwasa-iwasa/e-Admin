@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class Survey extends Model
 {
     use HasFactory;
@@ -46,6 +46,8 @@ class Survey extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'survey_id' => 'integer',
+        'created_by' => 'integer',
         'deadline' => 'datetime',
         'is_active' => 'boolean',
         'is_deleted' => 'boolean',

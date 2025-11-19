@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class NoteTag extends Model
 {
     use HasFactory;
@@ -32,6 +32,16 @@ class NoteTag extends Model
      */
     protected $fillable = [
         'tag_name',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'tag_id' => 'integer',
+        'tag_name' => 'string',
     ];
 
     /**

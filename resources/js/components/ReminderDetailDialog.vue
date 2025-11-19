@@ -25,15 +25,20 @@ import { useForm } from '@inertiajs/vue3'
 import { router } from '@inertiajs/vue3'
 
 interface Reminder {
-  id?: number
-  reminder_id?: number
-  title: string
-  deadline: string
-  category: string
-  completed: boolean
-  completedAt?: string
-  completed_at?: string
-  description?: string
+  id?: number;
+  reminder_id: number;
+  user_id: number;
+  title: string;
+  description: string | null;
+  deadline: string;
+  category: string;
+  completed: boolean;
+  completed_at: string | null;
+  is_deleted: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  deleted_at: string | null;
+  completedAt?: string;
 }
 
 const props = defineProps<{ 
@@ -74,12 +79,18 @@ const form = useForm({
 
 // 新規作成用のデフォルトリマインダー
 const createDefaultReminder = (): Reminder => ({
-  id: 0,
+  reminder_id: 0,
+  user_id: 0,
   title: '',
+  description: '',
   deadline: new Date().toISOString().split('T')[0],
   category: '業務',
   completed: false,
-  description: ''
+  completed_at: null,
+  is_deleted: false,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  deleted_at: null,
 })
 
 watch(() => props.open, (isOpen) => {
@@ -177,13 +188,19 @@ const handleSave = () => {
       onSuccess: () => {
         showMessage('リマインダーを正常に作成しました。')
         // ダミーリマインダーを作成して親コンポーネントに通知
-        const dummyReminder = {
+        const dummyReminder: Reminder = {
           reminder_id: Date.now(),
+          user_id: 0, // or get from props
           title: form.title,
           description: form.description,
           deadline: form.deadline,
           category: form.category,
-          completed: false
+          completed: false,
+          completed_at: null,
+          is_deleted: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
         }
         emit('update:reminder', dummyReminder)
         setTimeout(() => {
@@ -206,14 +223,16 @@ const handleSave = () => {
         onSuccess: () => {
           showMessage('リマインダーを更新しました。')
           // 更新されたリマインダーを親コンポーネントに通知
-          const updatedReminder = {
+          if (props.reminder) {
+          const updatedReminder: Reminder = {
             ...props.reminder,
             title: form.title,
             description: form.description,
             deadline: form.deadline,
-            category: form.category
+            category: form.category,
           }
           emit('update:reminder', updatedReminder)
+        }
           setTimeout(() => {
             emit('update:open', false)
             isEditing.value = false
@@ -340,7 +359,7 @@ const closeDialog = (isOpen: boolean) => {
             <div class="flex items-center gap-2 text-green-700">
               <CheckCircle2 class="h-4 w-4" />
               <span class="text-sm">
-                完了日時: {{ formatDate(props.reminder.completedAt || props.reminder.completed_at) }}
+                完了日時: {{ props.reminder.completedAt ? formatDate(props.reminder.completedAt) : (props.reminder.completed_at ? formatDate(props.reminder.completed_at) : '') }}
               </span>
             </div>
             <p class="text-xs text-green-600 mt-2">

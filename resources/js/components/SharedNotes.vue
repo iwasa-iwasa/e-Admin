@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
-import CreateNoteDialog from './CreateNoteDialog.vue'
-import NoteDetailDialog from './NoteDetailDialog.vue'
+import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
+import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 
 type Priority = 'high' | 'medium' | 'low'
 type SortOrder = 'priority' | 'deadline'
@@ -210,7 +210,7 @@ const sortedNotes = computed(() => {
                   期限: {{ note.deadline }}
                 </Badge>
               </div>
-              <span>{{ new Date(note.created_at).toLocaleDateString() }}</span>
+              <span>{{ note.created_at ? new Date(note.created_at).toLocaleDateString() : '' }}</span>
             </div>
           </div>
         </div>

@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-import ReminderDetailDialog from '@/Components/ReminderDetailDialog.vue'
+import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
 defineOptions({
@@ -164,7 +164,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
             <p class="text-xs text-gray-500">自分専用のタスク管理</p>
           </div>
         </div>
-          <Button variant="outline" @click="() => { isCreateDialogOpen = true; isCreatingNew.value = true }" class="gap-2">
+          <Button variant="outline" @click="() => { isCreateDialogOpen = true; isCreatingNew = true }" class="gap-2">
             <Plus class="h-4 w-4" />
             新規作成
           </Button>
@@ -275,7 +275,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
     <ReminderDetailDialog
       :reminder="null"
       :open="isCreateDialogOpen"
-      @update:open="(open) => { isCreateDialogOpen = open; if (!open) isCreatingNew.value = false }"
+      @update:open="(open) => { isCreateDialogOpen = open; if (!open) isCreatingNew = false }"
       @update:reminder="handleUpdateReminder"
     />
 

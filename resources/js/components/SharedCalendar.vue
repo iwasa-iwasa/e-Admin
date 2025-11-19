@@ -67,14 +67,14 @@ const legendItems = [
     { label: '業務', color: '#3b82f6' },
 ];
 
-const calendarOptions = computed(() => ({
+const calendarOptions = computed((): CalendarOptions => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin, rrulePlugin],
   initialView: viewMode.value,
   headerToolbar: false,
   contentHeight: 'auto',
   events: props.events.map(event => {
     const commonProps = {
-      id: event.event_id,
+      id: String(event.event_id),
       title: event.title,
       backgroundColor: getEventColor(event.category, event.importance),
       borderColor: getEventColor(event.category, event.importance),
@@ -95,19 +95,34 @@ const calendarOptions = computed(() => ({
         // For all-day events, the end date is exclusive.
         // Add one day to the end date for it to display correctly.
         // IMPORTANT: Create date in UTC to avoid timezone shifts.
+        const startDate = new Date(event.start_date + 'T00:00:00Z');
         const endDate = new Date(event.end_date + 'T00:00:00Z');
         endDate.setUTCDate(endDate.getUTCDate() + 1);
         return {
             ...commonProps,
-            start: event.start_date, // 'YYYY-MM-DD' string from backend
-            end: endDate.toISOString().split('T')[0], // Format back to 'YYYY-MM-DD'
+            start: startDate.toISOString().split('T')[0], // Format back to 'YYYY-MM-DD' in UTC
+            end: endDate.toISOString().split('T')[0], // Format back to 'YYYY-MM-DD' in UTC
         };
     }
 
+    // For time-based events, use local timezone (no timezone suffix)
+    // FullCalendar will interpret date-time strings without timezone as local time
+    const startDateStr = event.start_date.split('T')[0];
+    const endDateStr = event.end_date.split('T')[0];
+    const startTime = event.start_time || '00:00:00';
+    const endTime = event.end_time || '00:00:00';
+    
+    // Format time to ensure HH:mm:ss format (remove seconds if needed, but keep consistent)
+    const formatTime = (time: string) => {
+      const parts = time.split(':');
+      if (parts.length === 2) return time + ':00'; // Add seconds if missing
+      return time.substring(0, 8); // Ensure HH:mm:ss format
+    };
+    
     return {
       ...commonProps,
-      start: `${event.start_date}T${event.start_time || '00:00:00'}`,
-      end: `${event.end_date}T${event.end_time || '00:00:00'}`,
+      start: `${startDateStr}T${formatTime(startTime)}`,
+      end: `${endDateStr}T${formatTime(endTime)}`,
     };
   }),
   locale: 'ja',
@@ -143,7 +158,7 @@ const handleTodayClick = () => {
   fullCalendar.value?.getApi().today()
 }
 
-const changeView = (view: string) => {
+const changeView = (view: any) => {
   viewMode.value = view
   fullCalendar.value?.getApi().changeView(view)
 }

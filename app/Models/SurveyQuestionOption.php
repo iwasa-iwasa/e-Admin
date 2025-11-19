@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-#[TypeScript]
+
 class SurveyQuestionOption extends Model
 {
     use HasFactory;
@@ -42,6 +42,17 @@ class SurveyQuestionOption extends Model
      * @var bool
      */
     public $timestamps = false;
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'option_id' => 'integer',
+        'question_id' => 'integer',
+        'display_order' => 'integer',
+    ];
 
     /**
      * Get the question that this option belongs to.
