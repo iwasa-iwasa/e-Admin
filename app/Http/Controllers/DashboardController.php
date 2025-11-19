@@ -33,7 +33,14 @@ class DashboardController extends Controller
 
         $events = $eventsQuery->get();
 
-        $notes = SharedNote::with('author')
+        $notes = SharedNote::with(['author', 'participants'])
+            ->where(function($query) use ($user) {
+                $query->where('author_id', $user->id)
+                      ->orWhereHas('participants', function($q) use ($user) {
+                          $q->where('users.id', $user->id);
+                      })
+                      ->orWhereDoesntHave('participants');
+            })
             ->orderBy('updated_at', 'desc')
             ->get();
 
@@ -52,11 +59,15 @@ class DashboardController extends Controller
             ->orderBy('deadline')
             ->get();
 
+        $teamMembers = \App\Models\User::all();
+        
         return Inertia::render('Dashboard', [
             'events' => $events,
             'sharedNotes' => $sortedNotes->values(),
             'personalReminders' => $reminders,
             'filteredMemberId' => $memberId ? (int)$memberId : null,
+            'teamMembers' => $teamMembers,
+            'totalUsers' => $teamMembers->count(),
         ]);
     }
 }

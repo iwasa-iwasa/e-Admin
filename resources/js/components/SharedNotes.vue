@@ -14,7 +14,13 @@ type SortOrder = 'priority' | 'deadline'
 
 const props = defineProps<{
   notes: App.Models.SharedNote[]
+  totalUsers?: number
+  teamMembers?: App.Models.User[]
 }>()
+
+const isAllUsers = (participants: any[]) => {
+  return participants && props.totalUsers && participants.length === props.totalUsers
+}
 
 const sortOrder = ref<SortOrder>('priority')
 const isCreateDialogOpen = ref(false)
@@ -127,9 +133,9 @@ const sortedNotes = computed(() => {
     if (sortOrder.value === 'priority') {
       const priorityDiff = getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
       if (priorityDiff !== 0) return priorityDiff
-      return (a.deadline || '9999-12-31').localeCompare(b.deadline || '9999-12-31')
+      return (a.deadline_date || '9999-12-31').localeCompare(b.deadline_date || '9999-12-31')
     } else {
-      const deadlineDiff = (a.deadline || '9999-12-31').localeCompare(b.deadline || '9999-12-31')
+      const deadlineDiff = (a.deadline_date || '9999-12-31').localeCompare(b.deadline_date || '9999-12-31')
       if (deadlineDiff !== 0) return deadlineDiff
       return getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
     }
@@ -215,6 +221,19 @@ const sortedNotes = computed(() => {
                   <User class="h-3 w-3" />
                   {{ note.author?.name || 'N/A' }}
                 </div>
+                <div v-if="note.participants && note.participants.length > 0" class="flex items-center gap-1">
+                  <Badge v-if="isAllUsers(note.participants)" variant="outline" class="text-xs text-blue-600 border-blue-300">
+                    全員
+                  </Badge>
+                  <template v-else>
+                    <Badge v-for="participant in note.participants.slice(0, 3)" :key="participant.id" variant="outline" class="text-xs text-blue-600 border-blue-300">
+                      {{ participant.name }}
+                    </Badge>
+                    <Badge v-if="note.participants.length > 3" variant="outline" class="text-xs text-blue-600 border-blue-300">
+                      +{{ note.participants.length - 3 }}
+                    </Badge>
+                  </template>
+                </div>
                 <Badge variant="outline" class="text-xs h-5">
                   {{ note.deadline_date ? '期限' : '作成日' }}: {{ note.deadline_date ? `${new Date(note.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(note.deadline_time || '23:59:00').substring(0, 5)}` : new Date(note.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
                 </Badge>
@@ -228,6 +247,7 @@ const sortedNotes = computed(() => {
     <CreateNoteDialog
       :open="isCreateDialogOpen"
       @update:open="isCreateDialogOpen = $event"
+      :teamMembers="teamMembers"
     />
     <NoteDetailDialog
       :note="selectedNote"
@@ -237,6 +257,8 @@ const sortedNotes = computed(() => {
       @save="handleSaveNote"
       @delete="handleDeleteNote"
       @toggle-pin="handleTogglePin"
+      :teamMembers="teamMembers"
+      :totalUsers="totalUsers"
     />
     
     <!-- 成功メッセージ -->

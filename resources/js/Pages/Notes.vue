@@ -22,7 +22,24 @@ type Priority = 'high' | 'medium' | 'low'
 
 const props = defineProps<{
   notes: (App.Models.SharedNote & { is_pinned: boolean })[]
+  totalUsers: number
+  teamMembers: App.Models.User[]
 }>()
+
+const page = usePage()
+const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
+
+const isAllUsers = (participants: any[]) => {
+  return participants && participants.length === props.totalUsers
+}
+
+const canEditParticipants = computed(() => {
+  if (!selectedNote.value) return false
+  // 作成者は常に編集可能
+  if (selectedNote.value.author?.id === currentUserId.value) return true
+  // 参加者のみ編集可能
+  return selectedNote.value.participants?.some(p => p.id === currentUserId.value) || false
+})
 
 const selectedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null>(props.notes.length > 0 ? props.notes[0] : null)
 const searchQuery = ref('')
@@ -36,6 +53,7 @@ const editedDeadline = ref(selectedNote.value?.deadline || '')
 const editedPriority = ref<Priority>(selectedNote.value?.priority as Priority || 'medium')
 const editedColor = ref(selectedNote.value?.color || 'yellow')
 const editedTags = ref<string[]>(selectedNote.value?.tags.map(tag => tag.tag_name) || [])
+const editedParticipants = ref<App.Models.User[]>(selectedNote.value?.participants || [])
 const tagInput = ref('')
 const isCreateDialogOpen = ref(false)
 const isSaving = ref(false)
@@ -45,9 +63,6 @@ const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const lastDeletedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null>(null)
-
-
-const page = usePage()
 
 onMounted(() => {
   const url = new URL(window.location.href)
@@ -92,6 +107,7 @@ watch(selectedNote, (newNote) => {
     editedPriority.value = newNote.priority as Priority
     editedColor.value = newNote.color
     editedTags.value = newNote.tags.map(tag => tag.tag_name)
+    editedParticipants.value = newNote.participants || []
   }
 })
 
@@ -158,8 +174,8 @@ const filteredNotes = computed(() => {
     if (sortKey.value === 'priority') {
       sortResult = getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
     } else if (sortKey.value === 'deadline') {
-      const aDeadline = a.deadline || '9999-12-31'
-      const bDeadline = b.deadline || '9999-12-31'
+      const aDeadline = a.deadline_date || '9999-12-31'
+      const bDeadline = b.deadline_date || '9999-12-31'
       sortResult = aDeadline.localeCompare(bDeadline)
     } else {
       sortResult = new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime()
@@ -197,7 +213,8 @@ const handleSaveNote = () => {
     deadline: editedDeadline.value || null,
     priority: editedPriority.value,
     color: editedColor.value,
-    tags: editedTags.value
+    tags: editedTags.value,
+    participants: editedParticipants.value.map(p => p.id)
   }
   
   router.put(route('shared-notes.update', selectedNote.value.note_id), updateData, {
@@ -333,6 +350,20 @@ const handleAddTag = () => {
 
 const handleRemoveTag = (tagToRemove: string) => {
   editedTags.value = editedTags.value.filter(tag => tag !== tagToRemove)
+}
+
+const handleAddParticipant = (memberId: unknown) => {
+  if (memberId === null || memberId === undefined) return
+  const id = Number(memberId as any)
+  if (Number.isNaN(id)) return
+  const member = props.teamMembers.find((m) => m.id === id)
+  if (member && !editedParticipants.value.find((p) => p.id === member.id)) {
+    editedParticipants.value.push(member)
+  }
+}
+
+const handleRemoveParticipant = (participantId: number) => {
+  editedParticipants.value = editedParticipants.value.filter((p) => p.id !== participantId)
 }
 
 </script>
@@ -484,9 +515,24 @@ const handleRemoveTag = (tagToRemove: string) => {
                 </Badge>
               </div>
               <div class="flex items-center justify-between text-xs text-gray-500">
-                <div class="flex items-center gap-1">
-                  <User class="h-3 w-3" />
-                  <span>{{ note.author?.name }}</span>
+                <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-1">
+                    <User class="h-3 w-3" />
+                    <span>{{ note.author?.name }}</span>
+                  </div>
+                  <div v-if="note.participants && note.participants.length > 0" class="flex items-center gap-1">
+                    <Badge v-if="isAllUsers(note.participants)" variant="outline" class="text-xs text-blue-600 border-blue-300">
+                      全員
+                    </Badge>
+                    <template v-else>
+                      <Badge v-for="participant in note.participants.slice(0, 2)" :key="participant.id" variant="outline" class="text-xs text-blue-600 border-blue-300">
+                        {{ participant.name }}
+                      </Badge>
+                      <Badge v-if="note.participants.length > 2" variant="outline" class="text-xs text-blue-600 border-blue-300">
+                        +{{ note.participants.length - 2 }}
+                      </Badge>
+                    </template>
+                  </div>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
@@ -608,13 +654,48 @@ const handleRemoveTag = (tagToRemove: string) => {
             </div>
           </div>
           
-          <div v-if="editedTags.length > 0" class="flex flex-wrap gap-1">
+          <div v-if="editedTags.length > 0" class="flex flex-wrap gap-1 mb-2">
             <Badge v-for="tag in editedTags" :key="tag" variant="secondary" class="text-xs gap-1">
               {{ tag }}
               <button @click="handleRemoveTag(tag)" class="hover:bg-gray-300 rounded-full p-0.5">
                 <X class="h-2 w-2" />
               </button>
             </Badge>
+          </div>
+          
+          <!-- メンバー追加UI -->
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-gray-700 block">共有メンバー</label>
+            <template v-if="!canEditParticipants">
+              <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+                共有メンバーの変更は作成者または参加者のみ可能です
+              </div>
+            </template>
+            <template v-else-if="isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId">
+              <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+                全員共有のメモは作成者のみが共有設定を変更できます
+              </div>
+            </template>
+            <template v-else>
+              <Select @update:model-value="handleAddParticipant">
+                <SelectTrigger class="h-8 text-xs">
+                  <SelectValue placeholder="メンバーを選択..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="member in props.teamMembers.filter(m => !editedParticipants.find(p => p.id === m.id) && m.id !== selectedNote?.author?.id)" :key="member.id" :value="member.id">
+                    {{ member.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </template>
+            <div v-if="editedParticipants.length > 0" class="flex flex-wrap gap-1">
+              <Badge v-for="participant in editedParticipants" :key="participant.id" variant="secondary" class="text-xs gap-1">
+                {{ participant.name }}
+                <button v-if="canEditParticipants && !(isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                  <X class="h-2 w-2" />
+                </button>
+              </Badge>
+            </div>
           </div>
         </div>
         <div class="flex-1 p-3 overflow-y-auto">
@@ -652,7 +733,7 @@ const handleRemoveTag = (tagToRemove: string) => {
       </div>
       </div>
     </Card>
-    <CreateNoteDialog :open="isCreateDialogOpen" @update:open="isCreateDialogOpen = $event" />
+    <CreateNoteDialog :open="isCreateDialogOpen" @update:open="isCreateDialogOpen = $event" :teamMembers="props.teamMembers" />
     
     <!-- 下部メッセージ -->
     <Transition
