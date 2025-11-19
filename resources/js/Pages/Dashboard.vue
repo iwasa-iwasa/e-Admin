@@ -36,7 +36,7 @@ const clearFilter = () => {
 
 <template>
     <Head title="ホーム" />
-    <div class="flex gap-6 max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+    <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-6">
         <div class="flex-[2.9] h-full flex flex-col">
             <div v-if="filteredMember" class="mb-4">
               <Badge variant="secondary" class="flex items-center gap-2 text-sm py-1 px-3">

@@ -339,7 +339,7 @@ const handleRemoveTag = (tagToRemove: string) => {
 
 <template>
   <Head title="共有メモ" />
-  <div class="flex gap-6 max-w-[1800px] mx-auto h-[calc(100vh-140px)]">
+  <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-6">
     <Card class="flex-1 flex h-full overflow-hidden">
       <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-gray-200">
       <div class="p-4 border-b border-gray-200">
