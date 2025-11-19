@@ -54,6 +54,7 @@ const editedPriority = ref<Priority>(selectedNote.value?.priority as Priority ||
 const editedColor = ref(selectedNote.value?.color || 'yellow')
 const editedTags = ref<string[]>(selectedNote.value?.tags.map(tag => tag.tag_name) || [])
 const editedParticipants = ref<App.Models.User[]>(selectedNote.value?.participants || [])
+const participantSelectValue = ref<string | null>(null)
 const tagInput = ref('')
 const isCreateDialogOpen = ref(false)
 const isSaving = ref(false)
@@ -108,6 +109,7 @@ watch(selectedNote, (newNote) => {
     editedColor.value = newNote.color
     editedTags.value = newNote.tags.map(tag => tag.tag_name)
     editedParticipants.value = newNote.participants || []
+    participantSelectValue.value = null
   }
 })
 
@@ -360,6 +362,8 @@ const handleAddParticipant = (memberId: unknown) => {
   if (member && !editedParticipants.value.find((p) => p.id === member.id)) {
     editedParticipants.value.push(member)
   }
+  // Selectの値をクリア
+  participantSelectValue.value = null
 }
 
 const handleRemoveParticipant = (participantId: number) => {
@@ -677,7 +681,7 @@ const handleRemoveParticipant = (participantId: number) => {
               </div>
             </template>
             <template v-else>
-              <Select @update:model-value="handleAddParticipant">
+              <Select v-model="participantSelectValue" @update:model-value="handleAddParticipant">
                 <SelectTrigger class="h-8 text-xs">
                   <SelectValue placeholder="メンバーを選択..." />
                 </SelectTrigger>
