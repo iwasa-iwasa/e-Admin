@@ -278,8 +278,8 @@ const handleUndoDelete = () => {
                         >
                             <ArrowLeft class="h-5 w-5" />
                         </Button>
-                        <BarChart3 class="h-6 w-6 text-blue-600" />
-                        <h1 class="text-blue-600">アンケート管理</h1>
+                        <BarChart3 class="h-6 w-6 text-purple-700" />
+                        <CardTitle>アンケート管理</CardTitle>
                     </div>
                     <Button
                         variant="outline"

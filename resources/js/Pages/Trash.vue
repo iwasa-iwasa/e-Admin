@@ -4,7 +4,7 @@ import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -175,7 +175,7 @@ const handleEmptyTrash = () => {
                 <ArrowLeft class="h-5 w-5" />
               </Button>
               <Trash2 class="h-6 w-6 text-gray-600" />
-              <h1>ゴミ箱</h1>
+              <CardTitle>ゴミ箱</CardTitle>
             </div>
             <Button v-if="trashItems.length > 0" variant="outline" @click="showEmptyTrashDialog = true" class="gap-2">
               <Trash2 class="h-4 w-4" />

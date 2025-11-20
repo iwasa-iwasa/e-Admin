@@ -158,9 +158,9 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
           <Button variant="ghost" size="icon" @click="router.get('/')">
             <ArrowLeft class="h-5 w-5" />
           </Button>
-          <Bell class="h-6 w-6 text-blue-600" />
+          <Bell class="h-6 w-6 text-green-700" />
           <div>
-            <h1 class="text-blue-600">個人リマインダー</h1>
+            <CardTitle>個人リマインダー</CardTitle>
             <p class="text-xs text-gray-500">自分専用のタスク管理</p>
           </div>
         </div>
