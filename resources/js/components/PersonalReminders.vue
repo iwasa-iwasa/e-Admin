@@ -154,8 +154,8 @@ const confirmPermanentDelete = () => {
     <CardHeader>
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <Bell class="h-5 w-5 text-blue-600" />
-          <CardTitle class="text-lg">個人リマインダー</CardTitle>
+          <Bell class="h-5 w-5 text-green-700" />
+          <CardTitle>個人リマインダー</CardTitle>
         </div>
         <div class="flex items-center gap-2">
           <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">

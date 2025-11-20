@@ -3,6 +3,10 @@ import { Head, usePage, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SharedCalendar from '@/components/SharedCalendar.vue'
 import { computed } from 'vue'
+import { ArrowLeft, Calendar as CalendarIcon, X } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { CardTitle } from '@/components/ui/card'
 
 defineOptions({
   layout: AuthenticatedLayout,
@@ -40,7 +44,7 @@ const clearFilter = () => {
               </Badge>
             </div>
             <div class="flex-1 min-h-0">
-              <SharedCalendar :events="props.events" />
+              <SharedCalendar :events="props.events" :show-back-button="true" />
             </div>
         </div>
     </div>

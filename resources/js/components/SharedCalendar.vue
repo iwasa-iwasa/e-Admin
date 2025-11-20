@@ -7,9 +7,10 @@ import interactionPlugin from '@fullcalendar/interaction'
 import multiMonthPlugin from '@fullcalendar/multimonth'
 import rrulePlugin from '@fullcalendar/rrule'
 import { CalendarOptions } from '@fullcalendar/core'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users, ArrowLeft } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { router } from '@inertiajs/vue3'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
@@ -19,6 +20,7 @@ import ScrollArea from './ui/scroll-area/ScrollArea.vue'
 
 const props = defineProps<{
     events: App.Models.Event[]
+    showBackButton?: boolean
 }>()
 
 const viewMode = ref('dayGridMonth')
@@ -170,15 +172,17 @@ const changeView = (view: any) => {
 
 <template>
   <Card class="flex flex-col h-full">
-    <CardHeader>
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <CalendarIcon class="h-6 w-6 text-blue-600" />
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <Button v-if="showBackButton" variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
+            <ArrowLeft class="h-5 w-5" />
+          </Button>
+          <CalendarIcon class="h-6 w-6 text-blue-700" />
           <CardTitle>部署内共有カレンダー</CardTitle>
         </div>
         <Button
           variant="outline"
-          size="sm"
           class="gap-2"
           @click="openCreateDialog"
         >
@@ -187,7 +191,7 @@ const changeView = (view: any) => {
         </Button>
       </div>
 
-      <div class="flex items-center justify-between mt-4 gap-4">
+      <div class="flex items-center justify-between gap-4">
         <Tabs :model-value="viewMode" @update:model-value="changeView" class="flex-1">
           <TabsList class="grid w-full max-w-[400px] grid-cols-4 bg-gray-100">
             <TabsTrigger value="multiMonthYear">年</TabsTrigger>
@@ -210,7 +214,7 @@ const changeView = (view: any) => {
         </div>
         <Button variant="outline" size="sm" @click="handleTodayClick">今日</Button>
       </div>
-    </CardHeader>
+    </div>
 
     <CardContent class="flex flex-1 overflow-y-auto">
       <ScrollArea class="h-full">

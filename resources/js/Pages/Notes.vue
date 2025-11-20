@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
+import { Card, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
@@ -383,8 +383,8 @@ const handleRemoveParticipant = (participantId: number) => {
             <Button variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
               <ArrowLeft class="h-5 w-5" />
             </Button>
-            <StickyNote class="h-6 w-6 text-yellow-600" />
-            <h1>共有メモ</h1>
+            <StickyNote class="h-6 w-6 text-yellow-700" />
+            <CardTitle>共有メモ</CardTitle>
           </div>
           <Button variant="outline" @click="handleCreateNote" class="gap-2">
             <Plus class="h-4 w-4" />
