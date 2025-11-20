@@ -26,8 +26,12 @@ Route::get('/', function () {
     if (auth()->check()) {
         return redirect()->route('dashboard');
     }
-    return redirect()->route('login');
+    return redirect()->route('welcome');
 });
+
+Route::get('/welcome', function () {
+    return Inertia::render('Welcome');
+})->name('welcome');
 
 // 認証済みユーザーのみがアクセスできるルートのグループ
 Route::middleware(['auth', 'verified'])->group(function () {
