@@ -258,7 +258,7 @@ const changeView = (view: any) => {
     >
       <div
         v-if="hoveredEvent"
-        class="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs pointer-events-none"
+        class="fixed z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-3 max-w-xs pointer-events-none"
         :style="{ left: hoverPosition.x + 'px', top: hoverPosition.y + 'px', transform: 'translateX(-50%) translateY(-100%)' }"
       >
         <div class="space-y-2">

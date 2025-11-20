@@ -67,7 +67,7 @@ const getItemTypeInfo = (type: ItemType) => {
     case 'shared_note': return { icon: StickyNote, label: 'メモ', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' }
     case 'survey': return { icon: BarChart3, label: 'アンケート', color: 'bg-purple-100 text-purple-700 border-purple-200' }
     case 'reminder': return { icon: Bell, label: 'リマインダー', color: 'bg-green-100 text-green-700 border-green-200' }
-    default: return { icon: StickyNote, label: '不明', color: 'bg-gray-100 text-gray-700 border-gray-200' }
+    default: return { icon: StickyNote, label: '不明', color: 'bg-gray-100 text-gray-700 border-gray-300' }
   }
 }
 
@@ -168,7 +168,7 @@ const handleEmptyTrash = () => {
     <Head title="ゴミ箱" />
     <div class="max-w-[1800px] mx-auto h-full p-6">
       <Card class="h-full overflow-hidden">
-        <div class="p-4 border-b border-gray-200">
+        <div class="p-4 border-b border-gray-300">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
               <Button variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
@@ -223,7 +223,7 @@ const handleEmptyTrash = () => {
                   </Badge>
                 </TableCell>
                 <TableCell v-else>
-                  <Badge variant="outline" class="gap-1 bg-gray-100 text-gray-700 border-gray-200">
+                  <Badge variant="outline" class="gap-1 bg-gray-100 text-gray-700 border-gray-300">
                     <StickyNote class="h-4 w-4" />
                     不明
                   </Badge>

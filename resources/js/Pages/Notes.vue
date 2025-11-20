@@ -376,8 +376,8 @@ const handleRemoveParticipant = (participantId: number) => {
   <Head title="共有メモ" />
   <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-6">
     <Card class="flex-1 flex h-full overflow-hidden">
-      <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-gray-200">
-      <div class="p-4 border-b border-gray-200">
+      <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-gray-300">
+      <div class="p-4 border-b border-gray-300">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <Button variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
@@ -551,7 +551,7 @@ const handleRemoveParticipant = (participantId: number) => {
 
       <div class="flex-1 flex flex-col relative h-full overflow-hidden">
       <template v-if="selectedNote">
-        <div class="flex-shrink-0 p-3 border-b border-gray-200">
+        <div class="flex-shrink-0 p-3 border-b border-gray-300">
           <div class="flex items-start justify-between mb-3">
             <div class="flex-1">
               <Input
@@ -710,7 +710,7 @@ const handleRemoveParticipant = (participantId: number) => {
           />
         </div>
         <!-- 固定ボタンエリア -->
-        <div class="flex-shrink-0 px-5 py-4 border-t border-gray-200 bg-white">
+        <div class="flex-shrink-0 px-5 py-4 border-t border-gray-300 bg-white">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <Button variant="outline" class="gap-2" @click="handleDeleteNote">

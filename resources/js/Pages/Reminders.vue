@@ -152,7 +152,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
 <template>
   <Head title="個人リマインダー" />
   <div class="h-full bg-gray-50 flex flex-col ">
-    <header class="bg-white border-b border-gray-200 px-6 py-4">
+    <header class="bg-white border-b border-gray-300 px-6 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <Button variant="ghost" size="icon" @click="router.get('/')">
@@ -183,7 +183,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
           <CardContent>
             <ScrollArea class="max-h-[400px]">
               <div class="space-y-3">
-                <div v-for="reminder in activeReminders" :key="reminder.reminder_id" class="border-2 border-gray-200 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { selectedReminder = reminder } }">
+                <div v-for="reminder in activeReminders" :key="reminder.reminder_id" class="border-2 border-gray-300 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { selectedReminder = reminder } }">
                   <div class="flex items-start gap-3">
                     <input
                       type="checkbox"

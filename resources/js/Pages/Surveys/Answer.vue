@@ -98,7 +98,7 @@ const cancel = () => {
     <Head :title="`${survey.title} - 回答`" />
     
     <div class="min-h-screen bg-gray-50">
-        <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <header class="bg-white border-b border-gray-300 sticky top-0 z-10">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4">
                 <div class="flex items-center gap-3">
                     <Button variant="ghost" size="icon" @click="cancel">

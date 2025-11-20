@@ -185,7 +185,7 @@ const handleSurveySubmit = () => {
 </script>
 
 <template>
-  <header class="bg-white border-b border-gray-200 px-6 py-4">
+  <header class="bg-white border-b border-gray-300 px-6 py-4">
     <div class="flex items-center justify-between gap-4">
       <!-- 強力な検索バー -->
       <div class="flex-1 max-w-2xl">
@@ -300,7 +300,7 @@ const handleSurveySubmit = () => {
             </Button>
           </PopoverTrigger>
           <PopoverContent class="w-[420px] p-0 max-h-[80vh] flex flex-col" align="end">
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-4 border-b border-gray-300">
               <h3 class="flex items-center gap-2">
                 <Bell class="h-5 w-5 text-blue-600" />
                 通知センター
@@ -312,7 +312,7 @@ const handleSurveySubmit = () => {
             
             <!-- 重要な予定 -->
             <div class="flex-1 overflow-y-auto scrollbar-hide">
-              <div v-if="importantEvents.length > 0" class="p-3 border-b border-gray-200">
+              <div v-if="importantEvents.length > 0" class="p-3 border-b border-gray-300">
                 <div class="flex items-center gap-2 mb-2">
                   <Calendar class="h-4 w-4 text-red-500" />
                   <h4 class="text-sm">重要な予定</h4>
@@ -339,7 +339,7 @@ const handleSurveySubmit = () => {
                 </div>
   
                 <!-- 重要なメモ -->
-                <div v-if="importantNotes.length > 0" class="p-3 border-b border-gray-200">
+                <div v-if="importantNotes.length > 0" class="p-3 border-b border-gray-300">
                   <div class="flex items-center gap-2 mb-2">
                     <StickyNote class="h-4 w-4 text-yellow-600" />
                     <h4 class="text-sm">重要なメモ</h4>

@@ -761,7 +761,7 @@ watch(
                             </div>
                             <div v-if="teamMembers" class="space-y-2">
                                 <Label>回答者選択</Label>
-                                <div class="border rounded-md p-3 space-y-2">
+                                <div class="border border-gray-300 rounded-md p-3 space-y-2">
                                     <div class="flex items-center justify-between">
                                         <span class="text-sm font-medium">選択された回答者: {{ selectedRespondents.length }}/{{ teamMembers.length }}名</span>
                                         <Button
@@ -865,7 +865,7 @@ watch(
                                     <div class="space-y-2">
                                         <Label>回答形式</Label>
                                         <div
-                                            class="p-3 bg-gray-50 rounded-md border"
+                                            class="p-3 bg-gray-50 rounded-md border border-gray-300 "
                                         >
                                             <p class="text-sm">
                                                 {{
@@ -1055,7 +1055,7 @@ watch(
                                     </div>
                                     <div
                                         v-if="question.type === 'text'"
-                                        class="p-4 bg-gray-50 rounded-md border"
+                                        class="p-4 bg-gray-50 rounded-md border border-gray-300 "
                                     >
                                         <Input
                                             placeholder="回答者がここに短文を入力します"
@@ -1064,7 +1064,7 @@ watch(
                                     </div>
                                     <div
                                         v-if="question.type === 'textarea'"
-                                        class="p-4 bg-gray-50 rounded-md border"
+                                        class="p-4 bg-gray-50 rounded-md border border-gray-300 "
                                     >
                                         <Textarea
                                             placeholder="回答者がここに長文を入力します"
@@ -1077,7 +1077,7 @@ watch(
                                         class="space-y-3"
                                     >
                                         <div
-                                            class="p-4 bg-gray-50 rounded-md border"
+                                            class="p-4 bg-gray-50 rounded-md border border-gray-300 "
                                         >
                                             <div
                                                 class="flex items-center justify-center gap-2"
@@ -1214,7 +1214,7 @@ watch(
                                             </div>
                                         </div>
                                         <div
-                                            class="p-4 bg-gray-50 rounded-md border"
+                                            class="p-4 bg-gray-50 rounded-md border border-gray-300 "
                                         >
                                             <div
                                                 class="flex items-center justify-between"
@@ -1262,7 +1262,7 @@ watch(
                                     </div>
                                     <div
                                         v-if="question.type === 'date'"
-                                        class="p-4 bg-gray-50 rounded-md border"
+                                        class="p-4 bg-gray-50 rounded-md border border-gray-300 "
                                     >
                                         <Input type="datetime-local" disabled />
                                     </div>

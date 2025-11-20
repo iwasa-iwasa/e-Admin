@@ -372,7 +372,7 @@ const getQuestionResponses = (
     <Head title="アンケート結果" />
     <div class="max-w-[1800px] mx-auto h-full p-6">
         <Card class="h-full overflow-hidden">
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-4 border-b border-gray-300">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-2">
                         <Button
@@ -833,7 +833,7 @@ const getQuestionResponses = (
                                                 response, index
                                             ) in question.responses"
                                             :key="index"
-                                            class="bg-gray-50 border border-gray-200 rounded-lg p-4"
+                                            class="bg-gray-50 border border-gray-300 rounded-lg p-4"
                                         >
                                             <div
                                                 class="flex items-start justify-between mb-2"
