@@ -406,7 +406,7 @@ const handleRemoveParticipant = (participantId: number) => {
 
         <div class="flex gap-2 mb-2">
           <Select v-model="filterAuthor">
-            <SelectTrigger class="flex-1 h-8 border-input">
+            <SelectTrigger class="flex-1 h-8 border-gray-300">
               <div class="flex items-center gap-2">
                 <User class="h-4 w-4" />
                 <SelectValue placeholder="作成者" />
@@ -421,7 +421,7 @@ const handleRemoveParticipant = (participantId: number) => {
           </Select>
 
           <Select v-model="filterPinned">
-            <SelectTrigger class="flex-1 h-8 border-input">
+            <SelectTrigger class="flex-1 h-8 border-gray-300">
               <div class="flex items-center gap-2">
                 <Filter class="h-4 w-4" />
                 <SelectValue placeholder="フィルター" />
@@ -596,7 +596,7 @@ const handleRemoveParticipant = (participantId: number) => {
               <div>
                 <label class="text-xs font-medium text-gray-700 mb-1 block">優先度</label>
                 <Select v-model="editedPriority">
-                  <SelectTrigger class="h-8 text-xs border-input">
+                  <SelectTrigger class="h-8 text-xs border-gray-300">
                     <div class="flex items-center gap-2">
                       <Badge :class="getPriorityInfo(editedPriority).className" class="text-xs px-1 py-0">
                         {{ getPriorityInfo(editedPriority).label }}
@@ -619,7 +619,7 @@ const handleRemoveParticipant = (participantId: number) => {
               <div>
                 <label class="text-xs font-medium text-gray-700 mb-1 block">色</label>
                 <Select v-model="editedColor">
-                  <SelectTrigger class="h-8 text-xs border-input">
+                  <SelectTrigger class="h-8 text-xs border-gray-300">
                     <div class="flex items-center gap-2">
                       <div :class="['w-3 h-3 rounded', getColorInfo(editedColor).bg]"></div>
                       <span>{{ getColorInfo(editedColor).label }}</span>
