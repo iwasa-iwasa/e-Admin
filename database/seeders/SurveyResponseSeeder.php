@@ -35,14 +35,12 @@ class SurveyResponseSeeder extends Seeder
                 continue; // 回答できるユーザーがいない場合はスキップ
             }
 
-            // 作成する回答数を、利用可能なユーザー数とランダムな数（最大5）の小さい方に設定
+            // 作成する回答数を決定
             $responseCount = min($availableUsers->count(), rand(1, 5));
-            $selectedUsers = $availableUsers->random($responseCount);
 
-            // Collectionのrandom()は単一オブジェクトを返す場合があるため配列に変換
-            if ($responseCount === 1) {
-                $selectedUsers = [$selectedUsers];
-            }
+            // shuffle(シャッフル)して take(取得)を使えば、数が1でも複数でも必ずCollectionが返ります
+            // 複雑なif文による分岐が不要になります
+            $selectedUsers = $availableUsers->shuffle()->take($responseCount);
 
             foreach ($selectedUsers as $user) {
                 // 回答を作成
@@ -100,16 +98,15 @@ class SurveyResponseSeeder extends Seeder
                     return null;
                 }
                 $count = min(rand(1, 3), $options->count());
-                $selectedOptions = $options->random($count);
-                // Collectionのrandom()は単一オブジェクトを返す場合があるため配列に変換
-                if (!is_array($selectedOptions) && !($selectedOptions instanceof \Illuminate\Support\Collection)) {
-                    $selectedOptions = [$selectedOptions];
-                }
-                $selectedOptionsArray = is_array($selectedOptions) ? $selectedOptions : $selectedOptions->all();
-                $texts = array_map(fn($opt) => $opt->option_text, $selectedOptionsArray);
+                
+                // ここも shuffle()->take() に置き換えてシンプルにします
+                $selectedOptions = $options->shuffle()->take($count);
+                
+                $texts = $selectedOptions->map(fn($opt) => $opt->option_text)->all();
+                
                 return [
                     'text' => implode(', ', $texts),
-                    'option_id' => $selectedOptionsArray[0]->option_id, // 最初の選択肢のIDを保存
+                    'option_id' => $selectedOptions->first()->option_id,
                 ];
 
             case 'dropdown':
