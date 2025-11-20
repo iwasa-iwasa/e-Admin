@@ -35,10 +35,15 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $teamMembers = $user ? User::get() : [];
         
-        // 未回答のアクティブなアンケート件数を取得
+        // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
         $unansweredSurveysCount = 0;
         if ($user) {
             $unansweredSurveysCount = Survey::where('is_active', true)
+                ->where('is_deleted', false)
+                ->where(function ($query) {
+                    $query->whereNull('deadline')
+                          ->orWhere('deadline', '>=', now());
+                })
                 ->whereDoesntHave('responses', function ($query) use ($user) {
                     $query->where('respondent_id', $user->id);
                 })
