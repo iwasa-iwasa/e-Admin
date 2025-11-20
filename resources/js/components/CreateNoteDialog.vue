@@ -289,7 +289,7 @@ const getColorInfo = (c: string) => {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
-                        <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border rounded-md bg-gray-50">
+                        <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border border-gray-300 rounded-md bg-gray-50">
                             <div class="text-xs font-medium text-gray-700 mb-2">選択されたメンバー:</div>
                             <div class="flex flex-wrap gap-2">
                                 <Badge v-for="participant in selectedParticipants" :key="participant.id" variant="secondary" class="gap-2 px-3 py-1">
@@ -300,7 +300,7 @@ const getColorInfo = (c: string) => {
                                 </Badge>
                             </div>
                         </div>
-                        <div v-else class="min-h-[40px] p-3 border rounded-md bg-blue-50 text-blue-700 text-sm">
+                        <div v-else class="min-h-[40px] p-3 border border-gray-300 rounded-md bg-blue-50 text-blue-700 text-sm">
                             メンバーが選択されていません（全員に表示されます）
                         </div>
                     </div>

@@ -161,7 +161,7 @@ const confirmPermanentDelete = () => {
           <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
             <button
               @click="showCompleted = false"
-              :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', !showCompleted ? 'bg-white shadow-sm border border-input text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <Clock :class="['h-3.5 w-3.5', !showCompleted ? 'text-blue-500' : 'text-gray-400']" />
               未完了
@@ -171,7 +171,7 @@ const confirmPermanentDelete = () => {
             </button>
             <button
               @click="showCompleted = true"
-              :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', showCompleted ? 'bg-white shadow-sm border border-input text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <CheckCircle :class="['h-3.5 w-3.5', showCompleted ? 'text-green-500' : 'text-gray-400']" />
               完了済み

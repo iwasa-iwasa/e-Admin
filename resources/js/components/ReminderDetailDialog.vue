@@ -367,7 +367,7 @@ const closeDialog = (isOpen: boolean) => {
             </p>
           </div>
 
-          <div v-if="!isCreateMode && props.reminder" class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+          <div v-if="!isCreateMode && props.reminder" class="flex items-center justify-between p-3 border border-gray-300 rounded-lg">
             <span class="text-sm text-gray-600">ステータス</span>
             <Badge :variant="props.reminder.completed ? 'secondary' : 'default'">
               {{ props.reminder.completed ? '完了' : '未完了' }}

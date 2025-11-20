@@ -250,7 +250,7 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
 
 <template>
   <div class="min-h-screen bg-gray-50 relative">
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <header class="bg-white border-b border-gray-300 sticky top-0 z-10">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -348,7 +348,7 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                   </div>
                   <div class="space-y-2">
                     <Label>回答形式</Label>
-                    <div class="p-3 bg-gray-50 rounded-md border">
+                    <div class="p-3 bg-gray-50 rounded-md border border-gray-300 ">
                       <p class="text-sm">{{ getQuestionTypeLabel(question.type) }}</p>
                     </div>
                   </div>
@@ -400,14 +400,14 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                           選択肢を追加
                       </Button>
                   </div>
-                  <div v-if="question.type === 'text'" class="p-4 bg-gray-50 rounded-md border">
+                  <div v-if="question.type === 'text'" class="p-4 bg-gray-50 rounded-md border border-gray-300 ">
                     <Input placeholder="回答者がここに短文を入力します" disabled />
                   </div>
-                  <div v-if="question.type === 'textarea'" class="p-4 bg-gray-50 rounded-md border">
+                  <div v-if="question.type === 'textarea'" class="p-4 bg-gray-50 rounded-md border border-gray-300 ">
                     <Textarea placeholder="回答者がここに長文を入力します" disabled class="min-h-[100px]" />
                   </div>
                   <div v-if="question.type === 'rating'" class="space-y-3">
-                    <div class="p-4 bg-gray-50 rounded-md border">
+                    <div class="p-4 bg-gray-50 rounded-md border border-gray-300 ">
                       <div class="flex items-center justify-center gap-2">
                         <Star v-for="star in Array.from({ length: question.scaleMax || 5 }, (_, i) => i + 1)" :key="star" class="h-8 w-8 text-gray-300 fill-gray-200" />
                       </div>
@@ -446,7 +446,7 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                         </div>
                       </div>
                     </div>
-                    <div class="p-4 bg-gray-50 rounded-md border">
+                    <div class="p-4 bg-gray-50 rounded-md border border-gray-300 ">
                       <div class="flex items-center justify-between">
                         <span class="text-sm text-gray-600">{{ question.scaleMinLabel || question.scaleMin || 1 }}</span>
                         <div class="flex gap-2">
