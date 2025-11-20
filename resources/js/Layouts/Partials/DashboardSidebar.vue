@@ -52,7 +52,6 @@ const handleMemberClick = (memberId: number, path: string) => {
         preserveState: true,
         replace: true,
       })
-    console.log('通ったわよー');
     } else {
       // Otherwise, filter by the new member.
       router.get(route(routeName), { member_id: memberId }, {

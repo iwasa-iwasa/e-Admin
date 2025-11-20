@@ -300,7 +300,7 @@ const getColorInfo = (c: string) => {
                                 </Badge>
                             </div>
                         </div>
-                        <div v-else class="min-h-[40px] p-3 border border-gray-300 rounded-md bg-blue-50 text-blue-700 text-sm">
+                        <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 text-blue-700 text-sm">
                             メンバーが選択されていません（全員に表示されます）
                         </div>
                     </div>
