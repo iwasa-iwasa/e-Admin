@@ -163,8 +163,8 @@ const weekDays = ['日', '月', '火', '水', '木', '金', '土']
 <template>
   <Head title="部署共有カレンダー" />
   <div class="min-h-screen bg-gray-50 flex">
-    <aside class="w-80 bg-white border-r border-gray-200 flex flex-col">
-      <div class="p-4 border-b border-gray-200">
+    <aside class="w-80 bg-white border-r border-gray-300 flex flex-col">
+      <div class="p-4 border-b border-gray-300">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <Users class="h-5 w-5 text-blue-600" />
@@ -181,7 +181,7 @@ const weekDays = ['日', '月', '火', '水', '木', '金', '土']
       </div>
       <ScrollArea class="flex-1">
         <div class="p-4 space-y-2">
-          <Card v-for="member in members" :key="member.id" :class="['cursor-pointer transition-all', visibleMembers.includes(member.id) ? 'border-2 shadow-sm' : 'border border-gray-200 opacity-60']" :style="{ borderColor: visibleMembers.includes(member.id) ? member.color : undefined }">
+          <Card v-for="member in members" :key="member.id" :class="['cursor-pointer transition-all', visibleMembers.includes(member.id) ? 'border-2 shadow-sm' : 'border border-gray-300 opacity-60']" :style="{ borderColor: visibleMembers.includes(member.id) ? member.color : undefined }">
             <CardContent class="p-4">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-3">
@@ -209,7 +209,7 @@ const weekDays = ['日', '月', '火', '水', '木', '金', '土']
           </Card>
         </div>
       </ScrollArea>
-      <div class="p-4 border-t border-gray-200">
+      <div class="p-4 border-t border-gray-300">
         <p class="text-xs text-gray-500 mb-2">カレンダーの見方</p>
         <div class="space-y-1 text-xs text-gray-600">
           <div class="flex items-center gap-2">
@@ -225,7 +225,7 @@ const weekDays = ['日', '月', '火', '水', '木', '金', '土']
     </aside>
 
     <div class="flex-1 flex flex-col">
-      <header class="bg-white border-b border-gray-200 p-4">
+      <header class="bg-white border-b border-gray-300 p-4">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-4">
             <h1 class="text-blue-600">部署共有カレンダー</h1>
@@ -256,14 +256,14 @@ const weekDays = ['日', '月', '火', '水', '木', '金', '土']
           </div>
         </div>
 
-        <div class="border border-gray-200 rounded-lg overflow-hidden">
-          <div class="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
+        <div class="border border-gray-300 rounded-lg overflow-hidden">
+          <div class="grid grid-cols-7 bg-gray-50 border-b border-gray-300">
             <div v-for="(day, index) in weekDays" :key="day" :class="['p-3 text-center text-sm', index === 0 ? 'text-red-600' : index === 6 ? 'text-blue-600' : 'text-gray-700']">
               {{ day }}
             </div>
           </div>
           <div class="grid grid-cols-7">
-            <div v-for="(day, index) in calendarDays" :key="index" :class="['min-h-[120px] p-2 border-r border-b border-gray-200', day ? 'bg-white' : 'bg-gray-50', index % 7 === 0 ? 'border-l-0' : '']">
+            <div v-for="(day, index) in calendarDays" :key="index" :class="['min-h-[120px] p-2 border-r border-b border-gray-300', day ? 'bg-white' : 'bg-gray-50', index % 7 === 0 ? 'border-l-0' : '']">
               <template v-if="day">
                 <div :class="['text-sm mb-2', day === 20 && currentDate.getMonth() === 9 && currentDate.getFullYear() === 2025 ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center' : 'text-gray-700']">
                   {{ day }}

@@ -492,7 +492,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                     この予定を繰り返す
                                                 </Label>
                                             </div>
-                                            <div v-if="form.recurrence.is_recurring" class="space-y-4 pl-6 border-l-2 border-gray-200 ml-3">
+                                            <div v-if="form.recurrence.is_recurring" class="space-y-4 pl-6 border-l-2 border-gray-300 ml-3">
                                                 <div class="space-y-2">
                                                     <Label for="recurrence_type">繰り返しパターン</Label>
                                                     <Select v-model="form.recurrence.recurrence_type">

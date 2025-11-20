@@ -154,14 +154,14 @@ const sortedNotes = computed(() => {
           <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
             <button
               @click="sortOrder = 'priority'"
-              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortOrder === 'priority' ? 'bg-white shadow-sm border border-input text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortOrder === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <AlertCircle :class="['h-3.5 w-3.5', sortOrder === 'priority' ? 'text-red-500' : 'text-gray-400']" />
               優先度順
             </button>
             <button
               @click="sortOrder = 'deadline'"
-              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortOrder === 'deadline' ? 'bg-white shadow-sm border border-input text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortOrder === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <Calendar :class="['h-3.5 w-3.5', sortOrder === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
               期限順

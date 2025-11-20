@@ -234,7 +234,7 @@ const sortedNotes = computed(() => {
             <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
                 <button
                     @click="toggleSortOrder"
-                    :class="['flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded transition-all', sortOrder === 'priority' ? 'bg-white shadow-sm border border-gray-200' : 'hover:bg-gray-200']"
+                    :class="['flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded transition-all', sortOrder === 'priority' ? 'bg-white shadow-sm border border-gray-300' : 'hover:bg-gray-200']"
                 >
                     <AlertCircle :class="['h-3.5 w-3.5', sortOrder === 'priority' ? 'text-red-600' : 'text-gray-400']" />
                     <span :class="['text-xs', sortOrder === 'priority' ? 'text-gray-900' : 'text-gray-500']">
@@ -243,7 +243,7 @@ const sortedNotes = computed(() => {
                 </button>
                 <button
                     @click="toggleSortOrder"
-                    :class="['flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded transition-all', sortOrder === 'deadline' ? 'bg-white shadow-sm border border-gray-200' : 'hover:bg-gray-200']"
+                    :class="['flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded transition-all', sortOrder === 'deadline' ? 'bg-white shadow-sm border border-gray-300' : 'hover:bg-gray-200']"
                 >
                     <Calendar :class="['h-3.5 w-3.5', sortOrder === 'deadline' ? 'text-blue-600' : 'text-gray-400']" />
                     <span :class="['text-xs', sortOrder === 'deadline' ? 'text-gray-900' : 'text-gray-500']">
