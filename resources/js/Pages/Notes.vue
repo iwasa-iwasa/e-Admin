@@ -436,53 +436,46 @@ const handleRemoveParticipant = (participantId: number) => {
         </div>
 
         <div class="space-y-2">
-          <div class="text-xs font-medium text-gray-700 mb-1">並び順</div>
-          <div class="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
+          <div class="flex gap-2 p-1 bg-gray-100 rounded-lg">
+            <button
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortKey === 'updated_at' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
               @click="sortKey === 'updated_at' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'updated_at', sortOrder = 'desc')"
               class="flex-1 h-8 text-xs font-medium transition-all"
-              :class="sortKey === 'updated_at' ? 'shadow-md' : 'hover:bg-gray-50'"
             >
-              <Clock class="h-3.5 w-3.5 mr-1.5" />
-              <span>更新日時順</span>
+              <Clock :class="['h-3.5 w-3.5', sortKey === 'updated_at' ? 'text-yellow-500' : 'text-gray-400']" />
+              更新日時順
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'updated_at'" 
-                class="h-3 w-3 ml-1" 
+                class="h-3 w-3" 
               />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
+            </button>
+            <button
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
               @click="sortKey === 'priority' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'priority', sortOrder = 'desc')"
               class="flex-1 h-8 text-xs font-medium transition-all"
-              :class="sortKey === 'priority' ? 'shadow-md' : 'hover:bg-gray-50'"
             >
-              <AlertCircle class="h-3.5 w-3.5 mr-1.5" />
-              <span>優先度順</span>
+              <AlertCircle :class="['h-3.5 w-3.5', sortKey === 'priority' ? 'text-red-500' : 'text-gray-400']" />
+              優先度順
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'priority'" 
-                class="h-3 w-3 ml-1" 
+                class="h-3 w-3" 
               />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
+            </button>
+            <button
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
               @click="sortKey === 'deadline' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'deadline', sortOrder = 'desc')"
               class="flex-1 h-8 text-xs font-medium transition-all"
-              :class="sortKey === 'deadline' ? 'shadow-md' : 'hover:bg-gray-50'"
             >
-              <Calendar class="h-3.5 w-3.5 mr-1.5" />
-              <span>期限順</span>
+              <Calendar :class="['h-3.5 w-3.5', sortKey === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
+              期限順
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'deadline'" 
-                class="h-3 w-3 ml-1" 
+                class="h-3 w-3" 
               />
-            </Button>
+            </button>
           </div>
         </div>
       </div>
