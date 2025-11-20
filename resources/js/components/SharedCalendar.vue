@@ -74,6 +74,7 @@ const calendarOptions = computed((): CalendarOptions => ({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin, rrulePlugin],
   initialView: viewMode.value,
   headerToolbar: false,
+  // timeZone: 'UTC', // REMOVED: Revert to local timezone to fix interpretation issues.
   contentHeight: 'auto',
   events: props.events.map(event => {
     const commonProps = {
@@ -85,7 +86,37 @@ const calendarOptions = computed((): CalendarOptions => ({
       allDay: event.is_all_day,
     };
 
+    // Convert UTC date strings from backend to local Date objects
+    // event.start_date and event.end_date are like "YYYY-MM-DDTHH:mm:ss.SSSSSSZ"
+    const localStartDate = new Date(event.start_date);
+    const localEndDate = new Date(event.end_date);
+
+    // Format time to ensure HH:mm:ss format (remove seconds if needed, but keep consistent)
+    const formatTime = (time: string | null): string => {
+      if (!time) return '00:00:00';
+      const parts = time.split(':');
+      return parts.length === 2 ? `${time}:00` : time.substring(0, 8);
+    };
+    const fcStartTime = formatTime(event.start_time);
+    const fcEndTime = formatTime(event.end_time);
+
+    // Get YYYY-MM-DD string from local Date objects
+    const getLocalYMD = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const fcStartDate = getLocalYMD(localStartDate);
+    const fcEndDate = getLocalYMD(localEndDate);
+
     if (event.rrule) {
+      // For recurring events, the rrule object itself contains dtstart which is UTC.
+      // FullCalendar handles this internally, but if dtstart needs to be local,
+      // the rrule object would need to be reconstructed here.
+      // For now, assume FullCalendar's rrule plugin handles UTC dtstart correctly
+      // when the calendar's timeZone is 'local' (default).
       return {
         ...commonProps,
         rrule: event.rrule,
@@ -93,39 +124,22 @@ const calendarOptions = computed((): CalendarOptions => ({
       };
     }
 
-    // Non-recurring events
     if (event.is_all_day) {
-        // For all-day events, the end date is exclusive.
-        // Add one day to the end date for it to display correctly.
-        // IMPORTANT: Create date in UTC to avoid timezone shifts.
-        const startDate = new Date(event.start_date + 'T00:00:00Z');
-        const endDate = new Date(event.end_date + 'T00:00:00Z');
-        endDate.setUTCDate(endDate.getUTCDate() + 1);
+        // For all-day events, FullCalendar's `end` is exclusive.
+        // We need to specify the day AFTER the actual end date.
+        localEndDate.setDate(localEndDate.getDate() + 1);
         return {
             ...commonProps,
-            start: startDate.toISOString().split('T')[0], // Format back to 'YYYY-MM-DD' in UTC
-            end: endDate.toISOString().split('T')[0], // Format back to 'YYYY-MM-DD' in UTC
+            start: fcStartDate,
+            end: getLocalYMD(localEndDate),
         };
     }
 
-    // For time-based events, use local timezone (no timezone suffix)
-    // FullCalendar will interpret date-time strings without timezone as local time
-    const startDateStr = event.start_date.split('T')[0];
-    const endDateStr = event.end_date.split('T')[0];
-    const startTime = event.start_time || '00:00:00';
-    const endTime = event.end_time || '00:00:00';
-    
-    // Format time to ensure HH:mm:ss format (remove seconds if needed, but keep consistent)
-    const formatTime = (time: string) => {
-      const parts = time.split(':');
-      if (parts.length === 2) return time + ':00'; // Add seconds if missing
-      return time.substring(0, 8); // Ensure HH:mm:ss format
-    };
-    
+    // For timed events, combine local date and time strings
     return {
       ...commonProps,
-      start: `${startDateStr}T${formatTime(startTime)}`,
-      end: `${endDateStr}T${formatTime(endTime)}`,
+      start: `${fcStartDate}T${fcStartTime}`,
+      end: `${fcEndDate}T${fcEndTime}`,
     };
   }),
   locale: 'ja',

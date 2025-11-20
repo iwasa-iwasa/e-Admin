@@ -135,6 +135,7 @@ const displayTime = computed(() => {
 });
 
 const recurrenceText = computed(() => {
+
     if (!props.event?.recurrence) {
         return '';
     }
