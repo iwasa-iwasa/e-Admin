@@ -23,11 +23,11 @@ const form = useForm({
     <section>
         <header>
             <h2 class="text-lg font-medium text-gray-900">
-                Profile Information
+                プロフィール情報
             </h2>
 
             <p class="mt-1 text-sm text-gray-600">
-                Update your account's profile information and email address.
+                アカウントのプロフィール情報とメールアドレスを更新します。
             </p>
         </header>
 
@@ -36,7 +36,7 @@ const form = useForm({
             class="mt-6 space-y-6"
         >
             <div>
-                <InputLabel for="name" value="Name" />
+                <InputLabel for="name" value="名前" />
 
                 <TextInput
                     id="name"
@@ -52,7 +52,7 @@ const form = useForm({
             </div>
 
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" value="メールアドレス" />
 
                 <TextInput
                     id="email"
@@ -67,7 +67,7 @@ const form = useForm({
             </div>
 
             <div>
-                <InputLabel for="department" value="Department" />
+                <InputLabel for="department" value="部署" />
 
                 <TextInput
                     id="department"
@@ -82,7 +82,7 @@ const form = useForm({
             </div>
 
             <div>
-                <InputLabel for="role" value="Role" />
+                <InputLabel for="role" value="役職" />
 
                 <TextInput
                     id="role"
@@ -96,14 +96,14 @@ const form = useForm({
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
                 <p class="mt-2 text-sm text-gray-800">
-                    Your email address is unverified.
+                    メールアドレスが未確認です。
                     <Link
                         :href="route('verification.send')"
                         method="post"
                         as="button"
                         class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
-                        Click here to re-send the verification email.
+                        こちらをクリックして確認メールを再送信してください。
                     </Link>
                 </p>
 
@@ -111,12 +111,12 @@ const form = useForm({
                     v-show="status === 'verification-link-sent'"
                     class="mt-2 text-sm font-medium text-green-600"
                 >
-                    A new verification link has been sent to your email address.
+                    新しい確認リンクがメールアドレスに送信されました。
                 </div>
             </div>
 
             <div class="flex items-center gap-4">
-                <PrimaryButton :disabled="form.processing">Save</PrimaryButton>
+                <PrimaryButton :disabled="form.processing">保存</PrimaryButton>
 
                 <Transition
                     enter-active-class="transition ease-in-out"
@@ -128,7 +128,7 @@ const form = useForm({
                         v-if="form.recentlySuccessful"
                         class="text-sm text-gray-600"
                     >
-                        Saved.
+                        保存しました。
                     </p>
                 </Transition>
             </div>
