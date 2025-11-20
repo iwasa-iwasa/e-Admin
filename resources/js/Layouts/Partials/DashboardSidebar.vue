@@ -167,20 +167,14 @@ const currentURL = computed(() => page.url )
       <div class="px-3 py-2 text-xs text-gray-500">連携機能</div>
 
       <div class="space-y-1">
-        <Button variant="ghost" class="w-full justify-start gap-3">
-          <Mail class="h-5 w-5" />
-          Outlook連携
-          <Badge variant="outline" class="ml-auto text-xs">
-            同期済
-          </Badge>
-        </Button>
         <a
           href="https://outlook.office.com"
           target="_blank"
           rel="noopener noreferrer"
           class="block"
         >
-          <Button variant="ghost" class="w-full justify-start gap-3 pl-11 text-sm">
+          <Button variant="ghost" class="w-full justify-start gap-3 text-sm">
+            <Mail class="h-5 w-5" />
             Outlookを開く
           </Button>
         </a>
