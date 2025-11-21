@@ -97,13 +97,16 @@ const calendarOptions = computed((): CalendarOptions => ({
         }
 
         if (event.is_all_day) {
-            const startDate = new Date(event.start_date + 'T00:00:00Z');
-            const endDate = new Date(event.end_date + 'T00:00:00Z');
+            // event.end_dateの翌日を計算
+            const [year, month, day] = event.end_date.split('T')[0].split('-').map(Number);
+            const endDate = new Date(Date.UTC(year, month - 1, day));
             endDate.setUTCDate(endDate.getUTCDate() + 1);
+            const endStr = endDate.toISOString().split('T')[0];
+
             return {
                 ...commonProps,
-                start: startDate.toString().split('T')[0],
-                end: endDate.toString().split('T')[0],
+                start: event.start_date.split('T')[0],
+                end: endStr,
             };
         }
 

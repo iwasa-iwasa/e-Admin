@@ -61,9 +61,9 @@ class Event extends Model
     protected $casts = [
         'event_id' => 'integer',
         'calendar_id' => 'integer',
-        'start_date' => 'date',
+        'start_date' => 'date:Y-m-d',
         'start_time' => 'datetime:H:i',
-        'end_date' => 'date',
+        'end_date' => 'date:Y-m-d',
         'end_time' => 'datetime:H:i',
         'is_all_day' => 'boolean',
         'created_by' => 'integer',
