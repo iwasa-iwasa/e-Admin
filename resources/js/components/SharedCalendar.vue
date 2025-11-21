@@ -102,8 +102,8 @@ const calendarOptions = computed((): CalendarOptions => ({
             endDate.setUTCDate(endDate.getUTCDate() + 1);
             return {
                 ...commonProps,
-                start: startDate.toISOString().split('T')[0],
-                end: endDate.toISOString().split('T')[0],
+                start: startDate.toString().split('T')[0],
+                end: endDate.toString().split('T')[0],
             };
         }
 
