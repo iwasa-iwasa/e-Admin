@@ -280,12 +280,11 @@ const getImportanceColor = (imp: string) => {
 
 const getCategoryColor = (cat: string) => {
     switch (cat) {
-        case "会議": return "bg-purple-500";
-        case "MTG": return "bg-green-500";
-        case "期限": return "bg-orange-500";
-        case "重要": return "bg-red-500";
-        case "有給": return "bg-teal-500";
-        case "業務": return "bg-blue-500";
+        case "会議": return "bg-[#8b5cf6]";
+        case "休暇": return "bg-[#14b8a6]";
+        case "業務": return "bg-[#3b82f6]";
+        case "来客": return "bg-[#eab308]";
+        case "出張": return "bg-[#22c55e]";
         default: return "bg-gray-500";
     }
 };
@@ -337,11 +336,10 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="会議">会議</SelectItem>
-                                                    <SelectItem value="MTG">MTG</SelectItem>
-                                                    <SelectItem value="期限">期限</SelectItem>
-                                                    <SelectItem value="重要">重要</SelectItem>
-                                                    <SelectItem value="有給">有給</SelectItem>
+                                                    <SelectItem value="休暇">休暇</SelectItem>
                                                     <SelectItem value="業務">業務</SelectItem>
+                                                    <SelectItem value="来客">来客</SelectItem>
+                                                    <SelectItem value="出張">出張</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
