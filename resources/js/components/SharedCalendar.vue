@@ -48,14 +48,10 @@ const openEditDialog = (eventId: number) => {
 const getEventColor = (category: string, importance: string) => {
     const categoryColorMap: { [key: string]: string } = {
         '会議': '#8b5cf6', // purple
-        '期限': '#f97316', // orange
-        'MTG': '#22c55e', // green
-        '重要': '#ef4444', // red
-        '有給': '#14b8a6', // teal
+        '休暇': '#14b8a6', // teal
         '業務': '#3b82f6', // blue
         '来客': '#eab308', // yellow
-        '報告': '#6366f1', // indigo
-        '研修': '#ec4899', // pink
+        '出張': '#22c55e', // green
     };
     if (importance === '高') return '#ef4444'; // red
     return categoryColorMap[category] || '#6b7280'; // gray
@@ -63,11 +59,10 @@ const getEventColor = (category: string, importance: string) => {
 
 const legendItems = [
     { label: '会議', color: '#8b5cf6' },
-    { label: '期限', color: '#f97316' },
-    { label: 'MTG', color: '#22c55e' },
-    { label: '重要', color: '#ef4444' },
-    { label: '有休', color: '#14b8a6' },
+    { label: '休暇', color: '#14b8a6' },
     { label: '業務', color: '#3b82f6' },
+    { label: '来客', color: '#eab308' },
+    { label: '出張', color: '#22c55e' },
 ];
 
 const calendarOptions = computed((): CalendarOptions => ({

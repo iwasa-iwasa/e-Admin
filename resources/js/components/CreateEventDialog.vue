@@ -280,12 +280,11 @@ const getImportanceColor = (imp: string) => {
 
 const getCategoryColor = (cat: string) => {
     switch (cat) {
-        case "会議": return "bg-purple-500";
-        case "MTG": return "bg-green-500";
-        case "期限": return "bg-orange-500";
-        case "重要": return "bg-red-500";
-        case "有給": return "bg-teal-500";
-        case "業務": return "bg-blue-500";
+        case "会議": return "bg-[#8b5cf6]";
+        case "休暇": return "bg-[#14b8a6]";
+        case "業務": return "bg-[#3b82f6]";
+        case "来客": return "bg-[#eab308]";
+        case "出張": return "bg-[#22c55e]";
         default: return "bg-gray-500";
     }
 };
