@@ -336,11 +336,10 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="会議">会議</SelectItem>
-                                                    <SelectItem value="MTG">MTG</SelectItem>
-                                                    <SelectItem value="期限">期限</SelectItem>
-                                                    <SelectItem value="重要">重要</SelectItem>
-                                                    <SelectItem value="有給">有給</SelectItem>
+                                                    <SelectItem value="休暇">休暇</SelectItem>
                                                     <SelectItem value="業務">業務</SelectItem>
+                                                    <SelectItem value="来客">来客</SelectItem>
+                                                    <SelectItem value="出張">出張</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>

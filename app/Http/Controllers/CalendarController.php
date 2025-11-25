@@ -64,7 +64,7 @@ class CalendarController extends Controller
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,MTG,期限,重要,有給,業務,その他',
+            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張',
             'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
             'recurrence' => 'nullable|array',
@@ -170,7 +170,7 @@ class CalendarController extends Controller
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,MTG,期限,重要,有給,業務,その他',
+            'category' => 'required|string|in:会議,休暇,業務,来客,出張',
             'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
         ]);

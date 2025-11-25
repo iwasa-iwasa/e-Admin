@@ -54,7 +54,7 @@ const getEventColor = (category: string, importance: string) => {
         '休暇': '#14b8a6', // teal
         '業務': '#3b82f6', // blue
         '来客': '#eab308', // yellow
-        '出張': '#22c55e', // green
+        '出張': '#f97316', // orange
     };
     if (importance === '高') return '#ef4444';
     return categoryColorMap[category] || '#6b7280';
@@ -65,7 +65,7 @@ const legendItems = [
     { label: '休暇', color: '#14b8a6' },
     { label: '業務', color: '#3b82f6' },
     { label: '来客', color: '#eab308' },
-    { label: '出張', color: '#22c55e' },
+    { label: '出張', color: '#f97316' },
 ];
 
 const calendarOptions = computed((): CalendarOptions => ({
