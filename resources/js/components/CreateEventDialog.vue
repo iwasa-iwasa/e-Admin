@@ -342,7 +342,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                     <SelectItem value="出張">出張</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                        </div>
+                                        </div> 
                                         <div class="space-y-2">
                                             <Label for="importance">優先度</Label>
                                             <Select v-model="form.importance">
