@@ -55,6 +55,7 @@ const isEditing = ref(false)
 const editedReminder = ref<Reminder | null>(null)
 const saveMessage = ref('')
 const messageTimer = ref<number | null>(null)
+const isSaving = ref(false)
 
 const showMessage = (message: string) => {
   if (messageTimer.value) {
@@ -95,6 +96,7 @@ const createDefaultReminder = (): Reminder => ({
 
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
+    isSaving.value = false
     if (props.reminder) {
       editedReminder.value = { ...props.reminder }
       isEditing.value = false
@@ -181,6 +183,8 @@ const handleSave = () => {
     return
   }
 
+  isSaving.value = true
+
   if (isCreateMode.value) {
     // 新規作成
     form.post(route('reminders.store'), {
@@ -208,10 +212,12 @@ const handleSave = () => {
           form.reset()
           editedReminder.value = createDefaultReminder()
           isEditing.value = false
+          isSaving.value = false
         }, 1000)
       },
       onError: () => {
         showMessage('リマインダーの作成に失敗しました。')
+        isSaving.value = false
       }
     })
   } else if (props.reminder) {
@@ -236,10 +242,12 @@ const handleSave = () => {
           setTimeout(() => {
             emit('update:open', false)
             isEditing.value = false
+            isSaving.value = false
           }, 2500)
         },
         onError: () => {
           showMessage('リマインダーの更新に失敗しました。')
+          isSaving.value = false
         }
       })
     }
@@ -248,6 +256,7 @@ const handleSave = () => {
 
 const handleCancel = () => {
   isEditing.value = false
+  isSaving.value = false
   form.reset()
   if (props.reminder) {
     editedReminder.value = { ...props.reminder }
@@ -270,6 +279,7 @@ const closeDialog = (isOpen: boolean) => {
       isEditing.value = false
       form.reset()
     }
+    isSaving.value = false
     emit('update:open', false)
   }
 }
@@ -382,7 +392,7 @@ const closeDialog = (isOpen: boolean) => {
               variant="outline" 
               @click="handleCancel" 
               size="sm"
-              :disabled="form.processing"
+              :disabled="form.processing || isSaving"
             >
               <X class="h-4 w-4 mr-1" />
               キャンセル
@@ -391,10 +401,10 @@ const closeDialog = (isOpen: boolean) => {
               type="submit"
               variant="outline"
               size="sm"
-              :disabled="form.processing"
+              :disabled="form.processing || isSaving"
             >
               <Save class="h-4 w-4 mr-1" />
-              {{ form.processing ? '保存中...' : (isCreateMode ? '作成' : '保存') }}
+              {{ (form.processing || isSaving) ? '保存中...' : (isCreateMode ? '作成' : '保存') }}
             </Button>
           </template>
           <template v-else>
