@@ -601,6 +601,7 @@ onMounted(fetchNotifications)
         :show="showConfirmLogoutModal"
         title="Logout Confirmation"
         message="Are you sure you want to log out?"
+        :processing="form.processing"
         @close="showConfirmLogoutModal = false"
         @confirm="logout"
     />

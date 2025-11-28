@@ -188,9 +188,16 @@ watch(() => props.open, (isOpen) => {
 }, { immediate: true });
 
 
-watch(date, (newDate) => {
-    if (newDate && newDate.length === 2) {
-        form.date_range = newDate;
+watch(date, (newDates) => {
+    if (newDates && newDates[0]) {
+        const startDate = newDates[0];
+        // If the second date is null or undefined, set it to the start date.
+        const endDate = newDates[1] instanceof Date ? newDates[1] : startDate;
+        form.date_range = [startDate, endDate];
+    } else {
+        // If no date is selected (e.g., cleared), reset to today's date
+        const now = new Date();
+        form.date_range = [now, now];
     }
 });
 
@@ -663,9 +670,9 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
             
                         <DialogFooter>
                             <Button variant="outline" @click="handleClose">{{ canEdit ? 'キャンセル' : '閉じる' }}</Button>
-                            <Button v-if="canEdit" variant="outline" @click="handleSave" class="gap-2">
+                            <Button v-if="canEdit" variant="outline" @click="handleSave" class="gap-2" :disabled="form.processing">
                                 <Save class="h-4 w-4" />
-                                {{ isEditMode ? '保存' : '作成' }}
+                                {{ form.processing ? '保存中...' : (isEditMode ? '保存' : '作成') }}
                             </Button>
                             <Button v-else variant="outline" @click="handleConfirm" class="gap-2">
                                 <CheckCircle class="h-4 w-4" />
