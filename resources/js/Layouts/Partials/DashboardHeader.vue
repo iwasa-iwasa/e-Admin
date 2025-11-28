@@ -599,8 +599,8 @@ onMounted(fetchNotifications)
 
     <ConfirmationModal
         :show="showConfirmLogoutModal"
-        title="Logout Confirmation"
-        message="Are you sure you want to log out?"
+        title="ログアウトの確認"
+        message="ログアウトしてもよろしいですか？"
         :processing="form.processing"
         @close="showConfirmLogoutModal = false"
         @confirm="logout"
