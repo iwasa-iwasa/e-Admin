@@ -2,11 +2,14 @@
 import Modal from '@/components/Modal.vue';
 import { Button } from '@/components/ui/button';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     show: boolean;
     title: string;
     message: string;
-}>();
+    processing?: boolean;
+}>(), {
+    processing: false,
+});
 
 const emit = defineEmits(['confirm', 'close']);
 
@@ -37,6 +40,7 @@ const close = () => {
                     variant="destructive"
                     class="ms-3"
                     @click="confirm"
+                    :disabled="processing"
                 >
                     Confirm
                 </Button>

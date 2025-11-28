@@ -601,9 +601,9 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
             
                         <DialogFooter>
                             <Button variant="outline" @click="handleClose">キャンセル</Button>
-                            <Button variant="outline" @click="handleSave" class="gap-2">
+                            <Button variant="outline" @click="handleSave" class="gap-2" :disabled="form.processing">
                                 <Save class="h-4 w-4" />
-                                {{ isEditMode ? '保存' : '作成' }}
+                                {{ form.processing ? '保存中...' : (isEditMode ? '保存' : '作成') }}
                             </Button>
                         </DialogFooter>        </DialogContent>
     
