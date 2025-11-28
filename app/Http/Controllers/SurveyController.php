@@ -79,6 +79,10 @@ class SurveyController extends Controller
             'questions.*.required' => ['boolean'],
             'questions.*.options' => ['array'],
             'questions.*.options.*' => ['string'],
+            'questions.*.scaleMin' => ['nullable', 'integer'],
+            'questions.*.scaleMax' => ['nullable', 'integer'],
+            'questions.*.scaleMinLabel' => ['nullable', 'string'],
+            'questions.*.scaleMaxLabel' => ['nullable', 'string'],
             'respondents' => ['array'],
             'respondents.*' => ['integer', 'exists:users,id'],
             'isDraft' => ['boolean'],
@@ -137,6 +141,10 @@ class SurveyController extends Controller
                     'question_type' => $questionType,
                     'is_required' => $questionData['required'] ?? false,
                     'display_order' => $index + 1,
+                    'scale_min' => $questionData['scaleMin'] ?? null,
+                    'scale_max' => $questionData['scaleMax'] ?? null,
+                    'scale_min_label' => $questionData['scaleMinLabel'] ?? null,
+                    'scale_max_label' => $questionData['scaleMaxLabel'] ?? null,
                 ]);
 
                 // 選択肢を保存（選択肢形式の質問の場合）
@@ -198,6 +206,10 @@ class SurveyController extends Controller
                 'question_text' => $question->question_text,
                 'question_type' => $question->question_type,
                 'is_required' => $question->is_required,
+                'scaleMin' => $question->scale_min,
+                'scaleMax' => $question->scale_max,
+                'scaleMinLabel' => $question->scale_min_label,
+                'scaleMaxLabel' => $question->scale_max_label,
                 'options' => $question->options->pluck('option_text')->toArray(),
             ])->toArray(),
         ];
@@ -258,6 +270,10 @@ class SurveyController extends Controller
                         'question_type' => $this->mapQuestionType($questionData['type']),
                         'is_required' => $questionData['required'] ?? false,
                         'display_order' => $index + 1,
+                        'scale_min' => $questionData['scaleMin'] ?? null,
+                        'scale_max' => $questionData['scaleMax'] ?? null,
+                        'scale_min_label' => $questionData['scaleMinLabel'] ?? null,
+                        'scale_max_label' => $questionData['scaleMaxLabel'] ?? null,
                     ]);
 
                     if (in_array($questionData['type'], ['single', 'multiple', 'dropdown']) && !empty($questionData['options'])) {
@@ -307,6 +323,10 @@ class SurveyController extends Controller
                 'question_text' => $question->question_text,
                 'question_type' => $question->question_type,
                 'is_required' => $question->is_required,
+                'scale_min' => $question->scale_min,
+                'scale_max' => $question->scale_max,
+                'scale_min_label' => $question->scale_min_label,
+                'scale_max_label' => $question->scale_max_label,
                 'options' => $question->options->map(fn($option) => [
                     'option_id' => $option->option_id,
                     'option_text' => $option->option_text,
@@ -500,6 +520,7 @@ class SurveyController extends Controller
         return Inertia::render('SurveyResults', [
             'survey' => $survey,
             'responses' => $responses,
+            'statistics' => $statistics,
             'statistics' => $statistics,
             'unansweredUsers' => $unansweredUsers,
         ]);

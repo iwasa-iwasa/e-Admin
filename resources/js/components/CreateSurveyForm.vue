@@ -412,14 +412,10 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                         <Star v-for="star in Array.from({ length: question.scaleMax || 5 }, (_, i) => i + 1)" :key="star" class="h-8 w-8 text-gray-300 fill-gray-200" />
                       </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 gap-3">
                       <div class="space-y-2">
-                        <Label>最小値</Label>
-                        <Input type="number" :model-value="question.scaleMin || 1" @update:model-value="updateQuestion(question.id, 'scaleMin', parseInt(String($event)))" />
-                      </div>
-                      <div class="space-y-2">
-                        <Label>最大値</Label>
-                        <Input type="number" :model-value="question.scaleMax || 5" @update:model-value="updateQuestion(question.id, 'scaleMax', parseInt(String($event)))" />
+                        <Label>星の数（3〜15）</Label>
+                        <Input type="number" min="3" max="15" :model-value="question.scaleMax || 5" @update:model-value="updateQuestion(question.id, 'scaleMax', Math.min(15, Math.max(3, parseInt(String($event)) || 5))); updateQuestion(question.id, 'scaleMin', 1)" />
                       </div>
                     </div>
                   </div>
