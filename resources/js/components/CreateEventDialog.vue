@@ -154,9 +154,16 @@ watch(() => props.open, (isOpen) => {
 }, { immediate: true });
 
 
-watch(date, (newDate) => {
-    if (newDate && newDate.length === 2) {
-        form.date_range = newDate;
+watch(date, (newDates) => {
+    if (newDates && newDates[0]) {
+        const startDate = newDates[0];
+        // If the second date is null or undefined, set it to the start date.
+        const endDate = newDates[1] instanceof Date ? newDates[1] : startDate;
+        form.date_range = [startDate, endDate];
+    } else {
+        // If no date is selected (e.g., cleared), reset to today's date
+        const now = new Date();
+        form.date_range = [now, now];
     }
 });
 

@@ -25,7 +25,7 @@ class CalendarController extends Controller
         $memberId = $request->query('member_id');
 
         // Build query for events
-        $eventsQuery = Event::with(['creator', 'participants'])
+        $eventsQuery = Event::with(['creator', 'participants', 'attachments'])
             ->orderBy('start_date');
 
         // If a member_id is provided in the URL, filter events to those
@@ -170,9 +170,14 @@ class CalendarController extends Controller
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,休暇,業務,来客,出張',
+            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張',
             'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
+            'attachments' => 'nullable|array',
+            'attachments.new_files' => 'nullable|array',
+            'attachments.new_files.*' => 'file|max:10240', // 10MB max
+            'attachments.removed_ids' => 'nullable|array',
+            'attachments.removed_ids.*' => 'integer',
         ]);
 
         $event->update([
@@ -193,6 +198,28 @@ class CalendarController extends Controller
         // Update participants
         if (isset($validated['participants'])) {
             $event->participants()->sync($validated['participants']);
+        }
+
+        // Handle new attachments
+        if (isset($validated['attachments']['new_files'])) {
+            foreach ($validated['attachments']['new_files'] as $file) {
+                $path = $file->store('attachments', 'public');
+                $event->attachments()->create([
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                ]);
+            }
+        }
+
+        // Handle removed attachments
+        if (isset($validated['attachments']['removed_ids'])) {
+            $attachmentsToDelete = $event->attachments()->whereIn('attachment_id', $validated['attachments']['removed_ids'])->get();
+            foreach ($attachmentsToDelete as $attachment) {
+                Storage::disk('public')->delete($attachment->file_path);
+                $attachment->delete();
+            }
         }
 
         return redirect()->back();
