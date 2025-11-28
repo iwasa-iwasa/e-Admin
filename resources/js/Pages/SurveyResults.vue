@@ -91,6 +91,7 @@ interface QuestionResult {
     required: boolean;
     responses: any[];
     aggregatedData?: any;
+    scaleMax?: number;
 }
 
 const mockSurveyResult: SurveyResult = {
@@ -290,6 +291,7 @@ const surveyData = computed(() => {
                         question: q.question_text,
                         type: mapQuestionTypeToFrontend(q.question_type),
                         required: q.is_required,
+                        scaleMax: q.scale_max,
                         responses: getQuestionResponses(
                             q,
                             props.responses || []
@@ -309,7 +311,7 @@ const surveyData = computed(() => {
                                               : 0,
                                   })
                               )
-                            : null,
+                            : [],
                     };
                 }) || [],
         };
@@ -565,6 +567,7 @@ const getQuestionResponses = (
                                         回答の割合
                                     </h4>
                                     <div
+                                        v-if="question.aggregatedData && question.aggregatedData.length > 0"
                                         style="
                                             height: 300px;
                                             position: relative;
@@ -602,6 +605,7 @@ const getQuestionResponses = (
                                         回答数
                                     </h4>
                                     <div
+                                        v-if="question.aggregatedData && question.aggregatedData.length > 0"
                                         style="
                                             height: 300px;
                                             position: relative;
@@ -642,7 +646,7 @@ const getQuestionResponses = (
                                 <h4 class="text-sm mb-4 text-gray-600">
                                     選択された回数（複数選択可）
                                 </h4>
-                                <div style="height: 300px; position: relative">
+                                <div v-if="question.aggregatedData && question.aggregatedData.length > 0" style="height: 300px; position: relative">
                                     <Bar
                                         :data="{
                                             labels: question.aggregatedData.map(
@@ -682,19 +686,23 @@ const getQuestionResponses = (
                                     </p>
                                     <p class="text-4xl text-blue-600 mb-2">
                                         {{
-                                            (
-                                                question.responses.reduce(
-                                                    (sum, r) => sum + r.value,
-                                                    0
-                                                ) / question.responses.length
-                                            ).toFixed(1)
+                                            question.responses.length > 0
+                                                ? (
+                                                      question.responses.reduce(
+                                                          (sum, r) =>
+                                                              sum + r.value,
+                                                          0
+                                                      ) /
+                                                      question.responses.length
+                                                  ).toFixed(1)
+                                                : "回答なし"
                                         }}
                                     </p>
                                     <div
                                         class="flex items-center justify-center gap-1"
                                     >
                                         <span
-                                            v-for="i in 5"
+                                            v-for="i in (question.scaleMax || 5)"
                                             :key="i"
                                             :class="[
                                                 'text-2xl',
@@ -723,6 +731,7 @@ const getQuestionResponses = (
                                         評価の分布
                                     </h4>
                                     <div
+                                        v-if="question.aggregatedData && question.aggregatedData.length > 0"
                                         style="
                                             height: 250px;
                                             position: relative;
@@ -777,7 +786,7 @@ const getQuestionResponses = (
                                 <h4 class="text-sm mb-4 text-gray-600">
                                     各項目の平均評価（5段階）
                                 </h4>
-                                <div style="height: 400px; position: relative">
+                                <div v-if="question.aggregatedData && question.aggregatedData.length > 0" style="height: 400px; position: relative">
                                     <Radar
                                         :data="{
                                             labels: question.aggregatedData.map(

@@ -25,6 +25,10 @@ interface Question {
     question_type: string
     is_required: boolean
     options: Option[]
+    scale_min?: number
+    scale_max?: number
+    scale_min_label?: string
+    scale_max_label?: string
 }
 
 interface Survey {
@@ -188,7 +192,7 @@ const cancel = () => {
                         <!-- Rating -->
                         <div v-else-if="question.question_type === 'rating'" class="space-y-2">
                             <div class="flex items-center gap-2">
-                                <div v-for="rating in 5" :key="rating" class="flex items-center">
+                                <div v-for="rating in (question.scale_max || 5)" :key="rating" class="flex items-center">
                                     <input 
                                         type="radio" 
                                         :name="`question_${question.question_id}`"

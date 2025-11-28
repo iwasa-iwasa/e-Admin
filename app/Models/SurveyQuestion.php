@@ -43,6 +43,10 @@ class SurveyQuestion extends Model
         'question_type',
         'is_required',
         'display_order',
+        'scale_min',
+        'scale_max',
+        'scale_min_label',
+        'scale_max_label',
     ];
 
     /**

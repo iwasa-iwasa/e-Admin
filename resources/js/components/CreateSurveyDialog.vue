@@ -297,6 +297,10 @@ const handleSave = (isDraft: boolean = false) => {
         type: q.type,
         required: q.required,
         options: q.options,
+        scaleMin: q.scaleMin,
+        scaleMax: q.scaleMax,
+        scaleMinLabel: q.scaleMinLabel,
+        scaleMaxLabel: q.scaleMaxLabel,
     }));
 
     // リクエストを送信
@@ -1096,27 +1100,13 @@ watch(
                                                 />
                                             </div>
                                         </div>
-                                        <div class="grid grid-cols-2 gap-3">
+                                        <div class="grid grid-cols-1 gap-3">
                                             <div class="space-y-2">
-                                                <Label>最小値</Label>
+                                                <Label>星の数（3〜15）</Label>
                                                 <Input
                                                     type="number"
-                                                    :model-value="
-                                                        question.scaleMin || 1
-                                                    "
-                                                    @update:model-value="
-                                                        updateQuestion(
-                                                            question.id,
-                                                            'scaleMin',
-                                                            parseInt(String($event))
-                                                        )
-                                                    "
-                                                />
-                                            </div>
-                                            <div class="space-y-2">
-                                                <Label>最大値</Label>
-                                                <Input
-                                                    type="number"
+                                                    min="3"
+                                                    max="15"
                                                     :model-value="
                                                         question.scaleMax || 5
                                                     "
@@ -1124,7 +1114,22 @@ watch(
                                                         updateQuestion(
                                                             question.id,
                                                             'scaleMax',
-                                                            parseInt(String($event))
+                                                            Math.min(
+                                                                15,
+                                                                Math.max(
+                                                                    3,
+                                                                    parseInt(
+                                                                        String(
+                                                                            $event
+                                                                        )
+                                                                    ) || 5
+                                                                )
+                                                            )
+                                                        );
+                                                        updateQuestion(
+                                                            question.id,
+                                                            'scaleMin',
+                                                            1
                                                         )
                                                     "
                                                 />
