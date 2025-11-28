@@ -65,8 +65,42 @@ const messageType = ref<'success' | 'error'>('success')
 const messageTimer = ref<number | null>(null)
 
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
-// Current authenticated user id from Inertia page props
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
+
+// 全員共有かどうか（全メンバーが参加者に含まれている）
+const isAllUsers = computed(() => {
+  return form.participants.length === teamMembers.value.length
+})
+
+// 編集権限チェック
+const canEdit = computed(() => {
+  if (!isEditMode.value || !props.event) return true // 新規作成は常に可能
+  const event = props.event
+  const isCreator = event.creator_id === currentUserId.value
+  
+  // 参加者が空（選択しない）: 作成者のみ編集可能
+  if (!event.participants || event.participants.length === 0) {
+    return isCreator
+  }
+  
+  // 全員が参加者: 全員編集可能
+  if (event.participants.length === teamMembers.value.length) {
+    return true
+  }
+  
+  // 個人指定: 作成者または参加者のみ編集可能
+  const isParticipant = event.participants.some(p => p.id === currentUserId.value)
+  return isCreator || isParticipant
+})
+
+// 参加者編集権限: 作成者または参加者
+const canEditParticipants = computed(() => {
+  if (!isEditMode.value || !props.event) return true
+  const isCreator = props.event.creator_id === currentUserId.value
+  if (isAllUsers.value) return isCreator // 全員共有は作成者のみ変更可能
+  const isParticipant = props.event.participants?.some(p => p.id === currentUserId.value)
+  return isCreator || isParticipant
+})
 
 const form = useForm({
   title: '',
@@ -173,9 +207,23 @@ const handleAllDayToggle = (value: boolean) => {
   form.is_all_day = value;
 };
 
-const handleAddParticipant = (memberId: unknown) => {
-    if (memberId === null || memberId === undefined) return
-    const id = Number(memberId as any)
+const handleAddParticipant = (value: unknown) => {
+    if (value === null || value === undefined) return
+    
+    // 「全員」を選択
+    if (value === 'all') {
+        form.participants = [...teamMembers.value]
+        return
+    }
+    
+    // 「選択しない」を選択
+    if (value === 'none') {
+        form.participants = []
+        return
+    }
+    
+    // 個人を選択
+    const id = Number(value)
     if (Number.isNaN(id)) return
     const member = teamMembers.value.find((m) => m.id === id)
     if (member && !form.participants.find((p) => p.id === member.id)) {
@@ -243,14 +291,12 @@ const handleSave = () => {
   const options = {
     onSuccess: () => {
       handleClose()
-      // ダイアログを閉じた後にメッセージを表示
       setTimeout(() => {
         showMessage(`予定を${isEditMode.value ? '更新' : '作成'}しました`, 'success')
       }, 100)
     },
     onError: (errors: any) => {
       console.log(errors)
-      // Pick the first error and show it.
       const firstError = Object.values(errors)[0]
       showMessage(firstError || '保存に失敗しました', 'error')
     }
@@ -261,6 +307,14 @@ const handleSave = () => {
   } else {
     form.transform(transformData).post(route('events.store'), options);
   }
+}
+
+// 確認完了ハンドラー（閲覧のみのユーザー用）
+const handleConfirm = () => {
+  handleClose()
+  setTimeout(() => {
+    showMessage('確認しました', 'success')
+  }, 100)
 }
 
 const handleClose = () => {
@@ -307,8 +361,8 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
     <Dialog :open="open" @update:open="handleClose">
         <DialogContent class="max-w-3xl max-h-[90vh]">
             <DialogHeader>
-                            <DialogTitle>{{ isEditMode ? '予定編集' : '新規予定作成' }}</DialogTitle>
-                            <DialogDescription>{{ isEditMode ? '部署内共有カレンダーの予定を編集します' : '部署内共有カレンダーに予定を追加します' }}</DialogDescription>
+                            <DialogTitle>{{ isEditMode ? (canEdit ? '予定編集' : '予定確認') : '新規予定作成' }}</DialogTitle>
+                            <DialogDescription>{{ isEditMode ? (canEdit ? '部署内共有カレンダーの予定を編集します' : '部署内共有カレンダーの予定を確認します') : '部署内共有カレンダーに予定を追加します' }}</DialogDescription>
                         </DialogHeader>
             
                         <Tabs default-value="basic" class="w-full">
@@ -323,11 +377,11 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                     <TabsContent value="basic" class="space-y-4 min-h-[400px]">
                                         <div class="space-y-2">
                                             <Label for="title">タイトル / 件名 *</Label>
-                                            <Input id="title" placeholder="例：部署ミーティング" v-model="form.title" autofocus />
+                                            <Input id="title" placeholder="例：部署ミーティング" v-model="form.title" :disabled="!canEdit" autofocus />
                                         </div>
                                         <div class="space-y-2">
                                             <Label for="category">ジャンル</Label>
-                                            <Select v-model="form.category">
+                                            <Select v-model="form.category" :disabled="!canEdit">
                                                 <SelectTrigger id="category">
                                                     <div class="flex items-center gap-2">
                                                         <div :class="['w-3 h-3 rounded-full', getCategoryColor(form.category)]"></div>
@@ -345,7 +399,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                         </div> 
                                         <div class="space-y-2">
                                             <Label for="importance">優先度</Label>
-                                            <Select v-model="form.importance">
+                                            <Select v-model="form.importance" :disabled="!canEdit">
                                                 <SelectTrigger id="importance">
                                                     <div class="flex items-center gap-2">
                                                         <AlertCircle :class="['h-4 w-4', getImportanceColor(form.importance)]" />
@@ -370,7 +424,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 <MapPin class="h-4 w-4" />
                                                 場所・会議室
                                             </Label>
-                                            <Input id="location" placeholder="例：会議室A、オンライン（Zoom）" v-model="form.location" />
+                                            <Input id="location" placeholder="例：会議室A、オンライン（Zoom）" v-model="form.location" :disabled="!canEdit" />
                                         </div>
                                         <div v-if="isEditMode" class="space-y-2">
                                             <Label for="progress">進捗 ({{ form.progress }}%)</Label>
@@ -386,6 +440,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                     min="0" 
                                                     max="100" 
                                                     v-model.number="form.progress" 
+                                                    :disabled="!canEdit"
                                                     class="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider absolute top-0"
                                                 />
                                                 <div class="flex justify-between text-xs text-gray-500 mt-1">
@@ -405,6 +460,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                               :checked="is_all_day"
                                               v-model="form.is_all_day"
                                               @update:checked="handleAllDayToggle"
+                                              :disabled="!canEdit"
                                             />
                                             <Label for="allDay" class="text-sm cursor-pointer">終日</Label>
                                         </div>
@@ -422,6 +478,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 :format="format"
                                                 auto-apply
                                                 teleport-center
+                                                :disabled="!canEdit"
                                             />
                                         </div>
                                         <div v-if="!form.is_all_day" class="flex flex-col sm:flex-row gap-4">
@@ -429,12 +486,12 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 <Label>開始時刻</Label>
                                                 <Popover>
                                                     <PopoverTrigger as-child>
-                                                        <Button variant="outline" class="w-full justify-start font-normal">
+                                                        <Button variant="outline" class="w-full justify-start font-normal" :disabled="!canEdit">
                                                             <Clock class="mr-2 h-4 w-4" />
                                                             {{ form.start_time || 'Select time' }}
                                                         </Button>
                                                     </PopoverTrigger>
-                                                    <PopoverContent class="w-auto p-0">
+                                                    <PopoverContent class="w-auto p-0" v-if="canEdit">
                                                         <time-picker v-model="form.start_time" />
                                                     </PopoverContent>
                                                 </Popover>
@@ -443,18 +500,18 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 <Label>終了時刻</Label>
                                                 <Popover>
                                                     <PopoverTrigger as-child>
-                                                        <Button variant="outline" class="w-full justify-start font-normal">
+                                                        <Button variant="outline" class="w-full justify-start font-normal" :disabled="!canEdit">
                                                             <Clock class="mr-2 h-4 w-4" />
                                                             {{ form.end_time || 'Select time' }}
                                                         </Button>
                                                     </PopoverTrigger>
-                                                    <PopoverContent class="w-auto p-0">
+                                                    <PopoverContent class="w-auto p-0" v-if="canEdit">
                                                         <time-picker v-model="form.end_time" />
                                                     </PopoverContent>
                                                 </Popover>
                                             </div>
                                         </div>
-                                        <div class="space-y-2">
+                                        <div v-if="canEditParticipants" class="space-y-2">
                                             <Label for="addParticipant" class="flex items-center gap-2">
                                                 <Users class="h-4 w-4" />
                                                 参加者を追加
@@ -464,27 +521,37 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                     <SelectValue placeholder="メンバーを選択..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                        <SelectItem v-for="member in teamMembers.filter(m => m.id !== currentUserId && !form.participants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
-                                                            {{ member.name }}
-                                                        </SelectItem>
+                                                    <SelectItem value="all">全員</SelectItem>
+                                                    <SelectItem value="none">選択しない</SelectItem>
+                                                    <SelectItem v-for="member in teamMembers.filter(m => m.id !== currentUserId && !form.participants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
+                                                        {{ member.name }}
+                                                    </SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        <div v-if="form.participants.length > 0" class="space-y-2">
-                                            <Label>選択済み参加者</Label>
+                                        <div class="space-y-2">
+                                            <Label>{{ canEditParticipants ? '選択済み参加者' : '参加者' }}</Label>
                                             <div class="flex flex-wrap gap-2">
-                                                <Badge v-for="participant in form.participants" :key="participant.id" variant="secondary" class="text-sm px-3 py-1 gap-2">
-                                                    {{ participant.name }}
-                                                    <button @click="handleRemoveParticipant(participant.id)" class="hover:text-red-600">
-                                                        <X class="h-3 w-3" />
-                                                    </button>
+                                                <Badge v-if="form.participants.length === 0" variant="secondary" class="text-sm px-3 py-1">
+                                                    選択なし（全員確認可能）
                                                 </Badge>
+                                                <Badge v-else-if="isAllUsers" variant="secondary" class="text-sm px-3 py-1">
+                                                    全員
+                                                </Badge>
+                                                <template v-else>
+                                                    <Badge v-for="participant in form.participants" :key="participant.id" variant="secondary" class="text-sm px-3 py-1 gap-2">
+                                                        {{ participant.name }}
+                                                        <button v-if="canEditParticipants" @click="handleRemoveParticipant(participant.id)" class="hover:text-red-600">
+                                                            <X class="h-3 w-3" />
+                                                        </button>
+                                                    </Badge>
+                                                </template>
                                             </div>
                                         </div>
 
                                         <div class="space-y-4 pt-4">
                                             <div class="flex items-center space-x-2">
-                                                <Switch id="recurring" v-model="form.recurrence.is_recurring" />
+                                                <Switch id="recurring" v-model="form.recurrence.is_recurring" :disabled="!canEdit" />
                                                 <Label for="recurring" class="text-sm cursor-pointer flex items-center gap-2">
                                                     <Repeat class="h-4 w-4" />
                                                     この予定を繰り返す
@@ -493,7 +560,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                             <div v-if="form.recurrence.is_recurring" class="space-y-4 pl-6 border-l-2 border-gray-300 ml-3">
                                                 <div class="space-y-2">
                                                     <Label for="recurrence_type">繰り返しパターン</Label>
-                                                    <Select v-model="form.recurrence.recurrence_type">
+                                                    <Select v-model="form.recurrence.recurrence_type" :disabled="!canEdit">
                                                         <SelectTrigger id="recurrence_type">
                                                             <SelectValue />
                                                         </SelectTrigger>
@@ -515,6 +582,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                             :variant="form.recurrence.by_day.includes(day.value) ? 'default' : 'outline'"
                                                             size="icon-sm"
                                                             @click="toggleByDay(day.value)"
+                                                            :disabled="!canEdit"
                                                             class="rounded-full"
                                                         >
                                                             {{ day.label }}
@@ -523,7 +591,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 </div>
                                                 <div class="space-y-2">
                                                     <Label for="recurrence_interval">繰り返し間隔</Label>
-                                                    <Input id="recurrence_interval" type="number" min="1" v-model.number="form.recurrence.recurrence_interval" class="w-24" />
+                                                    <Input id="recurrence_interval" type="number" min="1" v-model.number="form.recurrence.recurrence_interval" :disabled="!canEdit" class="w-24" />
                                                 </div>
                                                 <div class="space-y-2">
                                                     <Label for="recurrence_end_date">繰り返し終了日</Label>
@@ -533,6 +601,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                         :locale="ja"
                                                         auto-apply
                                                         teleport-center
+                                                        :disabled="!canEdit"
                                                     />
                                                     <p class="text-xs text-gray-500">空白の場合は無期限で繰り返されます</p>
                                                 </div>
@@ -546,14 +615,14 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 <FileText class="h-4 w-4" />
                                                 詳細・メモ
                                             </Label>
-                                            <Textarea id="description" placeholder="予定の詳細、準備事項、議題など..." v-model="form.description" rows="8" />
+                                            <Textarea id="description" placeholder="予定の詳細、準備事項、議題など..." v-model="form.description" :disabled="!canEdit" rows="8" />
                                         </div>
                                         <div class="space-y-2">
                                             <Label for="url" class="flex items-center gap-2">
                                                 <LinkIcon class="h-4 w-4" />
                                                 URL
                                             </Label>
-                                            <Input id="url" type="url" placeholder="例：https://zoom.us/j/123456789" v-model="form.url" />
+                                            <Input id="url" type="url" placeholder="例：https://zoom.us/j/123456789" v-model="form.url" :disabled="!canEdit" />
                                             <p class="text-xs text-gray-500 mt-2">オンライン会議のURLや関連資料のリンクなど</p>
                                         </div>
 
@@ -562,7 +631,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 <Paperclip class="h-4 w-4" />
                                                 添付ファイル
                                             </Label>
-                                            <div>
+                                            <div v-if="canEdit">
                                                 <Button variant="outline" size="sm" @click="triggerFileInput">
                                                     ファイルを選択
                                                 </Button>
@@ -572,7 +641,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 <p class="text-sm font-medium">既存のファイル:</p>
                                                 <div v-for="file in form.attachments.existing" :key="file.attachment_id" class="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                                                     <span class="text-sm truncate">{{ file.file_name }}</span>
-                                                    <Button variant="ghost" size="sm" @click="handleRemoveExistingFile(file.attachment_id)">
+                                                    <Button v-if="canEdit" variant="ghost" size="sm" @click="handleRemoveExistingFile(file.attachment_id)">
                                                         <X class="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -581,7 +650,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 <p class="text-sm font-medium">新しいファイル:</p>
                                                 <div v-for="(file, index) in form.attachments.new_files" :key="index" class="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                                                     <span class="text-sm truncate">{{ file.name }}</span>
-                                                    <Button variant="ghost" size="sm" @click="handleRemoveNewFile(index)">
+                                                    <Button v-if="canEdit" variant="ghost" size="sm" @click="handleRemoveNewFile(index)">
                                                         <X class="h-4 w-4" />
                                                     </Button>
                                                 </div>
@@ -593,10 +662,14 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                         </Tabs>
             
                         <DialogFooter>
-                            <Button variant="outline" @click="handleClose">キャンセル</Button>
-                            <Button variant="outline" @click="handleSave" class="gap-2">
+                            <Button variant="outline" @click="handleClose">{{ canEdit ? 'キャンセル' : '閉じる' }}</Button>
+                            <Button v-if="canEdit" variant="outline" @click="handleSave" class="gap-2">
                                 <Save class="h-4 w-4" />
                                 {{ isEditMode ? '保存' : '作成' }}
+                            </Button>
+                            <Button v-else variant="outline" @click="handleConfirm" class="gap-2">
+                                <CheckCircle class="h-4 w-4" />
+                                確認完了
                             </Button>
                         </DialogFooter>        </DialogContent>
     

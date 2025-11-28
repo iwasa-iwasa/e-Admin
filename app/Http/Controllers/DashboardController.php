@@ -56,7 +56,8 @@ class DashboardController extends Controller
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
         $reminders = $user->reminders()
-            ->orderBy('deadline')
+            ->orderBy('deadline_date')
+            ->orderBy('deadline_time')
             ->get();
 
         $teamMembers = \App\Models\User::all();

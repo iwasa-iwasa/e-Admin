@@ -1,16 +1,8 @@
 <script setup lang="ts">
-import { Link, useForm } from '@inertiajs/vue3'
+import { Link, useForm, router } from '@inertiajs/vue3'
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
-
-const showConfirmLogoutModal = ref(false);
-
-const form = useForm({});
-
-const logout = () => {
-    form.post(route('logout'));
-};
-import { ref } from 'vue'
-import { Search, Bell, User, Calendar, StickyNote, BarChart3 } from 'lucide-vue-next'
+import { ref, onMounted, computed } from 'vue'
+import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2 } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,49 +20,57 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
-
 import NotificationSettingsDialog from '@/components/NotificationSettingsDialog.vue'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import EventDetailDialog from '@/components/EventDetailDialog.vue'
+import CreateEventDialog from '@/components/CreateEventDialog.vue'
+import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
+
+const showConfirmLogoutModal = ref(false);
+const form = useForm({});
+
+const logout = () => {
+    form.post(route('logout'));
+};
 
 interface Event {
-  id: string
+  event_id: number
   title: string
-  color: string
-  assignee: string
-  time?: string
-  department?: string
+  start_date: string
+  end_date?: string
+  creator: { name: string }
   location?: string
   description?: string
-  date?: string
+  importance?: string
 }
 
 interface Note {
-  id: number
+  note_id: number
   title: string
   content: string
-  author: string
-  date: string
-  deadline?: string
-  pinned: boolean
+  author: { name: string }
+  deadline_date?: string
+  deadline_time?: string
   color: string
   priority: 'high' | 'medium' | 'low'
 }
 
 interface Survey {
-  id: number
+  survey_id: number
   title: string
   deadline: string
+  creator: { name: string }
   description?: string
-  questions?: string[]
+}
+
+interface Reminder {
+  reminder_id: number
+  title: string
+  description?: string
+  deadline_date: string
+  deadline_time?: string
+  category: string
+  completed: boolean
 }
 
 const searchQuery = ref('')
@@ -79,109 +79,215 @@ const isNotificationOpen = ref(false)
 
 const selectedEvent = ref<Event | null>(null)
 const selectedNote = ref<Note | null>(null)
-const selectedSurvey = ref<Survey | null>(null)
+const selectedReminder = ref<Reminder | null>(null)
+const isEventDetailOpen = ref(false)
+const isEventEditOpen = ref(false)
 
 const isProfileSettingsOpen = ref(false)
 const isNotificationSettingsOpen = ref(false)
+const showEventsFilter = ref<'mine' | 'all'>(
+  (localStorage.getItem('notif_events_filter') as 'mine' | 'all') || 'mine'
+)
+const showNotesFilter = ref<'mine' | 'all'>(
+  (localStorage.getItem('notif_notes_filter') as 'mine' | 'all') || 'mine'
+)
+
+const notifications = ref({ events: [], notes: [], surveys: [], reminders: [] })
+const saveMessage = ref('')
+const messageType = ref<'success' | 'delete'>('success')
+const messageTimer = ref<number | null>(null)
+const lastDeletedReminder = ref<Reminder | null>(null)
 
 const insertSearchOption = (option: string) => {
   searchQuery.value += option
 }
 
-const importantEvents: Event[] = [
-  {
-    id: 'multi-14-17',
-    title: '経営戦略会議（4日間）',
-    date: '2025-10-14 〜 2025-10-17',
-    assignee: '田中',
-    color: '#3b82f6',
-    department: '総務部',
-    time: '10:00-12:00',
-    location: '会議室A',
-    description: '今期の経営戦略について協議します。',
-  },
-  {
-    id: '16-2',
-    title: '勤怠確認',
-    date: '2025-10-16',
-    assignee: '鈴木',
-    color: '#10b981',
-    department: '総務部',
-    time: '14:00-15:00',
-    description: '月次の勤怠データを確認します。',
-  },
-  {
-    id: '20-1',
-    title: '給与計算',
-    date: '2025-10-20',
-    assignee: '鈴木',
-    color: '#f59e0b',
-    department: '総務部',
-    time: '13:00-17:00',
-    description: '月次の給与計算を実施します。',
-  },
-  {
-    id: '24-1',
-    title: '月末処理',
-    date: '2025-10-24',
-    assignee: '佐藤',
-    color: '#ef4444',
-    department: '総務部',
-    time: '09:00-18:00',
-    description: '月末の各種処理を行います。',
-  },
-]
+const isLoadingNotifications = ref(false)
 
-const importantNotes: Note[] = [
-  {
-    id: 1,
-    title: '備品発注リスト',
-    content: '・コピー用紙 A4 10箱\n・ボールペン 黒 50本\n・クリアファイル 100枚',
-    deadline: '2025-10-20',
-    author: '佐藤',
-    date: '2025-10-13',
-    pinned: true,
-    color: 'bg-yellow-100 border-yellow-300',
-    priority: 'high',
-  },
-  {
-    id: 2,
-    title: '来客対応メモ',
-    content: '10/15 14:00 A社 山本様\n会議室Bを予約済み',
-    deadline: '2025-10-15',
-    author: '田中',
-    date: '2025-10-12',
-    pinned: true,
-    color: 'bg-blue-100 border-blue-300',
-    priority: 'high',
-  },
-]
-
-const pendingSurveys: Survey[] = [
-  {
-    id: 1,
-    title: '社員満足度調査',
-    deadline: '2025-10-25',
-    description: '職場環境や業務満足度についてのアンケートです。',
-    questions: ['職場環境について', '業務内容について', '福利厚生について'],
-  },
-  {
-    id: 2,
-    title: '福利厚生改善アンケート',
-    deadline: '2025-10-30',
-    description: '福利厚生の改善点についてのアンケートです。',
-    questions: ['現在の福利厚生の評価', '改善してほしい点', '追加してほしい制度'],
-  },
-]
-
-const totalNotifications = importantEvents.length + importantNotes.length + pendingSurveys.length
-
-const handleSurveySubmit = () => {
-  if (typeof window !== 'undefined') {
-    window.alert('アンケートを送信しました')
+const fetchNotifications = async () => {
+  if (isLoadingNotifications.value) return
+  
+  isLoadingNotifications.value = true
+  try {
+    const params = new URLSearchParams({
+      events_filter: showEventsFilter.value,
+      notes_filter: showNotesFilter.value,
+      _t: Date.now().toString()
+    })
+    const response = await fetch(`/api/notifications?${params}`, {
+      cache: 'no-store'
+    })
+    const data = await response.json()
+    notifications.value = data
+  } catch (error) {
+    console.error('Failed to fetch notifications:', error)
+  } finally {
+    isLoadingNotifications.value = false
   }
-  selectedSurvey.value = null
 }
+
+const toggleEventsFilter = async () => {
+  showEventsFilter.value = showEventsFilter.value === 'mine' ? 'all' : 'mine'
+  localStorage.setItem('notif_events_filter', showEventsFilter.value)
+  await fetchNotifications()
+}
+
+const toggleNotesFilter = async () => {
+  showNotesFilter.value = showNotesFilter.value === 'mine' ? 'all' : 'mine'
+  localStorage.setItem('notif_notes_filter', showNotesFilter.value)
+  await fetchNotifications()
+}
+
+const totalNotifications = computed(() => 
+  notifications.value.events.length + notifications.value.notes.length + notifications.value.surveys.length + notifications.value.reminders.length
+)
+
+const getItemColor = (type: string, priority?: string) => {
+  if (type === 'event') return 'bg-blue-50 border-blue-200'
+  if (type === 'note') {
+    switch (priority) {
+      case 'high': return 'bg-red-50 border-red-200'
+      case 'medium': return 'bg-yellow-50 border-yellow-200'
+      default: return 'bg-green-50 border-green-200'
+    }
+  }
+  if (type === 'reminder') return 'bg-green-50 border-green-200'
+  return 'bg-purple-50 border-purple-200'
+}
+
+const formatDate = (date: string) => {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('ja-JP')
+}
+
+const handleClick = (type: string, item: any) => {
+  if (type === 'event') {
+    selectedEvent.value = item
+    isEventDetailOpen.value = true
+  } else if (type === 'note') {
+    selectedNote.value = item
+  } else if (type === 'survey') {
+    isNotificationOpen.value = false
+    router.visit(`/surveys/${item.survey_id}/answer`)
+  } else if (type === 'reminder') {
+    selectedReminder.value = item
+  }
+}
+
+const handleEventEdit = () => {
+  isEventDetailOpen.value = false
+  isEventEditOpen.value = true
+}
+
+const handleNoteSave = (note: any) => {
+  router.put(`/shared-notes/${note.note_id}`, {
+    title: note.title,
+    content: note.content,
+    color: note.color,
+    priority: note.priority,
+    deadline: note.deadline,
+    progress: note.progress,
+    participants: note.participants?.map((p: any) => p.id) || []
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      selectedNote.value = null
+      fetchNotifications()
+    }
+  })
+}
+
+const handleNoteDelete = (note: any) => {
+  router.delete(`/notes/${note.note_id}`, {
+    onSuccess: () => {
+      fetchNotifications()
+      selectedNote.value = null
+    }
+  })
+}
+
+const handleNoteTogglePin = (note: any) => {
+  if (note.is_pinned) {
+    router.delete(`/notes/${note.note_id}/unpin`, {
+      onSuccess: () => fetchNotifications()
+    })
+  } else {
+    router.post(`/notes/${note.note_id}/pin`, {}, {
+      onSuccess: () => fetchNotifications()
+    })
+  }
+}
+
+const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  
+  saveMessage.value = message
+  messageType.value = type
+  
+  messageTimer.value = setTimeout(() => {
+    saveMessage.value = ''
+    lastDeletedReminder.value = null
+  }, 4000)
+}
+
+const handleUndoDelete = async () => {
+  if (!lastDeletedReminder.value) return
+
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  saveMessage.value = '元に戻しています...'
+  
+  const reminderToRestore = lastDeletedReminder.value
+  const wasOpen = isNotificationOpen.value
+  lastDeletedReminder.value = null
+
+  try {
+    const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+    const url = route('reminders.restore')
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken || '',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        reminder_id: reminderToRestore.reminder_id
+      }),
+      credentials: 'same-origin'
+    })
+    
+    if (response.ok) {
+      showMessage('リマインダーが元に戻されました。', 'success')
+      // 通知センターを開いたままにする
+      if (wasOpen) {
+        isNotificationOpen.value = false
+        await fetchNotifications()
+        setTimeout(() => {
+          isNotificationOpen.value = true
+        }, 10)
+      } else {
+        await fetchNotifications()
+      }
+      // ページ全体を更新
+      router.reload({ only: ['personalReminders'], preserveScroll: true, preserveState: true })
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('Restore error:', response.status, errorData)
+      showMessage('元に戻す処理に失敗しました。', 'success')
+    }
+  } catch (error) {
+    console.error('Restore error:', error)
+    showMessage('元に戻す処理に失敗しました。', 'success')
+  }
+}
+
+onMounted(fetchNotifications)
 </script>
 
 <template>
@@ -301,93 +407,167 @@ const handleSurveySubmit = () => {
           </PopoverTrigger>
           <PopoverContent class="w-[420px] p-0 max-h-[80vh] flex flex-col" align="end">
             <div class="p-4 border-b border-gray-300">
-              <h3 class="flex items-center gap-2">
-                <Bell class="h-5 w-5 text-blue-600" />
-                通知センター
-              </h3>
-              <p class="text-xs text-gray-500 mt-1">
-                重要な予定、メモ、アンケートをまとめて確認
-              </p>
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="flex items-center gap-2">
+                    <Bell class="h-5 w-5 text-blue-600" />
+                    通知センター
+                  </h3>
+                  <p class="text-xs text-gray-500 mt-1">
+                    重要な予定、メモ、アンケートをまとめて確認
+                  </p>
+                </div>
+                <Popover>
+                  <PopoverTrigger as-child>
+                    <Button variant="ghost" size="icon" class="h-8 w-8">
+                      <Settings class="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent class="w-64" align="end">
+                    <div class="space-y-4">
+                      <div>
+                        <h4 class="text-sm font-medium mb-2">表示設定</h4>
+                      </div>
+                      <div class="space-y-4">
+                        <div>
+                          <label class="text-xs font-medium text-gray-700 block mb-2">共有カレンダー</label>
+                          <div class="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              class="flex-1 h-7 text-xs"
+                              :class="showEventsFilter === 'mine' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'"
+                              :disabled="isLoadingNotifications"
+                              @click="toggleEventsFilter"
+                            >
+                              自分のみ
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              class="flex-1 h-7 text-xs"
+                              :class="showEventsFilter === 'all' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'"
+                              :disabled="isLoadingNotifications"
+                              @click="toggleEventsFilter"
+                            >
+                              全員表示
+                            </Button>
+                          </div>
+                          <p class="text-xs text-gray-500 mt-1">
+                            {{ showEventsFilter === 'mine' ? '作成者または参加者として関わる予定のみ' : '全員の重要な予定を表示' }}
+                          </p>
+                        </div>
+                        <div>
+                          <label class="text-xs font-medium text-gray-700 block mb-2">共有メモ</label>
+                          <div class="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              class="flex-1 h-7 text-xs"
+                              :class="showNotesFilter === 'mine' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'"
+                              :disabled="isLoadingNotifications"
+                              @click="toggleNotesFilter"
+                            >
+                              自分のみ
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              class="flex-1 h-7 text-xs"
+                              :class="showNotesFilter === 'all' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'"
+                              :disabled="isLoadingNotifications"
+                              @click="toggleNotesFilter"
+                            >
+                              全員表示
+                            </Button>
+                          </div>
+                          <p class="text-xs text-gray-500 mt-1">
+                            {{ showNotesFilter === 'mine' ? '作成者または参加者として関わるメモのみ' : '全員の重要なメモを表示' }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             
-            <!-- 重要な予定 -->
             <div class="flex-1 overflow-y-auto scrollbar-hide">
-              <div v-if="importantEvents.length > 0" class="p-3 border-b border-gray-300">
+              <div v-if="notifications.events.length > 0" class="p-3 border-b border-gray-300">
                 <div class="flex items-center gap-2 mb-2">
-                  <Calendar class="h-4 w-4 text-red-500" />
-                  <h4 class="text-sm">重要な予定</h4>
-                  <Badge variant="destructive" class="ml-auto text-xs">
-                    {{ importantEvents.length }}件
-                  </Badge>
+                  <Calendar class="h-4 w-4 text-blue-600" />
+                  <h4 class="text-sm">共有カレンダー</h4>
+                  <Badge class="ml-auto text-xs bg-blue-500">{{ notifications.events.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
-                  <div
-                  v-for="event in importantEvents"
-                  :key="event.id"
-                      class="p-2 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 cursor-pointer transition-colors"
-                      @click="selectedEvent = event"
-                    >
-                      <div class="text-sm mb-1">{{ event.title }}</div>
-                      <div class="text-xs text-gray-600 flex items-center justify-between">
-                        <span>{{ event.date }}</span>
-                        <Badge variant="outline" class="text-xs">
-                          {{ event.assignee }}
-                        </Badge>
-                      </div>
+                  <div v-for="event in notifications.events" :key="event.event_id"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('event')}`"
+                    @click="handleClick('event', event)">
+                    <div class="text-sm mb-1">{{ event.title }}</div>
+                    <div class="text-xs text-gray-600 flex items-center justify-between">
+                      <span>{{ formatDate(event.end_date || event.start_date) }}</span>
+                      <Badge variant="outline" class="text-xs">{{ event.creator.name }}</Badge>
                     </div>
                   </div>
                 </div>
-  
-                <!-- 重要なメモ -->
-                <div v-if="importantNotes.length > 0" class="p-3 border-b border-gray-300">
-                  <div class="flex items-center gap-2 mb-2">
-                    <StickyNote class="h-4 w-4 text-yellow-600" />
-                    <h4 class="text-sm">重要なメモ</h4>
-                    <Badge class="ml-auto text-xs bg-yellow-500">
-                      {{ importantNotes.length }}件
-                    </Badge>
-                  </div>
-                  <div class="space-y-2">
-                    <div
-                      v-for="note in importantNotes"
-                      :key="note.id"
-                      class="p-2 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors"
-                      @click="selectedNote = note"
-                    >
-                      <div class="text-sm mb-1">{{ note.title }}</div>
-                      <div class="text-xs text-gray-600 flex items-center justify-between">
-                        <span>期限: {{ note.deadline }}</span>
-                        <Badge variant="outline" class="text-xs">
-                          {{ note.author }}
-                        </Badge>
-                      </div>
+              </div>
+
+              <div v-if="notifications.notes.length > 0" class="p-3 border-b border-gray-300">
+                <div class="flex items-center gap-2 mb-2">
+                  <StickyNote class="h-4 w-4 text-orange-600" />
+                  <h4 class="text-sm">共有メモ</h4>
+                  <Badge class="ml-auto text-xs bg-orange-500">{{ notifications.notes.length }}件</Badge>
+                </div>
+                <div class="space-y-2">
+                  <div v-for="note in notifications.notes" :key="note.note_id"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('note', note.priority)}`"
+                    @click="handleClick('note', note)">
+                    <div class="text-sm mb-1">{{ note.title }}</div>
+                    <div class="text-xs text-gray-600 flex items-center justify-between">
+                      <span>期限: {{ formatDate(note.deadline_date) }}</span>
+                      <Badge variant="outline" class="text-xs">{{ note.author.name }}</Badge>
                     </div>
                   </div>
                 </div>
-  
-                <!-- 未完了アンケート -->
-                <div v-if="pendingSurveys.length > 0" class="p-3">
-                  <div class="flex items-center gap-2 mb-2">
-                    <BarChart3 class="h-4 w-4 text-blue-600" />
-                    <h4 class="text-sm">未回答アンケート</h4>
-                    <Badge class="ml-auto text-xs bg-blue-500">
-                      {{ pendingSurveys.length }}件
-                    </Badge>
-                  </div>
-                  <div class="space-y-2">
-                    <div
-                      v-for="survey in pendingSurveys"
-                      :key="survey.id"
-                      class="p-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors"
-                      @click="selectedSurvey = survey"
-                    >
-                      <div class="text-sm mb-1">{{ survey.title }}</div>
-                      <div class="text-xs text-gray-600">
-                        回答期限: {{ survey.deadline }}
-                      </div>
+              </div>
+
+              <div v-if="notifications.reminders.length > 0" class="p-3 border-b border-gray-300">
+                <div class="flex items-center gap-2 mb-2">
+                  <Clock class="h-4 w-4 text-green-600" />
+                  <h4 class="text-sm">個人リマインダー</h4>
+                  <Badge class="ml-auto text-xs bg-green-500">{{ notifications.reminders.length }}件</Badge>
+                </div>
+                <div class="space-y-2">
+                  <div v-for="reminder in notifications.reminders" :key="reminder.reminder_id"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('reminder')}`"
+                    @click="handleClick('reminder', reminder)">
+                    <div class="text-sm mb-1">{{ reminder.title }}</div>
+                    <div class="text-xs text-gray-600 flex items-center justify-between">
+                      <span>期限: {{ formatDate(reminder.deadline_date) }} {{ reminder.deadline_time ? reminder.deadline_time.substring(0, 5) : '' }}</span>
+                      <Badge variant="outline" class="text-xs">{{ reminder.category }}</Badge>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div v-if="notifications.surveys.length > 0" class="p-3">
+                <div class="flex items-center gap-2 mb-2">
+                  <BarChart3 class="h-4 w-4 text-purple-600" />
+                  <h4 class="text-sm">未回答アンケート</h4>
+                  <Badge class="ml-auto text-xs bg-purple-500">{{ notifications.surveys.length }}件</Badge>
+                </div>
+                <div class="space-y-2">
+                  <div v-for="survey in notifications.surveys" :key="survey.survey_id"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('survey')}`"
+                    @click="handleClick('survey', survey)">
+                    <div class="text-sm mb-1">{{ survey.title }}</div>
+                    <div class="text-xs text-gray-600 flex items-center justify-between">
+                      <span>回答期限: {{ formatDate(survey.deadline) }}</span>
+                      <Badge variant="outline" class="text-xs">{{ survey.creator.name }}</Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </PopoverContent>
         </Popover>
@@ -428,8 +608,16 @@ const handleSurveySubmit = () => {
     <!-- イベント詳細ダイアログ -->
     <EventDetailDialog
       :event="selectedEvent as any"
-      :open="selectedEvent !== null"
-      @update:open="(isOpen) => !isOpen && (selectedEvent = null)"
+      :open="isEventDetailOpen"
+      @update:open="(isOpen) => { isEventDetailOpen = isOpen; if (!isOpen) selectedEvent = null; }"
+      @edit="handleEventEdit"
+    />
+
+    <!-- イベント編集/確認ダイアログ -->
+    <CreateEventDialog
+      :event="selectedEvent as any"
+      :open="isEventEditOpen"
+      @update:open="(isOpen) => { isEventEditOpen = isOpen; if (!isOpen) { selectedEvent = null; fetchNotifications(); } }"
     />
 
     <!-- メモ詳細ダイアログ -->
@@ -437,55 +625,53 @@ const handleSurveySubmit = () => {
       :note="selectedNote as any"
       :open="selectedNote !== null"
       @update:open="(isOpen) => !isOpen && (selectedNote = null)"
+      @save="handleNoteSave"
+      @delete="handleNoteDelete"
+      @toggle-pin="handleNoteTogglePin"
     />
-
-    <!-- アンケート回答ダイアログ -->
-    <Dialog :open="selectedSurvey !== null" @update:open="(isOpen) => !isOpen && (selectedSurvey = null)">
-      <DialogContent class="max-w-2xl max-h-[90vh]">
-        <template v-if="selectedSurvey">
-          <DialogHeader>
-            <DialogTitle>{{ selectedSurvey.title }}</DialogTitle>
-            <DialogDescription>
-              回答期限: {{ selectedSurvey.deadline }}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <ScrollArea class="max-h-[60vh]">
-            <div class="space-y-6 py-4">
-              <div v-if="selectedSurvey.description" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p class="text-sm text-gray-700">{{ selectedSurvey.description }}</p>
-              </div>
-              
-              <div v-for="(question, index) in selectedSurvey.questions" :key="index" class="space-y-2">
-                <label class="block text-sm">
-                  質問 {{ index + 1 }}: {{ question }}
-                </label>
-                <textarea
-                  class="w-full p-3 border border-gray-300 rounded-lg min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="回答を入力してください..."
-                />
-              </div>
-            </div>
-          </ScrollArea>
-
-          <DialogFooter>
-            <Button variant="outline" @click="selectedSurvey = null">
-              後で回答
-            </Button>
-            <Button @click="handleSurveySubmit">
-              送信
-            </Button>
-          </DialogFooter>
-        </template>
-      </DialogContent>
-    </Dialog>
-
-
 
     <!-- 通知設定ダイアログ -->
     <NotificationSettingsDialog
       :open="isNotificationSettingsOpen"
       @update:open="isNotificationSettingsOpen = $event"
     />
+
+    <!-- リマインダー詳細ダイアログ -->
+    <ReminderDetailDialog
+      :reminder="selectedReminder as any"
+      :open="selectedReminder !== null"
+      @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); fetchNotifications(); } selectedReminder = null; } }"
+      @update:reminder="fetchNotifications"
+    />
+
+    <!-- メッセージ表示 -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        :class="['fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[9999] p-3 text-white rounded-lg shadow-lg pointer-events-auto',
+          messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+        @click.stop
+      >
+        <div class="flex items-center gap-2">
+          <span class="font-medium">{{ saveMessage }}</span>
+          <Button 
+            v-if="messageType === 'delete' && lastDeletedReminder"
+            variant="link"
+            :class="messageType === 'delete' ? 'text-white hover:bg-red-400 p-1 h-auto ml-2' : 'text-white hover:bg-green-400 p-1 h-auto ml-2'"
+            @click.stop="handleUndoDelete"
+          >
+            <Undo2 class="h-4 w-4 mr-1" />
+            <span class="underline">元に戻す</span>
+          </Button>
+        </div>
+      </div>
+    </Transition>
   </header>
 </template>

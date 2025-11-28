@@ -30,7 +30,9 @@ interface Reminder {
   user_id: number;
   title: string;
   description: string | null;
-  deadline: string;
+  deadline?: string;
+  deadline_date: string | null;
+  deadline_time: string | null;
   category: string;
   completed: boolean;
   completed_at: string | null;
@@ -47,21 +49,23 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:open', value: boolean): void
+  (e: 'update:open', value: boolean, completed?: boolean): void
   (e: 'update:reminder', value: Reminder): void
 }>()
 
 const isEditing = ref(false)
 const editedReminder = ref<Reminder | null>(null)
 const saveMessage = ref('')
+const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 
-const showMessage = (message: string) => {
+const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
   if (messageTimer.value) {
     clearTimeout(messageTimer.value)
   }
   
   saveMessage.value = message
+  messageType.value = type
   
   messageTimer.value = setTimeout(() => {
     saveMessage.value = ''
@@ -74,8 +78,14 @@ const form = useForm({
   description: '',
   deadline: '',
   category: '業務',
-  completed: false,
 })
+
+// Format datetime for input[type="datetime-local"] from deadline_date and deadline_time
+const formatDateTimeForInput = (deadlineDate: string | null | undefined, deadlineTime: string | null | undefined): string => {
+  if (!deadlineDate) return ''
+  const time = deadlineTime ? deadlineTime.substring(0, 5) : '23:59'
+  return `${deadlineDate}T${time}`
+}
 
 // 新規作成用のデフォルトリマインダー
 const createDefaultReminder = (): Reminder => ({
@@ -83,7 +93,8 @@ const createDefaultReminder = (): Reminder => ({
   user_id: 0,
   title: '',
   description: '',
-  deadline: new Date().toISOString().split('T')[0],
+  deadline_date: new Date().toISOString().split('T')[0],
+  deadline_time: '23:59:00',
   category: '業務',
   completed: false,
   completed_at: null,
@@ -102,11 +113,8 @@ watch(() => props.open, (isOpen) => {
       form.reset()
       form.title = props.reminder.title
       form.description = props.reminder.description || ''
-      // deadlineの形式を確認（Dateオブジェクトの場合は文字列に変換）
-      const deadline = props.reminder.deadline
-      form.deadline = typeof deadline === 'string' ? deadline.split('T')[0] : deadline
+      form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
       form.category = props.reminder.category
-      form.completed = props.reminder.completed || false
     } else {
       // 新規作成モード
       editedReminder.value = createDefaultReminder()
@@ -115,9 +123,8 @@ watch(() => props.open, (isOpen) => {
       form.reset()
       form.title = ''
       form.description = ''
-      form.deadline = new Date().toISOString().split('T')[0]
+      form.deadline = formatDateTimeForInput(new Date().toISOString().split('T')[0], '23:59:00')
       form.category = '業務'
-      form.completed = false
     }
   }
 })
@@ -129,11 +136,8 @@ watch(() => props.reminder, (newReminder) => {
     form.reset()
     form.title = newReminder.title
     form.description = newReminder.description || ''
-    // deadlineの形式を確認
-    const deadline = newReminder.deadline
-    form.deadline = typeof deadline === 'string' ? deadline.split('T')[0] : deadline
+    form.deadline = formatDateTimeForInput(newReminder.deadline_date, newReminder.deadline_time)
     form.category = newReminder.category
-    form.completed = newReminder.completed || false
   } else if (props.open) {
     // 新規作成モード
     editedReminder.value = createDefaultReminder()
@@ -141,9 +145,8 @@ watch(() => props.reminder, (newReminder) => {
     form.reset()
     form.title = ''
     form.description = ''
-    form.deadline = new Date().toISOString().split('T')[0]
+    form.deadline = formatDateTimeForInput(new Date().toISOString().split('T')[0], '23:59:00')
     form.category = '業務'
-    form.completed = false
   }
 }, { deep: true })
 
@@ -170,9 +173,8 @@ const handleEdit = () => {
     form.reset()
     form.title = props.reminder.title
     form.description = props.reminder.description || ''
-    form.deadline = props.reminder.deadline
+    form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
     form.category = props.reminder.category
-    form.completed = props.reminder.completed
   }
 }
 
@@ -181,12 +183,17 @@ const handleSave = () => {
     return
   }
 
+  // deadlineが空文字列の場合はnullに変換
+  if (form.deadline === '') {
+    form.deadline = null as any
+  }
+
   if (isCreateMode.value) {
     // 新規作成
     form.post(route('reminders.store'), {
       preserveScroll: true,
       onSuccess: () => {
-        showMessage('リマインダーを正常に作成しました。')
+        showMessage('リマインダーを作成しました。', 'success')
         // ダミーリマインダーを作成して親コンポーネントに通知
         const dummyReminder: Reminder = {
           reminder_id: Date.now(),
@@ -211,7 +218,7 @@ const handleSave = () => {
         }, 1000)
       },
       onError: () => {
-        showMessage('リマインダーの作成に失敗しました。')
+        showMessage('リマインダーの作成に失敗しました。', 'success')
       }
     })
   } else if (props.reminder) {
@@ -221,7 +228,7 @@ const handleSave = () => {
       form.put(route('reminders.update', reminderId), {
         preserveScroll: true,
         onSuccess: () => {
-          showMessage('リマインダーを更新しました。')
+          showMessage('リマインダーを更新しました。', 'success')
           // 更新されたリマインダーを親コンポーネントに通知
           if (props.reminder) {
           const updatedReminder: Reminder = {
@@ -239,7 +246,7 @@ const handleSave = () => {
           }, 2500)
         },
         onError: () => {
-          showMessage('リマインダーの更新に失敗しました。')
+          showMessage('リマインダーの更新に失敗しました。', 'success')
         }
       })
     }
@@ -253,9 +260,8 @@ const handleCancel = () => {
     editedReminder.value = { ...props.reminder }
     form.title = props.reminder.title
     form.description = props.reminder.description || ''
-    form.deadline = props.reminder.deadline
+    form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
     form.category = props.reminder.category
-    form.completed = props.reminder.completed
   } else {
     editedReminder.value = createDefaultReminder()
   }
@@ -272,6 +278,20 @@ const closeDialog = (isOpen: boolean) => {
     }
     emit('update:open', false)
   }
+}
+
+const handleComplete = () => {
+  if (!props.reminder) return
+  
+  router.patch(route('reminders.complete', props.reminder.reminder_id), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      emit('update:open', false, true)
+    },
+    onError: () => {
+      showMessage('リマインダーの完了に失敗しました。', 'success')
+    }
+  })
 }
 </script>
 
@@ -298,6 +318,9 @@ const closeDialog = (isOpen: boolean) => {
               placeholder="タイトルを入力"
               :class="{ 'border-red-500': form.errors.title }"
             />
+            <div v-else class="text-base font-medium">
+              {{ props.reminder?.title }}
+            </div>
             <div v-if="form.errors.title" class="text-xs text-red-500 mt-1">
               {{ form.errors.title }}
             </div>
@@ -327,7 +350,7 @@ const closeDialog = (isOpen: boolean) => {
               <div class="text-sm text-gray-600">期限</div>
               <Input 
                 v-if="isEditing" 
-                type="date" 
+                type="datetime-local" 
                 v-model="form.deadline" 
                 class="h-8 mt-1"
                 :class="{ 'border-red-500': form.errors.deadline }"
@@ -336,7 +359,7 @@ const closeDialog = (isOpen: boolean) => {
                 {{ form.errors.deadline }}
               </div>
               <div v-else :class="[(props.reminder?.completed || false) ? 'text-gray-400' : '']">
-                {{ props.reminder ? formatDate(props.reminder.deadline) : '' }}
+                {{ props.reminder ? `${formatDate(props.reminder.deadline_date)} ${props.reminder.deadline_time ? props.reminder.deadline_time.substring(0, 5) : ''}` : '' }}
               </div>
             </div>
           </div>
@@ -350,6 +373,9 @@ const closeDialog = (isOpen: boolean) => {
               placeholder="詳細を入力..."
               :class="{ 'border-red-500': form.errors.description }"
             />
+            <div v-else class="text-sm whitespace-pre-wrap">
+              {{ props.reminder?.description || '詳細なし' }}
+            </div>
             <div v-if="form.errors.description" class="text-xs text-red-500 mt-1">
               {{ form.errors.description }}
             </div>
@@ -398,6 +424,17 @@ const closeDialog = (isOpen: boolean) => {
             </Button>
           </template>
           <template v-else>
+            <Button 
+              v-if="!isCreateMode && props.reminder && !props.reminder.completed"
+              type="button"
+              variant="outline" 
+              @click="handleComplete" 
+              size="sm"
+              class="bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700"
+            >
+              <CheckCircle class="h-4 w-4 mr-1" />
+              完了
+            </Button>
             <Button variant="outline" @click="handleEdit" size="sm">
               <Edit2 class="h-4 w-4 mr-1" />
               編集
@@ -418,7 +455,8 @@ const closeDialog = (isOpen: boolean) => {
     >
       <div 
         v-if="saveMessage"
-        class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[60] p-3 text-white rounded-lg shadow-lg bg-green-500"
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[60] p-3 text-white rounded-lg shadow-lg',
+          messageType === 'delete' ? 'bg-blue-500' : 'bg-green-500']"
       >
         <div class="flex items-center gap-2">
           <CheckCircle class="h-5 w-5" />

@@ -64,7 +64,7 @@ const showMessage = (message: string, type: 'success' | 'delete' = 'success') =>
 const getItemTypeInfo = (type: ItemType) => {
   switch (type) {
     case 'event': return { icon: CalendarIcon, label: '予定', color: 'bg-blue-100 text-blue-700 border-blue-200' }
-    case 'shared_note': return { icon: StickyNote, label: 'メモ', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' }
+    case 'shared_note': return { icon: StickyNote, label: 'メモ', color: 'bg-yellow-100 text-orange-600 border-yellow-200' }
     case 'survey': return { icon: BarChart3, label: 'アンケート', color: 'bg-purple-100 text-purple-700 border-purple-200' }
     case 'reminder': return { icon: Bell, label: 'リマインダー', color: 'bg-green-100 text-green-700 border-green-200' }
     default: return { icon: StickyNote, label: '不明', color: 'bg-gray-100 text-gray-700 border-gray-300' }

@@ -15,7 +15,10 @@ class ReminderController extends Controller
      */
     public function index()
     {
-        $reminders = Auth::user()->reminders()->orderBy('deadline')->get();
+        $reminders = Auth::user()->reminders()
+            ->orderBy('deadline_date')
+            ->orderBy('deadline_time')
+            ->get();
 
         return Inertia::render('Reminders', [
             'reminders' => $reminders,
