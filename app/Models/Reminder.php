@@ -34,7 +34,8 @@ class Reminder extends Model
         'user_id',
         'title',
         'description',
-        'deadline',
+        'deadline_date',
+        'deadline_time',
         'category',
         'completed',
         'completed_at',
@@ -48,7 +49,7 @@ class Reminder extends Model
     protected $casts = [
         'reminder_id' => 'integer',
         'user_id' => 'integer',
-        'deadline' => 'date',
+        'deadline_date' => 'date:Y-m-d',
         'completed' => 'boolean',
         'completed_at' => 'datetime',
         'is_deleted' => 'boolean',
@@ -61,5 +62,13 @@ class Reminder extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get the trash items for the reminder.
+     */
+    public function trashItems()
+    {
+        return $this->hasMany(TrashItem::class, 'item_id')->where('item_type', 'reminder');
     }
 }

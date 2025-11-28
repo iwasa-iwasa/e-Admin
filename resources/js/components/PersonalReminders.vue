@@ -64,7 +64,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
     router.patch(route('reminders.complete', id), {}, {
       preserveScroll: true,
       onSuccess: () => {
-        showMessage('リマインダーを削除しました。', 'delete')
+        showMessage('リマインダーを完了しました。', 'delete')
       },
       onError: (errors) => {
         console.error('完了エラー:', errors)
@@ -114,9 +114,14 @@ const handleUndoDelete = () => {
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
 const isCreateDialogOpen = ref(false)
 
-const handleCloseDetailDialog = (isOpen: boolean) => {
+const handleCloseDetailDialog = (isOpen: boolean, completed?: boolean) => {
   if (!isOpen) {
+    if (completed && selectedReminder.value) {
+      lastDeletedReminder.value = selectedReminder.value
+      showMessage('リマインダーを完了しました。', 'delete')
+    }
     selectedReminder.value = null
+    router.reload({ preserveScroll: true })
   }
 }
 
@@ -233,7 +238,7 @@ const confirmPermanentDelete = () => {
                     <div :class="['flex flex-wrap items-center gap-3 text-xs text-gray-500', reminder.completed ? 'opacity-60' : '']">
                       <div class="flex items-center gap-1">
                         <Clock class="h-3 w-3" />
-                        期限: {{ formatDate(reminder.deadline) }}
+                        期限: {{ formatDate(reminder.deadline_date) }} {{ reminder.deadline_time ? reminder.deadline_time.substring(0, 5) : '' }}
                       </div>
                     </div>
                   </div>

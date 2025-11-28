@@ -34,15 +34,15 @@ const close = () => {
             </p>
 
             <div class="mt-6 flex justify-end">
-                <Button variant="outline" @click="close"> Cancel </Button>
+                <Button variant="outline" @click="close"> キャンセル </Button>
 
                 <Button
-                    variant="destructive"
+                    variant="outline"
                     class="ms-3"
                     @click="confirm"
                     :disabled="processing"
                 >
-                    Confirm
+                    確認
                 </Button>
             </div>
         </div>

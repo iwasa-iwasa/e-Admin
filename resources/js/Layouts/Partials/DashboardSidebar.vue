@@ -101,7 +101,7 @@ const currentURL = computed(() => page.url )
         as-child
       >
         <Link href="/calendar">
-          <Calendar class="h-5 w-5" />
+          <Calendar class="h-5 w-5 text-blue-700" />
           共有カレンダー
         </Link>
       </Button>
@@ -114,7 +114,7 @@ const currentURL = computed(() => page.url )
         as-child
       >
         <Link href="/notes">
-          <StickyNote class="h-5 w-5" />
+          <StickyNote class="h-5 w-5 text-orange-600" />
           共有メモ
         </Link>
       </Button>
@@ -127,7 +127,7 @@ const currentURL = computed(() => page.url )
         as-child
       >
         <Link href="/reminders">
-          <Bell class="h-5 w-5" />
+          <Bell class="h-5 w-5 text-green-700" />
           個人リマインダー
         </Link>
       </Button>
@@ -140,7 +140,7 @@ const currentURL = computed(() => page.url )
         as-child
       >
         <Link href="/surveys">
-          <BarChart3 class="h-5 w-5" />
+          <BarChart3 class="h-5 w-5 text-purple-700" />
           アンケート管理
           <Badge v-if="unansweredSurveysCount > 0" variant="secondary" class="ml-auto">
             {{ unansweredSurveysCount }}件

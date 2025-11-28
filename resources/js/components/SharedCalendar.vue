@@ -43,6 +43,7 @@ const openCreateDialog = () => {
 const openEditDialog = (eventId: number) => {
     const event = props.events.find(e => e.event_id === eventId)
     if (event) {
+        selectedEvent.value = null // EventDetailDialogを閉じる
         editingEvent.value = event
         isEventFormOpen.value = true
     }
@@ -326,7 +327,7 @@ const changeView = (view: any) => {
             :event="selectedEvent"
             :open="selectedEvent !== null"
             @update:open="(isOpen) => !isOpen && (selectedEvent = null)"
-            @edit="openEditDialog"
+            @edit="() => selectedEvent && openEditDialog(selectedEvent.event_id)"
         />
 
         <CreateEventDialog

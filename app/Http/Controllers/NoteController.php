@@ -67,6 +67,8 @@ class NoteController extends Controller
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
             'participants' => ['nullable', 'array'],
             'participants.*' => ['exists:users,id'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:50'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -92,6 +94,16 @@ class NoteController extends Controller
         // Add participants (if empty, everyone can see it)
         if (isset($validated['participants']) && !empty($validated['participants'])) {
             $note->participants()->attach($validated['participants']);
+        }
+
+        // Add tags
+        if (isset($validated['tags']) && !empty($validated['tags'])) {
+            $tagIds = [];
+            foreach ($validated['tags'] as $tagName) {
+                $tag = \App\Models\Tag::firstOrCreate(['tag_name' => $tagName]);
+                $tagIds[] = $tag->tag_id;
+            }
+            $note->tags()->attach($tagIds);
         }
 
         return back()->with('success', '新しい共有メモを作成しました！');
@@ -131,6 +143,8 @@ class NoteController extends Controller
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
             'participants' => ['nullable', 'array'],
             'participants.*' => ['exists:users,id'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:50'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -155,6 +169,16 @@ class NoteController extends Controller
         // Update participants
         if (isset($validated['participants'])) {
             $note->participants()->sync($validated['participants']);
+        }
+
+        // Update tags
+        if (isset($validated['tags'])) {
+            $tagIds = [];
+            foreach ($validated['tags'] as $tagName) {
+                $tag = \App\Models\Tag::firstOrCreate(['tag_name' => $tagName]);
+                $tagIds[] = $tag->tag_id;
+            }
+            $note->tags()->sync($tagIds);
         }
 
         return back()->with('success', 'メモを更新しました。');

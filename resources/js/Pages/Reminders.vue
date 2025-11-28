@@ -65,7 +65,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
     router.patch(route('reminders.complete', id), {}, {
       preserveScroll: true,
       onSuccess: () => {
-        showMessage('リマインダーを削除しました。', 'delete')
+        showMessage('リマインダーを完了しました。', 'delete')
       },
       onError: (errors) => {
         console.error('完了エラー:', errors)
@@ -268,7 +268,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
     <ReminderDetailDialog 
       :reminder="selectedReminder" 
       :open="selectedReminder !== null" 
-      @update:open="(isOpen) => !isOpen && (selectedReminder = null)" 
+      @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); } selectedReminder = null; } }" 
       @update:reminder="handleUpdateReminder" 
     />
 

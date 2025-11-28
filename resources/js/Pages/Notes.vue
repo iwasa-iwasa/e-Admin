@@ -383,7 +383,7 @@ const handleRemoveParticipant = (participantId: number) => {
             <Button variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
               <ArrowLeft class="h-5 w-5" />
             </Button>
-            <StickyNote class="h-6 w-6 text-yellow-700" />
+            <StickyNote class="h-6 w-6 text-orange-600" />
             <CardTitle>共有メモ</CardTitle>
           </div>
           <Button variant="outline" @click="handleCreateNote" class="gap-2">

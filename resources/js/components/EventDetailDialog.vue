@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { formatDate } from '@/lib/utils'
-import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2 } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2, Clock } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,17 +31,39 @@ const props = defineProps<{
 }>()
 const emit = defineEmits(['update:open', 'edit'])
 
+const page = usePage()
+const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
+const teamMembers = computed(() => (page.props as any).teamMembers || [])
+
+// 編集権限チェック
+const canEdit = computed(() => {
+  if (!props.event) return false
+  const event = props.event
+  const isCreator = event.creator_id === currentUserId.value
+  
+  // 参加者が空：作成者のみ編集可能
+  if (!event.participants || event.participants.length === 0) {
+    return isCreator
+  }
+  
+  // 全員が参加者：全員編集可能
+  if (Array.isArray(teamMembers.value) && teamMembers.value.length > 0 && event.participants.length === teamMembers.value.length) {
+    return true
+  }
+  
+  // 個人指定：作成者または参加者のみ編集可能
+  const isParticipant = event.participants.some(p => p.id === currentUserId.value)
+  return isCreator || isParticipant
+})
+
 
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const lastDeletedEvent = ref<App.Models.Event | null>(null)
 
-const editEvent = () => {
-  if (props.event) {
-    emit('edit', props.event.event_id)
-  }
-  closeDialog()
+const handleEditOrView = () => {
+  emit('edit')
 }
 
 const closeDialog = () => {
@@ -281,8 +303,10 @@ const recurrenceText = computed(() => {
           閉じる
         </Button>
         <div class="flex gap-2">
-          <Button variant="outline" @click="editEvent">編集</Button>
-          <Button variant="outline" @click="handleDelete" size="sm" class="text-red-600 hover:text-red-700">
+          <Button variant="outline" @click="handleEditOrView">
+            {{ canEdit ? '編集' : '確認' }}
+          </Button>
+          <Button v-if="canEdit" variant="outline" @click="handleDelete" size="sm" class="text-red-600 hover:text-red-700">
             <Trash2 class="h-4 w-4 mr-1" />
             削除
           </Button>
