@@ -85,30 +85,32 @@ const isAllUsers = computed(() => {
 const canEdit = computed(() => {
   if (!isEditMode.value || !props.event) return true // 新規作成は常に可能
   const event = props.event
-  const isCreator = event.creator_id === currentUserId.value
+  const isCreator = event.created_by === currentUserId.value
   
-  // 参加者が空（選択しない）: 作成者のみ編集可能
-  if (!event.participants || event.participants.length === 0) {
-    return isCreator
-  }
+  // 作成者は常に編集可能
+  if (isCreator) return true
   
   // 全員が参加者: 全員編集可能
-  if (event.participants.length === teamMembers.value.length) {
+  if (event.participants && event.participants.length === teamMembers.value.length) {
     return true
   }
   
-  // 個人指定: 作成者または参加者のみ編集可能
-  const isParticipant = event.participants.some(p => p.id === currentUserId.value)
-  return isCreator || isParticipant
+  // 参加者のみ編集可能
+  const isParticipant = event.participants?.some(p => p.id === currentUserId.value)
+  return isParticipant || false
 })
 
 // 参加者編集権限: 作成者または参加者
 const canEditParticipants = computed(() => {
   if (!isEditMode.value || !props.event) return true
-  const isCreator = props.event.creator_id === currentUserId.value
-  if (isAllUsers.value) return isCreator // 全員共有は作成者のみ変更可能
+  const isCreator = props.event.created_by === currentUserId.value
+  // 作成者は常に編集可能
+  if (isCreator) return true
+  // 全員共有の場合、参加者も編集可能
+  if (isAllUsers.value) return true
+  // 個人指定の場合、参加者のみ編集可能
   const isParticipant = props.event.participants?.some(p => p.id === currentUserId.value)
-  return isCreator || isParticipant
+  return isParticipant || false
 })
 
 const form = useForm({
@@ -518,22 +520,29 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                             </div>
                                         </div>
                                         <div v-if="canEditParticipants" class="space-y-2">
-                                            <Label for="addParticipant" class="flex items-center gap-2">
+                                            <Label class="flex items-center gap-2">
                                                 <Users class="h-4 w-4" />
-                                                参加者を追加
+                                                参加者を選択
                                             </Label>
-                                            <Select @update:model-value="handleAddParticipant">
-                                                <SelectTrigger id="addParticipant">
-                                                    <SelectValue placeholder="メンバーを選択..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">全員</SelectItem>
-                                                    <SelectItem value="none">選択しない</SelectItem>
-                                                    <SelectItem v-for="member in availableMembers" :key="member.id" :value="String(member.id)">
-                                                        {{ member.name }}
-                                                    </SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <div class="flex gap-2 mb-2">
+                                                <Button type="button" variant="outline" size="sm" @click="form.participants = [...teamMembers]">
+                                                    全員選択
+                                                </Button>
+                                                <Button type="button" variant="outline" size="sm" @click="form.participants = []">
+                                                    選択解除
+                                                </Button>
+                                            </div>
+                                            <div class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
+                                                <label v-for="member in teamMembers" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        :checked="form.participants.find(p => p.id === member.id) !== undefined"
+                                                        @change="(e) => (e.target as HTMLInputElement).checked ? form.participants.push(member) : handleRemoveParticipant(member.id)"
+                                                        class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                                                    />
+                                                    <span class="text-xs">{{ member.name }}</span>
+                                                </label>
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
                                             <Label>{{ canEditParticipants ? '選択済み参加者' : '参加者' }}</Label>

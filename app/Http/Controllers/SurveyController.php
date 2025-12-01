@@ -86,7 +86,10 @@ class SurveyController extends Controller
             'respondents' => ['array'],
             'respondents.*' => ['integer', 'exists:users,id'],
             'isDraft' => ['boolean'],
-        ], [
+        ]);
+        
+        // カスタムエラーメッセージを設定
+        $validator->setCustomMessages([
             'title.required' => 'アンケートタイトルは必須です。',
             'deadline.required' => '回答期限は必須です。',
             'deadline.date' => '回答期限は有効な日付形式で入力してください。',
@@ -95,8 +98,23 @@ class SurveyController extends Controller
             'questions.*.question.required' => 'すべての質問を入力してください。',
             'questions.*.type.required' => '質問形式を選択してください。',
         ]);
+        
+        // 選択肢のエラーメッセージをカスタマイズ
+        $validator->after(function ($validator) use ($request) {
+            $errors = $validator->errors();
+            $messages = $errors->messages();
+            
+            foreach ($messages as $key => $message) {
+                if (preg_match('/^questions\.(\d+)\.options\.(\d+)$/', $key, $matches)) {
+                    $questionIndex = (int)$matches[1] + 1;
+                    $optionIndex = (int)$matches[2] + 1;
+                    $errors->forget($key);
+                    $errors->add($key, "質問{$questionIndex}番目の選択肢{$optionIndex}に文字を入力してください。");
+                }
+            }
+        });
 
-        // 選択肢形式の質問のバリデーション
+        // 選択肢形式の質問のバリデーション（最低2つの選択肢チェック）
         $validator->after(function ($validator) use ($request) {
             foreach ($request->questions as $index => $question) {
                 if (in_array($question['type'], ['single', 'multiple', 'dropdown'])) {
@@ -343,18 +361,14 @@ class SurveyController extends Controller
             'questions' => fn($query) => $query->orderBy('display_order'),
             'questions.options'
         ]);
-
-        $deadline = null;
-        if ($survey->deadline_date) {
-            $deadline = $survey->deadline_date . ' ' . ($survey->deadline_time ?? '23:59:00');
-        }
         
         return Inertia::render('Surveys/Answer', [
             'survey' => [
                 'survey_id' => $survey->survey_id,
                 'title' => $survey->title,
                 'description' => $survey->description,
-                'deadline' => $deadline,
+                'deadline_date' => $survey->deadline_date,
+                'deadline_time' => $survey->deadline_time,
             ],
             'questions' => $survey->questions->map(fn($question) => [
                 'question_id' => $question->question_id,
