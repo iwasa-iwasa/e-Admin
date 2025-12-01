@@ -60,11 +60,16 @@ class NotificationController extends Controller
         $surveys = Survey::with(['creator'])
             ->where('is_active', true)
             ->where('is_deleted', false)
+            ->where(function($query) use ($now) {
+                $query->whereNull('deadline_date')
+                      ->orWhere('deadline_date', '>=', $now->toDateString());
+            })
             ->whereDoesntHave('responses', function($query) use ($user) {
                 $query->where('respondent_id', $user->id);
             })
-            ->orderByRaw('CASE WHEN deadline IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('deadline')
+            ->orderByRaw('CASE WHEN deadline_date IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('deadline_date')
+            ->orderBy('deadline_time')
             ->get();
 
         $reminders = Reminder::where('user_id', $user->id)

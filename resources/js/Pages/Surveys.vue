@@ -111,7 +111,11 @@ const filteredSurveys = computed(() => {
         const matchesCategory = true;
         
         const now = new Date();
-        const deadline = survey.deadline ? survey.deadline ? new Date(survey.deadline) : null : null;
+        let deadline = null;
+        if (survey.deadline_date) {
+            const deadlineStr = survey.deadline_date + ' ' + (survey.deadline_time || '23:59:59');
+            deadline = new Date(deadlineStr);
+        }
         const isExpired = deadline ? deadline < now : false;
 
         let matchesTab = false;
@@ -141,10 +145,11 @@ const getResponseRate = (survey: App.Models.Survey) => {
     return total > 0 ? (responded / total) * 100 : 0;
 };
 
-const getDaysUntilDeadline = (deadline: string | null) => {
-    if (!deadline) return 0;
+const getDaysUntilDeadline = (survey: any) => {
+    if (!survey.deadline_date) return 0;
     const today = new Date();
-    const deadlineDate = new Date(deadline);
+    const deadlineStr = survey.deadline_date + ' ' + (survey.deadline_time || '23:59:59');
+    const deadlineDate = new Date(deadlineStr);
     const diffTime = deadlineDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
@@ -273,7 +278,7 @@ const handleUndoDelete = () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            @click="router.get('/')"
+                            @click="router.get(route('dashboard'))"
                             class="mr-1"
                         >
                             <ArrowLeft class="h-5 w-5" />
@@ -313,7 +318,11 @@ const handleUndoDelete = () => {
                             回答受付中 ({{
                                 surveys.filter((s) => {
                                     const now = new Date();
-                                    const deadline = s.deadline ? new Date(s.deadline) : null;
+                                    let deadline = null;
+                                    if (s.deadline_date) {
+                                        const deadlineStr = s.deadline_date + ' ' + (s.deadline_time || '23:59:59');
+                                        deadline = new Date(deadlineStr);
+                                    }
                                     return s.is_active && (deadline ? deadline >= now : false);
                                 }).length
                             }})
@@ -323,7 +332,11 @@ const handleUndoDelete = () => {
                             未回答 ({{
                                 surveys.filter((s) => {
                                     const now = new Date();
-                                    const deadline = s.deadline ? new Date(s.deadline) : null;
+                                    let deadline = null;
+                                    if (s.deadline_date) {
+                                        const deadlineStr = s.deadline_date + ' ' + (s.deadline_time || '23:59:59');
+                                        deadline = new Date(deadlineStr);
+                                    }
                                     return s.is_active && !s.has_responded && (deadline ? deadline >= now : false);
                                 }).length
                             }})
@@ -333,7 +346,11 @@ const handleUndoDelete = () => {
                             終了済み ({{
                                 surveys.filter((s) => {
                                     const now = new Date();
-                                    const deadline = s.deadline ? new Date(s.deadline) : null;
+                                    let deadline = null;
+                                    if (s.deadline_date) {
+                                        const deadlineStr = s.deadline_date + ' ' + (s.deadline_time || '23:59:59');
+                                        deadline = new Date(deadlineStr);
+                                    }
                                     return !s.is_active || (deadline ? deadline < now : true);
                                 }).length
                             }})
@@ -377,39 +394,25 @@ const handleUndoDelete = () => {
                                         <Badge
                                             v-if="survey.is_active"
                                             :variant="
-                                                getDaysUntilDeadline(
-                                                    survey.deadline
-                                                ) < 0
+                                                getDaysUntilDeadline(survey) < 0
                                                     ? 'destructive'
-                                                    : getDaysUntilDeadline(
-                                                          survey.deadline
-                                                      ) <= 3
+                                                    : getDaysUntilDeadline(survey) <= 3
                                                     ? 'default'
                                                     : 'secondary'
                                             "
                                             class="gap-1"
                                         >
                                             <AlertCircle
-                                                v-if="
-                                                    getDaysUntilDeadline(
-                                                        survey.deadline
-                                                    ) <= 0
-                                                "
+                                                v-if="getDaysUntilDeadline(survey) <= 0"
                                                 class="h-3 w-3"
                                             />
                                             <Clock v-else class="h-3 w-3" />
                                             {{
-                                                getDaysUntilDeadline(
-                                                    survey.deadline
-                                                ) < 0
+                                                getDaysUntilDeadline(survey) < 0
                                                     ? "期限切れ"
-                                                    : getDaysUntilDeadline(
-                                                          survey.deadline
-                                                      ) === 0
+                                                    : getDaysUntilDeadline(survey) === 0
                                                     ? "今日が期限"
-                                                    : `残り${getDaysUntilDeadline(
-                                                          survey.deadline
-                                                      )}日`
+                                                    : `残り${getDaysUntilDeadline(survey)}日`
                                             }}
                                         </Badge>
                                     </div>
@@ -423,8 +426,9 @@ const handleUndoDelete = () => {
                                             <CalendarIcon class="h-3 w-3" />
                                             期限:
                                             {{
-                                                new Date(survey.deadline || 0).toLocaleDateString()
+                                                survey.deadline_date ? new Date(survey.deadline_date).toLocaleDateString('ja-JP') : ''
                                             }}
+                                            {{ survey.deadline_time ? survey.deadline_time.substring(0, 5) : '' }}
                                         </div>
                                         <div class="flex items-center gap-1">
                                             作成者: {{ survey.creator?.name }}

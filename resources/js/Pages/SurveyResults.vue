@@ -298,18 +298,29 @@ const surveyData = computed(() => {
                         ),
                         aggregatedData: questionStats.distribution
                             ? Object.entries(questionStats.distribution).map(
-                                  ([name, value]) => ({
-                                      name,
-                                      value,
-                                      percentage:
-                                          questionStats.total_responses > 0
-                                              ? Math.round(
-                                                    (Number(value) /
-                                                        questionStats.total_responses) *
-                                                        100
-                                                )
-                                              : 0,
-                                  })
+                                  ([name, value]) => {
+                                      // Unicodeエスケープされた文字列をデコード
+                                      let decodedName = name;
+                                      try {
+                                          if (name.startsWith('["') || name.startsWith('{')) {
+                                              decodedName = JSON.parse(name);
+                                          }
+                                      } catch (e) {
+                                          // パースできない場合はそのまま
+                                      }
+                                      return {
+                                          name: decodedName,
+                                          value,
+                                          percentage:
+                                              questionStats.total_responses > 0
+                                                  ? Math.round(
+                                                        (Number(value) /
+                                                            questionStats.total_responses) *
+                                                            100
+                                                    )
+                                                  : 0,
+                                      };
+                                  }
                               )
                             : [],
                     };
@@ -347,6 +358,15 @@ const getQuestionResponses = (
         );
         if (answer) {
             let value: any = answer.answer_text;
+
+            // 複数選択の場合、JSON配列をパース
+            if (question.question_type === 'multiple_choice' && typeof value === 'string') {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {
+                    // パースできない場合はそのまま使用
+                }
+            }
 
             // 選択肢がある場合は選択肢テキストを使用
             if (answer.selected_option_id && question.options) {
@@ -561,56 +581,110 @@ const getQuestionResponses = (
                                 question.type === 'dropdown'
                             "
                         >
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div>
-                                    <h4 class="text-sm mb-4 text-gray-600">
-                                        回答の割合
-                                    </h4>
-                                    <div
-                                        v-if="question.aggregatedData && question.aggregatedData.length > 0"
-                                        style="
-                                            height: 300px;
-                                            position: relative;
-                                        "
-                                    >
-                                        <Pie
-                                            :data="{
-                                                labels: question.aggregatedData.map(
-                                                    (d) =>
-                                                        `${d.name} (${d.percentage}%)`
-                                                ),
-                                                datasets: [
-                                                    {
-                                                        backgroundColor: COLORS,
-                                                        data: question.aggregatedData.map(
-                                                            (d) => d.value
-                                                        ),
+                            <div class="space-y-6">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div>
+                                        <h4 class="text-sm mb-4 text-gray-600">
+                                            回答の割合
+                                        </h4>
+                                        <div
+                                            v-if="question.aggregatedData && question.aggregatedData.length > 0"
+                                            style="
+                                                height: 300px;
+                                                position: relative;
+                                            "
+                                        >
+                                            <Pie
+                                                :data="{
+                                                    labels: question.aggregatedData.map(
+                                                        (d) =>
+                                                            `${d.name} (${d.percentage}%)`
+                                                    ),
+                                                    datasets: [
+                                                        {
+                                                            backgroundColor: COLORS,
+                                                            data: question.aggregatedData.map(
+                                                                (d) => d.value
+                                                            ),
+                                                        },
+                                                    ],
+                                                }"
+                                                :options="{
+                                                    responsive: true,
+                                                    maintainAspectRatio: false,
+                                                    plugins: {
+                                                        legend: {
+                                                            position: 'top',
+                                                        },
                                                     },
-                                                ],
-                                            }"
-                                            :options="{
-                                                responsive: true,
-                                                maintainAspectRatio: false,
-                                                plugins: {
-                                                    legend: {
-                                                        position: 'top',
+                                                }"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm mb-4 text-gray-600">
+                                            回答数
+                                        </h4>
+                                        <div
+                                            v-if="question.aggregatedData && question.aggregatedData.length > 0"
+                                            style="
+                                                height: 300px;
+                                                position: relative;
+                                            "
+                                        >
+                                            <Bar
+                                                :data="{
+                                                    labels: question.aggregatedData.map(
+                                                        (d) => d.name
+                                                    ),
+                                                    datasets: [
+                                                        {
+                                                            label: '回答数',
+                                                            backgroundColor:
+                                                                '#3b82f6',
+                                                            data: question.aggregatedData.map(
+                                                                (d) => d.value
+                                                            ),
+                                                        },
+                                                    ],
+                                                }"
+                                                :options="{
+                                                    responsive: true,
+                                                    maintainAspectRatio: false,
+                                                    plugins: {
+                                                        legend: {
+                                                            display: false,
+                                                        },
                                                     },
-                                                },
-                                            }"
-                                        />
+                                                }"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <div>
                                     <h4 class="text-sm mb-4 text-gray-600">
-                                        回答数
+                                        回答者別の選択内容
                                     </h4>
-                                    <div
-                                        v-if="question.aggregatedData && question.aggregatedData.length > 0"
-                                        style="
-                                            height: 300px;
-                                            position: relative;
-                                        "
-                                    >
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div
+                                            v-for="(response, index) in question.responses"
+                                            :key="index"
+                                            class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                        >
+                                            <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
+                                            <p class="text-sm text-gray-700 font-medium">{{ response.value }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template v-if="question.type === 'multiple'">
+                            <div class="space-y-6">
+                                <div>
+                                    <h4 class="text-sm mb-4 text-gray-600">
+                                        選択された回数（複数選択可）
+                                    </h4>
+                                    <div v-if="question.aggregatedData && question.aggregatedData.length > 0" style="height: 300px; position: relative">
                                         <Bar
                                             :data="{
                                                 labels: question.aggregatedData.map(
@@ -618,9 +692,8 @@ const getQuestionResponses = (
                                                 ),
                                                 datasets: [
                                                     {
-                                                        label: '回答数',
-                                                        backgroundColor:
-                                                            '#3b82f6',
+                                                        label: '選択された回数',
+                                                        backgroundColor: '#10b981',
                                                         data: question.aggregatedData.map(
                                                             (d) => d.value
                                                         ),
@@ -628,6 +701,7 @@ const getQuestionResponses = (
                                                 ],
                                             }"
                                             :options="{
+                                                indexAxis: 'y',
                                                 responsive: true,
                                                 maintainAspectRatio: false,
                                                 plugins: {
@@ -639,40 +713,30 @@ const getQuestionResponses = (
                                         />
                                     </div>
                                 </div>
-                            </div>
-                        </template>
-                        <template v-if="question.type === 'multiple'">
-                            <div>
-                                <h4 class="text-sm mb-4 text-gray-600">
-                                    選択された回数（複数選択可）
-                                </h4>
-                                <div v-if="question.aggregatedData && question.aggregatedData.length > 0" style="height: 300px; position: relative">
-                                    <Bar
-                                        :data="{
-                                            labels: question.aggregatedData.map(
-                                                (d) => d.name
-                                            ),
-                                            datasets: [
-                                                {
-                                                    label: '選択された回数',
-                                                    backgroundColor: '#10b981',
-                                                    data: question.aggregatedData.map(
-                                                        (d) => d.value
-                                                    ),
-                                                },
-                                            ],
-                                        }"
-                                        :options="{
-                                            indexAxis: 'y',
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            plugins: {
-                                                legend: {
-                                                    display: false,
-                                                },
-                                            },
-                                        }"
-                                    />
+                                <div>
+                                    <h4 class="text-sm mb-4 text-gray-600">
+                                        回答者別の選択内容
+                                    </h4>
+                                    <ScrollArea class="h-[300px] pr-4">
+                                        <div class="space-y-3">
+                                            <div
+                                                v-for="(response, index) in question.responses"
+                                                :key="index"
+                                                class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                            >
+                                                <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
+                                                <div class="flex flex-wrap gap-2">
+                                                    <Badge
+                                                        v-for="(item, i) in (Array.isArray(response.value) ? response.value : [response.value])"
+                                                        :key="i"
+                                                        class="bg-green-100 text-green-700"
+                                                    >
+                                                        {{ item }}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ScrollArea>
                                 </div>
                             </div>
                         </template>
@@ -706,7 +770,7 @@ const getQuestionResponses = (
                                             :key="i"
                                             :class="[
                                                 'text-2xl',
-                                                i <
+                                                i <=
                                                 Math.round(
                                                     question.responses.reduce(
                                                         (sum, r) =>
@@ -773,60 +837,125 @@ const getQuestionResponses = (
                                                             display: true,
                                                             text: '回答数',
                                                         },
+                                                        ticks: {
+                                                            stepSize: 1,
+                                                            precision: 0
+                                                        }
                                                     },
                                                 },
                                             }"
                                         />
                                     </div>
                                 </div>
+                                <div>
+                                    <h4 class="text-sm mb-4 text-gray-600">
+                                        回答者別の評価
+                                    </h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div
+                                            v-for="(response, index) in question.responses"
+                                            :key="index"
+                                            class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                        >
+                                            <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
+                                            <div class="flex items-center gap-1">
+                                                <span
+                                                    v-for="i in (question.scaleMax || 5)"
+                                                    :key="i"
+                                                    :class="[
+                                                        'text-lg',
+                                                        i <= response.value
+                                                            ? 'text-yellow-400'
+                                                            : 'text-gray-300',
+                                                    ]"
+                                                    >★</span
+                                                >
+                                                <span class="text-sm text-gray-600 ml-2">{{ response.value }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </template>
                         <template v-if="question.type === 'scale'">
-                            <div>
-                                <h4 class="text-sm mb-4 text-gray-600">
-                                    各項目の平均評価（5段階）
-                                </h4>
-                                <div v-if="question.aggregatedData && question.aggregatedData.length > 0" style="height: 400px; position: relative">
-                                    <Radar
-                                        :data="{
-                                            labels: question.aggregatedData.map(
-                                                (d) => d.subject
-                                            ),
-                                            datasets: [
-                                                {
-                                                    label: '平均評価',
-                                                    backgroundColor:
-                                                        'rgba(139, 92, 246, 0.6)',
-                                                    borderColor: '#8b5cf6',
-                                                    pointBackgroundColor:
-                                                        '#8b5cf6',
-                                                    data: question.aggregatedData.map(
-                                                        (d) => d.A
-                                                    ),
-                                                },
-                                            ],
-                                        }"
-                                        :options="{
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            scales: {
-                                                r: {
-                                                    angleLines: {
-                                                        display: false,
+                            <div class="space-y-6">
+                                <div>
+                                    <h4 class="text-sm mb-4 text-gray-600">
+                                        各項目の平均評価（{{ question.scaleMax || 5 }}段階）
+                                    </h4>
+                                    <div v-if="question.aggregatedData && question.aggregatedData.length > 0" style="height: 400px; position: relative">
+                                        <Radar
+                                            :data="{
+                                                labels: question.aggregatedData.map(
+                                                    (d) => d.subject
+                                                ),
+                                                datasets: [
+                                                    {
+                                                        label: '平均評価',
+                                                        backgroundColor:
+                                                            'rgba(139, 92, 246, 0.6)',
+                                                        borderColor: '#8b5cf6',
+                                                        pointBackgroundColor:
+                                                            '#8b5cf6',
+                                                        data: question.aggregatedData.map(
+                                                            (d) => d.A
+                                                        ),
                                                     },
-                                                    suggestedMin: 0,
-                                                    suggestedMax: 5,
+                                                ],
+                                            }"
+                                            :options="{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                scales: {
+                                                    r: {
+                                                        angleLines: {
+                                                            display: false,
+                                                        },
+                                                        suggestedMin: 0,
+                                                        suggestedMax: question.scaleMax || 5,
+                                                        ticks: {
+                                                            stepSize: 1
+                                                        }
+                                                    },
                                                 },
-                                            },
-                                        }"
-                                    />
+                                            }"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm mb-4 text-gray-600">
+                                        回答者別の評価
+                                    </h4>
+                                    <ScrollArea class="h-[400px] pr-4">
+                                        <div class="space-y-3">
+                                            <div
+                                                v-for="(response, index) in question.responses"
+                                                :key="index"
+                                                class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                            >
+                                                <Badge variant="outline" class="text-xs mb-3">{{ response.respondent }}</Badge>
+                                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                    <div
+                                                        v-for="(value, key) in response.value"
+                                                        :key="key"
+                                                        v-if="key !== 'respondent'"
+                                                        class="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                                                    >
+                                                        <span class="text-sm text-gray-700">{{ key }}</span>
+                                                        <Badge class="bg-purple-100 text-purple-700">{{ value }}</Badge>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </ScrollArea>
                                 </div>
                             </div>
                         </template>
                         <template
                             v-if="
                                 question.type === 'text' ||
-                                question.type === 'textarea'
+                                question.type === 'textarea' ||
+                                question.type === 'date'
                             "
                         >
                             <div class="space-y-4">
@@ -873,7 +1002,18 @@ const getQuestionResponses = (
                                             <p
                                                 class="text-gray-700 whitespace-pre-wrap"
                                             >
-                                                {{ response.value }}
+                                                <template v-if="question.type === 'date'">
+                                                    {{ response.value ? new Date(response.value).toLocaleString('ja-JP', { 
+                                                        year: 'numeric', 
+                                                        month: '2-digit', 
+                                                        day: '2-digit',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    }) : response.value }}
+                                                </template>
+                                                <template v-else>
+                                                    {{ response.value }}
+                                                </template>
                                             </p>
                                         </div>
                                     </div>

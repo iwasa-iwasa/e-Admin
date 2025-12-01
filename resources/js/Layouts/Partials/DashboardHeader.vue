@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
-import NotificationSettingsDialog from '@/components/NotificationSettingsDialog.vue'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
@@ -37,7 +36,9 @@ interface Event {
   event_id: number
   title: string
   start_date: string
+  start_time?: string
   end_date?: string
+  end_time?: string
   creator: { name: string }
   location?: string
   description?: string
@@ -58,7 +59,8 @@ interface Note {
 interface Survey {
   survey_id: number
   title: string
-  deadline: string
+  deadline_date?: string
+  deadline_time?: string
   creator: { name: string }
   description?: string
 }
@@ -84,7 +86,6 @@ const isEventDetailOpen = ref(false)
 const isEventEditOpen = ref(false)
 
 const isProfileSettingsOpen = ref(false)
-const isNotificationSettingsOpen = ref(false)
 const showEventsFilter = ref<'mine' | 'all'>(
   (localStorage.getItem('notif_events_filter') as 'mine' | 'all') || 'mine'
 )
@@ -97,6 +98,8 @@ const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const lastDeletedReminder = ref<Reminder | null>(null)
+const scrollPosition = ref(0)
+const notificationScrollArea = ref<HTMLElement | null>(null)
 
 const insertSearchOption = (option: string) => {
   searchQuery.value += option
@@ -160,6 +163,15 @@ const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString('ja-JP')
 }
 
+const formatDateTime = (date?: string, time?: string) => {
+  if (!date) return ''
+  const dateStr = new Date(date).toLocaleDateString('ja-JP')
+  if (time) {
+    return `${dateStr} ${time.substring(0, 5)}`
+  }
+  return dateStr
+}
+
 const handleClick = (type: string, item: any) => {
   if (type === 'event') {
     selectedEvent.value = item
@@ -170,6 +182,10 @@ const handleClick = (type: string, item: any) => {
     isNotificationOpen.value = false
     router.visit(`/surveys/${item.survey_id}/answer`)
   } else if (type === 'reminder') {
+    const scrollArea = document.querySelector('.notification-scroll-area')
+    if (scrollArea) {
+      scrollPosition.value = scrollArea.scrollTop
+    }
     selectedReminder.value = item
   }
 }
@@ -242,6 +258,7 @@ const handleUndoDelete = async () => {
   
   const reminderToRestore = lastDeletedReminder.value
   const wasOpen = isNotificationOpen.value
+  const savedScrollPosition = scrollPosition.value
   lastDeletedReminder.value = null
 
   try {
@@ -270,6 +287,12 @@ const handleUndoDelete = async () => {
         await fetchNotifications()
         setTimeout(() => {
           isNotificationOpen.value = true
+          setTimeout(() => {
+            const scrollArea = document.querySelector('.notification-scroll-area')
+            if (scrollArea) {
+              scrollArea.scrollTop = savedScrollPosition
+            }
+          }, 50)
         }, 10)
       } else {
         await fetchNotifications()
@@ -287,7 +310,14 @@ const handleUndoDelete = async () => {
   }
 }
 
-onMounted(fetchNotifications)
+onMounted(() => {
+  fetchNotifications()
+  
+  // Inertiaのページ更新イベントをリッスン
+  router.on('success', () => {
+    fetchNotifications()
+  })
+})
 </script>
 
 <template>
@@ -492,7 +522,7 @@ onMounted(fetchNotifications)
               </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto scrollbar-hide">
+            <div class="flex-1 overflow-y-auto scrollbar-hide notification-scroll-area">
               <div v-if="notifications.events.length > 0" class="p-3 border-b border-gray-300">
                 <div class="flex items-center gap-2 mb-2">
                   <Calendar class="h-4 w-4 text-blue-600" />
@@ -505,7 +535,7 @@ onMounted(fetchNotifications)
                     @click="handleClick('event', event)">
                     <div class="text-sm mb-1">{{ event.title }}</div>
                     <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>{{ formatDate(event.end_date || event.start_date) }}</span>
+                      <span>{{ formatDateTime(event.end_date || event.start_date, event.end_time || event.start_time) }}</span>
                       <Badge variant="outline" class="text-xs">{{ event.creator.name }}</Badge>
                     </div>
                   </div>
@@ -524,7 +554,7 @@ onMounted(fetchNotifications)
                     @click="handleClick('note', note)">
                     <div class="text-sm mb-1">{{ note.title }}</div>
                     <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>期限: {{ formatDate(note.deadline_date) }}</span>
+                      <span>期限: {{ formatDateTime(note.deadline_date, note.deadline_time) }}</span>
                       <Badge variant="outline" class="text-xs">{{ note.author.name }}</Badge>
                     </div>
                   </div>
@@ -543,7 +573,7 @@ onMounted(fetchNotifications)
                     @click="handleClick('reminder', reminder)">
                     <div class="text-sm mb-1">{{ reminder.title }}</div>
                     <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>期限: {{ formatDate(reminder.deadline_date) }} {{ reminder.deadline_time ? reminder.deadline_time.substring(0, 5) : '' }}</span>
+                      <span>期限: {{ formatDateTime(reminder.deadline_date, reminder.deadline_time) }}</span>
                       <Badge variant="outline" class="text-xs">{{ reminder.category }}</Badge>
                     </div>
                   </div>
@@ -562,13 +592,42 @@ onMounted(fetchNotifications)
                     @click="handleClick('survey', survey)">
                     <div class="text-sm mb-1">{{ survey.title }}</div>
                     <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>回答期限: {{ formatDate(survey.deadline) }}</span>
+                      <span>回答期限: {{ formatDateTime(survey.deadline_date, survey.deadline_time) }}</span>
                       <Badge variant="outline" class="text-xs">{{ survey.creator.name }}</Badge>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+            
+            <!-- メッセージ表示 -->
+            <Transition
+              enter-active-class="transition ease-out duration-300"
+              enter-from-class="transform opacity-0 translate-y-2"
+              enter-to-class="transform opacity-100 translate-y-0"
+              leave-active-class="transition ease-in duration-200"
+              leave-from-class="transform opacity-100 translate-y-0"
+              leave-to-class="transform opacity-0 translate-y-2"
+            >
+              <div 
+                v-if="saveMessage"
+                :class="['mx-3 mb-3 p-3 text-white rounded-lg shadow-lg',
+                  messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="font-medium text-sm">{{ saveMessage }}</span>
+                  <Button 
+                    v-if="messageType === 'delete' && lastDeletedReminder"
+                    variant="link"
+                    :class="messageType === 'delete' ? 'text-white hover:bg-red-400 p-1 h-auto ml-auto' : 'text-white hover:bg-green-400 p-1 h-auto ml-auto'"
+                    @click.stop="handleUndoDelete"
+                  >
+                    <Undo2 class="h-4 w-4 mr-1" />
+                    <span class="underline">元に戻す</span>
+                  </Button>
+                </div>
+              </div>
+            </Transition>
           </PopoverContent>
         </Popover>
 
@@ -584,9 +643,6 @@ onMounted(fetchNotifications)
             <DropdownMenuSeparator />
             <DropdownMenuItem as-child>
               <Link :href="route('profile.edit')">プロフィール設定</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem @click="isNotificationSettingsOpen = true">
-              通知設定
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem @click="showConfirmLogoutModal = true">
@@ -631,11 +687,7 @@ onMounted(fetchNotifications)
       @toggle-pin="handleNoteTogglePin"
     />
 
-    <!-- 通知設定ダイアログ -->
-    <NotificationSettingsDialog
-      :open="isNotificationSettingsOpen"
-      @update:open="isNotificationSettingsOpen = $event"
-    />
+
 
     <!-- リマインダー詳細ダイアログ -->
     <ReminderDetailDialog
@@ -645,34 +697,6 @@ onMounted(fetchNotifications)
       @update:reminder="fetchNotifications"
     />
 
-    <!-- メッセージ表示 -->
-    <Transition
-      enter-active-class="transition ease-out duration-300"
-      enter-from-class="transform opacity-0 translate-y-full"
-      enter-to-class="transform opacity-100 translate-y-0"
-      leave-active-class="transition ease-in duration-200"
-      leave-from-class="transform opacity-100 translate-y-0"
-      leave-to-class="transform opacity-0 translate-y-full"
-    >
-      <div 
-        v-if="saveMessage"
-        :class="['fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[9999] p-3 text-white rounded-lg shadow-lg pointer-events-auto',
-          messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
-        @click.stop
-      >
-        <div class="flex items-center gap-2">
-          <span class="font-medium">{{ saveMessage }}</span>
-          <Button 
-            v-if="messageType === 'delete' && lastDeletedReminder"
-            variant="link"
-            :class="messageType === 'delete' ? 'text-white hover:bg-red-400 p-1 h-auto ml-2' : 'text-white hover:bg-green-400 p-1 h-auto ml-2'"
-            @click.stop="handleUndoDelete"
-          >
-            <Undo2 class="h-4 w-4 mr-1" />
-            <span class="underline">元に戻す</span>
-          </Button>
-        </div>
-      </div>
-    </Transition>
+
   </header>
 </template>

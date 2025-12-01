@@ -171,7 +171,7 @@ const handleEmptyTrash = () => {
         <div class="p-4 border-b border-gray-300">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
-              <Button variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
+              <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))" class="mr-1">
                 <ArrowLeft class="h-5 w-5" />
               </Button>
               <Trash2 class="h-6 w-6 text-gray-600" />

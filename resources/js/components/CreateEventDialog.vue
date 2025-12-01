@@ -67,9 +67,18 @@ const messageTimer = ref<number | null>(null)
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
 
-// 全員共有かどうか（全メンバーが参加者に含まれている）
+// 参加者リストに含まれていないメンバー（選択肢用）
+const availableMembers = computed(() => {
+  return teamMembers.value.filter(member => 
+    member.id !== currentUserId.value && 
+    !form.participants.find(p => p.id === member.id)
+  )
+})
+
+// 全員共有かどうか（自分以外の全メンバーが参加者に含まれている）
 const isAllUsers = computed(() => {
-  return form.participants.length === teamMembers.value.length
+  const otherMembersCount = teamMembers.value.length - 1
+  return form.participants.length > 0 && form.participants.length === otherMembersCount
 })
 
 // 編集権限チェック
@@ -214,28 +223,18 @@ const handleAllDayToggle = (value: boolean) => {
   form.is_all_day = value;
 };
 
-const handleAddParticipant = (value: unknown) => {
-    if (value === null || value === undefined) return
-    
-    // 「全員」を選択
-    if (value === 'all') {
-        form.participants = [...teamMembers.value]
-        return
+const handleAddParticipant = (value: string) => {
+  if (value === 'none') {
+    form.participants = []
+  } else if (value === 'all') {
+    form.participants = teamMembers.value.filter(m => m.id !== currentUserId.value)
+  } else {
+    const memberId = Number(value)
+    const member = teamMembers.value.find(m => m.id === memberId)
+    if (member) {
+      form.participants.push(member)
     }
-    
-    // 「選択しない」を選択
-    if (value === 'none') {
-        form.participants = []
-        return
-    }
-    
-    // 個人を選択
-    const id = Number(value)
-    if (Number.isNaN(id)) return
-    const member = teamMembers.value.find((m) => m.id === id)
-    if (member && !form.participants.find((p) => p.id === member.id)) {
-        form.participants.push(member)
-    }
+  }
 }
 
 const handleRemoveParticipant = (participantId: number) => {
@@ -530,7 +529,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 <SelectContent>
                                                     <SelectItem value="all">全員</SelectItem>
                                                     <SelectItem value="none">選択しない</SelectItem>
-                                                    <SelectItem v-for="member in teamMembers.filter(m => m.id !== currentUserId && !form.participants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
+                                                    <SelectItem v-for="member in availableMembers" :key="member.id" :value="String(member.id)">
                                                         {{ member.name }}
                                                     </SelectItem>
                                                 </SelectContent>
