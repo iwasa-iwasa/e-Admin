@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, useForm, router } from '@inertiajs/vue3'
+import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import { ref, onMounted, computed } from 'vue'
 import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2 } from 'lucide-vue-next'
@@ -27,6 +27,10 @@ import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
 
 const showConfirmLogoutModal = ref(false);
 const form = useForm({});
+
+const page = usePage()
+const teamMembers = computed(() => (page.props as any).teamMembers || [])
+const totalUsers = computed(() => (page.props as any).totalUsers || 0)
 
 const logout = () => {
     form.post(route('logout'));
@@ -121,6 +125,7 @@ const fetchNotifications = async () => {
       cache: 'no-store'
     })
     const data = await response.json()
+
     notifications.value = data
   } catch (error) {
     console.error('Failed to fetch notifications:', error)
@@ -170,6 +175,13 @@ const formatDateTime = (date?: string, time?: string) => {
     return `${dateStr} ${time.substring(0, 5)}`
   }
   return dateStr
+}
+
+const getInitial = (name: string) => {
+  if (!name || name.length === 0) return '?'
+  // 姓のみを返す（スペースで分割して最初の部分）
+  const parts = name.split(' ')
+  return parts[0] || name.charAt(0)
 }
 
 const handleClick = (type: string, item: any) => {
@@ -534,8 +546,11 @@ onMounted(() => {
                     :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('event')}`"
                     @click="handleClick('event', event)">
                     <div class="text-sm mb-1">{{ event.title }}</div>
-                    <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>{{ formatDateTime(event.end_date || event.start_date, event.end_time || event.start_time) }}</span>
+                    <div class="text-xs text-gray-600 flex items-center justify-between gap-1">
+                      <div class="flex items-center gap-1 flex-wrap">
+                        <span>{{ formatDateTime(event.end_date || event.start_date, event.end_time || event.start_time) }}</span>
+                        <Badge v-for="participant in event.participants" :key="participant.id" variant="outline" class="text-xs cursor-help" :title="participant.name" style="font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;">{{ getInitial(participant.name) }}</Badge>
+                      </div>
                       <Badge variant="outline" class="text-xs">{{ event.creator.name }}</Badge>
                     </div>
                   </div>
@@ -553,8 +568,11 @@ onMounted(() => {
                     :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('note', note.priority)}`"
                     @click="handleClick('note', note)">
                     <div class="text-sm mb-1">{{ note.title }}</div>
-                    <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>期限: {{ formatDateTime(note.deadline_date, note.deadline_time) }}</span>
+                    <div class="text-xs text-gray-600 flex items-center justify-between gap-1">
+                      <div class="flex items-center gap-1 flex-wrap">
+                        <span>期限: {{ formatDateTime(note.deadline_date, note.deadline_time) }}</span>
+                        <Badge v-for="participant in note.participants" :key="participant.id" variant="outline" class="text-xs cursor-help" :title="participant.name" style="font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;">{{ getInitial(participant.name) }}</Badge>
+                      </div>
                       <Badge variant="outline" class="text-xs">{{ note.author.name }}</Badge>
                     </div>
                   </div>
@@ -681,6 +699,8 @@ onMounted(() => {
     <NoteDetailDialog
       :note="selectedNote as any"
       :open="selectedNote !== null"
+      :team-members="teamMembers"
+      :total-users="totalUsers"
       @update:open="(isOpen) => !isOpen && (selectedNote = null)"
       @save="handleNoteSave"
       @delete="handleNoteDelete"

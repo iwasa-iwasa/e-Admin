@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class NoteController extends Controller
 {
@@ -100,7 +101,7 @@ class NoteController extends Controller
         if (isset($validated['tags']) && !empty($validated['tags'])) {
             $tagIds = [];
             foreach ($validated['tags'] as $tagName) {
-                $tag = \App\Models\Tag::firstOrCreate(['tag_name' => $tagName]);
+                $tag = \App\Models\NoteTag::firstOrCreate(['tag_name' => $tagName]);
                 $tagIds[] = $tag->tag_id;
             }
             $note->tags()->attach($tagIds);
@@ -175,10 +176,30 @@ class NoteController extends Controller
         if (isset($validated['tags'])) {
             $tagIds = [];
             foreach ($validated['tags'] as $tagName) {
-                $tag = \App\Models\Tag::firstOrCreate(['tag_name' => $tagName]);
+                $tag = \App\Models\NoteTag::firstOrCreate(['tag_name' => $tagName]);
                 $tagIds[] = $tag->tag_id;
             }
             $note->tags()->sync($tagIds);
+        }
+
+        // Update linked calendar event
+        $event = \App\Models\Event::where('title', $note->getOriginal('title'))
+            ->where('created_by', $note->author_id)
+            ->first();
+        
+        if ($event) {
+            $event->update([
+                'title' => $validated['title'],
+                'description' => $validated['content'],
+                'importance' => $validated['priority'] === 'high' ? '重要' : ($validated['priority'] === 'medium' ? '中' : '低'),
+                'end_date' => $deadlineDate,
+                'end_time' => $deadlineTime,
+                'progress' => $validated['progress'] ?? 0,
+            ]);
+            
+            if (isset($validated['participants'])) {
+                $event->participants()->sync($validated['participants']);
+            }
         }
 
         return back()->with('success', 'メモを更新しました。');

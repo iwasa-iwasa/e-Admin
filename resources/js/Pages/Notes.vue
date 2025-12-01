@@ -674,18 +674,22 @@ const handleRemoveParticipant = (participantId: number) => {
               </div>
             </template>
             <template v-else>
-              <Select v-model="participantSelectValue" @update:model-value="handleAddParticipant">
-                <SelectTrigger class="h-8 text-xs">
-                  <SelectValue placeholder="メンバーを選択..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="member in props.teamMembers.filter(m => !editedParticipants.find(p => p.id === m.id) && m.id !== selectedNote?.author?.id)" :key="member.id" :value="member.id">
-                    {{ member.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div v-if="editedParticipants.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+                全員が選択されています。変更するにはメンバーを削除してください。
+              </div>
+              <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
+                <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
+                    @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                    class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                  />
+                  <span class="text-xs">{{ member.name }}</span>
+                </label>
+              </div>
             </template>
-            <div v-if="editedParticipants.length > 0" class="flex flex-wrap gap-1">
+            <div v-if="editedParticipants.length > 0" class="flex flex-wrap gap-1 mt-2">
               <Badge v-for="participant in editedParticipants" :key="participant.id" variant="secondary" class="text-xs gap-1">
                 {{ participant.name }}
                 <button v-if="canEditParticipants && !(isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">

@@ -253,14 +253,14 @@ const handleAddParticipant = (memberId: unknown) => {
   const id = Number(memberId as any)
   if (Number.isNaN(id)) return
   const member = props.teamMembers?.find((m) => m.id === id)
-  if (member && !editedNote.value.participants?.find((p) => p.id === member.id)) {
+  if (member) {
     if (!editedNote.value.participants) {
       editedNote.value.participants = []
     }
-    editedNote.value.participants.push(member)
+    if (!editedNote.value.participants.find((p) => p.id === member.id)) {
+      editedNote.value.participants = [...editedNote.value.participants, member]
+    }
   }
-  // Selectの値をクリア
-  participantSelectValue.value = null
 }
 
 const handleRemoveParticipant = (participantId: number) => {
@@ -352,7 +352,7 @@ const editedContent = computed({
 
 <template>
   <Dialog :open="open" @update:open="closeDialog" :modal="true">
-    <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]" @click.stop>
+    <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]" @pointerDownOutside.prevent @interactOutside.prevent>
       <DialogHeader>
         <div class="flex flex-col items-startgap-4">
           <div class="flex items-center  justify-between ">
@@ -521,16 +521,20 @@ const editedContent = computed({
             </div>
           </template>
           <template v-else>
-            <Select v-model="participantSelectValue" @update:model-value="handleAddParticipant">
-              <SelectTrigger class="h-8 text-xs">
-                <SelectValue placeholder="メンバーを選択..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="member in props.teamMembers?.filter(m => !editedNote.participants?.find(p => p.id === m.id) && m.id !== editedNote.author?.id)" :key="member.id" :value="member.id">
-                  {{ member.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div v-if="editedNote?.participants?.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+              全員が選択されています。変更するにはメンバーを削除してください。
+            </div>
+            <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
+              <label v-for="member in props.teamMembers?.filter(m => m.id !== editedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  :checked="editedNote?.participants?.find(p => p.id === member.id) !== undefined"
+                  @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                  class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                />
+                <span class="text-xs">{{ member.name }}</span>
+              </label>
+            </div>
           </template>
           <div v-if="editedNote.participants && editedNote.participants.length > 0" class="flex flex-wrap gap-1">
             <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">

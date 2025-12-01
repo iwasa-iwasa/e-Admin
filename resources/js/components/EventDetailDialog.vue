@@ -39,21 +39,19 @@ const teamMembers = computed(() => (page.props as any).teamMembers || [])
 const canEdit = computed(() => {
   if (!props.event) return false
   const event = props.event
-  const isCreator = event.creator_id === currentUserId.value
+  const isCreator = event.created_by === currentUserId.value
   
-  // 参加者が空：作成者のみ編集可能
-  if (!event.participants || event.participants.length === 0) {
-    return isCreator
-  }
+  // 作成者は常に編集可能
+  if (isCreator) return true
   
   // 全員が参加者：全員編集可能
-  if (Array.isArray(teamMembers.value) && teamMembers.value.length > 0 && event.participants.length === teamMembers.value.length) {
+  if (Array.isArray(teamMembers.value) && teamMembers.value.length > 0 && event.participants && event.participants.length === teamMembers.value.length) {
     return true
   }
   
-  // 個人指定：作成者または参加者のみ編集可能
-  const isParticipant = event.participants.some(p => p.id === currentUserId.value)
-  return isCreator || isParticipant
+  // 参加者のみ編集可能
+  const isParticipant = event.participants?.some(p => p.id === currentUserId.value)
+  return isParticipant || false
 })
 
 

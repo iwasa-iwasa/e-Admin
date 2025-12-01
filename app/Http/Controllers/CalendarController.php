@@ -123,9 +123,6 @@ class CalendarController extends Controller
         if (isset($validated['participants'])) {
             $event->participants()->attach($validated['participants']);
         }
-        
-        // Creator should also be a participant
-        $event->participants()->attach(Auth::id());
 
         // Save to shared notes if description exists
         if (!empty($validated['description'])) {
@@ -219,6 +216,26 @@ class CalendarController extends Controller
             foreach ($attachmentsToDelete as $attachment) {
                 Storage::disk('public')->delete($attachment->file_path);
                 $attachment->delete();
+            }
+        }
+
+        // Update linked shared note
+        $sharedNote = \App\Models\SharedNote::where('title', $event->getOriginal('title'))
+            ->where('author_id', $event->created_by)
+            ->first();
+        
+        if ($sharedNote) {
+            $sharedNote->update([
+                'title' => $validated['title'],
+                'content' => $validated['description'],
+                'priority' => $validated['importance'] === '重要' ? 'high' : ($validated['importance'] === '中' ? 'medium' : 'low'),
+                'deadline_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
+                'deadline_time' => $validated['is_all_day'] ? '23:59:00' : $validated['end_time'],
+                'progress' => $validated['progress'] ?? 0,
+            ]);
+            
+            if (isset($validated['participants'])) {
+                $sharedNote->participants()->sync($validated['participants']);
             }
         }
 

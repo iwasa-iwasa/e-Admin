@@ -279,16 +279,20 @@ const getColorInfo = (c: string) => {
                         <div class="text-xs text-gray-500 mb-2">
                             利用可能メンバー: {{ props.teamMembers?.length || 0 }}人
                         </div>
-                        <Select @update:model-value="handleAddParticipant">
-                            <SelectTrigger id="participants" class="min-h-[40px]">
-                                <SelectValue placeholder="メンバーを選択..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId && !selectedParticipants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
-                                    {{ member.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div v-if="selectedParticipants.length === (props.teamMembers?.length || 0)" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+                            全員が選択されています。変更するにはメンバーを削除してください。
+                        </div>
+                        <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
+                            <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    :checked="selectedParticipants.find(p => p.id === member.id) !== undefined"
+                                    @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                                    class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                                />
+                                <span class="text-xs">{{ member.name }}</span>
+                            </label>
+                        </div>
                         <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border border-gray-300 rounded-md bg-gray-50">
                             <div class="text-xs font-medium text-gray-700 mb-2">選択されたメンバー:</div>
                             <div class="flex flex-wrap gap-2">

@@ -36,7 +36,6 @@ interface Survey {
     survey_id: number
     title: string
     description: string
-    deadline: string
     deadline_date?: string
     deadline_time?: string
 }

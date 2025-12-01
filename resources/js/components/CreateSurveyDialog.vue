@@ -623,9 +623,15 @@ const loadEditData = () => {
 
     title.value = props.survey.title || "";
     description.value = props.survey.description || "";
-    deadline.value = props.survey.deadline
-        ? new Date(props.survey.deadline).toISOString().split("T")[0]
-        : "";
+    
+    // deadline_dateとdeadline_timeから結合
+    if (props.survey.deadline_date) {
+        const time = props.survey.deadline_time || '23:59:00';
+        const deadlineStr = `${props.survey.deadline_date}T${time.slice(0, 5)}`;
+        deadline.value = deadlineStr;
+    } else {
+        deadline.value = "";
+    }
 
     // 質問データを変換
     questions.value =
