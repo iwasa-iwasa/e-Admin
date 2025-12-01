@@ -64,7 +64,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
     router.patch(route('reminders.complete', id), {}, {
       preserveScroll: true,
       onSuccess: () => {
-        showMessage('リマインダーを削除しました。', 'delete')
+        showMessage('リマインダーを完了しました。', 'delete')
       },
       onError: (errors) => {
         console.error('完了エラー:', errors)
@@ -114,9 +114,14 @@ const handleUndoDelete = () => {
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
 const isCreateDialogOpen = ref(false)
 
-const handleCloseDetailDialog = (isOpen: boolean) => {
+const handleCloseDetailDialog = (isOpen: boolean, completed?: boolean) => {
   if (!isOpen) {
+    if (completed && selectedReminder.value) {
+      lastDeletedReminder.value = selectedReminder.value
+      showMessage('リマインダーを完了しました。', 'delete')
+    }
     selectedReminder.value = null
+    router.reload({ preserveScroll: true })
   }
 }
 
@@ -163,7 +168,7 @@ const confirmPermanentDelete = () => {
               @click="showCompleted = false"
               :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
-              <Clock :class="['h-3.5 w-3.5', !showCompleted ? 'text-blue-500' : 'text-gray-400']" />
+              <Clock :class="['h-3.5 w-3.5', !showCompleted ? 'text-orange-500' : 'text-gray-400']" />
               未完了
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ activeCount }}
@@ -232,8 +237,9 @@ const confirmPermanentDelete = () => {
                     </p>
                     <div :class="['flex flex-wrap items-center gap-3 text-xs text-gray-500', reminder.completed ? 'opacity-60' : '']">
                       <div class="flex items-center gap-1">
-                        <Clock class="h-3 w-3" />
-                        期限: {{ formatDate(reminder.deadline) }}
+                        <Badge v-if="reminder.deadline_date" variant="outline" class="text-xs h-5 bg-white border-gray-400">
+                          期限: {{ formatDate(reminder.deadline_date) }} {{ reminder.deadline_time ? reminder.deadline_time.substring(0, 5) : '' }}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -258,8 +264,8 @@ const confirmPermanentDelete = () => {
                 </div>
                 <div class="flex items-center gap-2 text-sm">
                   <CheckCircle v-if="reminder.completed" class="h-4 w-4 text-green-600" />
-                  <Clock v-else class="h-4 w-4 text-blue-600" />
-                  <span :class="reminder.completed ? 'text-green-600' : 'text-blue-600'">
+                  <Clock v-else class="h-4 w-4 text-orange-600" />
+                  <span :class="reminder.completed ? 'text-green-600' : 'text-orange-600'">
                     {{ reminder.completed ? '完了済み' : '未完了' }}
                   </span>
                 </div>

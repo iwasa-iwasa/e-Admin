@@ -58,13 +58,13 @@ const messageTimer = ref<number | null>(null)
 const { toast } = useToast()
 
 const questionTemplates: QuestionTemplate[] = [
-  { type: 'single', name: '単一選択（ラジオボタン）', description: '複数の選択肢から1つを選ぶ形式', icon: Circle, defaultOptions: ['選択肢1', '選択肢2', '選択肢3'] },
-  { type: 'multiple', name: '複数選択（チェックボックス）', description: '複数の選択肢から複数選べる形式', icon: CheckSquare, defaultOptions: ['選択肢1', '選択肢2', '選択肢3'] },
+  { type: 'single', name: '単一選択（ラジオボタン）', description: '複数の選択肢から1つを選ぶ形式', icon: Circle, defaultOptions: ['', '', ''] },
+  { type: 'multiple', name: '複数選択（チェックボックス）', description: '複数の選択肢から複数選べる形式', icon: CheckSquare, defaultOptions: ['', '', ''] },
   { type: 'text', name: '自由記述（短文）', description: '短いテキストを入力する形式', icon: Type, defaultOptions: [] },
   { type: 'textarea', name: '自由記述（長文）', description: '長いテキストを入力する形式', icon: Type, defaultOptions: [] },
   { type: 'rating', name: '評価スケール（星評価）', description: '星で満足度などを評価する形式', icon: Star, defaultOptions: [], scaleMin: 1, scaleMax: 5 },
-  { type: 'scale', name: '評価スケール（リッカート）', description: '段階的に評価する形式（例：5段階評価）', icon: BarChart2, defaultOptions: [], scaleMin: 1, scaleMax: 5 },
-  { type: 'dropdown', name: 'ドロップダウン', description: 'リストから1つを選ぶ形式', icon: List, defaultOptions: ['選択肢1', '選択肢2', '選択肢3'] },
+  { type: 'scale', name: '評価スケール（リッカート）', description: '段階的に評価する形式（1〜10段階）', icon: BarChart2, defaultOptions: [], scaleMin: 1, scaleMax: 5 },
+  { type: 'dropdown', name: 'ドロップダウン', description: 'リストから1つを選ぶ形式', icon: List, defaultOptions: ['', '', ''] },
   { type: 'date', name: '日付/時刻', description: '特定の日時を入力する形式', icon: Clock, defaultOptions: [] },
 ]
 
@@ -308,7 +308,7 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                 </div>
                 <div class="space-y-2">
                   <Label for="deadline">回答期限 *</Label>
-                  <Input id="deadline" type="date" v-model="deadline" />
+                  <Input id="deadline" type="datetime-local" v-model="deadline" />
                 </div>
               </div>
             </CardContent>
@@ -317,7 +317,7 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
           <div class="space-y-4">
             <Card v-if="questions.length === 0" class="border-dashed border-2">
               <CardContent class="py-12 text-center">
-                <div class="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                <div class="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 cursor-pointer hover:bg-blue-100 transition-colors" @click="showTemplateDialog = true">
                   <Plus class="h-8 w-8 text-blue-600" />
                 </div>
                 <h3 class="mb-2">質問を追加しましょう</h3>
@@ -420,37 +420,29 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
                     </div>
                   </div>
                   <div v-if="question.type === 'scale'" class="space-y-3">
-                    <div class="space-y-2">
-                      <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-2">
-                          <Label>最小値</Label>
-                          <Input type="number" :model-value="question.scaleMin || 1" @update:model-value="updateQuestion(question.id, 'scaleMin', parseInt(String($event)))" />
-                        </div>
-                        <div class="space-y-2">
-                          <Label>最大値</Label>
-                          <Input type="number" :model-value="question.scaleMax || 5" @update:model-value="updateQuestion(question.id, 'scaleMax', parseInt(String($event)))" />
-                        </div>
-                      </div>
-                      <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-2">
-                          <Label>最小値ラベル（任意）</Label>
-                          <Input placeholder="例：とても悪い" :model-value="question.scaleMinLabel || ''" @update:model-value="updateQuestion(question.id, 'scaleMinLabel', $event)" />
-                        </div>
-                        <div class="space-y-2">
-                          <Label>最大値ラベル（任意）</Label>
-                          <Input placeholder="例：とても良い" :model-value="question.scaleMaxLabel || ''" @update:model-value="updateQuestion(question.id, 'scaleMaxLabel', $event)" />
-                        </div>
-                      </div>
-                    </div>
                     <div class="p-4 bg-gray-50 rounded-md border border-gray-300 ">
                       <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600">{{ question.scaleMinLabel || question.scaleMin || 1 }}</span>
+                        <span class="text-sm text-gray-600">{{ question.scaleMinLabel || '1' }}</span>
                         <div class="flex gap-2">
-                          <div v-for="value in Array.from({ length: (question.scaleMax || 5) - (question.scaleMin || 1) + 1 }, (_, i) => i + (question.scaleMin || 1))" :key="value" class="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center text-sm">
+                          <div v-for="value in Array.from({ length: question.scaleMax || 5 }, (_, i) => i + 1)" :key="value" class="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center text-sm">
                             {{ value }}
                           </div>
                         </div>
-                        <span class="text-sm text-gray-600">{{ question.scaleMaxLabel || question.scaleMax || 5 }}</span>
+                        <span class="text-sm text-gray-600">{{ question.scaleMaxLabel || (question.scaleMax || 5) }}</span>
+                      </div>
+                    </div>
+                    <div class="space-y-2">
+                      <Label>段階数（2〜10）</Label>
+                      <Input type="number" min="2" max="10" :model-value="question.scaleMax || 5" @update:model-value="updateQuestion(question.id, 'scaleMax', Math.min(10, Math.max(2, parseInt(String($event)) || 5))); updateQuestion(question.id, 'scaleMin', 1)" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="space-y-2">
+                        <Label>最小値ラベル（任意）</Label>
+                        <Input placeholder="例：とても悪い" :model-value="question.scaleMinLabel || ''" @update:model-value="updateQuestion(question.id, 'scaleMinLabel', $event)" />
+                      </div>
+                      <div class="space-y-2">
+                        <Label>最大値ラベル（任意）</Label>
+                        <Input placeholder="例：とても良い" :model-value="question.scaleMaxLabel || ''" @update:model-value="updateQuestion(question.id, 'scaleMaxLabel', $event)" />
                       </div>
                     </div>
                   </div>

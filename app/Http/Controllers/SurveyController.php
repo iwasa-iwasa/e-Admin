@@ -72,7 +72,7 @@ class SurveyController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'deadline' => ['required', 'date'],
+            'deadline' => ['required'],
             'questions' => ['required', 'array', 'min:1'],
             'questions.*.question' => ['required', 'string'],
             'questions.*.type' => ['required', 'string', 'in:single,multiple,text,textarea,rating,scale,dropdown,date'],
@@ -123,11 +123,22 @@ class SurveyController extends Controller
             DB::beginTransaction();
 
             // アンケート本体を保存
+            $deadline = $request->deadline;
+            $deadlineDate = null;
+            $deadlineTime = null;
+            
+            if ($deadline) {
+                $dt = \Carbon\Carbon::parse($deadline);
+                $deadlineDate = $dt->format('Y-m-d');
+                $deadlineTime = $dt->format('H:i:s');
+            }
+            
             $survey = Survey::create([
                 'title' => $request->title,
                 'description' => $request->description,
                 'created_by' => Auth::id(),
-                'deadline' => $request->deadline,
+                'deadline_date' => $deadlineDate,
+                'deadline_time' => $deadlineTime,
                 'is_active' => !($request->isDraft ?? false),
             ]);
 
@@ -182,9 +193,15 @@ class SurveyController extends Controller
                 ->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            \Log::error('Survey store error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
 
             return redirect()->back()
-                ->withErrors(['error' => 'アンケートの保存中にエラーが発生しました。'])
+                ->withErrors(['error' => 'アンケートの保存中にエラーが発生しました: ' . $e->getMessage()])
                 ->withInput();
         }
     }
@@ -196,11 +213,16 @@ class SurveyController extends Controller
             'questions.options' => fn($query) => $query->orderBy('display_order'),
         ]);
 
+        $deadline = null;
+        if ($survey->deadline_date) {
+            $deadline = $survey->deadline_date . ' ' . ($survey->deadline_time ?? '23:59:00');
+        }
+        
         $editSurvey = [
             'survey_id' => $survey->survey_id,
             'title' => $survey->title,
             'description' => $survey->description,
-            'deadline' => $survey->deadline,
+            'deadline' => $deadline,
             'questions' => $survey->questions->map(fn($question) => [
                 'question_id' => $question->question_id,
                 'question_text' => $question->question_text,
@@ -248,16 +270,27 @@ class SurveyController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'deadline' => 'required|date',
+            'deadline' => 'required',
             'questions' => 'required|array',
         ]);
 
         try {
             DB::transaction(function () use ($request, $survey) {
+                $deadline = $request->deadline;
+                $deadlineDate = null;
+                $deadlineTime = null;
+                
+                if ($deadline) {
+                    $dt = \Carbon\Carbon::parse($deadline);
+                    $deadlineDate = $dt->format('Y-m-d');
+                    $deadlineTime = $dt->format('H:i:s');
+                }
+                
                 $survey->update([
                     'title' => $request->title,
                     'description' => $request->description,
-                    'deadline' => $request->deadline,
+                    'deadline_date' => $deadlineDate,
+                    'deadline_time' => $deadlineTime,
                 ]);
 
                 $survey->questions()->each(fn($question) => $question->options()->delete());
@@ -311,12 +344,17 @@ class SurveyController extends Controller
             'questions.options'
         ]);
 
+        $deadline = null;
+        if ($survey->deadline_date) {
+            $deadline = $survey->deadline_date . ' ' . ($survey->deadline_time ?? '23:59:00');
+        }
+        
         return Inertia::render('Surveys/Answer', [
             'survey' => [
                 'survey_id' => $survey->survey_id,
                 'title' => $survey->title,
                 'description' => $survey->description,
-                'deadline' => $survey->deadline,
+                'deadline' => $deadline,
             ],
             'questions' => $survey->questions->map(fn($question) => [
                 'question_id' => $question->question_id,

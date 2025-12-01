@@ -380,10 +380,10 @@ const handleRemoveParticipant = (participantId: number) => {
       <div class="p-4 border-b border-gray-300">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
-            <Button variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
+            <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))" class="mr-1">
               <ArrowLeft class="h-5 w-5" />
             </Button>
-            <StickyNote class="h-6 w-6 text-yellow-700" />
+            <StickyNote class="h-6 w-6 text-orange-600" />
             <CardTitle>共有メモ</CardTitle>
           </div>
           <Button variant="outline" @click="handleCreateNote" class="gap-2">

@@ -170,7 +170,7 @@ const weekDays = ['日', '月', '火', '水', '木', '金', '土']
             <Users class="h-5 w-5 text-blue-600" />
             <h2 class="text-blue-600">部署メンバー</h2>
           </div>
-          <Button variant="ghost" size="icon" @click="router.get('/')">
+          <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))">
             <ArrowLeft class="h-5 w-5" />
           </Button>
         </div>

@@ -41,8 +41,8 @@ class HandleInertiaRequests extends Middleware
             $unansweredSurveysCount = Survey::where('is_active', true)
                 ->where('is_deleted', false)
                 ->where(function ($query) {
-                    $query->whereNull('deadline')
-                          ->orWhere('deadline', '>=', now());
+                    $query->whereNull('deadline_date')
+                          ->orWhere('deadline_date', '>=', now()->toDateString());
                 })
                 ->whereDoesntHave('responses', function ($query) use ($user) {
                     $query->where('respondent_id', $user->id);

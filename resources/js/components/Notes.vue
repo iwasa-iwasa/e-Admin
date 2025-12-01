@@ -218,7 +218,7 @@ const sortedNotes = computed(() => {
         <CardHeader>
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                    <StickyNote class="h-5 w-5 text-yellow-600" />
+                    <StickyNote class="h-5 w-5 text-orange-600" />
                     <CardTitle class="text-lg">共有メモ</CardTitle>
                 </div>
                 <Button

@@ -65,7 +65,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
     router.patch(route('reminders.complete', id), {}, {
       preserveScroll: true,
       onSuccess: () => {
-        showMessage('リマインダーを削除しました。', 'delete')
+        showMessage('リマインダーを完了しました。', 'delete')
       },
       onError: (errors) => {
         console.error('完了エラー:', errors)
@@ -155,7 +155,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
     <header class="bg-white border-b border-gray-300 px-6 py-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <Button variant="ghost" size="icon" @click="router.get('/')">
+          <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))">
             <ArrowLeft class="h-5 w-5" />
           </Button>
           <Bell class="h-6 w-6 text-green-700" />
@@ -197,7 +197,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
                       <div class="flex items-center gap-4 text-xs text-gray-600">
                         <div class="flex items-center gap-1">
                           <Clock class="h-3 w-3" />
-                          期限: {{ formatDate(reminder.deadline) }}
+                          期限: {{ formatDate(reminder.deadline_date) }} {{ reminder.deadline_time ? reminder.deadline_time.substring(0, 5) : '' }}
                         </div>
                         <Badge variant="outline" class="text-xs">{{ reminder.category }}</Badge>
                       </div>
@@ -247,7 +247,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
                       <div class="flex items-center gap-4 text-xs text-gray-500">
                         <div class="flex items-center gap-1">
                           <Clock class="h-3 w-3" />
-                          期限: {{ formatDate(reminder.deadline) }}
+                          期限: {{ formatDate(reminder.deadline_date) }} {{ reminder.deadline_time ? reminder.deadline_time.substring(0, 5) : '' }}
                         </div>
                         <Badge variant="outline" class="text-xs opacity-60">{{ reminder.category }}</Badge>
                       </div>
@@ -268,7 +268,7 @@ const completedReminders = computed(() => props.reminders.filter((r) => r.comple
     <ReminderDetailDialog 
       :reminder="selectedReminder" 
       :open="selectedReminder !== null" 
-      @update:open="(isOpen) => !isOpen && (selectedReminder = null)" 
+      @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); } selectedReminder = null; } }" 
       @update:reminder="handleUpdateReminder" 
     />
 

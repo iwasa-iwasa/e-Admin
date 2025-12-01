@@ -34,7 +34,8 @@ class Survey extends Model
         'title',
         'description',
         'created_by',
-        'deadline',
+        'deadline_date',
+        'deadline_time',
         'is_active',
         'is_deleted',
         'deleted_at',
@@ -48,7 +49,7 @@ class Survey extends Model
     protected $casts = [
         'survey_id' => 'integer',
         'created_by' => 'integer',
-        'deadline' => 'datetime',
+        'deadline_date' => 'date:Y-m-d',
         'is_active' => 'boolean',
         'is_deleted' => 'boolean',
         'deleted_at' => 'datetime',
@@ -92,5 +93,18 @@ class Survey extends Model
     public function designatedUsers()
     {
         return $this->belongsToMany(User::class, 'survey_respondents', 'survey_id', 'user_id');
+    }
+    
+    /**
+     * Get the deadline as a combined datetime string.
+     */
+    public function getDeadlineAttribute()
+    {
+        if (!$this->deadline_date) {
+            return null;
+        }
+        
+        $time = $this->deadline_time ?? '23:59:59';
+        return $this->deadline_date . ' ' . $time;
     }
 }
