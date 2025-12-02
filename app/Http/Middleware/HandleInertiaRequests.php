@@ -59,7 +59,7 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'teamMembers' => $teamMembers,
-            'totalUsers' => $teamMembers->count(),
+            'totalUsers' => is_array($teamMembers) ? count($teamMembers) : $teamMembers->count(),
             'unansweredSurveysCount' => $unansweredSurveysCount,
             'flash' => [
                 'success' => $request->session()->get('success'),
