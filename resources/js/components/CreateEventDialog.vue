@@ -342,11 +342,11 @@ const getImportanceColor = (imp: string) => {
 
 const getCategoryColor = (cat: string) => {
     switch (cat) {
-        case "会議": return "bg-[#8b5cf6]";
-        case "休暇": return "bg-[#14b8a6]";
-        case "業務": return "bg-[#3b82f6]";
-        case "来客": return "bg-[#eab308]";
-        case "出張": return "bg-[#22c55e]";
+        case "会議": return "bg-[#3b82f6]";
+        case "業務": return "bg-[#66bb6a]";
+        case "来客": return "bg-[#ffa726]";
+        case "出張": return "bg-[#9575cd]";
+        case "休暇": return "bg-[#f06292]";
         default: return "bg-gray-500";
     }
 };
@@ -397,11 +397,36 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                     </div>
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="会議">会議</SelectItem>
-                                                    <SelectItem value="休暇">休暇</SelectItem>
-                                                    <SelectItem value="業務">業務</SelectItem>
-                                                    <SelectItem value="来客">来客</SelectItem>
-                                                    <SelectItem value="出張">出張</SelectItem>
+                                                    <SelectItem value="会議">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
+                                                            <span>会議</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="業務">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#66bb6a]"></div>
+                                                            <span>業務</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="来客">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#ffa726]"></div>
+                                                            <span>来客</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="出張">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#9575cd]"></div>
+                                                            <span>出張</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="休暇">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#f06292]"></div>
+                                                            <span>休暇</span>
+                                                        </div>
+                                                    </SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div> 

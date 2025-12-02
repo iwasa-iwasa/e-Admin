@@ -51,22 +51,22 @@ const openEditDialog = (eventId: number) => {
 
 const getEventColor = (category: string, importance: string) => {
     const categoryColorMap: { [key: string]: string } = {
-        '会議': '#8b5cf6', // purple
-        '休暇': '#14b8a6', // teal
-        '業務': '#3b82f6', // blue
-        '来客': '#eab308', // yellow
-        '出張': '#f97316', // orange
+        '会議': '#42A5F5', // blue
+        '業務': '#66BB6A', // green
+        '来客': '#FFA726', // orange
+        '出張': '#9575CD', // purple
+        '休暇': '#F06292', // pink
     };
     if (importance === '高') return '#ef4444';
     return categoryColorMap[category] || '#6b7280';
 }
 
 const legendItems = [
-    { label: '会議', color: '#8b5cf6' },
-    { label: '休暇', color: '#14b8a6' },
-    { label: '業務', color: '#3b82f6' },
-    { label: '来客', color: '#eab308' },
-    { label: '出張', color: '#f97316' },
+    { label: '会議', color: '#42A5F5' },
+    { label: '業務', color: '#66BB6A' },
+    { label: '来客', color: '#FFA726' },
+    { label: '出張', color: '#9575CD' },
+    { label: '休暇', color: '#F06292' },
 ];
 
 const calendarOptions = computed((): CalendarOptions => ({

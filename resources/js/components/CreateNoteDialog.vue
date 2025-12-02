@@ -149,12 +149,12 @@ const getPriorityInfo = (p: Priority) => {
 };
 
 const getColorInfo = (c: string) => {
-    const colorMap: Record<string, { bg: string; label: string }> = {
-        yellow: { bg: "bg-yellow-100", label: "イエロー" },
-        blue: { bg: "bg-blue-100", label: "ブルー" },
-        green: { bg: "bg-green-100", label: "グリーン" },
-        pink: { bg: "bg-pink-100", label: "ピンク" },
-        purple: { bg: "bg-purple-100", label: "パープル" },
+    const colorMap: Record<string, { bg: string; label: string; color: string }> = {
+        blue: { bg: "bg-blue-100", label: "会議", color: "#3b82f6" },
+        green: { bg: "bg-green-100", label: "業務", color: "#66bb6a" },
+        yellow: { bg: "bg-yellow-100", label: "来客", color: "#ffa726" },
+        purple: { bg: "bg-purple-100", label: "出張", color: "#9575cd" },
+        pink: { bg: "bg-pink-100", label: "休暇", color: "#f06292" },
     };
     return colorMap[c] || colorMap.yellow;
 };
@@ -235,38 +235,28 @@ const getColorInfo = (c: string) => {
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="color">メモの色</Label>
+                        <Label for="color">ジャンル</Label>
                         <Select v-model="form.color">
                             <SelectTrigger id="color">
                                 <div class="flex items-center gap-2">
-                                    <div
-                                        :class="[
-                                            'w-4 h-4 rounded',
-                                            getColorInfo(form.color).bg,
-                                        ]"
-                                    ></div>
+                                    <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(form.color).color }"></div>
                                     <span>{{ getColorInfo(form.color).label }}</span>
                                 </div>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem
                                     v-for="c in [
-                                        'yellow',
                                         'blue',
                                         'green',
-                                        'pink',
+                                        'yellow',
                                         'purple',
+                                        'pink',
                                     ]"
                                     :key="c"
                                     :value="c"
                                 >
                                     <div class="flex items-center gap-2">
-                                        <div
-                                            :class="[
-                                                'w-4 h-4 rounded',
-                                                getColorInfo(c).bg,
-                                            ]"
-                                        ></div>
+                                        <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
                                         <span>{{ getColorInfo(c).label }}</span>
                                     </div>
                                 </SelectItem>
