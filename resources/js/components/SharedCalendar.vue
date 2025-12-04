@@ -49,24 +49,23 @@ const openEditDialog = (eventId: number) => {
     }
 }
 
-const getEventColor = (category: string, importance: string) => {
+const getEventColor = (category: string) => {
     const categoryColorMap: { [key: string]: string } = {
-        '会議': '#8b5cf6', // purple
-        '休暇': '#14b8a6', // teal
-        '業務': '#3b82f6', // blue
-        '来客': '#eab308', // yellow
-        '出張': '#f97316', // orange
+        '会議': '#42A5F5', // blue
+        '業務': '#66BB6A', // green
+        '来客': '#FFA726', // orange
+        '出張': '#9575CD', // purple
+        '休暇': '#F06292', // pink
     };
-    if (importance === '高') return '#ef4444';
     return categoryColorMap[category] || '#6b7280';
 }
 
 const legendItems = [
-    { label: '会議', color: '#8b5cf6' },
-    { label: '休暇', color: '#14b8a6' },
-    { label: '業務', color: '#3b82f6' },
-    { label: '来客', color: '#eab308' },
-    { label: '出張', color: '#f97316' },
+    { label: '会議', color: '#42A5F5' },
+    { label: '業務', color: '#66BB6A' },
+    { label: '来客', color: '#FFA726' },
+    { label: '出張', color: '#9575CD' },
+    { label: '休暇', color: '#F06292' },
 ];
 
 const calendarOptions = computed((): CalendarOptions => ({
@@ -74,14 +73,22 @@ const calendarOptions = computed((): CalendarOptions => ({
     initialView: viewMode.value,
     headerToolbar: false,
     contentHeight: 'auto',
+    eventOrder: (a: any, b: any) => {
+        const aImportance = a.extendedProps?.importance || '低'
+        const bImportance = b.extendedProps?.importance || '低'
+        if (aImportance === '重要' && bImportance !== '重要') return -1
+        if (aImportance !== '重要' && bImportance === '重要') return 1
+        return 0
+    },
     events: props.events.map(event => {
         const commonProps = {
             id: String(event.event_id),
             title: event.title,
-            backgroundColor: getEventColor(event.category, event.importance),
-            borderColor: getEventColor(event.category, event.importance),
+            backgroundColor: getEventColor(event.category),
+            borderColor: event.importance === '重要' ? '#dc2626' : getEventColor(event.category),
             extendedProps: event,
             allDay: event.is_all_day,
+            classNames: event.importance === '重要' ? ['important-event'] : [],
         };
 
         if (event.rrule) {
@@ -146,6 +153,68 @@ const calendarOptions = computed((): CalendarOptions => ({
         const todayMidnight = new Date()
         todayMidnight.setHours(0, 0, 0, 0)
         isTodayInCurrentView.value = info.view.currentStart <= todayMidnight && todayMidnight < info.view.currentEnd
+        
+        // +moreリンクに重要イベントのスタイルを適用
+        setTimeout(() => {
+            const api = fullCalendar.value?.getApi()
+            if (!api) return
+            
+            document.querySelectorAll('.fc-daygrid-day').forEach(dayEl => {
+                const dateStr = dayEl.getAttribute('data-date')
+                if (!dateStr) return
+                
+                // その日の全イベントを取得（表示されていないものも含む）
+                const dayStart = new Date(dateStr + 'T00:00:00')
+                const dayEnd = new Date(dateStr + 'T23:59:59')
+                const eventsOnDay = api.getEvents().filter((event: any) => {
+                    const eventStart = event.start
+                    const eventEnd = event.end || event.start
+                    return eventStart <= dayEnd && eventEnd >= dayStart
+                })
+                
+                const hasImportant = eventsOnDay.some((event: any) => 
+                    event.extendedProps?.importance === '重要'
+                )
+                
+                const moreLink = dayEl.querySelector('.fc-daygrid-more-link')
+                if (hasImportant && moreLink) {
+                    moreLink.classList.add('has-important-event')
+                } else if (moreLink) {
+                    moreLink.classList.remove('has-important-event')
+                }
+            })
+        }, 0)
+    },
+    eventDidMount: () => {
+        // イベント表示後にも+moreリンクをチェック
+        setTimeout(() => {
+            const api = fullCalendar.value?.getApi()
+            if (!api) return
+            
+            document.querySelectorAll('.fc-daygrid-day').forEach(dayEl => {
+                const dateStr = dayEl.getAttribute('data-date')
+                if (!dateStr) return
+                
+                const dayStart = new Date(dateStr + 'T00:00:00')
+                const dayEnd = new Date(dateStr + 'T23:59:59')
+                const eventsOnDay = api.getEvents().filter((event: any) => {
+                    const eventStart = event.start
+                    const eventEnd = event.end || event.start
+                    return eventStart <= dayEnd && eventEnd >= dayStart
+                })
+                
+                const hasImportant = eventsOnDay.some((event: any) => 
+                    event.extendedProps?.importance === '重要'
+                )
+                
+                const moreLink = dayEl.querySelector('.fc-daygrid-more-link')
+                if (hasImportant && moreLink) {
+                    moreLink.classList.add('has-important-event')
+                } else if (moreLink) {
+                    moreLink.classList.remove('has-important-event')
+                }
+            })
+        }, 0)
     },
 }))
 
@@ -353,6 +422,14 @@ const changeView = (view: any) => {
             >
                 <div class="space-y-2">
                     <div class="font-semibold text-sm">{{ hoveredEvent.title }}</div>
+                    <div class="text-xs text-gray-600">
+                        <span class="text-gray-500">優先度:</span> 
+                        <span :class="{
+                            'text-red-600 font-semibold': hoveredEvent.importance === '重要',
+                            'text-yellow-600': hoveredEvent.importance === '中',
+                            'text-gray-600': hoveredEvent.importance === '低'
+                        }">{{ hoveredEvent.importance }}</span>
+                    </div>
                     <div v-if="hoveredEvent.progress !== undefined && hoveredEvent.progress !== null" class="flex items-center gap-2">
                         <span class="text-xs text-gray-500">進捗:</span>
                         <div 
@@ -389,5 +466,58 @@ const changeView = (view: any) => {
 }
 .fc-event {
     cursor: pointer;
+}
+.fc-event.important-event {
+    border: 2px solid #dc2626 !important;
+    border-left-width: 4px !important;
+    font-weight: 600;
+}
+.fc-daygrid-event-harness .fc-event.important-event {
+    border: 2px solid #dc2626 !important;
+    border-top-width: 3px !important;
+    font-weight: 600;
+}
+/* 年表示での日をまたぐ重要イベント */
+.fc-multiMonthYear-view .fc-daygrid-event.important-event {
+    border: 2px solid #dc2626 !important;
+    font-weight: 600;
+}
+.fc-multiMonthYear-view .fc-daygrid-event-harness .important-event {
+    border: 2px solid #dc2626 !important;
+    font-weight: 600;
+}
+.fc-daygrid-more-link.has-important-event {
+    border: 2px solid #dc2626 !important;
+    border-radius: 4px !important;
+    padding: 1px 4px !important;
+    font-weight: 600 !important;
+    background-color: #fee2e2 !important;
+}
+/* 週表示の横ストライプ（行ハイライト） */
+.fc-timegrid-body tr:hover {
+    background-color: rgba(59, 130, 246, 0.05) !important;
+}
+.fc-timegrid-slot:hover {
+    background-color: rgba(59, 130, 246, 0.08) !important;
+}
+/* 月表示の行ハイライト */
+.fc-daygrid-body tr:hover {
+    background-color: rgba(59, 130, 246, 0.05) !important;
+}
+/* スクロールバーのスタイル改善 */
+.fc-scroller::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+.fc-scroller::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+.fc-scroller::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 </style>

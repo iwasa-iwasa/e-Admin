@@ -33,11 +33,26 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $teamMembers = $user ? User::get() : [];
         
-        // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
-        $unansweredSurveysCount = 0;
+        $sharedData = [
+            'auth' => [
+                'user' => $user,
+            ],
+            'ziggy' => fn () => [
+                ...(new Ziggy)->toArray(),
+                'location' => $request->url(),
+            ],
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+            ],
+        ];
+        
+        // ユーザーが認証されている場合のみ追加データを取得
         if ($user) {
+            $teamMembers = User::get();
+            
+            // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
             $unansweredSurveysCount = Survey::where('is_active', true)
                 ->where('is_deleted', false)
                 ->where(function ($query) {
@@ -48,23 +63,12 @@ class HandleInertiaRequests extends Middleware
                     $query->where('respondent_id', $user->id);
                 })
                 ->count();
+            
+            $sharedData['teamMembers'] = $teamMembers;
+            $sharedData['totalUsers'] = $teamMembers->count();
+            $sharedData['unansweredSurveysCount'] = $unansweredSurveysCount;
         }
 
-        return array_merge(parent::share($request), [
-            'auth' => [
-                'user' => $user,
-            ],
-            'ziggy' => fn () => [
-                ...(new Ziggy)->toArray(),
-                'location' => $request->url(),
-            ],
-            'teamMembers' => $teamMembers,
-            'totalUsers' => $teamMembers->count(),
-            'unansweredSurveysCount' => $unansweredSurveysCount,
-            'flash' => [
-                'success' => $request->session()->get('success'),
-                'error' => $request->session()->get('error'),
-            ],
-        ]);
+        return array_merge(parent::share($request), $sharedData);
     }
 }

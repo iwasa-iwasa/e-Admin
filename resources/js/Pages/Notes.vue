@@ -333,12 +333,12 @@ const getPriorityInfo = (priority: Priority) => {
 }
 
 const getColorInfo = (c: string) => {
-  const colorMap: Record<string, { bg: string; label: string }> = {
-    yellow: { bg: 'bg-yellow-100', label: 'イエロー' },
-    blue: { bg: 'bg-blue-100', label: 'ブルー' },
-    green: { bg: 'bg-green-100', label: 'グリーン' },
-    pink: { bg: 'bg-pink-100', label: 'ピンク' },
-    purple: { bg: 'bg-purple-100', label: 'パープル' },
+  const colorMap: Record<string, { bg: string; label: string; color: string }> = {
+    blue: { bg: 'bg-blue-100', label: '会議', color: '#3b82f6' },
+    green: { bg: 'bg-green-100', label: '業務', color: '#66bb6a' },
+    yellow: { bg: 'bg-yellow-100', label: '来客', color: '#ffa726' },
+    purple: { bg: 'bg-purple-100', label: '出張', color: '#9575cd' },
+    pink: { bg: 'bg-pink-100', label: '休暇', color: '#f06292' },
   }
   return colorMap[c] || colorMap.yellow
 }
@@ -610,18 +610,18 @@ const handleRemoveParticipant = (participantId: number) => {
                 </Select>
               </div>
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">色</label>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">ジャンル</label>
                 <Select v-model="editedColor">
                   <SelectTrigger class="h-8 text-xs border-gray-300">
                     <div class="flex items-center gap-2">
-                      <div :class="['w-3 h-3 rounded', getColorInfo(editedColor).bg]"></div>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getColorInfo(editedColor).color }"></div>
                       <span>{{ getColorInfo(editedColor).label }}</span>
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem v-for="c in ['yellow', 'blue', 'green', 'pink', 'purple']" :key="c" :value="c">
+                    <SelectItem v-for="c in ['blue', 'green', 'yellow', 'purple', 'pink']" :key="c" :value="c">
                       <div class="flex items-center gap-2">
-                        <div :class="['w-3 h-3 rounded', getColorInfo(c).bg]"></div>
+                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
                         <span>{{ getColorInfo(c).label }}</span>
                       </div>
                     </SelectItem>

@@ -36,6 +36,7 @@ interface Survey {
     survey_id: number
     title: string
     description: string
+    deadline?: string
     deadline_date?: string
     deadline_time?: string
 }
@@ -49,19 +50,31 @@ const form = useForm({
     answers: {} as Record<number, any>
 })
 
-const multipleChoiceAnswers = ref<Record<number, string[]>>({})
+// ドロップダウンの初期値を空文字列に設定
+const initializeDropdownAnswers = () => {
+    props.questions.forEach(question => {
+        if (question.question_type === 'dropdown' && !form.answers[question.question_id]) {
+            form.answers[question.question_id] = ''
+        }
+    })
+}
+
+// コンポーネントマウント時に初期化
+initializeDropdownAnswers()
+
+const multipleChoiceAnswers = ref<Record<number, number[]>>({})
 const clientValidationErrors = ref<Record<number, string>>({})
 
-const handleMultipleChoiceChange = (questionId: number, option: string, checked: boolean) => {
+const handleMultipleChoiceChange = (questionId: number, optionId: number, checked: boolean) => {
     if (!multipleChoiceAnswers.value[questionId]) {
         multipleChoiceAnswers.value[questionId] = []
     }
     
     if (checked) {
-        multipleChoiceAnswers.value[questionId].push(option)
+        multipleChoiceAnswers.value[questionId].push(optionId)
     } else {
         multipleChoiceAnswers.value[questionId] = 
-            multipleChoiceAnswers.value[questionId].filter(o => o !== option)
+            multipleChoiceAnswers.value[questionId].filter(id => id !== optionId)
     }
     
     form.answers[questionId] = multipleChoiceAnswers.value[questionId]
@@ -121,7 +134,7 @@ const cancel = () => {
     <Head :title="`${survey.title} - 回答`" />
     
     <div class="max-w-[1800px] mx-auto h-full p-6">
-        <Card class="h-full overflow-hidden flex flex-col">
+        <Card class="h-full overflow-hidden">
             <div class="p-4 border-b border-gray-300">
                 <div class="flex items-center gap-3 mb-2">
                     <Button variant="ghost" size="icon" @click="cancel">
@@ -144,8 +157,8 @@ const cancel = () => {
                 </p>
             </div>
             
-            <div class="flex-1 overflow-y-auto">
-                <div class="p-6 space-y-4 pb-6">
+            <ScrollArea class="h-[calc(100vh-280px)]">
+                <div class="p-6">
                     <form @submit.prevent="submitAnswer" class="space-y-6">
                         <div v-for="question in questions" :key="question.question_id" :id="`question_${question.question_id}`" class="border-b border-gray-200 pb-6 last:border-b-0">
                             <Label class="text-base font-medium block mb-4">
@@ -157,7 +170,6 @@ const cancel = () => {
                                 <span>{{ clientValidationErrors[question.question_id] }}</span>
                             </div>
                             <div>
-                                <!-- 既存の質問タイプのコード... -->
                                 <!-- Single Choice -->
                                 <div v-if="question.question_type === 'single_choice'" class="space-y-2">
                                     <div v-for="option in question.options" :key="option.option_id" class="flex items-center space-x-2">
@@ -180,7 +192,7 @@ const cancel = () => {
                                         <input 
                                             type="checkbox"
                                             :id="`q${question.question_id}_${option.option_id}`"
-                                            @change="handleMultipleChoiceChange(question.question_id, option.option_text, ($event.target as HTMLInputElement).checked)"
+                                            @change="handleMultipleChoiceChange(question.question_id, option.option_id, ($event.target as HTMLInputElement).checked)"
                                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                         />
                                         <Label :for="`q${question.question_id}_${option.option_id}`">{{ option.option_text }}</Label>
@@ -193,6 +205,7 @@ const cancel = () => {
                                     :required="question.is_required"
                                     v-model="form.answers[question.question_id]"
                                     placeholder="回答を入力してください"
+                                    class="placeholder:text-gray-400"
                                 />
 
                                 <!-- Textarea -->
@@ -201,7 +214,7 @@ const cancel = () => {
                                     :required="question.is_required"
                                     v-model="form.answers[question.question_id]"
                                     placeholder="回答を入力してください"
-                                    class="min-h-[100px]"
+                                    class="min-h-[100px] placeholder:text-gray-400"
                                 />
 
                                 <!-- Date -->
@@ -266,15 +279,16 @@ const cancel = () => {
                                 <!-- Dropdown -->
                                 <select 
                                     v-else-if="question.question_type === 'dropdown'" 
-                                    :required="question.is_required"
-                                    v-model="form.answers[question.question_id]"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="">選択してください</option>
-                                    <option v-for="option in question.options" :key="option.option_id" :value="option.option_id">
-                                        {{ option.option_text }}
-                                    </option>
-                                </select>
+                                        :required="question.is_required"
+                                        v-model="form.answers[question.question_id]"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        :class="form.answers[question.question_id] === '' || !form.answers[question.question_id] ? 'text-gray-400' : 'text-gray-900'"
+                                    >
+                                        <option value="" selected>選択してください</option>
+                                        <option v-for="option in question.options" :key="option.option_id" :value="option.option_id">
+                                            {{ option.option_text }}
+                                        </option>
+                                    </select>
                             </div>
                         </div>
 
@@ -297,7 +311,7 @@ const cancel = () => {
                         </div>
                     </form>
                 </div>
-            </div>
+            </ScrollArea>
         </Card>
     </div>
 </template>

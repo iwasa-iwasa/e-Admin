@@ -35,6 +35,7 @@ class SharedNote extends Model
         'title',
         'content',
         'author_id',
+        'linked_event_id',
         'color',
         'priority',
         'deadline_date',
@@ -102,5 +103,13 @@ class SharedNote extends Model
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'shared_note_participants', 'note_id', 'user_id')->withTimestamps();
+    }
+
+    /**
+     * Get the linked calendar event.
+     */
+    public function linkedEvent()
+    {
+        return $this->belongsTo(Event::class, 'linked_event_id', 'event_id');
     }
 }

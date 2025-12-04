@@ -183,22 +183,30 @@ class NoteController extends Controller
         }
 
         // Update linked calendar event
-        $event = \App\Models\Event::where('title', $note->getOriginal('title'))
-            ->where('created_by', $note->author_id)
-            ->first();
-        
-        if ($event) {
-            $event->update([
-                'title' => $validated['title'],
-                'description' => $validated['content'],
-                'importance' => $validated['priority'] === 'high' ? '重要' : ($validated['priority'] === 'medium' ? '中' : '低'),
-                'end_date' => $deadlineDate,
-                'end_time' => $deadlineTime,
-                'progress' => $validated['progress'] ?? 0,
-            ]);
+        if ($note->linked_event_id) {
+            $event = \App\Models\Event::find($note->linked_event_id);
             
-            if (isset($validated['participants'])) {
-                $event->participants()->sync($validated['participants']);
+            if ($event) {
+                $colorCategoryMap = [
+                    'blue' => '会議',
+                    'green' => '業務',
+                    'yellow' => '来客',
+                    'purple' => '出張',
+                    'pink' => '休暇',
+                ];
+                
+                $event->update([
+                    'title' => $validated['title'],
+                    'description' => $validated['content'],
+                    'category' => $colorCategoryMap[$validated['color']] ?? '会議',
+                    'importance' => $validated['priority'] === 'high' ? '重要' : ($validated['priority'] === 'medium' ? '中' : '低'),
+                    'end_date' => $deadlineDate,
+                    'end_time' => $deadlineTime,
+                ]);
+                
+                if (isset($validated['participants'])) {
+                    $event->participants()->sync($validated['participants']);
+                }
             }
         }
 

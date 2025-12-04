@@ -123,11 +123,11 @@ const getColorClass = (color: string) => {
 
 const getColorInfo = (c: string) => {
   const colorMap: Record<string, { bg: string; label: string }> = {
-    yellow: { bg: 'bg-yellow-100', label: 'イエロー' },
     blue: { bg: 'bg-blue-100', label: 'ブルー' },
     green: { bg: 'bg-green-100', label: 'グリーン' },
-    pink: { bg: 'bg-pink-100', label: 'ピンク' },
+    yellow: { bg: 'bg-yellow-100', label: 'オレンジ' },
     purple: { bg: 'bg-purple-100', label: 'パープル' },
+    pink: { bg: 'bg-pink-100', label: 'ピンク' },
   }
   return colorMap[c] || colorMap.yellow
 }
