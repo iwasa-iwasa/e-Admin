@@ -150,16 +150,67 @@ const totalNotifications = computed(() =>
   notifications.value.events.length + notifications.value.notes.length + notifications.value.surveys.length + notifications.value.reminders.length
 )
 
-const getItemColor = (type: string, priority?: string) => {
-  if (type === 'event') return 'bg-blue-50 border-blue-200'
+const isOverdue = (deadlineDate: string, deadlineTime?: string) => {
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  return deadline < now
+}
+
+const isUpcoming = (deadlineDate: string, deadlineTime?: string) => {
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+  return deadline >= now && deadline <= threeDaysLater
+}
+
+const getItemColor = (type: string, priority?: string, deadlineDate?: string, deadlineTime?: string) => {
+  if (type === 'event') {
+    if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
+      return 'bg-blue-50 border-red-500 border-2'
+    }
+    if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
+      return 'bg-blue-50 border-yellow-400 border-2'
+    }
+    return 'bg-blue-50 border-blue-200'
+  }
   if (type === 'note') {
-    switch (priority) {
-      case 'high': return 'bg-red-50 border-red-200'
-      case 'medium': return 'bg-yellow-50 border-yellow-200'
-      default: return 'bg-green-50 border-green-200'
+    if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
+      return 'bg-orange-50 border-red-500 border-2'
+    }
+    if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
+      return 'bg-orange-50 border-yellow-400 border-2'
+    }
+    return 'bg-orange-50 border-orange-200'
+  }
+  if (type === 'reminder') {
+    if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
+      return 'bg-green-50 border-red-500 border-2'
+    }
+    if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
+      return 'bg-green-50 border-yellow-400 border-2'
+    }
+    return 'bg-green-50 border-green-200'
+  }
+  if (type === 'survey') {
+    if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
+      return 'bg-purple-50 border-red-500 border-2'
+    }
+    if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
+      return 'bg-purple-50 border-yellow-400 border-2'
     }
   }
-  if (type === 'reminder') return 'bg-green-50 border-green-200'
   return 'bg-purple-50 border-purple-200'
 }
 
@@ -543,9 +594,13 @@ onMounted(() => {
                 </div>
                 <div class="space-y-2">
                   <div v-for="event in notifications.events" :key="event.event_id"
-                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('event')}`"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('event', undefined, event.end_date || event.start_date, event.end_time || event.start_time)}`"
                     @click="handleClick('event', event)">
-                    <div class="text-sm mb-1">{{ event.title }}</div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <div class="text-sm flex-1">{{ event.title }}</div>
+                      <Badge v-if="isOverdue(event.end_date || event.start_date, event.end_time || event.start_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
+                      <Badge v-else-if="isUpcoming(event.end_date || event.start_date, event.end_time || event.start_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
+                    </div>
                     <div class="text-xs text-gray-600 flex items-center justify-between gap-1">
                       <div class="flex items-center gap-1 flex-wrap">
                         <span>{{ formatDateTime(event.end_date || event.start_date, event.end_time || event.start_time) }}</span>
@@ -565,9 +620,13 @@ onMounted(() => {
                 </div>
                 <div class="space-y-2">
                   <div v-for="note in notifications.notes" :key="note.note_id"
-                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('note', note.priority)}`"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('note', note.priority, note.deadline_date, note.deadline_time)}`"
                     @click="handleClick('note', note)">
-                    <div class="text-sm mb-1">{{ note.title }}</div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <div class="text-sm flex-1">{{ note.title }}</div>
+                      <Badge v-if="note.deadline_date && isOverdue(note.deadline_date, note.deadline_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
+                      <Badge v-else-if="note.deadline_date && isUpcoming(note.deadline_date, note.deadline_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
+                    </div>
                     <div class="text-xs text-gray-600 flex items-center justify-between gap-1">
                       <div class="flex items-center gap-1 flex-wrap">
                         <span>期限: {{ formatDateTime(note.deadline_date, note.deadline_time) }}</span>
@@ -587,9 +646,13 @@ onMounted(() => {
                 </div>
                 <div class="space-y-2">
                   <div v-for="reminder in notifications.reminders" :key="reminder.reminder_id"
-                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('reminder')}`"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('reminder', undefined, reminder.deadline_date, reminder.deadline_time)}`"
                     @click="handleClick('reminder', reminder)">
-                    <div class="text-sm mb-1">{{ reminder.title }}</div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <div class="text-sm flex-1">{{ reminder.title }}</div>
+                      <Badge v-if="isOverdue(reminder.deadline_date, reminder.deadline_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
+                      <Badge v-else-if="isUpcoming(reminder.deadline_date, reminder.deadline_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
+                    </div>
                     <div class="text-xs text-gray-600 flex items-center justify-between">
                       <span>期限: {{ formatDateTime(reminder.deadline_date, reminder.deadline_time) }}</span>
                       <Badge variant="outline" class="text-xs">{{ reminder.category }}</Badge>
@@ -606,9 +669,13 @@ onMounted(() => {
                 </div>
                 <div class="space-y-2">
                   <div v-for="survey in notifications.surveys" :key="survey.survey_id"
-                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('survey')}`"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('survey', undefined, survey.deadline_date, survey.deadline_time)}`"
                     @click="handleClick('survey', survey)">
-                    <div class="text-sm mb-1">{{ survey.title }}</div>
+                    <div class="flex items-center gap-2 mb-1">
+                      <div class="text-sm flex-1">{{ survey.title }}</div>
+                      <Badge v-if="survey.deadline_date && isOverdue(survey.deadline_date, survey.deadline_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
+                      <Badge v-else-if="survey.deadline_date && isUpcoming(survey.deadline_date, survey.deadline_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
+                    </div>
                     <div class="text-xs text-gray-600 flex items-center justify-between">
                       <span>回答期限: {{ formatDateTime(survey.deadline_date, survey.deadline_time) }}</span>
                       <Badge variant="outline" class="text-xs">{{ survey.creator.name }}</Badge>
