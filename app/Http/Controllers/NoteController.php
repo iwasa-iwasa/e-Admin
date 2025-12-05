@@ -120,7 +120,7 @@ class NoteController extends Controller
             $request->user()->pinnedNotes()->attach($note->note_id);
         }
 
-        return redirect()->route('dashboard', ['selectNote' => $note->note_id])->with('success', '新しい共有メモを作成しました！');
+        return back()->with('success', '新しい共有メモを作成しました！');
     }
 
     /**
@@ -223,7 +223,7 @@ class NoteController extends Controller
             }
         }
 
-        return redirect()->route('dashboard', ['selectNote' => $note->note_id])->with('success', 'メモを更新しました。');
+        return back()->with('success', 'メモを更新しました。');
     }
 
     /**

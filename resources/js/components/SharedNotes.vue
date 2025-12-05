@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { StickyNote, Plus, User, AlertCircle, Calendar, CheckCircle, ArrowUp, ArrowDown } from 'lucide-vue-next'
 import { router } from '@inertiajs/vue3'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +30,10 @@ const selectedNote = ref<App.Models.SharedNote | null>(null)
 const saveMessage = ref('')
 const messageTimer = ref<number | null>(null)
 const skipDialogOpen = ref(false)
+const isNarrow = ref(false)
+const sortButtonContainerRef = ref<HTMLElement | null>(null)
+const headerWrapperRef = ref<HTMLElement | null>(null)
+let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
   const url = new URL(window.location.href)
@@ -45,6 +49,28 @@ onMounted(() => {
     setTimeout(() => {
       skipDialogOpen.value = false
     }, 500)
+  }
+  
+  if (sortButtonContainerRef.value) {
+    const checkWidth = () => {
+      if (sortButtonContainerRef.value) {
+        const width = sortButtonContainerRef.value.offsetWidth
+        isNarrow.value = width < 220
+      }
+    }
+    
+    checkWidth()
+    
+    resizeObserver = new ResizeObserver(() => {
+      checkWidth()
+    })
+    resizeObserver.observe(sortButtonContainerRef.value)
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
   }
 })
 
@@ -194,15 +220,15 @@ const sortedNotes = computed(() => {
   <Card class="h-full flex flex-col">
     <CardHeader>
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/notes')">
           <StickyNote class="h-6 w-6 text-orange-600" />
           <CardTitle>共有メモ</CardTitle>
         </div>
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+        <div ref="headerWrapperRef" class="flex items-center gap-3">
+          <div ref="sortButtonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg', isNarrow ? 'flex-col' : 'flex-row items-center']">
             <button
               @click="handleSortClick('priority')"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] whitespace-nowrap', sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <AlertCircle :class="['h-3.5 w-3.5 flex-shrink-0', sortKey === 'priority' ? 'text-red-500' : 'text-gray-400']" />
               <span>重要度順</span>
@@ -214,7 +240,7 @@ const sortedNotes = computed(() => {
             </button>
             <button
               @click="handleSortClick('deadline')"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] whitespace-nowrap', sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <Calendar :class="['h-3.5 w-3.5 flex-shrink-0', sortKey === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
               <span>期限順</span>

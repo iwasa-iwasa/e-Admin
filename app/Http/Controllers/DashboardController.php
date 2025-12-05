@@ -56,6 +56,8 @@ class DashboardController extends Controller
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
         $reminders = $user->reminders()
+            ->with('tags')
+            ->orderByRaw('CASE WHEN deadline_date IS NULL THEN 1 ELSE 0 END')
             ->orderBy('deadline_date')
             ->orderBy('deadline_time')
             ->get();

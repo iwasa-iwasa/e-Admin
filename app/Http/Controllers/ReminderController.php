@@ -16,6 +16,7 @@ class ReminderController extends Controller
     public function index()
     {
         $reminders = Auth::user()->reminders()
+            ->with('tags')
             ->orderBy('deadline_date')
             ->orderBy('deadline_time')
             ->get();

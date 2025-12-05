@@ -653,9 +653,9 @@ onMounted(() => {
                       <Badge v-if="isOverdue(reminder.deadline_date, reminder.deadline_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
                       <Badge v-else-if="isUpcoming(reminder.deadline_date, reminder.deadline_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
                     </div>
-                    <div class="text-xs text-gray-600 flex items-center justify-between">
-                      <span>期限: {{ formatDateTime(reminder.deadline_date, reminder.deadline_time) }}</span>
-                      <Badge variant="outline" class="text-xs">{{ reminder.category }}</Badge>
+                    <div class="text-xs text-gray-600">
+                      <span v-if="reminder.deadline_date">期限: {{ formatDateTime(reminder.deadline_date, reminder.deadline_time) }}</span>
+                      <span v-else class="text-gray-400">期限なし</span>
                     </div>
                   </div>
                 </div>

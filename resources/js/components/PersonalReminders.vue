@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { formatDate } from '@/lib/utils'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { Bell, Plus, Clock, CheckCircle, Undo2, Trash2 } from 'lucide-vue-next'
+import { Bell, Plus, Clock, CheckCircle, Undo2, Trash2, Search } from 'lucide-vue-next'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,9 +32,15 @@ const messageTimer = ref<number | null>(null)
 const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
 const showCompleted = ref(false)
 const reminderToDelete = ref<App.Models.Reminder | null>(null)
+const isNarrow = ref(false)
+const buttonContainerRef = ref<HTMLElement | null>(null)
+const headerWrapperRef = ref<HTMLElement | null>(null)
+
+let resizeObserver: ResizeObserver | null = null
 
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
 const activeCount = computed(() => props.reminders.filter((r) => !r.completed).length)
+
 const displayedReminders = computed(() => {
   return showCompleted.value 
     ? props.reminders.filter((r) => r.completed)
@@ -121,7 +128,6 @@ const handleCloseDetailDialog = (isOpen: boolean, completed?: boolean) => {
       showMessage('リマインダーを完了しました。', 'delete')
     }
     selectedReminder.value = null
-    router.reload({ preserveScroll: true })
   }
 }
 
@@ -152,23 +158,47 @@ const confirmPermanentDelete = () => {
   reminderToDelete.value = null
 }
 
+onMounted(() => {
+  if (buttonContainerRef.value) {
+    const checkWidth = () => {
+      if (buttonContainerRef.value) {
+        const width = buttonContainerRef.value.offsetWidth
+        isNarrow.value = width < 220
+      }
+    }
+    
+    checkWidth()
+    
+    resizeObserver = new ResizeObserver(() => {
+      checkWidth()
+    })
+    resizeObserver.observe(buttonContainerRef.value)
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  }
+})
+
 </script>
 
 <template>
   <Card class="h-full flex flex-col relative">
     <CardHeader>
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
           <Bell class="h-5 w-5 text-green-700" />
           <CardTitle>個人リマインダー</CardTitle>
         </div>
-        <div class="flex items-center gap-2">
-          <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+        <div ref="headerWrapperRef" class="flex items-stretch gap-2">
+          <div ref="buttonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg', isNarrow ? 'flex-col' : 'flex-row items-center']">
             <button
               @click="showCompleted = false"
-              :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
-              <Clock :class="['h-3.5 w-3.5', !showCompleted ? 'text-orange-500' : 'text-gray-400']" />
+              <Clock :class="['h-3.5 w-3.5 flex-shrink-0', !showCompleted ? 'text-orange-500' : 'text-gray-400']" />
               未完了
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ activeCount }}
@@ -176,10 +206,10 @@ const confirmPermanentDelete = () => {
             </button>
             <button
               @click="showCompleted = true"
-              :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
-              <CheckCircle :class="['h-3.5 w-3.5', showCompleted ? 'text-green-500' : 'text-gray-400']" />
-              完了済み
+              <CheckCircle :class="['h-3.5 w-3.5 flex-shrink-0', showCompleted ? 'text-green-500' : 'text-gray-400']" />
+              完了済
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ completedCount }}
               </Badge>
@@ -196,9 +226,6 @@ const confirmPermanentDelete = () => {
           </Button>
         </div>
       </div>
-      <p v-if="completedCount > 0" class="text-xs text-gray-500 mt-2">
-        ※ チェックした項目は次回ログイン時にゴミ箱へ移動します
-      </p>
     </CardHeader>
     <CardContent class="flex-1 overflow-hidden p-0 px-6 pb-6">
       <ScrollArea class="h-full">
@@ -225,12 +252,6 @@ const confirmPermanentDelete = () => {
                       >
                         {{ reminder.title }}
                       </CardTitle>
-                      <Badge
-                        :variant="reminder.completed ? 'secondary' : 'outline'"
-                        :class="['text-xs', reminder.completed ? 'opacity-60' : '']"  
-                      >
-                        {{ reminder.category }}
-                      </Badge>
                     </div>
                     <p v-if="reminder.description" :class="['text-sm text-gray-600 mb-3', reminder.completed ? 'text-gray-500 line-through' : '']">
                       {{ reminder.description }}
@@ -266,7 +287,7 @@ const confirmPermanentDelete = () => {
                   <CheckCircle v-if="reminder.completed" class="h-4 w-4 text-green-600" />
                   <Clock v-else class="h-4 w-4 text-orange-600" />
                   <span :class="reminder.completed ? 'text-green-600' : 'text-orange-600'">
-                    {{ reminder.completed ? '完了済み' : '未完了' }}
+                    {{ reminder.completed ? '完了済' : '未完了' }}
                   </span>
                 </div>
               </div>

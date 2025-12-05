@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatDate } from '@/lib/utils'
 import { ref, computed, watch } from 'vue'
-import { Clock, CheckCircle2, Edit2, Save, X, CheckCircle } from 'lucide-vue-next'
+import { Clock, CheckCircle2, Edit2, Save, X, CheckCircle, Tag, Plus as PlusIcon } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -78,8 +78,22 @@ const form = useForm({
   title: '',
   description: '',
   deadline: '',
-  category: '業務',
+  tags: [] as string[],
 })
+
+const newTag = ref('')
+
+const addTag = () => {
+  const tag = newTag.value.trim()
+  if (tag && !form.tags.includes(tag)) {
+    form.tags.push(tag)
+    newTag.value = ''
+  }
+}
+
+const removeTag = (tag: string) => {
+  form.tags = form.tags.filter(t => t !== tag)
+}
 
 // Format datetime for input[type="datetime-local"] from deadline_date and deadline_time
 const formatDateTimeForInput = (deadlineDate: string | null | undefined, deadlineTime: string | null | undefined): string => {
@@ -94,8 +108,8 @@ const createDefaultReminder = (): Reminder => ({
   user_id: 0,
   title: '',
   description: '',
-  deadline_date: new Date().toISOString().split('T')[0],
-  deadline_time: '23:59:00',
+  deadline_date: null,
+  deadline_time: null,
   category: '業務',
   completed: false,
   completed_at: null,
@@ -116,7 +130,7 @@ watch(() => props.open, (isOpen) => {
       form.title = props.reminder.title
       form.description = props.reminder.description || ''
       form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
-      form.category = props.reminder.category
+      form.tags = props.reminder.tags?.map((t: any) => t.tag_name) || []
     } else {
       // 新規作成モード
       editedReminder.value = createDefaultReminder()
@@ -125,8 +139,8 @@ watch(() => props.open, (isOpen) => {
       form.reset()
       form.title = ''
       form.description = ''
-      form.deadline = formatDateTimeForInput(new Date().toISOString().split('T')[0], '23:59:00')
-      form.category = '業務'
+      form.deadline = ''
+      form.tags = []
     }
   }
 })
@@ -139,7 +153,7 @@ watch(() => props.reminder, (newReminder) => {
     form.title = newReminder.title
     form.description = newReminder.description || ''
     form.deadline = formatDateTimeForInput(newReminder.deadline_date, newReminder.deadline_time)
-    form.category = newReminder.category
+    form.tags = newReminder.tags?.map((t: any) => t.tag_name) || []
   } else if (props.open) {
     // 新規作成モード
     editedReminder.value = createDefaultReminder()
@@ -147,8 +161,8 @@ watch(() => props.reminder, (newReminder) => {
     form.reset()
     form.title = ''
     form.description = ''
-    form.deadline = formatDateTimeForInput(new Date().toISOString().split('T')[0], '23:59:00')
-    form.category = '業務'
+    form.deadline = ''
+    form.tags = []
   }
 }, { deep: true })
 
@@ -172,11 +186,10 @@ const handleEdit = () => {
     editedReminder.value = { ...props.reminder }
     isEditing.value = true
     // フォームを既存のリマインダーデータで初期化
-    form.reset()
     form.title = props.reminder.title
     form.description = props.reminder.description || ''
     form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
-    form.category = props.reminder.category
+    form.tags = props.reminder.tags?.map((t: any) => t.tag_name) || []
   }
 }
 
@@ -190,6 +203,8 @@ const handleSave = () => {
     form.deadline = null as any
   }
   
+  console.log('Saving reminder with tags:', form.tags)
+  
   isSaving.value = true
 
   if (isCreateMode.value) {
@@ -197,30 +212,7 @@ const handleSave = () => {
     form.post(route('reminders.store'), {
       preserveScroll: true,
       onSuccess: () => {
-        showMessage('リマインダーを作成しました。', 'success')
-        // ダミーリマインダーを作成して親コンポーネントに通知
-        const dummyReminder: Reminder = {
-          reminder_id: Date.now(),
-          user_id: 0, // or get from props
-          title: form.title,
-          description: form.description,
-          deadline: form.deadline,
-          category: form.category,
-          completed: false,
-          completed_at: null,
-          is_deleted: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          deleted_at: null,
-        }
-        emit('update:reminder', dummyReminder)
-        setTimeout(() => {
-          emit('update:open', false)
-          form.reset()
-          editedReminder.value = createDefaultReminder()
-          isEditing.value = false
-          isSaving.value = false
-        }, 1000)
+        emit('update:open', false)
       },
       onError: () => {
         showMessage('リマインダーの作成に失敗しました。', 'success')
@@ -234,23 +226,7 @@ const handleSave = () => {
       form.put(route('reminders.update', reminderId), {
         preserveScroll: true,
         onSuccess: () => {
-          showMessage('リマインダーを更新しました。', 'success')
-          // 更新されたリマインダーを親コンポーネントに通知
-          if (props.reminder) {
-          const updatedReminder: Reminder = {
-            ...props.reminder,
-            title: form.title,
-            description: form.description,
-            deadline: form.deadline,
-            category: form.category,
-          }
-          emit('update:reminder', updatedReminder)
-        }
-          setTimeout(() => {
-            emit('update:open', false)
-            isEditing.value = false
-            isSaving.value = false
-          }, 2500)
+          emit('update:open', false)
         },
         onError: () => {
           showMessage('リマインダーの更新に失敗しました。', 'success')
@@ -270,7 +246,7 @@ const handleCancel = () => {
     form.title = props.reminder.title
     form.description = props.reminder.description || ''
     form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
-    form.category = props.reminder.category
+    form.tags = props.reminder.tags?.map((t: any) => t.tag_name) || []
   } else {
     editedReminder.value = createDefaultReminder()
   }
@@ -310,7 +286,7 @@ const handleComplete = () => {
     <DialogContent class="max-w-lg">
       <DialogHeader>
         <DialogTitle>
-          {{ isCreateMode ? '新規リマインダー作成' : (props.reminder?.completed ? '完了済みリマインダー' : 'リマインダー詳細') }}
+          {{ isCreateMode ? '新規リマインダー作成' : (props.reminder?.completed ? '完了済リマインダー' : 'リマインダー詳細') }}
         </DialogTitle>
         <DialogDescription v-if="isCreateMode">
           個人リマインダーを新規作成します
@@ -336,40 +312,74 @@ const handleComplete = () => {
             </div>
           </div>
 
-          <div v-if="isEditing" class="space-y-2">
-            <div class="text-sm text-gray-600">カテゴリ</div>
-            <Select v-model="form.category">
-              <SelectTrigger class="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="業務">業務</SelectItem>
-                <SelectItem value="人事">人事</SelectItem>
-                <SelectItem value="総務">総務</SelectItem>
-                <SelectItem value="その他">その他</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div v-else class="flex items-center gap-2">
-            <Badge variant="outline">{{ props.reminder?.category || '業務' }}</Badge>
+          <div class="space-y-2">
+            <div class="text-sm text-gray-600 flex items-center gap-2">
+              <Tag class="h-4 w-4" />
+              タグ
+            </div>
+            <div v-if="isEditing" class="space-y-2">
+              <div class="flex gap-2">
+                <Input 
+                  v-model="newTag" 
+                  placeholder="タグを追加"
+                  class="h-8 flex-1"
+                  @keydown.enter.prevent="addTag"
+                />
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="sm"
+                  @click="addTag"
+                  class="h-8 px-2 text-xs"
+                >
+                  追加
+                </Button>
+              </div>
+              <div v-if="form.tags && form.tags.length > 0" class="flex flex-wrap gap-1">
+                <Badge 
+                  v-for="tag in form.tags" 
+                  :key="tag" 
+                  variant="secondary"
+                  class="text-xs gap-1"
+                >
+                  {{ tag }}
+                  <button @click="removeTag(tag)" class="hover:bg-gray-300 rounded-full p-0.5">
+                    <X class="h-2 w-2" />
+                  </button>
+                </Badge>
+              </div>
+            </div>
+            <div v-else class="flex flex-wrap gap-2">
+              <Badge 
+                v-for="tag in props.reminder?.tags" 
+                :key="tag.tag_id" 
+                variant="secondary"
+              >
+                {{ tag.tag_name }}
+              </Badge>
+              <span v-if="!props.reminder?.tags || props.reminder.tags.length === 0" class="text-sm text-gray-400">
+                タグなし
+              </span>
+            </div>
           </div>
 
           <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
             <Clock class="h-4 w-4 text-gray-600" />
             <div class="flex-1">
-              <div class="text-sm text-gray-600">期限</div>
+              <div class="text-sm text-gray-600">期限（任意）</div>
               <Input 
                 v-if="isEditing" 
                 type="datetime-local" 
                 v-model="form.deadline" 
                 class="h-8 mt-1"
+                placeholder="期限を設定（任意）"
                 :class="{ 'border-red-500': form.errors.deadline }"
               />
               <div v-if="form.errors.deadline" class="text-xs text-red-500 mt-1">
                 {{ form.errors.deadline }}
               </div>
               <div v-else :class="[(props.reminder?.completed || false) ? 'text-gray-400' : '']">
-                {{ props.reminder ? `${formatDate(props.reminder.deadline_date)} ${props.reminder.deadline_time ? props.reminder.deadline_time.substring(0, 5) : ''}` : '' }}
+                {{ props.reminder?.deadline_date ? `${formatDate(props.reminder.deadline_date)} ${props.reminder.deadline_time ? props.reminder.deadline_time.substring(0, 5) : ''}` : '期限なし' }}
               </div>
             </div>
           </div>

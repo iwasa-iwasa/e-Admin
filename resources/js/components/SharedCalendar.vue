@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -346,18 +346,38 @@ const changeView = (view: any) => {
         api.changeView(view)
     }
 }
+
+let resizeHandler: (() => void) | null = null
+
+onMounted(() => {
+    resizeHandler = () => {
+        const api = fullCalendar.value?.getApi()
+        if (api) {
+            api.updateSize()
+        }
+    }
+    window.addEventListener('resize', resizeHandler)
+})
+
+onUnmounted(() => {
+    if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler)
+    }
+})
 </script>
 
 <template>
-    <Card class="flex flex-col h-full">
+    <Card class="flex flex-col h-full overflow-hidden">
         <div class="p-4">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
                     <Button v-if="showBackButton" variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
                         <ArrowLeft class="h-5 w-5" />
                     </Button>
-                    <CalendarIcon class="h-6 w-6 text-blue-700" />
-                    <CardTitle>部署内共有カレンダー</CardTitle>
+                    <div class="flex items-center gap-2" :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" @click="!showBackButton && router.visit('/calendar')">
+                        <CalendarIcon class="h-6 w-6 text-blue-700" />
+                        <CardTitle class="whitespace-nowrap">部署内共有カレンダー</CardTitle>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <div class="relative">

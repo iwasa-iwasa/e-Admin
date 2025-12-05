@@ -30,7 +30,8 @@ class PersonalReminderController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'deadline' => 'nullable|date_format:Y-m-d\TH:i',
-            'category' => 'required|string|max:50',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
             'completed' => 'nullable|boolean',
         ])->validate();
 
@@ -44,18 +45,29 @@ class PersonalReminderController extends Controller
         }
 
         // リマインダーを作成
-        Reminder::create([
+        $reminder = Reminder::create([
             'user_id' => Auth::id(),
             'title' => $validated['title'],
             'description' => $validated['description'],
             'deadline_date' => $deadlineDate,
             'deadline_time' => $deadlineTime,
-            'category' => $validated['category'],
             'completed' => $request->has('completed') ? (bool)$request->completed : false,
         ]);
+        
+        // タグを保存
+        if (!empty($validated['tags'])) {
+            $tagIds = [];
+            foreach ($validated['tags'] as $tagName) {
+                $tag = \App\Models\ReminderTag::firstOrCreate([
+                    'user_id' => Auth::id(),
+                    'tag_name' => $tagName,
+                ]);
+                $tagIds[] = $tag->tag_id;
+            }
+            $reminder->tags()->sync($tagIds);
+        }
 
-        // ダッシュボードにリダイレクト（または元のページに戻る）
-        return Redirect::back()->with('success', 'リマインダーを作成しました');
+        return Redirect::back();
     }
 
     /**
@@ -82,7 +94,8 @@ class PersonalReminderController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'deadline' => 'nullable|date_format:Y-m-d\TH:i',
-            'category' => 'required|string|max:50',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:50',
         ])->validate();
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -100,8 +113,22 @@ class PersonalReminderController extends Controller
             'description' => $validated['description'],
             'deadline_date' => $deadlineDate,
             'deadline_time' => $deadlineTime,
-            'category' => $validated['category'],
         ]);
+        
+        // タグを更新
+        if (isset($validated['tags'])) {
+            $tagIds = [];
+            foreach ($validated['tags'] as $tagName) {
+                $tag = \App\Models\ReminderTag::firstOrCreate([
+                    'user_id' => Auth::id(),
+                    'tag_name' => $tagName,
+                ]);
+                $tagIds[] = $tag->tag_id;
+            }
+            $reminder->tags()->sync($tagIds);
+        } else {
+            $reminder->tags()->sync([]);
+        }
 
         return Redirect::back();
     }
@@ -229,6 +256,106 @@ class PersonalReminderController extends Controller
         } catch (\Exception $e) {
             \Log::error('Destroy reminder error: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => 'リマインダーの削除に失敗しました']);
+        }
+    }
+
+    /**
+     * Bulk complete reminders.
+     */
+    public function bulkComplete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        
+        try {
+            DB::transaction(function () use ($ids) {
+                $reminders = Reminder::whereIn('reminder_id', $ids)
+                    ->where('user_id', auth()->id())
+                    ->get();
+                
+                foreach ($reminders as $reminder) {
+                    TrashItem::create([
+                        'user_id' => auth()->id(),
+                        'item_type' => 'reminder',
+                        'item_id' => $reminder->reminder_id,
+                        'original_title' => $reminder->title,
+                        'deleted_at' => now(),
+                        'permanent_delete_at' => now()->addDays(30),
+                    ]);
+                    
+                    $reminder->update([
+                        'completed' => 1,
+                        'completed_at' => now(),
+                    ]);
+                }
+            });
+            
+            return redirect()->back();
+        } catch (\Exception $e) {
+            \Log::error('Bulk complete error: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => '一括完了に失敗しました']);
+        }
+    }
+
+    /**
+     * Bulk restore reminders.
+     */
+    public function bulkRestore(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        
+        try {
+            DB::transaction(function () use ($ids) {
+                $reminders = Reminder::whereIn('reminder_id', $ids)
+                    ->where('user_id', auth()->id())
+                    ->get();
+                
+                foreach ($reminders as $reminder) {
+                    $reminder->update([
+                        'completed' => 0,
+                        'completed_at' => null,
+                    ]);
+                    
+                    TrashItem::where('item_type', 'reminder')
+                        ->where('item_id', $reminder->reminder_id)
+                        ->where('user_id', auth()->id())
+                        ->delete();
+                }
+            });
+            
+            return redirect()->back();
+        } catch (\Exception $e) {
+            \Log::error('Bulk restore error: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => '一括復元に失敗しました']);
+        }
+    }
+
+    /**
+     * Bulk delete reminders permanently.
+     */
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        
+        try {
+            DB::transaction(function () use ($ids) {
+                $reminders = Reminder::whereIn('reminder_id', $ids)
+                    ->where('user_id', auth()->id())
+                    ->get();
+                
+                foreach ($reminders as $reminder) {
+                    TrashItem::where('item_type', 'reminder')
+                        ->where('item_id', $reminder->reminder_id)
+                        ->where('user_id', auth()->id())
+                        ->delete();
+                    
+                    $reminder->delete();
+                }
+            });
+            
+            return redirect()->back();
+        } catch (\Exception $e) {
+            \Log::error('Bulk delete error: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => '一括削除に失敗しました']);
         }
     }
 }
