@@ -514,16 +514,6 @@ const handleUndoDelete = () => {
                         </CardHeader>
                         <CardContent>
                             <div class="space-y-4">
-                                <div class="space-y-2">
-                                    <div
-                                        class="flex items-center justify-between text-sm"
-                                    >
-                                        <span class="text-gray-600"
-                                            >回答状況</span
-                                        >
-                                    </div>
-                                    <Progress :model-value="0" class="h-2" />
-                                </div>
                                 <div
                                     class="grid grid-cols-1 md:grid-cols-2 gap-4"
                                 >
