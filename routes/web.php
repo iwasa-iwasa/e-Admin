@@ -71,6 +71,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/trash', [\App\Http\Controllers\TrashController::class, 'index'])->name('trash');
     Route::post('/trash/{id}/restore', [\App\Http\Controllers\TrashController::class, 'restore'])->name('trash.restore');
     Route::delete('/trash/{id}', [\App\Http\Controllers\TrashController::class, 'destroy'])->name('trash.destroy');
+    Route::post('/trash/destroy-multiple', [\App\Http\Controllers\TrashController::class, 'destroyMultiple'])->name('trash.destroyMultiple');
     Route::delete('/trash', [\App\Http\Controllers\TrashController::class, 'emptyTrash'])->name('trash.empty');
 
     // Member Calendar
