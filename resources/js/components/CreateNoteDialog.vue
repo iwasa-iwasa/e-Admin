@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useForm, usePage } from "@inertiajs/vue3";
-import { Save, X, CheckCircle } from "lucide-vue-next";
+import { Save, X, CheckCircle, Pin } from "lucide-vue-next";
 import {
     Dialog,
     DialogContent,
@@ -41,6 +41,7 @@ const form = useForm<{
     tags: string[];
     color: string;
     participants: number[];
+    pinned: boolean;
 }>({
     title: "",
     content: "",
@@ -49,6 +50,7 @@ const form = useForm<{
     tags: [] as string[],
     color: "yellow",
     participants: [] as number[],
+    pinned: false,
 });
 
 const tagInput = ref("");
@@ -104,6 +106,7 @@ const handleClose = () => {
     form.reset();
     form.tags = [];
     form.participants = [];
+    form.pinned = false;
     selectedParticipants.value = [];
     tagInput.value = "";
     activeTab.value = "basic";
@@ -198,7 +201,7 @@ const getColorInfo = (c: string) => {
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="priority">優先度</Label>
+                        <Label for="priority">重要度</Label>
                         <Select v-model="form.priority">
                             <SelectTrigger id="priority">
                                 <div class="flex items-center gap-2">
@@ -229,39 +232,54 @@ const getColorInfo = (c: string) => {
                 </TabsContent>
                 
                 <TabsContent value="settings" class="space-y-4 mt-4">
-                    <div class="space-y-2">
-                        <Label for="deadline">期限（任意）</Label>
-                        <Input id="deadline" type="datetime-local" v-model="form.deadline" />
-                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="space-y-2">
+                            <Label for="deadline">期限（任意）</Label>
+                            <Input id="deadline" type="datetime-local" v-model="form.deadline" />
+                        </div>
 
-                    <div class="space-y-2">
-                        <Label for="color">ジャンル</Label>
-                        <Select v-model="form.color">
-                            <SelectTrigger id="color">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(form.color).color }"></div>
-                                    <span>{{ getColorInfo(form.color).label }}</span>
-                                </div>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="c in [
-                                        'blue',
-                                        'green',
-                                        'yellow',
-                                        'purple',
-                                        'pink',
-                                    ]"
-                                    :key="c"
-                                    :value="c"
-                                >
+                        <div class="space-y-2">
+                            <Label for="color">ジャンル</Label>
+                            <Select v-model="form.color">
+                                <SelectTrigger id="color">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
-                                        <span>{{ getColorInfo(c).label }}</span>
+                                        <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(form.color).color }"></div>
+                                        <span>{{ getColorInfo(form.color).label }}</span>
                                     </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="c in [
+                                            'blue',
+                                            'green',
+                                            'yellow',
+                                            'purple',
+                                            'pink',
+                                        ]"
+                                        :key="c"
+                                        :value="c"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
+                                            <span>{{ getColorInfo(c).label }}</span>
+                                        </div>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label>ピン留め</Label>
+                            <label class="flex items-center gap-2 h-10 px-3 border rounded-md cursor-pointer hover:bg-gray-50">
+                                <input 
+                                    type="checkbox" 
+                                    v-model="form.pinned"
+                                    class="h-4 w-4 text-yellow-600 rounded border-gray-300"
+                                />
+                                <Pin class="h-4 w-4" :class="form.pinned ? 'text-yellow-500 fill-current' : 'text-gray-400'" />
+                                <span class="text-sm">ピン留め</span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="space-y-3">
@@ -304,7 +322,7 @@ const getColorInfo = (c: string) => {
                         <div class="flex gap-2">
                             <Input
                                 id="tags"
-                                placeholder="タグを追加..."
+                                placeholder="タグを追加"
                                 v-model="tagInput"
                                 @keypress.enter.prevent="handleAddTag"
                             />

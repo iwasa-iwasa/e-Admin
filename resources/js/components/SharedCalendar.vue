@@ -423,7 +423,7 @@ const changeView = (view: any) => {
                 <div class="space-y-2">
                     <div class="font-semibold text-sm">{{ hoveredEvent.title }}</div>
                     <div class="text-xs text-gray-600">
-                        <span class="text-gray-500">優先度:</span> 
+                        <span class="text-gray-500">重要度:</span> 
                         <span :class="{
                             'text-red-600 font-semibold': hoveredEvent.importance === '重要',
                             'text-yellow-600': hoveredEvent.importance === '中',

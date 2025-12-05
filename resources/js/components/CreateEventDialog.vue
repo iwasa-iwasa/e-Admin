@@ -431,7 +431,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                             </Select>
                                         </div> 
                                         <div class="space-y-2">
-                                            <Label for="importance">優先度</Label>
+                                            <Label for="importance">重要度</Label>
                                             <Select v-model="form.importance" :disabled="!canEdit">
                                                 <SelectTrigger id="importance">
                                                     <div class="flex items-center gap-2">

@@ -24,6 +24,7 @@ const props = defineProps<{
   notes: (App.Models.SharedNote & { is_pinned: boolean })[]
   totalUsers: number
   teamMembers: App.Models.User[]
+  allTags: string[]
 }>()
 
 const page = usePage()
@@ -45,6 +46,8 @@ const selectedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null
 const searchQuery = ref('')
 const filterAuthor = ref('all')
 const filterPinned = ref('all')
+const filterTag = ref('all')
+const showFilters = ref(false)
 const sortKey = ref<'priority' | 'deadline' | 'updated_at'>('updated_at')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const editedTitle = ref(selectedNote.value?.title || '')
@@ -56,6 +59,8 @@ const editedTags = ref<string[]>(selectedNote.value?.tags.map(tag => tag.tag_nam
 const editedParticipants = ref<App.Models.User[]>(selectedNote.value?.participants || [])
 const participantSelectValue = ref<string | null>(null)
 const tagInput = ref('')
+const showTagSuggestions = ref(false)
+const tagDebounceTimer = ref<number | null>(null)
 const isCreateDialogOpen = ref(false)
 const isSaving = ref(false)
 const saveMessage = ref('')
@@ -153,7 +158,8 @@ const filteredNotes = computed(() => {
       (note.content && note.content.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
       (note.author && note.author.name.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
       note.created_at?.includes(searchQuery.value) ||
-      note.updated_at?.includes(searchQuery.value)
+      note.updated_at?.includes(searchQuery.value) ||
+      note.tags.some(tag => tag.tag_name.toLowerCase().includes(searchQuery.value.toLowerCase()))
 
     const matchesAuthor = filterAuthor.value === 'all' || (note.author && note.author.name === filterAuthor.value)
 
@@ -162,7 +168,9 @@ const filteredNotes = computed(() => {
       (filterPinned.value === 'pinned' && note.is_pinned) ||
       (filterPinned.value === 'unpinned' && !note.is_pinned)
 
-    return matchesSearch && matchesAuthor && matchesPinned
+    const matchesTag = filterTag.value === 'all' || note.tags.some(tag => tag.tag_name === filterTag.value)
+
+    return matchesSearch && matchesAuthor && matchesPinned && matchesTag
   })
 
   return filtered.sort((a, b) => {
@@ -343,11 +351,32 @@ const getColorInfo = (c: string) => {
   return colorMap[c] || colorMap.yellow
 }
 
-const handleAddTag = () => {
-  if (tagInput.value.trim() && !editedTags.value.includes(tagInput.value.trim())) {
-    editedTags.value.push(tagInput.value.trim())
-    tagInput.value = ''
+const suggestedTags = computed(() => {
+  if (!tagInput.value.trim()) {
+    return props.allTags.filter(tag => !editedTags.value.includes(tag))
   }
+  return props.allTags.filter(tag => 
+    tag.toLowerCase().includes(tagInput.value.toLowerCase()) && 
+    !editedTags.value.includes(tag)
+  )
+})
+
+const handleAddTag = (tag?: string) => {
+  const tagToAdd = tag || tagInput.value.trim()
+  if (tagToAdd && !editedTags.value.includes(tagToAdd)) {
+    editedTags.value.push(tagToAdd)
+    tagInput.value = ''
+    showTagSuggestions.value = false
+  }
+}
+
+const handleTagInputChange = () => {
+  if (tagDebounceTimer.value) {
+    clearTimeout(tagDebounceTimer.value)
+  }
+  tagDebounceTimer.value = setTimeout(() => {
+    showTagSuggestions.value = true
+  }, 300)
 }
 
 const handleRemoveTag = (tagToRemove: string) => {
@@ -392,47 +421,65 @@ const handleRemoveParticipant = (participantId: number) => {
           </Button>
         </div>
 
-        <div class="relative mb-3">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="日付、名前、内容で検索..."
-            v-model="searchQuery"
-            class="pl-9 pr-9"
-          />
-          <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            <X class="h-4 w-4" />
-          </button>
+        <div class="flex gap-2 mb-3">
+          <div class="relative flex-1">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="日付、名前、内容、タグで検索"
+              v-model="searchQuery"
+              class="pl-9 pr-9"
+            />
+            <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+          <Button variant="outline" size="icon" @click="showFilters = !showFilters" :class="showFilters ? 'bg-gray-100' : ''">
+            <Filter class="h-4 w-4" />
+          </Button>
         </div>
 
-        <div class="flex gap-2 mb-2">
-          <Select v-model="filterAuthor">
-            <SelectTrigger class="flex-1 h-8 border-gray-300">
-              <div class="flex items-center gap-2">
-                <User class="h-4 w-4" />
-                <SelectValue placeholder="作成者" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべての作成者</SelectItem>
-              <SelectItem v-for="author in authors" :key="author" :value="author">
-                {{ author }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select v-model="filterPinned">
-            <SelectTrigger class="flex-1 h-8 border-gray-300">
-              <div class="flex items-center gap-2">
-                <Filter class="h-4 w-4" />
-                <SelectValue placeholder="フィルター" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべてのメモ</SelectItem>
-              <SelectItem value="pinned">ピン留めのみ</SelectItem>
-              <SelectItem value="unpinned">通常メモのみ</SelectItem>
-            </SelectContent>
-          </Select>
+        <div v-if="showFilters" class="space-y-2 mb-2 p-3 bg-gray-50 rounded-lg border">
+          <div>
+            <label class="text-xs font-medium text-gray-700 mb-1 block">作成者</label>
+            <Select v-model="filterAuthor">
+              <SelectTrigger class="h-8 border-gray-300">
+                <SelectValue placeholder="すべての作成者" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべての作成者</SelectItem>
+                <SelectItem v-for="author in authors" :key="author" :value="author">
+                  {{ author }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-700 mb-1 block">メモの種類</label>
+            <Select v-model="filterPinned">
+              <SelectTrigger class="h-8 border-gray-300">
+                <SelectValue placeholder="すべてのメモ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべてのメモ</SelectItem>
+                <SelectItem value="pinned">ピン留めのみ</SelectItem>
+                <SelectItem value="unpinned">通常メモのみ</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-700 mb-1 block">タグ</label>
+            <Select v-model="filterTag">
+              <SelectTrigger class="h-8 border-gray-300">
+                <SelectValue placeholder="すべてのタグ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべてのタグ</SelectItem>
+                <SelectItem v-for="tag in props.allTags" :key="tag" :value="tag">
+                  {{ tag }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div class="space-y-2">
@@ -456,7 +503,7 @@ const handleRemoveParticipant = (participantId: number) => {
               class="flex-1 h-8 text-xs font-medium transition-all"
             >
               <AlertCircle :class="['h-3.5 w-3.5', sortKey === 'priority' ? 'text-red-500' : 'text-gray-400']" />
-              優先度順
+              重要度順
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'priority'" 
@@ -587,7 +634,7 @@ const handleRemoveParticipant = (participantId: number) => {
                 />
               </div>
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">優先度</label>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">重要度</label>
                 <Select v-model="editedPriority">
                   <SelectTrigger class="h-8 text-xs border-gray-300">
                     <div class="flex items-center gap-2">
@@ -628,24 +675,37 @@ const handleRemoveParticipant = (participantId: number) => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div class="relative">
                 <label class="text-xs font-medium text-gray-700 mb-1 block">タグ</label>
                 <div class="flex gap-1">
                   <Input
-                    placeholder="タグを追加..."
+                    placeholder="タグを追加"
                     v-model="tagInput"
-                    @keypress.enter.prevent="handleAddTag"
+                    @input="handleTagInputChange"
+                    @focus="showTagSuggestions = true"
+                    @blur="setTimeout(() => showTagSuggestions = false, 200)"
+                    @keypress.enter.prevent="handleAddTag()"
                     class="h-8 text-xs flex-1"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    @click="handleAddTag"
+                    @click="handleAddTag()"
                     class="h-8 px-2 text-xs"
                   >
                     追加
                   </Button>
+                </div>
+                <div v-if="showTagSuggestions && suggestedTags.length > 0" class="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                  <button
+                    v-for="tag in suggestedTags"
+                    :key="tag"
+                    @click="handleAddTag(tag)"
+                    class="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors"
+                  >
+                    {{ tag }}
+                  </button>
                 </div>
               </div>
             </div>

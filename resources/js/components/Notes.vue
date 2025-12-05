@@ -238,7 +238,7 @@ const sortedNotes = computed(() => {
                 >
                     <AlertCircle :class="['h-3.5 w-3.5', sortOrder === 'priority' ? 'text-red-600' : 'text-gray-400']" />
                     <span :class="['text-xs', sortOrder === 'priority' ? 'text-gray-900' : 'text-gray-500']">
-                        優先度順
+                        重要度順
                     </span>
                 </button>
                 <button
