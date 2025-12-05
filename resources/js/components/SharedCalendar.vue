@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -7,12 +7,13 @@ import interactionPlugin from '@fullcalendar/interaction'
 import multiMonthPlugin from '@fullcalendar/multimonth'
 import rrulePlugin from '@fullcalendar/rrule'
 import { CalendarOptions } from '@fullcalendar/core'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users, ArrowLeft } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Users, ArrowLeft, Search } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { router } from '@inertiajs/vue3'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import { all } from 'axios'
@@ -31,9 +32,27 @@ const fullCalendar = ref<any>(null)
 const calendarTitle = ref('')
 const hoveredEvent = ref<any>(null)
 const hoverPosition = ref({ x: 0, y: 0 })
+const searchQuery = ref('')
 
 // 今日がビュー内にあるかどうかを保持
 const isTodayInCurrentView = ref(false)
+
+const filteredEvents = computed(() => {
+    if (!searchQuery.value.trim()) return props.events
+    
+    const query = searchQuery.value.toLowerCase()
+    return props.events.filter(event => {
+        const title = event.title?.toLowerCase() || ''
+        const description = event.description?.toLowerCase() || ''
+        const creatorName = event.creator?.name?.toLowerCase() || ''
+        const participantNames = event.participants?.map((p: any) => p.name?.toLowerCase()).join(' ') || ''
+        
+        return title.includes(query) || 
+               description.includes(query) || 
+               creatorName.includes(query) || 
+               participantNames.includes(query)
+    })
+})
 
 const openCreateDialog = () => {
     editingEvent.value = null
@@ -80,7 +99,7 @@ const calendarOptions = computed((): CalendarOptions => ({
         if (aImportance !== '重要' && bImportance === '重要') return 1
         return 0
     },
-    events: props.events.map(event => {
+    events: filteredEvents.value.map(event => {
         const commonProps = {
             id: String(event.event_id),
             title: event.title,
@@ -327,27 +346,58 @@ const changeView = (view: any) => {
         api.changeView(view)
     }
 }
+
+let resizeHandler: (() => void) | null = null
+
+onMounted(() => {
+    resizeHandler = () => {
+        const api = fullCalendar.value?.getApi()
+        if (api) {
+            api.updateSize()
+        }
+    }
+    window.addEventListener('resize', resizeHandler)
+})
+
+onUnmounted(() => {
+    if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler)
+    }
+})
 </script>
 
 <template>
-    <Card class="flex flex-col h-full">
+    <Card class="flex flex-col h-full overflow-hidden">
         <div class="p-4">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
                     <Button v-if="showBackButton" variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
                         <ArrowLeft class="h-5 w-5" />
                     </Button>
-                    <CalendarIcon class="h-6 w-6 text-blue-700" />
-                    <CardTitle>部署内共有カレンダー</CardTitle>
+                    <div class="flex items-center gap-2" :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" @click="!showBackButton && router.visit('/calendar')">
+                        <CalendarIcon class="h-6 w-6 text-blue-700" />
+                        <CardTitle class="whitespace-nowrap">部署内共有カレンダー</CardTitle>
+                    </div>
                 </div>
-                <Button
-                    variant="outline"
-                    class="gap-2"
-                    @click="openCreateDialog"
-                >
-                    <Plus class="h-4 w-4" />
-                    新規作成
-                </Button>
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="タイトル、詳細、名前で検索..."
+                            class="pl-9 pr-4 w-[280px]"
+                        />
+                    </div>
+                    <Button
+                        variant="outline"
+                        class="gap-2"
+                        @click="openCreateDialog"
+                    >
+                        <Plus class="h-4 w-4" />
+                        新規作成
+                    </Button>
+                </div>
             </div>
 
             <div class="flex items-center justify-between gap-4">
@@ -423,7 +473,7 @@ const changeView = (view: any) => {
                 <div class="space-y-2">
                     <div class="font-semibold text-sm">{{ hoveredEvent.title }}</div>
                     <div class="text-xs text-gray-600">
-                        <span class="text-gray-500">優先度:</span> 
+                        <span class="text-gray-500">重要度:</span> 
                         <span :class="{
                             'text-red-600 font-semibold': hoveredEvent.importance === '重要',
                             'text-yellow-600': hoveredEvent.importance === '中',

@@ -286,27 +286,28 @@ const handleUndoDelete = () => {
                         <BarChart3 class="h-6 w-6 text-purple-700" />
                         <CardTitle>アンケート管理</CardTitle>
                     </div>
-                    <Button
-                        variant="outline"
-                        class="gap-2"
-                        @click="handleCreate"
-                    >
-                        <Plus class="h-4 w-4" />
-                        新しいアンケートを作成
-                    </Button>
-                </div>
-                <p class="text-sm text-gray-500">総務部 共同管理</p>
-                <div class="">
-                    <div class="relative mt-2 mb-1">
-                        <Search
-                            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-                        />
-                        <Input
-                            placeholder="アンケートのタイトル、説明、作成者で検索..."
-                            v-model="searchQuery"
-                            class="pl-9"
-                        />
+                    <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <Search
+                                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+                            />
+                            <Input
+                                placeholder="アンケートのタイトル、説明、作成者で検索..."
+                                v-model="searchQuery"
+                                class="pl-9 w-80"
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            class="gap-2"
+                            @click="handleCreate"
+                        >
+                            <Plus class="h-4 w-4" />
+                            新しいアンケートを作成
+                        </Button>
                     </div>
+                </div>
+                <div class="">
                     <Tabs v-model="activeTab">
                         <TabsList class="gap-1.5">
                         <TabsTrigger value="all" class="gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800">
@@ -514,16 +515,6 @@ const handleUndoDelete = () => {
                         </CardHeader>
                         <CardContent>
                             <div class="space-y-4">
-                                <div class="space-y-2">
-                                    <div
-                                        class="flex items-center justify-between text-sm"
-                                    >
-                                        <span class="text-gray-600"
-                                            >回答状況</span
-                                        >
-                                    </div>
-                                    <Progress :model-value="0" class="h-2" />
-                                </div>
                                 <div
                                     class="grid grid-cols-1 md:grid-cols-2 gap-4"
                                 >

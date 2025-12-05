@@ -2,14 +2,19 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2 } from 'lucide-vue-next'
+import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2, Filter, Search } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import { VueDatePicker } from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
 
 defineOptions({
   layout: AuthenticatedLayout,
@@ -25,9 +30,10 @@ interface TrashItem {
   deletedAt: string
   item_id: string
   permanent_delete_at: string
+  creatorName?: string
 }
 
-type SortField = 'title' | 'deletedAt' | 'type'
+type SortField = 'title' | 'deletedAt' | 'type' | 'creatorName'
 type SortOrder = 'asc' | 'desc'
 
 const props = defineProps<{
@@ -47,6 +53,23 @@ const showEmptyTrashDialog = ref(false)
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
+const selectedItems = ref<Set<string>>(new Set())
+const showDeleteSelectedDialog = ref(false)
+const deleteMode = ref<'selected' | 'unselected'>('selected')
+
+// フィルター
+const filterType = ref<ItemType | 'all'>('all')
+const filterTitle = ref('')
+const filterCreator = ref<string | 'all'>('all')
+const filterDateRange = ref<Date[] | null>(null)
+
+const uniqueCreators = computed(() => {
+  const creators = new Set<string>()
+  trashItems.value.forEach(item => {
+    if (item.creatorName) creators.add(item.creatorName)
+  })
+  return Array.from(creators).sort((a, b) => a.localeCompare(b, 'ja'))
+})
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
   if (messageTimer.value) {
@@ -63,10 +86,10 @@ const showMessage = (message: string, type: 'success' | 'delete' = 'success') =>
 
 const getItemTypeInfo = (type: ItemType) => {
   switch (type) {
-    case 'event': return { icon: CalendarIcon, label: '予定', color: 'bg-blue-100 text-blue-700 border-blue-200' }
-    case 'shared_note': return { icon: StickyNote, label: 'メモ', color: 'bg-yellow-100 text-orange-600 border-yellow-200' }
+    case 'event': return { icon: CalendarIcon, label: '共有カレンダー', color: 'bg-blue-100 text-blue-700 border-blue-200' }
+    case 'shared_note': return { icon: StickyNote, label: '共有メモ', color: 'bg-yellow-100 text-orange-600 border-yellow-200' }
     case 'survey': return { icon: BarChart3, label: 'アンケート', color: 'bg-purple-100 text-purple-700 border-purple-200' }
-    case 'reminder': return { icon: Bell, label: 'リマインダー', color: 'bg-green-100 text-green-700 border-green-200' }
+    case 'reminder': return { icon: Bell, label: '個人リマインダー', color: 'bg-green-100 text-green-700 border-green-200' }
     default: return { icon: StickyNote, label: '不明', color: 'bg-gray-100 text-gray-700 border-gray-300' }
   }
 }
@@ -80,8 +103,24 @@ const handleSort = (field: SortField) => {
   }
 }
 
+const filteredItems = computed(() => {
+  return trashItems.value.filter(item => {
+    if (filterType.value !== 'all' && item.type !== filterType.value) return false
+    if (filterTitle.value && !item.title.toLowerCase().includes(filterTitle.value.toLowerCase())) return false
+    if (filterCreator.value !== 'all' && item.creatorName !== filterCreator.value) return false
+    if (filterDateRange.value && filterDateRange.value.length === 2) {
+      const itemDate = new Date(item.deletedAt)
+      const startDate = new Date(filterDateRange.value[0])
+      const endDate = new Date(filterDateRange.value[1])
+      endDate.setHours(23, 59, 59, 999)
+      if (itemDate < startDate || itemDate > endDate) return false
+    }
+    return true
+  })
+})
+
 const sortedItems = computed(() => {
-  return [...trashItems.value].sort((a, b) => {
+  return [...filteredItems.value].sort((a, b) => {
     let comparison = 0
     if (sortField.value === 'title') {
       comparison = a.title.localeCompare(b.title, 'ja')
@@ -89,10 +128,50 @@ const sortedItems = computed(() => {
       comparison = a.deletedAt.localeCompare(b.deletedAt)
     } else if (sortField.value === 'type') {
       comparison = a.type.localeCompare(b.type)
+    } else if (sortField.value === 'creatorName') {
+      const aName = a.creatorName || ''
+      const bName = b.creatorName || ''
+      comparison = aName.localeCompare(bName, 'ja')
     }
     return sortOrder.value === 'asc' ? comparison : -comparison
   })
 })
+
+const isAllSelected = computed(() => {
+  return sortedItems.value.length > 0 && sortedItems.value.every(item => selectedItems.value.has(item.id))
+})
+
+const toggleAll = (checked: boolean | string) => {
+  console.log('toggleAll called with:', checked, 'type:', typeof checked)
+  console.log('sortedItems count:', sortedItems.value.length)
+  
+  if (checked === true || checked === 'true') {
+    sortedItems.value.forEach(item => {
+      console.log('Adding item:', item.id)
+      selectedItems.value.add(item.id)
+    })
+  } else {
+    selectedItems.value.clear()
+  }
+  
+  console.log('selectedItems after toggle:', selectedItems.value.size)
+  // Force reactivity update
+  selectedItems.value = new Set(selectedItems.value)
+}
+
+const toggleItem = (id: string, checked: boolean | string) => {
+  console.log('toggleItem called with id:', id, 'checked:', checked)
+  
+  if (checked === true || checked === 'true') {
+    selectedItems.value.add(id)
+  } else {
+    selectedItems.value.delete(id)
+  }
+  
+  console.log('selectedItems after toggle:', selectedItems.value.size)
+  // Force reactivity update
+  selectedItems.value = new Set(selectedItems.value)
+}
 
 const handleRestore = (id: string) => {
   const item = trashItems.value.find((i) => i.id === id)
@@ -161,6 +240,36 @@ const handleEmptyTrash = () => {
   showEmptyTrashDialog.value = false
 }
 
+const handleDeleteSelected = (mode: 'selected' | 'unselected') => {
+  deleteMode.value = mode
+  showDeleteSelectedDialog.value = true
+}
+
+const confirmDeleteSelected = () => {
+  const idsToDelete = deleteMode.value === 'selected' 
+    ? Array.from(selectedItems.value)
+    : sortedItems.value.filter(item => !selectedItems.value.has(item.id)).map(item => item.id)
+  
+  if (idsToDelete.length === 0) {
+    showMessage('削除するアイテムがありません', 'success')
+    showDeleteSelectedDialog.value = false
+    return
+  }
+  
+  router.post(route('trash.destroyMultiple'), { ids: idsToDelete }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      trashItems.value = trashItems.value.filter(item => !idsToDelete.includes(item.id))
+      selectedItems.value.clear()
+      showMessage(`${idsToDelete.length}件のアイテムを削除しました`, 'success')
+    },
+    onError: () => {
+      showMessage('削除に失敗しました', 'success')
+    }
+  })
+  showDeleteSelectedDialog.value = false
+}
+
 </script>
 
 <template>
@@ -177,12 +286,61 @@ const handleEmptyTrash = () => {
               <Trash2 class="h-6 w-6 text-gray-600" />
               <CardTitle>ゴミ箱</CardTitle>
             </div>
-            <Button v-if="trashItems.length > 0" variant="outline" @click="showEmptyTrashDialog = true" class="gap-2">
-              <Trash2 class="h-4 w-4" />
-              ゴミ箱を空にする
-            </Button>
+            <div class="flex items-center gap-3 flex-1 justify-center px-8">
+              <Select v-model="filterType">
+                <SelectTrigger class="w-[180px]">
+                  <SelectValue placeholder="種類" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべての種類</SelectItem>
+                  <SelectItem value="event">共有カレンダー</SelectItem>
+                  <SelectItem value="shared_note">共有メモ</SelectItem>
+                  <SelectItem value="survey">アンケート</SelectItem>
+                  <SelectItem value="reminder">個人リマインダー</SelectItem>
+                </SelectContent>
+              </Select>
+              <div class="relative">
+                <Search class="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                <Input v-model="filterTitle" placeholder="タイトル検索" class="pl-8 w-[200px]" />
+              </div>
+              <Select v-model="filterCreator">
+                <SelectTrigger class="w-[180px]">
+                  <SelectValue placeholder="作成者" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべての作成者</SelectItem>
+                  <SelectItem v-for="creator in uniqueCreators" :key="creator" :value="creator">
+                    {{ creator }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <VueDatePicker v-model="filterDateRange" range placeholder="削除日時" auto-apply class="w-[280px]" />
+            </div>
+            <div class="flex items-center gap-2">
+              <Button 
+                v-if="trashItems.length > 0 && selectedItems.size > 0" 
+                variant="outline" 
+                @click="handleDeleteSelected('unselected')" 
+                class="gap-2"
+              >
+                <Trash2 class="h-4 w-4" />
+                選択したもの以外を完全削除
+              </Button>
+              <Button 
+                v-if="trashItems.length > 0" 
+                variant="outline" 
+                @click="selectedItems.size > 0 ? handleDeleteSelected('selected') : showEmptyTrashDialog = true" 
+                :class="[
+                  'gap-2 transition-all duration-200',
+                  selectedItems.size > 0 ? 'bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 shadow-md' : ''
+                ]"
+              >
+                <Trash2 class="h-4 w-4" />
+                {{ selectedItems.size > 0 ? `選択した${selectedItems.size}件を完全削除` : 'ゴミ箱を空にする' }}
+              </Button>
+            </div>
           </div>
-          <p class="text-sm text-gray-500">削除されたアイテム ({{ trashItems.length }}件)</p>
+          <p class="text-sm text-gray-500">削除されたアイテム ({{ sortedItems.length }}件)</p>
         </div>
         <div v-if="trashItems.length === 0" class="flex-1 flex items-center justify-center">
           <div class="text-center py-16">
@@ -195,6 +353,14 @@ const handleEmptyTrash = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead class="w-12">
+                  <input 
+                    type="checkbox" 
+                    :checked="isAllSelected" 
+                    @change="(e) => toggleAll((e.target as HTMLInputElement).checked)"
+                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </TableHead>
                 <TableHead class="cursor-pointer hover:bg-gray-50 select-none" @click="handleSort('type')">
                   種類
                   <ArrowUp v-if="sortField === 'type' && sortOrder === 'asc'" class="h-4 w-4 inline ml-1" />
@@ -204,6 +370,11 @@ const handleEmptyTrash = () => {
                   タイトル
                   <ArrowUp v-if="sortField === 'title' && sortOrder === 'asc'" class="h-4 w-4 inline ml-1" />
                   <ArrowDown v-if="sortField === 'title' && sortOrder === 'desc'" class="h-4 w-4 inline ml-1" />
+                </TableHead>
+                <TableHead class="cursor-pointer hover:bg-gray-50 select-none" @click="handleSort('creatorName')">
+                  作成者
+                  <ArrowUp v-if="sortField === 'creatorName' && sortOrder === 'asc'" class="h-4 w-4 inline ml-1" />
+                  <ArrowDown v-if="sortField === 'creatorName' && sortOrder === 'desc'" class="h-4 w-4 inline ml-1" />
                 </TableHead>
                 <TableHead class="cursor-pointer hover:bg-gray-50 select-none" @click="handleSort('deletedAt')">
                   削除した日時
@@ -216,6 +387,14 @@ const handleEmptyTrash = () => {
             </TableHeader>
             <TableBody>
               <TableRow v-for="item in sortedItems" :key="item.id || 'unknown'">
+                <TableCell>
+                  <input 
+                    type="checkbox" 
+                    :checked="selectedItems.has(item.id)" 
+                    @change="(e) => toggleItem(item.id, (e.target as HTMLInputElement).checked)"
+                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </TableCell>
                 <TableCell v-if="item">
                   <Badge variant="outline" :class="['gap-1', getItemTypeInfo(item.type || 'shared_note').color]">
                     <component :is="getItemTypeInfo(item.type || 'shared_note').icon" class="h-4 w-4" />
@@ -229,6 +408,7 @@ const handleEmptyTrash = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>{{ item?.title || '不明' }}</TableCell>
+                <TableCell>{{ item?.creatorName || '不明' }}</TableCell>
                 <TableCell class="text-gray-600">{{ item?.deletedAt || '不明' }}</TableCell>
                 <TableCell class="text-gray-500 text-sm max-w-xs">
                   <span v-if="item?.description" class="line-clamp-2">
@@ -265,6 +445,23 @@ const handleEmptyTrash = () => {
           <AlertDialogCancel @click="itemToDelete = null" class="hover:bg-gray-100">キャンセル</AlertDialogCancel>
           <AlertDialogAction @click="handlePermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
             完全に削除
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog :open="showDeleteSelectedDialog" @update:open="(open) => showDeleteSelectedDialog = open">
+      <AlertDialogContent class="bg-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {{ deleteMode === 'selected' ? `選択した${selectedItems.size}件を削除しますか？` : `選択以外の${sortedItems.length - selectedItems.size}件を削除しますか？` }}
+          </AlertDialogTitle>
+          <AlertDialogDescription>この操作は取り消せません。</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="confirmDeleteSelected" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
+            削除
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

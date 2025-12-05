@@ -29,20 +29,25 @@ class TrashController extends Controller
             
             $mappedItems = $trashItems->map(function ($item) {
                 $description = '';
+                $creatorName = null;
                 
                 // アイテムタイプに応じて詳細情報を取得
                 if ($item->item_type === 'shared_note') {
-                    $note = \App\Models\SharedNote::where('note_id', $item->item_id)->first();
+                    $note = \App\Models\SharedNote::with('author')->where('note_id', $item->item_id)->first();
                     $description = $note ? $note->content : '';
+                    $creatorName = $note && $note->author ? $note->author->name : null;
                 } elseif ($item->item_type === 'survey') {
-                    $survey = \App\Models\Survey::where('survey_id', $item->item_id)->first();
+                    $survey = \App\Models\Survey::with('creator')->where('survey_id', $item->item_id)->first();
                     $description = $survey ? $survey->description : '';
+                    $creatorName = $survey && $survey->creator ? $survey->creator->name : null;
                 } elseif ($item->item_type === 'reminder') {
-                    $reminder = \App\Models\Reminder::where('reminder_id', $item->item_id)->first();
+                    $reminder = \App\Models\Reminder::with('user')->where('reminder_id', $item->item_id)->first();
                     $description = $reminder ? $reminder->description : '';
+                    $creatorName = $reminder && $reminder->user ? $reminder->user->name : null;
                 } elseif ($item->item_type === 'event') {
-                    $event = \App\Models\Event::withTrashed()->where('event_id', $item->item_id)->first();
+                    $event = \App\Models\Event::withTrashed()->with('creator')->where('event_id', $item->item_id)->first();
                     $description = $event ? $event->description : '';
+                    $creatorName = $event && $event->creator ? $event->creator->name : null;
                 }
                 
                 $mapped = [
@@ -53,6 +58,7 @@ class TrashController extends Controller
                     'deletedAt' => $item->deleted_at->format('Y-m-d H:i'),
                     'item_id' => (string)$item->item_id,
                     'permanent_delete_at' => $item->permanent_delete_at ? $item->permanent_delete_at->format('Y-m-d H:i') : null,
+                    'creatorName' => $creatorName,
                 ];
                 return $mapped;
             });
@@ -220,6 +226,64 @@ class TrashController extends Controller
             \Log::error('TrashController destroy error: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             return back()->with('error', '削除に失敗しました: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete multiple items.
+     */
+    public function destroyMultiple(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+            \Log::info('TrashController destroyMultiple called with IDs: ' . json_encode($ids));
+            
+            $trashItems = TrashItem::whereIn('id', $ids)
+                ->where('user_id', Auth::id())
+                ->get();
+            
+            if ($trashItems->isEmpty()) {
+                return back()->with('error', 'アイテムが見つかりません。');
+            }
+
+            \DB::transaction(function () use ($trashItems) {
+                foreach ($trashItems as $item) {
+                    if ($item->item_type === 'shared_note') {
+                        \App\Models\SharedNote::where('note_id', $item->item_id)->delete();
+                    }
+                    
+                    if ($item->item_type === 'reminder') {
+                        \App\Models\Reminder::where('reminder_id', $item->item_id)->delete();
+                    }
+                    
+                    if ($item->item_type === 'survey') {
+                        $survey = \App\Models\Survey::where('survey_id', $item->item_id)->first();
+                        if ($survey) {
+                            $survey->questions()->each(function ($question) {
+                                $question->options()->delete();
+                            });
+                            $survey->questions()->delete();
+                            $survey->responses()->each(function ($response) {
+                                $response->answers()->delete();
+                            });
+                            $survey->responses()->delete();
+                            $survey->delete();
+                        }
+                    }
+                    
+                    if ($item->item_type === 'event') {
+                        \App\Models\Event::withTrashed()->where('event_id', $item->item_id)->forceDelete();
+                    }
+
+                    $item->delete();
+                }
+            });
+            
+            \Log::info('Successfully deleted multiple items: ' . $trashItems->count());
+            return back()->with('success', $trashItems->count() . '件のアイテムを削除しました。');
+        } catch (\Exception $e) {
+            \Log::error('TrashController destroyMultiple error: ' . $e->getMessage());
+            return back()->with('error', '削除に失敗しました。');
         }
     }
 

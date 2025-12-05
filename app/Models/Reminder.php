@@ -36,7 +36,6 @@ class Reminder extends Model
         'description',
         'deadline_date',
         'deadline_time',
-        'category',
         'completed',
         'completed_at',
     ];
@@ -70,5 +69,13 @@ class Reminder extends Model
     public function trashItems()
     {
         return $this->hasMany(TrashItem::class, 'item_id')->where('item_type', 'reminder');
+    }
+    
+    /**
+     * Get the tags for the reminder.
+     */
+    public function tags()
+    {
+        return $this->belongsToMany(ReminderTag::class, 'reminder_tag_relations', 'reminder_id', 'tag_id', 'reminder_id', 'tag_id');
     }
 }

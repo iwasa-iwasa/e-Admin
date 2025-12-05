@@ -47,10 +47,17 @@ class NoteController extends Controller
             ->where('id', '!=', $user->id)
             ->get();
 
+        // すべてのタグを使用回数順で取得
+        $allTags = \App\Models\NoteTag::withCount('sharedNotes')
+            ->orderBy('shared_notes_count', 'desc')
+            ->pluck('tag_name')
+            ->values();
+
         return Inertia::render('Notes', [
             'notes' => $sortedNotes->values(), // ソート後にキーをリセット
             'totalUsers' => \App\Models\User::where('department', $user->department)->count(),
             'teamMembers' => $teamMembers,
+            'allTags' => $allTags,
         ]);
     }
 
@@ -70,6 +77,7 @@ class NoteController extends Controller
             'participants.*' => ['exists:users,id'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
+            'pinned' => ['nullable', 'boolean'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -105,6 +113,11 @@ class NoteController extends Controller
                 $tagIds[] = $tag->tag_id;
             }
             $note->tags()->attach($tagIds);
+        }
+
+        // Pin note if requested
+        if (isset($validated['pinned']) && $validated['pinned']) {
+            $request->user()->pinnedNotes()->attach($note->note_id);
         }
 
         return back()->with('success', '新しい共有メモを作成しました！');

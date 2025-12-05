@@ -168,7 +168,10 @@ const handleSave = () => {
     onSuccess: () => {
       emit('save', editedNote.value!)
       isEditing.value = false
-      showMessage('メモが保存されました。', 'success')
+      closeDialog()
+      setTimeout(() => {
+        showMessage('メモが保存されました。', 'success')
+      }, 100)
     },
     onError: () => {
       showMessage('保存に失敗しました。', 'success')
@@ -179,8 +182,7 @@ const handleSave = () => {
 const handleTogglePin = () => {
   if (props.note) {
     emit('toggle-pin', props.note)
-    // ローカルで状態を更新（UIの即座更新のため）
-    props.note.is_pinned = !props.note.is_pinned
+    closeDialog()
   }
 }
 
@@ -446,7 +448,7 @@ const editedContent = computed({
       <div v-if="isEditing && editedNote" class="space-y-3 pt-2">
         <div class="flex gap-2">
           <Select v-model="editedNote.priority" :disabled="!canEdit">
-            <SelectTrigger class="w-32 h-8 text-xs" aria-label="優先度選択">
+            <SelectTrigger class="w-32 h-8 text-xs" aria-label="重要度選択">
               <div class="flex items-center gap-2">
                 <Badge :class="getPriorityInfo(editedNote.priority as Priority).className" class="text-xs px-1 py-0">
                   {{ getPriorityInfo(editedNote.priority as Priority).label }}
@@ -483,7 +485,7 @@ const editedContent = computed({
           </Select>
           <div v-if="canEdit" class="flex gap-1">
             <Input
-              placeholder="タグを追加..."
+              placeholder="タグを追加"
               v-model="tagInput"
               @keypress.enter.prevent="handleAddTag"
               class="h-8 text-xs flex-1 w-32"

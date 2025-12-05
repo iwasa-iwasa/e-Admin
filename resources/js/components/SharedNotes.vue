@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { StickyNote, Plus, User, AlertCircle, Calendar, CheckCircle } from 'lucide-vue-next'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { StickyNote, Plus, User, AlertCircle, Calendar, CheckCircle, ArrowUp, ArrowDown } from 'lucide-vue-next'
 import { router } from '@inertiajs/vue3'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,8 @@ import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 
 type Priority = 'high' | 'medium' | 'low'
-type SortOrder = 'priority' | 'deadline'
+type SortKey = 'priority' | 'deadline'
+type SortDirection = 'asc' | 'desc'
 
 const props = defineProps<{
   notes: App.Models.SharedNote[]
@@ -22,11 +23,74 @@ const isAllUsers = (participants: any[]) => {
   return participants && props.totalUsers && participants.length === props.totalUsers
 }
 
-const sortOrder = ref<SortOrder>('priority')
+const sortKey = ref<SortKey>('priority')
+const sortDirection = ref<SortDirection>('desc')
 const isCreateDialogOpen = ref(false)
 const selectedNote = ref<App.Models.SharedNote | null>(null)
 const saveMessage = ref('')
 const messageTimer = ref<number | null>(null)
+const skipDialogOpen = ref(false)
+const isNarrow = ref(false)
+const sortButtonContainerRef = ref<HTMLElement | null>(null)
+const headerWrapperRef = ref<HTMLElement | null>(null)
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  const url = new URL(window.location.href)
+  const selectNoteId = url.searchParams.get('selectNote')
+  if (selectNoteId) {
+    skipDialogOpen.value = true
+    const noteToSelect = props.notes.find(note => note.note_id.toString() === selectNoteId)
+    if (noteToSelect) {
+      scrollToNote(selectNoteId)
+    }
+    url.searchParams.delete('selectNote')
+    window.history.replaceState({}, '', url.toString())
+    setTimeout(() => {
+      skipDialogOpen.value = false
+    }, 500)
+  }
+  
+  if (sortButtonContainerRef.value) {
+    const checkWidth = () => {
+      if (sortButtonContainerRef.value) {
+        const width = sortButtonContainerRef.value.offsetWidth
+        isNarrow.value = width < 220
+      }
+    }
+    
+    checkWidth()
+    
+    resizeObserver = new ResizeObserver(() => {
+      checkWidth()
+    })
+    resizeObserver.observe(sortButtonContainerRef.value)
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  }
+})
+
+watch(() => props.notes, (newNotes) => {
+  const url = new URL(window.location.href)
+  const selectNoteId = url.searchParams.get('selectNote')
+  
+  if (selectNoteId) {
+    skipDialogOpen.value = true
+    const noteToSelect = newNotes.find(note => note.note_id.toString() === selectNoteId)
+    if (noteToSelect) {
+      scrollToNote(selectNoteId)
+    }
+    url.searchParams.delete('selectNote')
+    window.history.replaceState({}, '', url.toString())
+    setTimeout(() => {
+      skipDialogOpen.value = false
+    }, 500)
+  }
+}, { deep: true })
 
 const handleUpdateNote = (updatedNote: App.Models.SharedNote) => {
   // This should ideally emit an event to the parent to refresh data
@@ -54,26 +118,14 @@ const handleTogglePin = (note: App.Models.SharedNote) => {
   const noteId = note.note_id
   if (note.is_pinned) {
     router.delete(route('notes.unpin', noteId), {
-      preserveScroll: true,
-      preserveState: true,
       onSuccess: () => {
-        // リスト内のメモのピン状態を更新
-        const noteIndex = props.notes.findIndex(n => n.note_id === noteId)
-        if (noteIndex !== -1) {
-          props.notes[noteIndex].is_pinned = false
-        }
+        router.get(route('dashboard', { selectNote: noteId }), {}, { preserveState: false })
       }
     })
   } else {
     router.post(route('notes.pin', noteId), {}, {
-      preserveScroll: true,
-      preserveState: true,
       onSuccess: () => {
-        // リスト内のメモのピン状態を更新
-        const noteIndex = props.notes.findIndex(n => n.note_id === noteId)
-        if (noteIndex !== -1) {
-          props.notes[noteIndex].is_pinned = true
-        }
+        router.get(route('dashboard', { selectNote: noteId }), {}, { preserveState: false })
       }
     })
   }
@@ -125,18 +177,40 @@ const toggleSortOrder = () => {
   sortOrder.value = sortOrder.value === 'priority' ? 'deadline' : 'priority'
 }
 
+const scrollToNote = (noteId: string) => {
+  setTimeout(() => {
+    const element = document.querySelector(`[data-note-id="${noteId}"]`)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, 100)
+}
+
+const handleSortClick = (key: SortKey) => {
+  if (sortKey.value === key) {
+    sortDirection.value = sortDirection.value === 'desc' ? 'asc' : 'desc'
+  } else {
+    sortKey.value = key
+    sortDirection.value = 'desc'
+  }
+}
+
 const sortedNotes = computed(() => {
   if (!props.notes) return []
   return [...props.notes].sort((a, b) => {
-    if (sortOrder.value === 'priority') {
-      const priorityDiff = getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
-      if (priorityDiff !== 0) return priorityDiff
-      return (a.deadline_date || '9999-12-31').localeCompare(b.deadline_date || '9999-12-31')
+    let result = 0
+    if (sortKey.value === 'priority') {
+      result = getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
+      if (result === 0) {
+        result = (a.deadline_date || '9999-12-31').localeCompare(b.deadline_date || '9999-12-31')
+      }
     } else {
-      const deadlineDiff = (a.deadline_date || '9999-12-31').localeCompare(b.deadline_date || '9999-12-31')
-      if (deadlineDiff !== 0) return deadlineDiff
-      return getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
+      result = (a.deadline_date || '9999-12-31').localeCompare(b.deadline_date || '9999-12-31')
+      if (result === 0) {
+        result = getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
+      }
     }
+    return sortDirection.value === 'desc' ? result : -result
   })
 })
 
@@ -146,25 +220,35 @@ const sortedNotes = computed(() => {
   <Card class="h-full flex flex-col">
     <CardHeader>
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/notes')">
           <StickyNote class="h-6 w-6 text-orange-600" />
           <CardTitle>共有メモ</CardTitle>
         </div>
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+        <div ref="headerWrapperRef" class="flex items-center gap-3">
+          <div ref="sortButtonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg', isNarrow ? 'flex-col' : 'flex-row items-center']">
             <button
-              @click="sortOrder = 'priority'"
-              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortOrder === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              @click="handleSortClick('priority')"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
-              <AlertCircle :class="['h-3.5 w-3.5', sortOrder === 'priority' ? 'text-red-500' : 'text-gray-400']" />
-              優先度順
+              <AlertCircle :class="['h-3.5 w-3.5 flex-shrink-0', sortKey === 'priority' ? 'text-red-500' : 'text-gray-400']" />
+              <span>重要度順</span>
+              <component 
+                :is="sortDirection === 'desc' ? ArrowDown : ArrowUp" 
+                v-if="sortKey === 'priority'" 
+                class="h-3.5 w-3.5 flex-shrink-0" 
+              />
             </button>
             <button
-              @click="sortOrder = 'deadline'"
-              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortOrder === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              @click="handleSortClick('deadline')"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
-              <Calendar :class="['h-3.5 w-3.5', sortOrder === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
-              期限順
+              <Calendar :class="['h-3.5 w-3.5 flex-shrink-0', sortKey === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
+              <span>期限順</span>
+              <component 
+                :is="sortDirection === 'desc' ? ArrowDown : ArrowUp" 
+                v-if="sortKey === 'deadline'" 
+                class="h-3.5 w-3.5 flex-shrink-0" 
+              />
             </button>
           </div>
           <Button
@@ -185,6 +269,7 @@ const sortedNotes = computed(() => {
           <div
             v-for="note in sortedNotes"
             :key="note.note_id"
+            :data-note-id="note.note_id"
             :class="[getColorClass(note.color), 'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow']"
             @click="selectedNote = note"
           >
@@ -249,7 +334,7 @@ const sortedNotes = computed(() => {
     />
     <NoteDetailDialog
       :note="selectedNote"
-      :open="selectedNote !== null"
+      :open="selectedNote !== null && !skipDialogOpen"
       @update:open="(isOpen) => !isOpen && (selectedNote = null)"
       @update:note="handleUpdateNote"
       @save="handleSaveNote"

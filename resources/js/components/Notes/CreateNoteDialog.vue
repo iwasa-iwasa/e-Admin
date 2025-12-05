@@ -232,7 +232,7 @@ const getColorInfo = (c: string) => {
                     <div class="flex gap-2">
                         <Input
                             id="tags"
-                            placeholder="タグを追加..."
+                            placeholder="タグを追加"
                             v-model="tagInput"
                             @keypress.enter.prevent="handleAddTag"
                         />

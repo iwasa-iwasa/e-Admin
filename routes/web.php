@@ -65,12 +65,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/reminders/{reminder}', [PersonalReminderController::class, 'update'])->name('reminders.update');
     Route::patch('/reminders/{reminder}/complete', [PersonalReminderController::class, 'completeReminder'])->name('reminders.complete');
     Route::post('/reminders/restore', [PersonalReminderController::class, 'restoreReminder'])->name('reminders.restore');
+    Route::post('/reminders/bulk-complete', [PersonalReminderController::class, 'bulkComplete'])->name('reminders.bulkComplete');
+    Route::post('/reminders/bulk-restore', [PersonalReminderController::class, 'bulkRestore'])->name('reminders.bulkRestore');
+    Route::post('/reminders/bulk-delete', [PersonalReminderController::class, 'bulkDelete'])->name('reminders.bulkDelete');
     Route::delete('/reminders/{reminder}', [PersonalReminderController::class, 'destroy'])->name('reminders.destroy');
 
     // Trash
     Route::get('/trash', [\App\Http\Controllers\TrashController::class, 'index'])->name('trash');
     Route::post('/trash/{id}/restore', [\App\Http\Controllers\TrashController::class, 'restore'])->name('trash.restore');
     Route::delete('/trash/{id}', [\App\Http\Controllers\TrashController::class, 'destroy'])->name('trash.destroy');
+    Route::post('/trash/destroy-multiple', [\App\Http\Controllers\TrashController::class, 'destroyMultiple'])->name('trash.destroyMultiple');
     Route::delete('/trash', [\App\Http\Controllers\TrashController::class, 'emptyTrash'])->name('trash.empty');
 
     // Member Calendar

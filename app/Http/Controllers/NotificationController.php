@@ -75,7 +75,7 @@ class NotificationController extends Controller
         $reminders = Reminder::where('user_id', $user->id)
             ->where('completed', false)
             ->whereNotNull('deadline_date')
-            ->whereBetween('deadline_date', [$now->toDateString(), $endDate->toDateString()])
+            ->where('deadline_date', '<=', $endDate->toDateString())
             ->whereDoesntHave('trashItems')
             ->orderBy('deadline_date')
             ->orderBy('deadline_time')
