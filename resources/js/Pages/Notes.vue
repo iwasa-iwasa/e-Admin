@@ -425,7 +425,7 @@ const handleRemoveParticipant = (participantId: number) => {
           <div class="relative flex-1">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="日付、名前、内容、タグで検索"
+              placeholder="タイトル、内容、名前、タグで検索"
               v-model="searchQuery"
               class="pl-9 pr-9"
             />
