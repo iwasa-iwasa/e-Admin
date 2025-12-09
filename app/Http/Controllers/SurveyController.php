@@ -59,15 +59,7 @@ class SurveyController extends Controller
             });
 
         // チームメンバーを取得
-        $teamMembers = \App\Models\User::select('id', 'name')
-            ->orderBy('name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                ];
-            });
+        $teamMembers = \App\Models\User::all();
 
         return Inertia::render('Surveys', [
             'surveys' => $surveys,
@@ -281,15 +273,7 @@ class SurveyController extends Controller
             });
 
         // チームメンバーを取得
-        $teamMembers = \App\Models\User::select('id', 'name')
-            ->orderBy('name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                ];
-            });
+        $teamMembers = \App\Models\User::all();
 
         return Inertia::render('Surveys', [
             'surveys' => $surveys,

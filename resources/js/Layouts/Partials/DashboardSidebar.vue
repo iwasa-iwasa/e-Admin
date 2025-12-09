@@ -26,34 +26,23 @@ const isActive = (path: string) => {
 }
 
 const handleMemberClick = (memberId: number, path: string) => {
+  let routeName = ''
+  
   if (path.slice(0, 10) === '/dashboard') {
-    const routeName = 'dashboard'
-
-    // If the clicked member is already selected, clear the filter.
-    if (selectedMember.value === memberId) {
-      router.get(route(routeName), {}, {
-        preserveState: true,
-        replace: true,
-      })
-    } else {
-      // Otherwise, filter by the new member.
-      router.get(route(routeName), { member_id: memberId }, {
-        preserveState: true,
-        replace: true,
-      })
-    }
+    routeName = 'dashboard'
+  } else if (path.slice(0, 9) === '/calendar') {
+    routeName = 'calendar'
+  } else if (path.slice(0, 6) === '/notes') {
+    routeName = 'notes'
   }
-  if (path.slice(0, 9)=== '/calendar') {
-    const routeName = 'calendar'
 
-    // If the clicked member is already selected, clear the filter.
+  if (routeName) {
     if (selectedMember.value === memberId) {
       router.get(route(routeName), {}, {
         preserveState: true,
         replace: true,
       })
     } else {
-      // Otherwise, filter by the new member.
       router.get(route(routeName), { member_id: memberId }, {
         preserveState: true,
         replace: true,

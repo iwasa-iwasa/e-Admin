@@ -16,10 +16,12 @@ class NoteController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $notes = SharedNote::with(['author', 'tags', 'participants'])
+        $memberId = $request->query('member_id');
+
+        $notesQuery = SharedNote::with(['author', 'tags', 'participants'])
             ->active()
             ->where(function($query) use ($user) {
                 $query->where('author_id', $user->id)
@@ -27,9 +29,17 @@ class NoteController extends Controller
                           $q->where('users.id', $user->id);
                       })
                       ->orWhereDoesntHave('participants');
-            })
-            ->orderBy('updated_at', 'desc')
-            ->get();
+            });
+
+        if ($memberId) {
+            $notesQuery->where(function($query) use ($memberId) {
+                $query->whereHas('participants', function ($q) use ($memberId) {
+                    $q->where('users.id', $memberId);
+                })->orWhereDoesntHave('participants');
+            });
+        }
+
+        $notes = $notesQuery->orderBy('updated_at', 'desc')->get();
 
         // 認証ユーザーがピン留めしたノートのIDリストを取得
         $pinnedNoteIds = $user->pinnedNotes()->pluck('shared_notes.note_id')->all();
@@ -42,10 +52,8 @@ class NoteController extends Controller
         // is_pinnedを優先してソート（ピン留めが先頭）、次に更新日でソート（DB取得時に適用済み）
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
-        // 現在のユーザーと同じ部署のメンバーを取得（作成者以外）
-        $teamMembers = \App\Models\User::where('department', $user->department)
-            ->where('id', '!=', $user->id)
-            ->get();
+        // 現在のユーザーと同じ部署のメンバーを取得
+        $teamMembers = \App\Models\User::all();
 
         // すべてのタグを使用回数順で取得
         $allTags = \App\Models\NoteTag::withCount('sharedNotes')
@@ -58,6 +66,7 @@ class NoteController extends Controller
             'totalUsers' => \App\Models\User::where('department', $user->department)->count(),
             'teamMembers' => $teamMembers,
             'allTags' => $allTags,
+            'filteredMemberId' => $memberId ? (int)$memberId : null,
         ]);
     }
 

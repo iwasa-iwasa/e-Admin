@@ -107,17 +107,7 @@ onUnmounted(() => {
     <Head title="ホーム" />
     <div class="flex max-w-[1800px] mx-auto h-full p-6 dashboard-container">
         <div :style="{ width: calendarWidth + '%' }" class="h-full flex flex-col pr-3">
-            <div v-if="filteredMember" class="mb-4">
-              <Badge variant="secondary" class="flex items-center gap-2 text-sm py-1 px-3">
-                <span>フィルター中: {{ filteredMember.name }}</span>
-                <button @click="clearFilter" class="rounded-full hover:bg-muted">
-                  <X class="h-4 w-4" />
-                </button>
-              </Badge>
-            </div>
-            <div class="flex-1 min-h-0">
-              <SharedCalendar :events="events" />
-            </div>
+            <SharedCalendar :events="events" />
         </div>
         <div 
           class="w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize flex items-center justify-center group transition-colors"

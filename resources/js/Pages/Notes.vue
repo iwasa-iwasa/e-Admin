@@ -26,10 +26,23 @@ const props = defineProps<{
   totalUsers: number
   teamMembers: App.Models.User[]
   allTags: string[]
+  filteredMemberId?: number | null
 }>()
 
 const page = usePage()
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
+
+const filteredMember = computed(() => {
+  if (!props.filteredMemberId) return null
+  return props.teamMembers.find(member => member.id === props.filteredMemberId)
+})
+
+const clearFilter = () => {
+  router.get(route('notes'), {}, {
+    preserveState: true,
+    replace: true,
+  })
+}
 
 const isAllUsers = (participants: any[]) => {
   return participants && participants.length === props.totalUsers

@@ -102,15 +102,21 @@ const performSearch = async () => {
     }
 }
 
-onMounted(async () => {
-    loadRecentItems()
+const loadUsersOnce = async () => {
+    if (allUsers.value.length > 0) return
     try {
         const response = await fetch('/api/users')
         allUsers.value = await response.json()
     } catch (error) {
         console.error('Failed to load users:', error)
     }
-})
+}
+
+const handleFocus = () => {
+    isResultsOpen.value = true
+    loadRecentItems()
+    loadUsersOnce()
+}
 
 watch(searchQuery, () => {
     if (searchTimeout.value) {
@@ -265,7 +271,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                     placeholder="すべての予定、メモ、リマインダーを検索..."
                     class="pl-10 pr-10 py-2 w-full"
                     v-model="searchQuery"
-                    @focus="isResultsOpen = true"
+                    @focus="handleFocus"
                     @blur="handleBlur"
                 />
                 <button

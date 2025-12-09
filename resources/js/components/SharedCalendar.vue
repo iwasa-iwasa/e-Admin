@@ -402,14 +402,12 @@ watch(highlightId, (id) => {
     <Card class="flex flex-col h-full overflow-hidden">
         <div class="p-4">
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2" :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" @click="!showBackButton && router.visit('/calendar')">
                     <Button v-if="showBackButton" variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
                         <ArrowLeft class="h-5 w-5" />
                     </Button>
-                    <div class="flex items-center gap-2" :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" @click="!showBackButton && router.visit('/calendar')">
-                        <CalendarIcon class="h-6 w-6 text-blue-700" />
-                        <CardTitle class="whitespace-nowrap">部署内共有カレンダー</CardTitle>
-                    </div>
+                    <CalendarIcon class="h-6 w-6 text-blue-700" />
+                    <CardTitle class="whitespace-nowrap">部署内共有カレンダー</CardTitle>
                 </div>
                 <div class="flex items-center gap-2">
                     <div class="relative">

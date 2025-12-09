@@ -37,10 +37,12 @@ class CalendarController extends Controller
         }
 
         $events = $eventsQuery->get();
+        $teamMembers = \App\Models\User::all();
 
         return Inertia::render('Calendar', [
             'events' => $events,
             'filteredMemberId' => $memberId ? (int)$memberId : null,
+            'teamMembers' => $teamMembers,
         ]);
     }
 
