@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { usePage } from '@inertiajs/vue3'
+import { useHighlight } from '@/composables/useHighlight'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -59,10 +61,25 @@ const openCreateDialog = () => {
     isEventFormOpen.value = true
 }
 
+const canEditEvent = (event: App.Models.Event) => {
+    const currentUserId = (usePage().props as any).auth?.user?.id ?? null
+    const teamMembers = (usePage().props as any).teamMembers || []
+    
+    const isCreator = event.created_by === currentUserId
+    if (isCreator) return true
+    
+    if (Array.isArray(teamMembers) && teamMembers.length > 0 && event.participants && event.participants.length === teamMembers.length) {
+        return true
+    }
+    
+    const isParticipant = event.participants?.some(p => p.id === currentUserId)
+    return isParticipant || false
+}
+
 const openEditDialog = (eventId: number) => {
     const event = props.events.find(e => e.event_id === eventId)
     if (event) {
-        selectedEvent.value = null // EventDetailDialogを閉じる
+        selectedEvent.value = null
         editingEvent.value = event
         isEventFormOpen.value = true
     }
@@ -364,6 +381,21 @@ onUnmounted(() => {
         window.removeEventListener('resize', resizeHandler)
     }
 })
+
+// ハイライト機能
+const page = usePage()
+const highlightId = computed(() => (page.props as any).highlight)
+
+watch(highlightId, (id) => {
+    if (id) {
+        nextTick(() => {
+            const event = props.events.find(e => e.event_id === id)
+            if (event) {
+                selectedEvent.value = event
+            }
+        })
+    }
+}, { immediate: true })
 </script>
 
 <template>
@@ -454,6 +486,7 @@ onUnmounted(() => {
             :open="isEventFormOpen"
             @update:open="isEventFormOpen = $event"
             :event="editingEvent"
+            :readonly="editingEvent ? !canEditEvent(editingEvent) : false"
         />
 
         <!-- ホバー表示 -->

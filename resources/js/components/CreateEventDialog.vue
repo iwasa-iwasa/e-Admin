@@ -53,6 +53,7 @@ import {
 const props = defineProps<{
     open: boolean;
     event?: App.Models.Event | null;
+    readonly?: boolean;
 }>();
 const emit = defineEmits(["update:open"]);
 
@@ -83,19 +84,17 @@ const isAllUsers = computed(() => {
 
 // 編集権限チェック
 const canEdit = computed(() => {
-  if (!isEditMode.value || !props.event) return true // 新規作成は常に可能
+  if (props.readonly) return false
+  if (!isEditMode.value || !props.event) return true
   const event = props.event
   const isCreator = event.created_by === currentUserId.value
   
-  // 作成者は常に編集可能
   if (isCreator) return true
   
-  // 全員が参加者: 全員編集可能
   if (event.participants && event.participants.length === teamMembers.value.length) {
     return true
   }
   
-  // 参加者のみ編集可能
   const isParticipant = event.participants?.some(p => p.id === currentUserId.value)
   return isParticipant || false
 })

@@ -45,6 +45,18 @@ class CalendarController extends Controller
     }
 
     /**
+     * Get a single event for API.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        $event = Event::with(['creator', 'participants', 'attachments', 'recurrence'])->findOrFail($id);
+        return response()->json($event);
+    }
+
+    /**
      * Store a newly created event in storage.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -293,6 +305,7 @@ class CalendarController extends Controller
         \App\Models\TrashItem::create([
             'user_id' => auth()->id(),
             'item_type' => 'event',
+            'is_shared' => true,
             'item_id' => $event->event_id,
             'original_title' => $event->title,
             'deleted_at' => now(),

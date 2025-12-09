@@ -62,6 +62,18 @@ class NoteController extends Controller
     }
 
     /**
+     * Get a single note for API.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        $note = SharedNote::with(['author', 'tags', 'participants'])->findOrFail($id);
+        return response()->json($note);
+    }
+
+    /**
      * 新しい共有メモをデータベースに保存する。
      */
     public function store(Request $request)
@@ -242,6 +254,7 @@ class NoteController extends Controller
             \App\Models\TrashItem::create([
                 'user_id' => Auth::id(),
                 'item_type' => 'shared_note',
+                'is_shared' => true,
                 'item_id' => $note->note_id,
                 'original_title' => $note->title,
                 'deleted_at' => now(),

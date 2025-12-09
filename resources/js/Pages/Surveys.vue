@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, usePage } from "@inertiajs/vue3";
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { router } from "@inertiajs/vue3";
 import {
     BarChart3,
@@ -67,6 +67,12 @@ const props = defineProps<{
     editingSurvey?: App.Models.Survey | null;
     editSurvey?: Object;
     teamMembers?: Array<{id: number, name: string}>;
+    errors?: any;
+    auth?: any;
+    ziggy?: any;
+    flash?: any;
+    totalUsers?: number;
+    unansweredSurveysCount?: number;
 }>();
 
 const searchQuery = ref("");
@@ -80,6 +86,7 @@ const saveMessage = ref('');
 const messageType = ref<'success' | 'delete'>('success');
 const messageTimer = ref<number | null>(null);
 const lastDeletedSurvey = ref<App.Models.Survey | null>(null);
+const scrollAreaRef = ref<any>(null);
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
   if (messageTimer.value) {
@@ -266,6 +273,36 @@ const handleUndoDelete = () => {
         }
     });
 };
+
+onMounted(() => {
+    const page = usePage()
+    const highlightId = (page.props as any).highlight
+    console.log('Surveys onMounted - highlightId:', highlightId)
+    console.log('All page props:', page.props)
+    if (highlightId) {
+        console.log('Setting activeTab to all')
+        activeTab.value = 'all'
+        nextTick(() => {
+            setTimeout(() => {
+                const elementId = `item-${highlightId}`
+                console.log('Looking for element with ID:', elementId)
+                const element = document.getElementById(elementId)
+                console.log('Found element:', element)
+                if (element) {
+                    console.log('Scrolling to element')
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    setTimeout(() => {
+                        element.classList.add('highlight-flash')
+                        setTimeout(() => element.classList.remove('highlight-flash'), 3000)
+                    }, 500)
+                } else {
+                    console.log('Element not found. Available survey IDs:')
+                    props.surveys.forEach(s => console.log('Survey ID:', s.survey_id))
+                }
+            }, 500)
+        })
+    }
+});
 </script>
 
 <template>
@@ -361,7 +398,7 @@ const handleUndoDelete = () => {
                 </div>
             </div>
             
-            <ScrollArea class="flex-1">
+            <ScrollArea class="flex-1" ref="scrollAreaRef">
                 <div class="p-6 space-y-4 pb-6">
                     <div v-if="filteredSurveys.length === 0" class="text-center py-12">
                         <BarChart3 class="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -376,6 +413,7 @@ const handleUndoDelete = () => {
                     <Card
                         v-for="survey in filteredSurveys"
                         :key="survey.survey_id"
+                        :id="`item-${survey.survey_id}`"
                         class="hover:shadow-md transition-shadow"
                     >
                         <CardHeader>

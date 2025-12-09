@@ -11,6 +11,7 @@ use App\Http\Controllers\NotificationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,6 +94,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Notifications API
     Route::get('/api/notifications', [NotificationController::class, 'getNotifications']);
+    
+    // Global Search API
+    Route::get('/api/search', [\App\Http\Controllers\GlobalSearchController::class, 'search']);
+    Route::get('/api/users', function() {
+        return response()->json(\App\Models\User::select('id', 'name')->orderBy('name')->get());
+    });
+    Route::get('/api/events/{id}', [CalendarController::class, 'show']);
+    Route::get('/api/notes/{id}', [NoteController::class, 'show']);
+    Route::get('/api/reminders/{id}', [PersonalReminderController::class, 'show']);
+    Route::get('/api/surveys/{id}', [SurveyController::class, 'show']);
+    Route::post('/api/track-activity', function(Request $request) {
+        \App\Models\RecentActivity::track(
+            auth()->id(),
+            $request->input('type'),
+            $request->input('id')
+        );
+        return response()->json(['success' => true]);
+    });
 });
 
 // Laravel Breeze/Jetstreamのデフォルト認証ルート

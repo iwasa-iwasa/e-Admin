@@ -16,11 +16,25 @@ use App\Models\SurveyAnswer;
 class SurveyController extends Controller
 {
     /**
+     * Get a single survey for API.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        $survey = Survey::with(['creator', 'questions.options', 'responses.respondent', 'designatedUsers'])
+            ->findOrFail($id);
+        
+        return response()->json($survey);
+    }
+
+    /**
      * Display the surveys page.
      *
      * @return \Inertia\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         $userId = Auth::id();
         
@@ -58,6 +72,7 @@ class SurveyController extends Controller
         return Inertia::render('Surveys', [
             'surveys' => $surveys,
             'teamMembers' => $teamMembers,
+            'highlight' => $request->query('highlight'),
         ]);
     }
 
@@ -499,6 +514,7 @@ class SurveyController extends Controller
             $trashItem = \App\Models\TrashItem::create([
                 'user_id' => Auth::id(),
                 'item_type' => 'survey',
+                'is_shared' => true,
                 'item_id' => $survey->survey_id,
                 'original_title' => $survey->title,
                 'deleted_at' => now(),

@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
+import { useHighlight } from '@/composables/useHighlight'
 import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -88,6 +89,23 @@ onMounted(() => {
     }
     url.searchParams.delete('select')
     window.history.replaceState({}, '', url.toString())
+  }
+  
+  // ハイライト機能
+  const highlightId = (page.props as any).highlight
+  if (highlightId) {
+    const noteToHighlight = props.notes.find(note => note.note_id === highlightId)
+    if (noteToHighlight) {
+      selectedNote.value = noteToHighlight
+      setTimeout(() => {
+        const element = document.querySelector(`[data-note-id="${highlightId}"]`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          element.classList.add('highlight-flash')
+          setTimeout(() => element.classList.remove('highlight-flash'), 3000)
+        }
+      }, 100)
+    }
   }
 })
 

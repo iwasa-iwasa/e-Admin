@@ -12,6 +12,21 @@ use Illuminate\Support\Facades\Redirect;
 class PersonalReminderController extends Controller
 {
     /**
+     * Get a single reminder for API.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        $reminder = Reminder::with(['tags'])
+            ->where('reminder_id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+        return response()->json($reminder);
+    }
+
+    /**
      * Store a newly created reminder in storage.
      *
      * @param  \Illuminate\Http\Request  $request
