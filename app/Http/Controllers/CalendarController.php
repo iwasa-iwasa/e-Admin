@@ -37,11 +37,25 @@ class CalendarController extends Controller
         }
 
         $events = $eventsQuery->get();
+        $teamMembers = \App\Models\User::all();
 
         return Inertia::render('Calendar', [
             'events' => $events,
             'filteredMemberId' => $memberId ? (int)$memberId : null,
+            'teamMembers' => $teamMembers,
         ]);
+    }
+
+    /**
+     * Get a single event for API.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        $event = Event::with(['creator', 'participants', 'attachments', 'recurrence'])->findOrFail($id);
+        return response()->json($event);
     }
 
     /**
@@ -293,6 +307,7 @@ class CalendarController extends Controller
         \App\Models\TrashItem::create([
             'user_id' => auth()->id(),
             'item_type' => 'event',
+            'is_shared' => true,
             'item_id' => $event->event_id,
             'original_title' => $event->title,
             'deleted_at' => now(),

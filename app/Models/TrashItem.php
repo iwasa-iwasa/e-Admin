@@ -15,6 +15,7 @@ class TrashItem extends Model
     protected $fillable = [
         'user_id',
         'item_type',
+        'is_shared',
         'item_id',
         'original_title',
         'deleted_at',
@@ -25,6 +26,7 @@ class TrashItem extends Model
         'id' => 'integer',
         'user_id' => 'integer',
         'item_id' => 'integer',
+        'is_shared' => 'boolean',
         'deleted_at' => 'datetime',
         'permanent_delete_at' => 'datetime',
     ];

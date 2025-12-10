@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2, Filter, Search } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
@@ -270,6 +270,34 @@ const confirmDeleteSelected = () => {
   showDeleteSelectedDialog.value = false
 }
 
+onMounted(() => {
+  const page = usePage()
+  const highlightId = (page.props as any).highlight
+  console.log('Trash onMounted - highlightId:', highlightId)
+  console.log('All page props:', page.props)
+  if (highlightId) {
+    nextTick(() => {
+      setTimeout(() => {
+        const elementId = `item-${highlightId}`
+        console.log('Looking for element with ID:', elementId)
+        const element = document.getElementById(elementId)
+        console.log('Found element:', element)
+        if (element) {
+          console.log('Scrolling to element')
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          setTimeout(() => {
+            element.classList.add('highlight-flash')
+            setTimeout(() => element.classList.remove('highlight-flash'), 3000)
+          }, 500)
+        } else {
+          console.log('Element not found. Available trash item IDs:')
+          trashItems.value.forEach(item => console.log('Trash item ID:', item.id))
+        }
+      }, 500)
+    })
+  }
+})
+
 </script>
 
 <template>
@@ -386,7 +414,7 @@ const confirmDeleteSelected = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="item in sortedItems" :key="item.id || 'unknown'">
+              <TableRow v-for="item in sortedItems" :key="item.id || 'unknown'" :id="`item-${item.id}`">
                 <TableCell>
                   <input 
                     type="checkbox" 

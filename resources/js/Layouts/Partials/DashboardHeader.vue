@@ -24,6 +24,7 @@ import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
+import GlobalSearch from '@/components/GlobalSearch.vue'
 
 const showConfirmLogoutModal = ref(false);
 const form = useForm({});
@@ -386,105 +387,8 @@ onMounted(() => {
 <template>
   <header class="bg-white border-b border-gray-300 px-6 py-4">
     <div class="flex items-center justify-between gap-4">
-      <!-- 強力な検索バー -->
-      <div class="flex-1 max-w-2xl">
-        <Popover v-model:open="isSearchFocused">
-          <PopoverTrigger as-child>
-            <div
-              class="relative"
-              @mouseenter="isSearchFocused = true"
-              @mouseleave="isSearchFocused = false"
-            >
-              <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <Input
-                type="text"
-                placeholder="日付、名前、キーワードで検索... (例: 2025-10-20, 田中, 会議)"
-                class="pl-10 pr-4 py-2 w-full text-gray-500 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                v-model="searchQuery"
-              />
-            </div>
-          </PopoverTrigger>
-          <PopoverContent
-            class="w-80 p-2  border-gray-300"
-            align="start"
-            side="bottom"
-            @mouseenter="isSearchFocused = true"
-            @mouseleave="isSearchFocused = false"
-          >
-            <div class="space-y-1">
-              <p class="text-xs text-gray-500 px-2 py-1">
-                検索オプション
-              </p>
-              <button
-                @click="() => { insertSearchOption('タイトル:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span class="text-blue-600">T</span>
-                <span>タイトル</span>
-              </button>
-              <button
-                @click="() => { insertSearchOption('重要度:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span class="text-red-600">!!</span>
-                <span>重要度</span>
-              </button>
-              <button
-                @click="() => { insertSearchOption('日付:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span>🗓️</span>
-                <span>日付</span>
-              </button>
-              <button
-                @click="() => { insertSearchOption('終了日:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span class="text-orange-600">End</span>
-                <span>ある日付までの予定</span>
-              </button>
-              <button
-                @click="() => { insertSearchOption('開始日:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span class="text-green-600">Start</span>
-                <span>ある日付からの予定</span>
-              </button>
-              <button
-                @click="() => { insertSearchOption('ジャンル:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span class="text-purple-600">#</span>
-                <span>ジャンル</span>
-              </button>
-              <button
-                @click="() => { insertSearchOption('メンバー:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span>👤</span>
-                <span>メンバー</span>
-              </button>
-              <button
-                @click="() => { insertSearchOption('会議室:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span>🚪</span>
-                <span>会議室</span>
-              </button>
-              <button
-                @click="() => { insertSearchOption('メモ:'); isSearchFocused = false; }"
-                class="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 rounded text-sm"
-              >
-                <span>📝</span>
-                <span>メモ</span>
-              </button>
-            </div>
-          </PopoverContent>
-        </Popover>
-        <p class="text-xs text-gray-500 mt-1 ml-1">
-          すべての予定、メモ、リマインダーを横断検索
-        </p>
-      </div>
+      <!-- グローバル検索 -->
+      <GlobalSearch />
 
       <!-- 右側のアクション -->
       <div class="flex items-center gap-3">

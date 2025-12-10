@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatDate } from '@/lib/utils'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 import { Bell, Plus, Clock, CheckCircle, Undo2, Trash2, Search } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -174,6 +174,26 @@ onMounted(() => {
     })
     resizeObserver.observe(buttonContainerRef.value)
   }
+  
+  // ハイライト機能
+  const page = usePage()
+  const highlightId = (page.props as any).highlight_reminder
+  if (highlightId) {
+    nextTick(() => {
+      const reminder = props.reminders.find(r => r.reminder_id === highlightId)
+      if (reminder) {
+        selectedReminder.value = reminder
+        setTimeout(() => {
+          const element = document.getElementById(`reminder-${highlightId}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            element.classList.add('highlight-flash')
+            setTimeout(() => element.classList.remove('highlight-flash'), 3000)
+          }
+        }, 100)
+      }
+    })
+  }
 })
 
 onUnmounted(() => {
@@ -192,11 +212,11 @@ onUnmounted(() => {
           <Bell class="h-5 w-5 text-green-700" />
           <CardTitle>個人リマインダー</CardTitle>
         </div>
-        <div ref="headerWrapperRef" class="flex items-stretch gap-2">
-          <div ref="buttonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg', isNarrow ? 'flex-col' : 'flex-row items-center']">
+        <div ref="headerWrapperRef" class="flex items-center gap-3">
+          <div ref="buttonContainerRef" class="flex flex-col gap-2 p-1 bg-gray-100 rounded-lg">
             <button
               @click="showCompleted = false"
-              :class="['flex items-center justify-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <Clock :class="['h-3.5 w-3.5 flex-shrink-0', !showCompleted ? 'text-orange-500' : 'text-gray-400']" />
               未完了
@@ -206,7 +226,7 @@ onUnmounted(() => {
             </button>
             <button
               @click="showCompleted = true"
-              :class="['flex items-center justify-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <CheckCircle :class="['h-3.5 w-3.5 flex-shrink-0', showCompleted ? 'text-green-500' : 'text-gray-400']" />
               完了済
@@ -233,6 +253,7 @@ onUnmounted(() => {
           <Card
             v-for="reminder in displayedReminders"
             :key="reminder.reminder_id"
+            :id="`reminder-${reminder.reminder_id}`"
             :class="['transition-all cursor-pointer', reminder.completed ? 'opacity-60' : 'hover:shadow-md']"
 @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
           >

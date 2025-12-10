@@ -33,16 +33,24 @@ class DashboardController extends Controller
 
         $events = $eventsQuery->get();
 
-        $notes = SharedNote::with(['author', 'participants'])
+        $notesQuery = SharedNote::with(['author', 'participants'])
             ->where(function($query) use ($user) {
                 $query->where('author_id', $user->id)
                       ->orWhereHas('participants', function($q) use ($user) {
                           $q->where('users.id', $user->id);
                       })
                       ->orWhereDoesntHave('participants');
-            })
-            ->orderBy('updated_at', 'desc')
-            ->get();
+            });
+
+        if ($memberId) {
+            $notesQuery->where(function($query) use ($memberId) {
+                $query->whereHas('participants', function ($q) use ($memberId) {
+                    $q->where('users.id', $memberId);
+                })->orWhereDoesntHave('participants');
+            });
+        }
+
+        $notes = $notesQuery->orderBy('updated_at', 'desc')->get();
 
         // Get IDs of notes pinned by the current user
         $pinnedNoteIds = $user->pinnedNotes()->pluck('shared_notes.note_id')->all();

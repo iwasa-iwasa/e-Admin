@@ -16,12 +16,16 @@ class TrashController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
             \Log::info('TrashController index called for user: ' . Auth::id());
             
-            $trashItems = TrashItem::where('user_id', Auth::id())
+            $trashItems = TrashItem::where(function($q) {
+                    $q->where('is_shared', true)
+                      ->orWhere('user_id', Auth::id());
+                })
+                ->with('user')
                 ->orderBy('deleted_at', 'desc')
                 ->get();
                 
@@ -59,6 +63,8 @@ class TrashController extends Controller
                     'item_id' => (string)$item->item_id,
                     'permanent_delete_at' => $item->permanent_delete_at ? $item->permanent_delete_at->format('Y-m-d H:i') : null,
                     'creatorName' => $creatorName,
+                    'deletedBy' => $item->user ? $item->user->name : '',
+                    'isShared' => $item->is_shared,
                 ];
                 return $mapped;
             });
@@ -72,6 +78,7 @@ class TrashController extends Controller
 
         return Inertia::render('Trash', [
             'trashItems' => $mappedItems,
+            'highlight' => $request->query('highlight'),
         ]);
     }
 

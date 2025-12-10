@@ -107,6 +107,15 @@
   button[role="switch"][data-state='unchecked'] {
     background-color: hsl(var(--muted));
   }
+  
+  @keyframes highlight-flash {
+    0%, 100% { background-color: transparent; }
+    50% { background-color: rgba(59, 130, 246, 0.2); }
+  }
+  
+  .highlight-flash {
+    animation: highlight-flash 1s ease-in-out 3;
+  }
 }
 
 
