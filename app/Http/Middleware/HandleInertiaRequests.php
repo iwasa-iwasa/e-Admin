@@ -50,7 +50,7 @@ class HandleInertiaRequests extends Middleware
         
         // ユーザーが認証されている場合のみ追加データを取得
         if ($user) {
-            $teamMembers = User::get();
+            $teamMembers = User::where('is_active', true)->get();
             
             // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
             $unansweredSurveysCount = Survey::where('is_active', true)

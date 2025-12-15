@@ -138,6 +138,20 @@ const currentURL = computed(() => page.url )
       </Button>
 
       <Button
+        v-if="$page.props.auth.user.role === 'admin'"
+        :class="[
+        'w-full justify-start gap-3',
+        isActive('/admin/users') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
+      ]"
+        as-child
+      >
+        <Link href="/admin/users">
+          <Users class="h-5 w-5 text-indigo-700" />
+          ユーザー管理
+        </Link>
+      </Button>
+
+      <Button
         :class="[
         'w-full justify-start gap-3',
         isActive('/trash') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'

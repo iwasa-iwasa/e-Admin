@@ -53,7 +53,7 @@ class NoteController extends Controller
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
         // 現在のユーザーと同じ部署のメンバーを取得
-        $teamMembers = \App\Models\User::all();
+        $teamMembers = \App\Models\User::where('is_active', true)->get();
 
         // すべてのタグを使用回数順で取得
         $allTags = \App\Models\NoteTag::withCount('sharedNotes')

@@ -30,7 +30,8 @@ class SurveySeeder extends Seeder
                 'survey' => [
                     'title' => '2025年度 忘年会の候補日アンケート',
                     'description' => '12月の忘年会について、参加可能な日程を教えてください。',
-                    'deadline' => '2025-10-20 23:59:59',
+                    'deadline_date' => '2025-10-20',
+                    'deadline_time' => '23:59:59',
                     'created_by' => $user1->id,
                     'is_active' => true,
                 ],
@@ -51,7 +52,8 @@ class SurveySeeder extends Seeder
                 'survey' => [
                     'title' => 'オフィス備品の購入希望アンケート',
                     'description' => '来月の備品発注に向けて、必要な物品や優先順位をお聞かせください。',
-                    'deadline' => '2025-10-18 23:59:59',
+                    'deadline_date' => '2025-10-18',
+                    'deadline_time' => '23:59:59',
                     'created_by' => $user2->id,
                     'is_active' => true,
                 ],

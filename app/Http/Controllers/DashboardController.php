@@ -70,7 +70,7 @@ class DashboardController extends Controller
             ->orderBy('deadline_time')
             ->get();
 
-        $teamMembers = \App\Models\User::all();
+        $teamMembers = \App\Models\User::where('is_active', true)->get();
         
         return Inertia::render('Dashboard', [
             'events' => $events,

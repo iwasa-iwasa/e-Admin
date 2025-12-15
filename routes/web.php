@@ -98,7 +98,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Global Search API
     Route::get('/api/search', [\App\Http\Controllers\GlobalSearchController::class, 'search']);
     Route::get('/api/users', function() {
-        return response()->json(\App\Models\User::select('id', 'name')->orderBy('name')->get());
+        return response()->json(\App\Models\User::where('is_active', true)->select('id', 'name')->orderBy('name')->get());
     });
     Route::get('/api/events/{id}', [CalendarController::class, 'show']);
     Route::get('/api/notes/{id}', [NoteController::class, 'show']);
@@ -111,6 +111,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $request->input('id')
         );
         return response()->json(['success' => true]);
+    });
+
+    Route::middleware(['auth', 'verified', 'admin'])->group(function () {
+        Route::get('/admin/users', [\App\Http\Controllers\AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::delete('/admin/users/{user}', [\App\Http\Controllers\AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+        Route::patch('/admin/users/{user}/restore', [\App\Http\Controllers\AdminUserController::class, 'restore'])->name('admin.users.restore');
     });
 });
 

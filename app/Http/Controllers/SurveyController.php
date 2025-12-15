@@ -59,7 +59,7 @@ class SurveyController extends Controller
             });
 
         // チームメンバーを取得
-        $teamMembers = \App\Models\User::all();
+        $teamMembers = \App\Models\User::where('is_active', true)->get();
 
         return Inertia::render('Surveys', [
             'surveys' => $surveys,
@@ -273,7 +273,7 @@ class SurveyController extends Controller
             });
 
         // チームメンバーを取得
-        $teamMembers = \App\Models\User::all();
+        $teamMembers = \App\Models\User::where('is_active', true)->get();
 
         return Inertia::render('Surveys', [
             'surveys' => $surveys,

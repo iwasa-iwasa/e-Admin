@@ -37,7 +37,7 @@ class CalendarController extends Controller
         }
 
         $events = $eventsQuery->get();
-        $teamMembers = \App\Models\User::all();
+        $teamMembers = \App\Models\User::where('is_active', true)->get();
 
         return Inertia::render('Calendar', [
             'events' => $events,

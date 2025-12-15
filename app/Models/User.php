@@ -24,6 +24,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'department',
+        'role',
+        'is_active',
+        'deactivated_at',
+        'reason',
     ];
 
     /**
@@ -49,6 +54,7 @@ class User extends Authenticatable
         'department' => 'string',
         'role' => 'string',
         'is_active' => 'boolean',
+        'deactivated_at' => 'datetime',
         'password' => 'hashed',
     ];
 
