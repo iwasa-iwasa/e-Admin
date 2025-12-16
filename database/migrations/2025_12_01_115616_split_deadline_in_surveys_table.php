@@ -17,7 +17,7 @@ return new class extends Migration
         });
         
         // 既存のdeadlineデータを分割
-        if (DB::getConnection()->getDriverName() === 'pgsql') {
+        if (DB::connection()->getDriverName() === 'pgsql') {
             DB::statement("
                 UPDATE surveys 
                 SET deadline_date = CAST(deadline AS DATE),
@@ -48,7 +48,7 @@ return new class extends Migration
         });
         
         // deadline_dateとdeadline_timeを結合
-        if (DB::getConnection()->getDriverName() === 'pgsql') {
+        if (DB::connection()->getDriverName() === 'pgsql') {
             DB::statement("
                 UPDATE surveys 
                 SET deadline = deadline_date + COALESCE(deadline_time, '23:59:59'::time)
