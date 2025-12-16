@@ -113,7 +113,7 @@ const insertSearchOption = (option: string) => {
 const isLoadingNotifications = ref(false)
 
 const fetchNotifications = async () => {
-  if (isLoadingNotifications.value) return
+  if (isLoadingNotifications.value || !page.props.auth?.user) return
   
   isLoadingNotifications.value = true
   try {
@@ -125,6 +125,9 @@ const fetchNotifications = async () => {
     const response = await fetch(`/api/notifications?${params}`, {
       cache: 'no-store'
     })
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
     const data = await response.json()
 
     notifications.value = data

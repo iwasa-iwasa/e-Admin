@@ -102,6 +102,7 @@ const legendItems = [
     { label: '来客', color: '#FFA726' },
     { label: '出張', color: '#9575CD' },
     { label: '休暇', color: '#F06292' },
+    { label: 'その他', color: '#6b7280' },
 ];
 
 const calendarOptions = computed((): CalendarOptions => ({

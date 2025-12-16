@@ -426,6 +426,12 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                             <span>休暇</span>
                                                         </div>
                                                     </SelectItem>
+                                                    <SelectItem value="その他">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-gray-500"></div>
+                                                            <span>その他</span>
+                                                        </div>
+                                                    </SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div> 
