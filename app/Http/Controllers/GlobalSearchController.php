@@ -41,15 +41,16 @@ class GlobalSearchController extends Controller
         
         // イベント検索（他社作成も含む）
         if (empty($types) || in_array('event', $types)) {
-            $events = Event::where(function($q) use ($query, $searchField) {
+            $searchQuery = trim($query);
+            $events = Event::where(function($q) use ($searchQuery, $searchField) {
                 if ($searchField === 'title') {
-                    $q->where('title', 'like', "%{$query}%");
+                    $q->where('title', 'like', "%{$searchQuery}%");
                 } elseif ($searchField === 'description') {
-                    $q->where('description', 'like', "%{$query}%");
+                    $q->where('description', 'like', "%{$searchQuery}%");
                 } else {
-                    $q->where('title', 'like', "%{$query}%")
-                      ->orWhere('description', 'like', "%{$query}%")
-                      ->orWhere('location', 'like', "%{$query}%");
+                    $q->where('title', 'like', "%{$searchQuery}%")
+                      ->orWhere('description', 'like', "%{$searchQuery}%")
+                      ->orWhere('location', 'like', "%{$searchQuery}%");
                 }
             })
             ->when($creatorName, function($q) use ($creatorName) {
@@ -90,20 +91,28 @@ class GlobalSearchController extends Controller
         
         // 共有メモ検索（他社作成も含む）
         if (empty($types) || in_array('note', $types)) {
-            $notes = SharedNote::where('is_deleted', false);
-            
-            if ($searchField === 'title') {
-                $notes->where('title', 'like', "%{$query}%");
-            } elseif ($searchField === 'description') {
-                $notes->where('content', 'like', "%{$query}%");
-            } else {
-                $notes->where(function($q) use ($query) {
-                    $q->where('title', 'like', "%{$query}%")
-                      ->orWhere('content', 'like', "%{$query}%");
+            $searchQuery = trim($query);
+            $notes = SharedNote::where('is_deleted', false)
+                ->where(function($q) use ($user) {
+                    $q->where('author_id', $user->id)
+                      ->orWhereHas('participants', function($subQ) use ($user) {
+                          $subQ->where('users.id', $user->id);
+                      })
+                      ->orWhereDoesntHave('participants');
+                })
+                ->where(function($q) use ($searchQuery, $searchField) {
+                    if ($searchField === 'title') {
+                        $q->where('title', 'like', "%{$searchQuery}%");
+                    } elseif ($searchField === 'description') {
+                        $q->where('content', 'like', "%{$searchQuery}%");
+                    } else {
+                        $q->where('title', 'like', "%{$searchQuery}%")
+                          ->orWhere('content', 'like', "%{$searchQuery}%");
+                    }
                 });
-            }
             
-            $notes = $notes->when($creatorName, function($q) use ($creatorName) {
+            $notes = $notes
+                ->when($creatorName, function($q) use ($creatorName) {
                     $q->whereHas('author', fn($q) => $q->where('name', 'like', "%{$creatorName}%"));
                 })
                 ->when($participantName, function($q) use ($participantName) {
@@ -141,15 +150,16 @@ class GlobalSearchController extends Controller
         
         // リマインダー検索
         if (empty($types) || in_array('reminder', $types)) {
+            $searchQuery = trim($query);
             $reminders = Reminder::where('user_id', $user->id)
-                ->where(function($q) use ($query, $searchField) {
+                ->where(function($q) use ($searchQuery, $searchField) {
                     if ($searchField === 'title') {
-                        $q->where('title', 'like', "%{$query}%");
+                        $q->where('title', 'like', "%{$searchQuery}%");
                     } elseif ($searchField === 'description') {
-                        $q->where('description', 'like', "%{$query}%");
+                        $q->where('description', 'like', "%{$searchQuery}%");
                     } else {
-                        $q->where('title', 'like', "%{$query}%")
-                          ->orWhere('description', 'like', "%{$query}%");
+                        $q->where('title', 'like', "%{$searchQuery}%")
+                          ->orWhere('description', 'like', "%{$searchQuery}%");
                     }
                 })
                 ->when($dateFrom, function($q) use ($dateFrom, $dateType) {
@@ -180,15 +190,16 @@ class GlobalSearchController extends Controller
         
         // アンケート検索（他社作成も含む）
         if (empty($types) || in_array('survey', $types)) {
+            $searchQuery = trim($query);
             $surveys = Survey::where('is_deleted', false)
-                ->where(function($q) use ($query, $searchField) {
+                ->where(function($q) use ($searchQuery, $searchField) {
                     if ($searchField === 'title') {
-                        $q->where('title', 'like', "%{$query}%");
+                        $q->where('title', 'like', "%{$searchQuery}%");
                     } elseif ($searchField === 'description') {
-                        $q->where('description', 'like', "%{$query}%");
+                        $q->where('description', 'like', "%{$searchQuery}%");
                     } else {
-                        $q->where('title', 'like', "%{$query}%")
-                          ->orWhere('description', 'like', "%{$query}%");
+                        $q->where('title', 'like', "%{$searchQuery}%")
+                          ->orWhere('description', 'like', "%{$searchQuery}%");
                     }
                 })
                 ->when($creatorName, function($q) use ($creatorName) {
@@ -223,6 +234,7 @@ class GlobalSearchController extends Controller
         
         // ゴミ箱検索（共有アイテムと個人アイテム）
         if (empty($types) || in_array('trash', $types)) {
+            $searchQuery = trim($query);
             $trashItems = TrashItem::where(function($q) use ($user) {
                     $q->where('is_shared', true)
                       ->orWhere('user_id', $user->id);
@@ -230,7 +242,7 @@ class GlobalSearchController extends Controller
                 ->with('user')
                 ->limit(50)
                 ->get()
-                ->filter(function($item) use ($query, $searchField) {
+                ->filter(function($item) use ($searchQuery, $searchField) {
                     $originalItem = null;
                     if ($item->item_type === 'event') {
                         $originalItem = Event::withTrashed()->find($item->item_id);
@@ -239,20 +251,20 @@ class GlobalSearchController extends Controller
                     } elseif ($item->item_type === 'survey') {
                         $originalItem = Survey::find($item->item_id);
                     } elseif ($item->item_type === 'reminder') {
-                        $originalItem = Reminder::withTrashed()->find($item->item_id);
+                        $originalItem = Reminder::find($item->item_id);
                     }
                     
                     if (!$originalItem) return false;
                     
-                    $title = $item->original_title;
+                    $title = $item->original_title ?? '';
                     $description = $originalItem->description ?? $originalItem->content ?? '';
                     
                     if ($searchField === 'title') {
-                        return stripos($title, $query) !== false;
+                        return mb_stripos($title, $searchQuery) !== false;
                     } elseif ($searchField === 'description') {
-                        return stripos($description, $query) !== false;
+                        return mb_stripos($description, $searchQuery) !== false;
                     } else {
-                        return stripos($title, $query) !== false || stripos($description, $query) !== false;
+                        return mb_stripos($title, $searchQuery) !== false || mb_stripos($description, $searchQuery) !== false;
                     }
                 })
                 ->when($dateFrom, function($collection) use ($dateFrom) {
