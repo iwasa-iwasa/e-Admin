@@ -16,6 +16,7 @@ import {
     X,
     CheckCircle,
     Undo2,
+    Info,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,10 +95,14 @@ const messageType = ref<'success' | 'delete' | 'error'>('success');
 const messageTimer = ref<number | null>(null);
 const deletedDraft = ref<DraftData | null>(null);
 const undoTimer = ref<number | null>(null);
+const showFailureDraftBanner = ref(false);
+const showFailureDraftDialog = ref(false);
+const pendingFailureDraft = ref<any>(null);
 
 const { toast } = useToast();
 
 const DRAFT_KEY = "survey_draft";
+const FAILURE_DRAFT_KEY = "survey_failure_draft";
 const AUTO_SAVE_DELAY = 30000; // 30秒
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -286,6 +291,8 @@ const handleSave = (isDraft: boolean = false) => {
         return;
     }
 
+    saveFailureDraft()
+
     // フォームデータを準備
     form.title = title.value;
     form.description = description.value;
@@ -309,6 +316,7 @@ const handleSave = (isDraft: boolean = false) => {
         form.put(`/surveys/${props.survey.survey_id}`, {
             preserveScroll: true,
             onSuccess: () => {
+                clearFailureDraft()
                 showMessage('アンケートを更新しました。', 'success');
                 handleClose();
             },
@@ -331,6 +339,7 @@ const handleSave = (isDraft: boolean = false) => {
         form.post("/surveys", {
             preserveScroll: true,
             onSuccess: () => {
+                clearFailureDraft()
                 // 本保存成功時は一時保存データを削除
                 if (!isDraft) {
                     clearDraft();
@@ -490,6 +499,47 @@ const clearDraft = () => {
         console.error("下書き削除に失敗:", error);
     }
 };
+
+// 保存失敗時のドラフト保存
+const saveFailureDraft = () => {
+    const draft = {
+        title: title.value,
+        description: description.value,
+        deadline: deadline.value,
+        questions: questions.value,
+        selectedRespondents: selectedRespondents.value,
+    }
+    sessionStorage.setItem(FAILURE_DRAFT_KEY, JSON.stringify(draft))
+}
+
+const loadFailureDraft = () => {
+    const draft = sessionStorage.getItem(FAILURE_DRAFT_KEY)
+    return draft ? JSON.parse(draft) : null
+}
+
+const clearFailureDraft = () => {
+    sessionStorage.removeItem(FAILURE_DRAFT_KEY)
+    showFailureDraftBanner.value = false
+}
+
+const restoreFailureDraft = () => {
+    if (pendingFailureDraft.value) {
+        title.value = pendingFailureDraft.value.title
+        description.value = pendingFailureDraft.value.description
+        deadline.value = pendingFailureDraft.value.deadline
+        questions.value = pendingFailureDraft.value.questions
+        selectedRespondents.value = pendingFailureDraft.value.selectedRespondents
+        showFailureDraftBanner.value = true
+    }
+    showFailureDraftDialog.value = false
+    pendingFailureDraft.value = null
+}
+
+const discardFailureDraft = () => {
+    clearFailureDraft()
+    showFailureDraftDialog.value = false
+    pendingFailureDraft.value = null
+}
 
 // 下書き削除の取り消し
 const undoDeleteDraft = () => {
@@ -666,18 +716,25 @@ watch(
                 // 編集モード: 既存データを読み込む
                 loadEditData();
             } else {
-                // 新規作成モード: 一時保存データをチェック
-                const saved = localStorage.getItem(DRAFT_KEY);
-                if (saved && !draftSavedAt.value) {
-                    // 確認ダイアログを表示
-                    const shouldRestore = window.confirm(
-                        "前回の下書きが見つかりました。復元しますか？"
-                    );
+                // 新規作成モード: 保存失敗ドラフトを優先チェック
+                const failureDraft = loadFailureDraft()
+                if (failureDraft) {
+                    pendingFailureDraft.value = failureDraft
+                    showFailureDraftDialog.value = true
+                } else {
+                    // 一時保存データをチェック
+                    const saved = localStorage.getItem(DRAFT_KEY);
+                    if (saved && !draftSavedAt.value) {
+                        // 確認ダイアログを表示
+                        const shouldRestore = window.confirm(
+                            "前回の下書きが見つかりました。復元しますか？"
+                        );
 
-                    if (shouldRestore) {
-                        loadDraft();
-                    } else {
-                        clearDraft();
+                        if (shouldRestore) {
+                            loadDraft();
+                        } else {
+                            clearDraft();
+                        }
                     }
                 }
             }
@@ -699,6 +756,16 @@ watch(
                         : "総務部 共同管理のアンケートを作成します"
                 }}</DialogDescription>
             </DialogHeader>
+            
+            <div v-if="showFailureDraftBanner" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div class="flex-1">
+                <p class="text-sm text-blue-800">前回の下書きを復元しました</p>
+              </div>
+              <button @click="showFailureDraftBanner = false" class="text-blue-600 hover:text-blue-800">
+                <X class="h-4 w-4" />
+              </button>
+            </div>
 
             <!-- 一時保存バナー（新規作成時のみ） -->
             <div
@@ -1379,4 +1446,18 @@ watch(
         </div>
       </div>
     </Transition>
+    
+    <!-- 保存失敗ドラフト復元確認ダイアログ -->
+    <Dialog :open="showFailureDraftDialog" @update:open="(val) => !val && discardFailureDraft()">
+      <DialogContent class="max-w-md z-[70]">
+        <DialogHeader>
+          <DialogTitle>下書きが見つかりました</DialogTitle>
+          <DialogDescription>前回保存に失敗した内容が残っています。復元しますか？</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="discardFailureDraft">破棄</Button>
+          <Button @click="restoreFailureDraft">復元</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 </template>

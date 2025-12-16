@@ -59,6 +59,8 @@ const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const isSaving = ref(false)
+const DRAFT_KEY = 'reminder_draft'
+const showDraftBanner = ref(false)
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
   if (messageTimer.value) {
@@ -131,16 +133,34 @@ watch(() => props.open, (isOpen) => {
       form.description = props.reminder.description || ''
       form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
       form.tags = props.reminder.tags?.map((t: any) => t.tag_name) || []
+      clearDraft()
     } else {
       // 新規作成モード
       editedReminder.value = createDefaultReminder()
       isEditing.value = true
-      // フォームをデフォルト値で初期化
-      form.reset()
-      form.title = ''
-      form.description = ''
-      form.deadline = ''
-      form.tags = []
+      
+      // 下書きがあるか確認
+      const hasDraft = sessionStorage.getItem(DRAFT_KEY)
+      if (hasDraft) {
+        const shouldRestore = window.confirm('前回の下書きが見つかりました。復元しますか？')
+        if (shouldRestore) {
+          loadDraft()
+        } else {
+          clearDraft()
+          form.reset()
+          form.title = ''
+          form.description = ''
+          form.deadline = ''
+          form.tags = []
+        }
+      } else {
+        // フォームをデフォルト値で初期化
+        form.reset()
+        form.title = ''
+        form.description = ''
+        form.deadline = ''
+        form.tags = []
+      }
     }
   }
 })
@@ -193,10 +213,55 @@ const handleEdit = () => {
   }
 }
 
+const saveDraft = () => {
+  try {
+    const draftData = {
+      title: form.title,
+      description: form.description,
+      deadline: form.deadline,
+      tags: form.tags,
+      saved_at: new Date().toISOString(),
+    }
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftData))
+  } catch (error) {
+    console.error('一時保存に失敗:', error)
+  }
+}
+
+const loadDraft = () => {
+  try {
+    const saved = sessionStorage.getItem(DRAFT_KEY)
+    if (!saved) return false
+    
+    const draftData = JSON.parse(saved)
+    form.title = draftData.title || ''
+    form.description = draftData.description || ''
+    form.deadline = draftData.deadline || ''
+    form.tags = draftData.tags || []
+    showDraftBanner.value = true
+    return true
+  } catch (error) {
+    console.error('下書きの復元に失敗:', error)
+    return false
+  }
+}
+
+const clearDraft = () => {
+  try {
+    sessionStorage.removeItem(DRAFT_KEY)
+    showDraftBanner.value = false
+  } catch (error) {
+    console.error('下書きの削除に失敗:', error)
+  }
+}
+
 const handleSave = () => {
   if (!form.title.trim()) {
     return
   }
+
+  // 保存前に一時保存
+  saveDraft()
 
   // deadlineが空文字列の場合はnullに変換
   if (form.deadline === '') {
@@ -212,6 +277,7 @@ const handleSave = () => {
     form.post(route('reminders.store'), {
       preserveScroll: true,
       onSuccess: () => {
+        clearDraft()
         emit('update:open', false)
       },
       onError: () => {
@@ -226,6 +292,7 @@ const handleSave = () => {
       form.put(route('reminders.update', reminderId), {
         preserveScroll: true,
         onSuccess: () => {
+          clearDraft()
           emit('update:open', false)
         },
         onError: () => {
@@ -292,6 +359,25 @@ const handleComplete = () => {
           個人リマインダーを新規作成します
         </DialogDescription>
       </DialogHeader>
+      
+      <!-- 下書きバナー -->
+      <div
+        v-if="showDraftBanner && isCreateMode"
+        class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between"
+      >
+        <div class="flex items-center gap-2 text-sm text-blue-700">
+          <Clock class="h-4 w-4" />
+          <span>下書きから復元されました</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          @click="clearDraft"
+          class="h-6 px-2 text-blue-700 hover:text-blue-900"
+        >
+          <X class="h-3 w-3" />
+        </Button>
+      </div>
 
       <form @submit.prevent="handleSave">
         <div class="space-y-4 pt-4">

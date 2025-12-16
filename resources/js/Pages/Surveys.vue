@@ -514,22 +514,13 @@ onMounted(() => {
                                             編集
                                         </Button>
                                         <Button
-                                            v-if="survey.is_active && !survey.has_responded"
+                                            v-if="survey.is_active"
                                             variant="outline"
                                             class="gap-2"
                                             @click="handleAnswer(survey)"
                                         >
                                             <CheckCircle2 class="h-4 w-4" />
-                                            回答する
-                                        </Button>
-                                        <Button
-                                            v-if="survey.is_active && survey.has_responded"
-                                            variant="outline"
-                                            class="gap-2 opacity-50 cursor-not-allowed"
-                                            disabled
-                                        >
-                                            <CheckCircle2 class="h-4 w-4" />
-                                            回答済み
+                                            {{ survey.has_responded ? '回答を編集' : '回答する' }}
                                         </Button>
                                         <Button
                                             variant="outline"

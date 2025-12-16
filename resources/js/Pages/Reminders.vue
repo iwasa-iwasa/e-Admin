@@ -360,7 +360,7 @@ const confirmBulkDelete = () => {
             <CardContent class="flex-1 overflow-hidden p-6">
               <div class="h-full overflow-auto">
                 <div class="space-y-3">
-                  <div v-for="reminder in activeReminders" :key="reminder.reminder_id" :class="['border-2 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer', selectedActiveItems.has(reminder.reminder_id) ? 'border-blue-500 bg-blue-50' : 'border-gray-300']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { selectedReminder = reminder } }">
+                  <div v-for="reminder in activeReminders" :key="reminder.reminder_id" :class="['border-2 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer', selectedActiveItems.has(reminder.reminder_id) ? 'border-blue-500 bg-blue-50' : 'border-gray-300']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedActiveItems.size > 0) { const checked = selectedActiveItems.has(reminder.reminder_id); if (checked) { selectedActiveItems.delete(reminder.reminder_id) } else { selectedActiveItems.add(reminder.reminder_id) }; selectedActiveItems = new Set(selectedActiveItems) } else { selectedReminder = reminder } } }">
                     <div class="flex items-start gap-3">
                       <input
                         type="checkbox"
@@ -444,7 +444,7 @@ const confirmBulkDelete = () => {
             <CardContent class="flex-1 overflow-hidden p-6">
               <div class="h-full overflow-auto">
                 <div class="space-y-3">
-                  <div v-for="reminder in completedReminders" :key="reminder.reminder_id" :class="['border-2 bg-gray-100 rounded-lg p-4 opacity-60', selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 opacity-100' : 'border-gray-300']">
+                  <div v-for="reminder in completedReminders" :key="reminder.reminder_id" :class="['border-2 bg-gray-100 rounded-lg p-4 opacity-60 cursor-pointer', selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 opacity-100' : 'border-gray-300']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedCompletedItems.size > 0) { const checked = selectedCompletedItems.has(reminder.reminder_id); if (checked) { selectedCompletedItems.delete(reminder.reminder_id) } else { selectedCompletedItems.add(reminder.reminder_id) }; selectedCompletedItems = new Set(selectedCompletedItems) } } }">
                     <div class="flex items-start gap-3">
                       <input
                         type="checkbox"

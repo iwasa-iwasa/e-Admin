@@ -414,7 +414,7 @@ onMounted(() => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="item in sortedItems" :key="item.id || 'unknown'" :id="`item-${item.id}`">
+              <TableRow v-for="item in sortedItems" :key="item.id || 'unknown'" :id="`item-${item.id}`" :class="['cursor-pointer', selectedItems.has(item.id) ? 'bg-blue-50' : '']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedItems.size > 0) { const checked = selectedItems.has(item.id); if (checked) { selectedItems.delete(item.id) } else { selectedItems.add(item.id) }; selectedItems = new Set(selectedItems) } } }">
                 <TableCell>
                   <input 
                     type="checkbox" 

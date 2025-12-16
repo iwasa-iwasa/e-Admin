@@ -348,18 +348,30 @@ class SurveyController extends Controller
 
     public function answer(Survey $survey)
     {
-        // 既に回答済みかチェック
-        $hasResponded = $survey->responses()->where('respondent_id', Auth::id())->exists();
-        
-        if ($hasResponded) {
-            return redirect()->route('surveys')
-                ->with('error', 'このアンケートには既に回答済みです。');
-        }
+        // 既存の回答を取得
+        $existingResponse = $survey->responses()
+            ->with('answers')
+            ->where('respondent_id', Auth::id())
+            ->first();
         
         $survey->load([
             'questions' => fn($query) => $query->orderBy('display_order'),
             'questions.options'
         ]);
+        
+        // 既存の回答をマップ化
+        $existingAnswers = [];
+        if ($existingResponse) {
+            foreach ($existingResponse->answers as $answer) {
+                if ($answer->selected_option_id) {
+                    $existingAnswers[$answer->question_id] = $answer->selected_option_id;
+                } else {
+                    // JSON配列の場合はデコード
+                    $decoded = json_decode($answer->answer_text, true);
+                    $existingAnswers[$answer->question_id] = is_array($decoded) ? $decoded : $answer->answer_text;
+                }
+            }
+        }
         
         return Inertia::render('Surveys/Answer', [
             'survey' => [
@@ -383,6 +395,8 @@ class SurveyController extends Controller
                     'option_text' => $option->option_text,
                 ])->toArray(),
             ])->toArray(),
+            'existingAnswers' => $existingAnswers,
+            'isEditing' => $existingResponse !== null,
         ]);
     }
 
@@ -394,11 +408,24 @@ class SurveyController extends Controller
         
         try {
             DB::transaction(function () use ($survey, $validated) {
-                $response = SurveyResponse::create([
-                    'survey_id' => $survey->survey_id,
-                    'respondent_id' => auth()->id(),
-                    'submitted_at' => now(),
-                ]);
+                // 既存の回答を確認
+                $existingResponse = $survey->responses()
+                    ->where('respondent_id', auth()->id())
+                    ->first();
+                
+                if ($existingResponse) {
+                    // 既存の回答を削除
+                    $existingResponse->answers()->delete();
+                    $response = $existingResponse;
+                    $response->update(['submitted_at' => now()]);
+                } else {
+                    // 新規回答を作成
+                    $response = SurveyResponse::create([
+                        'survey_id' => $survey->survey_id,
+                        'respondent_id' => auth()->id(),
+                        'submitted_at' => now(),
+                    ]);
+                }
                 
                 foreach ($validated['answers'] as $questionId => $answerData) {
                     if ($answerData !== null && $answerData !== '') {
