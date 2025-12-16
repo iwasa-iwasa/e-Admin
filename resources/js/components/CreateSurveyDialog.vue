@@ -745,7 +745,7 @@ watch(
 
 <template>
     <Dialog :open="props.open" @update:open="handleClose">
-        <DialogContent class="max-w-4xl max-h-[90vh]">
+        <DialogContent class="max-w-4xl md:max-w-5xl lg:max-w-6xl w-[95vw] md:w-[66vw] max-h-[90vh]">
             <DialogHeader>
                 <DialogTitle>{{
                     isEditMode ? "アンケートを編集" : "新しいアンケートを作成"
@@ -1380,7 +1380,7 @@ watch(
     </Dialog>
 
     <Dialog v-model:open="showTemplateDialog">
-        <DialogContent class="max-w-3xl max-h-[80vh] overflow-y-auto z-[60]">
+        <DialogContent class="max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] md:w-[66vw] max-h-[80vh] overflow-y-auto z-[60]">
             <DialogHeader>
                 <DialogTitle>質問形式を選択</DialogTitle>
                 <DialogDescription
@@ -1461,3 +1461,4 @@ watch(
       </DialogContent>
     </Dialog>
 </template>
+

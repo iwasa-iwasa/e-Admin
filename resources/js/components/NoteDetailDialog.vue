@@ -354,7 +354,7 @@ const editedContent = computed({
 
 <template>
   <Dialog :open="open" @update:open="closeDialog" :modal="true">
-    <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]" @pointerDownOutside.prevent @interactOutside.prevent>
+    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] max-h-[90vh]" @pointerDownOutside.prevent @interactOutside.prevent>
       <DialogHeader>
         <div class="flex flex-col items-startgap-4">
           <div class="flex items-center  justify-between ">
@@ -640,3 +640,4 @@ const editedContent = computed({
     </Transition>
   </Dialog>
 </template>
+

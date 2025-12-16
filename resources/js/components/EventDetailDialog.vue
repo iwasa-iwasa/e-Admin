@@ -195,7 +195,7 @@ const recurrenceText = computed(() => {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent v-if="event" class="max-w-md">
+    <DialogContent v-if="event" class="max-w-md md:max-w-2xl lg:max-w-4xl w-[95vw] md:w-[66vw]">
       <DialogHeader>
         <DialogTitle>{{ event.title }}</DialogTitle>
         <DialogDescription>
@@ -205,7 +205,7 @@ const recurrenceText = computed(() => {
 
       <Separator />
 
-      <div class="space-y-4 py-4">
+      <div class="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
         <div class="flex items-start gap-4">
           <CalendarIcon class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>

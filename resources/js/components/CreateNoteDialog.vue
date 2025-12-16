@@ -237,7 +237,7 @@ watch(() => props.open, (isOpen) => {
 
 <template>
     <Dialog :open="open" @update:open="handleClose">
-        <DialogContent class="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent class="max-w-4xl md:max-w-5xl lg:max-w-6xl w-[95vw] md:w-[66vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>新しい共有メモを作成</DialogTitle>
                 <DialogDescription>
@@ -492,3 +492,4 @@ watch(() => props.open, (isOpen) => {
         </Dialog>
     </Dialog>
 </template>
+

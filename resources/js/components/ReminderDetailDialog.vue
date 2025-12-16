@@ -350,7 +350,7 @@ const handleComplete = () => {
 
 <template>
   <Dialog :open="open" @update:open="closeDialog">
-    <DialogContent class="max-w-lg">
+    <DialogContent class="max-w-lg md:max-w-2xl lg:max-w-3xl w-[95vw] md:w-[66vw]">
       <DialogHeader>
         <DialogTitle>
           {{ isCreateMode ? '新規リマインダー作成' : (props.reminder?.completed ? '完了済リマインダー' : 'リマインダー詳細') }}
@@ -572,3 +572,4 @@ const handleComplete = () => {
     </Transition>
   </Dialog>
 </template>
+

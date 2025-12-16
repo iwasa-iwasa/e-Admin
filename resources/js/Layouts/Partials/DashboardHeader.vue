@@ -2,7 +2,7 @@
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import { ref, onMounted, computed } from 'vue'
-import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2 } from 'lucide-vue-next'
+import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2, Menu } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +25,13 @@ import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
 import GlobalSearch from '@/components/GlobalSearch.vue'
+
+const props = defineProps<{
+  isSidebarOpen?: boolean
+  isTablet?: boolean
+}>()
+
+const emit = defineEmits(['toggle-sidebar'])
 
 const showConfirmLogoutModal = ref(false);
 const form = useForm({});
@@ -390,6 +397,16 @@ onMounted(() => {
 <template>
   <header class="bg-white border-b border-gray-300 px-6 py-4">
     <div class="flex items-center justify-between gap-4">
+      <!-- ハンバーガーメニュー (iPad Air/Proのみ) -->
+      <Button 
+        v-if="props.isTablet"
+        variant="ghost" 
+        size="icon" 
+        @click="emit('toggle-sidebar')"
+      >
+        <Menu class="h-6 w-6" />
+      </Button>
+      
       <!-- グローバル検索 -->
       <GlobalSearch />
 

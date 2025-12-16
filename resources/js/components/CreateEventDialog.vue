@@ -444,7 +444,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
 
 <template>
     <Dialog :open="open" @update:open="handleClose">
-        <DialogContent class="max-w-3xl max-h-[90vh]">
+        <DialogContent class="max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] md:w-[66vw] max-h-[90vh]">
             <DialogHeader>
                             <DialogTitle>{{ isEditMode ? (canEdit ? '予定編集' : '予定確認') : '新規予定作成' }}</DialogTitle>
                             <DialogDescription>{{ isEditMode ? (canEdit ? '部署内共有カレンダーの予定を編集します' : '部署内共有カレンダーの予定を確認します') : '部署内共有カレンダーに予定を追加します' }}</DialogDescription>
@@ -842,3 +842,4 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
     </Dialog>
     </Dialog>
 </template>
+

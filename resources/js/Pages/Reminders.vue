@@ -45,6 +45,7 @@ const reminderToDelete = ref<App.Models.Reminder | null>(null)
 const selectedActiveItems = ref<Set<number>>(new Set())
 const selectedCompletedItems = ref<Set<number>>(new Set())
 const searchQuery = ref('')
+const searchInputRef = ref<HTMLInputElement | null>(null)
 const filterTag = ref('_all_')
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
@@ -315,11 +316,12 @@ const confirmBulkDelete = () => {
             </Select>
             <div class="relative">
               <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
+              <input
+                ref="searchInputRef"
                 v-model="searchQuery"
                 type="text"
                 placeholder="タイトル、タグ、期限、詳細で検索..."
-                class="pl-9 pr-4 w-[280px]"
+                class="pl-9 pr-4 w-[280px] flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
             <Button variant="outline" @click="() => { isCreateDialogOpen = true; isCreatingNew = true }" class="gap-2">

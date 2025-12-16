@@ -109,21 +109,31 @@ onUnmounted(() => {
         <div :style="{ width: calendarWidth + '%' }" class="h-full flex flex-col pr-3">
             <SharedCalendar :events="events" />
         </div>
-        <div 
-          class="w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize flex items-center justify-center group transition-colors"
-          @mousedown="startDragH"
-        >
-          <GripVertical class="h-4 w-4 text-gray-400 group-hover:text-white" />
+        <div class="relative flex items-center justify-center" style="width: 12px; margin: 0 -6px;">
+          <div 
+            class="absolute inset-0 cursor-col-resize z-10"
+            @mousedown="startDragH"
+          ></div>
+          <div class="w-1 h-full bg-gray-300 group-hover:bg-blue-500 transition-colors pointer-events-none relative z-0">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+              <GripVertical class="h-4 w-4 text-gray-400 group-hover:text-white" />
+            </div>
+          </div>
         </div>
         <div :style="{ width: (100 - calendarWidth) + '%' }" class="h-full flex flex-col pl-3 right-panel">
             <div :style="{ height: notesHeight + '%' }" class="min-h-0 pb-3">
               <SharedNotes :notes="sharedNotes" :totalUsers="totalUsers" :teamMembers="teamMembers" />
             </div>
-            <div 
-              class="h-1 bg-gray-300 hover:bg-blue-500 cursor-row-resize flex items-center justify-center group transition-colors"
-              @mousedown="startDragV"
-            >
-              <GripVertical class="h-4 w-4 text-gray-400 group-hover:text-white rotate-90" />
+            <div class="relative flex items-center justify-center" style="height: 12px; margin: -6px 0;">
+              <div 
+                class="absolute inset-0 cursor-row-resize z-10"
+                @mousedown="startDragV"
+              ></div>
+              <div class="h-1 w-full bg-gray-300 group-hover:bg-blue-500 transition-colors pointer-events-none relative z-0">
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <GripVertical class="h-4 w-4 text-gray-400 group-hover:text-white rotate-90" />
+                </div>
+              </div>
             </div>
             <div :style="{ height: (100 - notesHeight) + '%' }" class="min-h-0 pt-3">
               <PersonalReminders :reminders="personalReminders" />

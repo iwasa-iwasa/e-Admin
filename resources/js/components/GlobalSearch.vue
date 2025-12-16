@@ -30,6 +30,7 @@ const isSearching = ref(false)
 const isResultsOpen = ref(false)
 const isFilterOpen = ref(false)
 const recentItemsLoaded = ref(false)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const selectedTypes = ref<string[]>(['_all_'])
 const searchTimeout = ref<number | null>(null)
@@ -137,6 +138,14 @@ watch([selectedTypes, searchField, creatorName, participantName, dateFrom, dateT
             clearTimeout(searchTimeout.value)
         }
         searchTimeout.value = setTimeout(performSearch, 300)
+    }
+})
+
+watch(isFilterOpen, (newValue, oldValue) => {
+    if (oldValue === true && newValue === false) {
+        setTimeout(() => {
+            searchInputRef.value?.focus()
+        }, 100)
     }
 })
 
@@ -266,10 +275,11 @@ const canEditNote = (note: App.Models.SharedNote) => {
         <div class="flex gap-2">
             <div class="relative flex-1">
                 <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 pointer-events-none" />
-                <Input
+                <input
+                    ref="searchInputRef"
                     type="text"
-                    placeholder="すべての予定、メモ、リマインダーを検索..."
-                    class="pl-10 pr-10 py-2 w-full"
+                    placeholder="タイトルまたは詳細で横断検索"
+                    class="pl-10 pr-10 py-2 w-full flex h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     v-model="searchQuery"
                     @focus="handleFocus"
                     @blur="handleBlur"
