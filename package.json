@@ -43,6 +43,7 @@
         "tailwindcss-animate": "^1.0.7",
         "vue-chartjs": "^5.3.3",
         "vue-material-time-picker": "^1.0.0",
-        "ziggy-js": "^2.6.0"
+        "ziggy-js": "^2.6.0",
+        "rrule": "^2.8.1"
     }
 }
