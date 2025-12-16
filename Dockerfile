@@ -30,7 +30,7 @@ COPY . /var/www/html
 RUN composer install --no-dev --optimize-autoloader
 
 # 7. フロントエンドの依存関係インストールとビルド
-RUN npm install && npm run build
+RUN npm install --legacy-peer-deps && npm run build
 
 # 8. パーミッションの設定
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
