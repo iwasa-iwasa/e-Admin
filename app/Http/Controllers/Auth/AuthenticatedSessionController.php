@@ -39,7 +39,9 @@ class AuthenticatedSessionController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            abort(403, '退職者のアカウントは使用できません。');
+            return redirect()->route('login')->withErrors([
+                'email' => '退職者のアカウントは使用できません。',
+            ]);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

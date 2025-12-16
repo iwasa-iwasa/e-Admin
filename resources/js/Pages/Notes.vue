@@ -62,6 +62,7 @@ const filterAuthor = ref('all')
 const filterPinned = ref('all')
 const filterTag = ref('all')
 const showFilters = ref(false)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 const sortKey = ref<'priority' | 'deadline' | 'updated_at'>('updated_at')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const editedTitle = ref(selectedNote.value?.title || '')
@@ -146,6 +147,18 @@ watch(selectedNote, (newNote) => {
     editedTags.value = newNote.tags.map(tag => tag.tag_name)
     editedParticipants.value = newNote.participants || []
     participantSelectValue.value = null
+  }
+})
+
+watch(showFilters, (newValue, oldValue) => {
+  // フィルターを閉じた時に検索欄にフォーカス
+  if (oldValue === true && newValue === false) {
+    setTimeout(() => {
+      const inputElement = searchInputRef.value?.$el?.querySelector('input') || searchInputRef.value
+      if (inputElement && typeof inputElement.focus === 'function') {
+        inputElement.focus()
+      }
+    }, 100)
   }
 })
 
@@ -455,10 +468,11 @@ const handleRemoveParticipant = (participantId: number) => {
         <div class="flex gap-2 mb-3">
           <div class="relative flex-1">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
+            <input
+              ref="searchInputRef"
               placeholder="タイトル、内容、名前、タグで検索"
               v-model="searchQuery"
-              class="pl-9 pr-9"
+              class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
             <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               <X class="h-4 w-4" />

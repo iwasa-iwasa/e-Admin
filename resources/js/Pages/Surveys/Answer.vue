@@ -44,10 +44,12 @@ interface Survey {
 const props = defineProps<{
     survey: Survey
     questions: Question[]
+    existingAnswers?: Record<number, any>
+    isEditing?: boolean
 }>()
 
 const form = useForm({
-    answers: {} as Record<number, any>
+    answers: props.existingAnswers || {} as Record<number, any>
 })
 
 // ドロップダウンの初期値を空文字列に設定
@@ -63,6 +65,17 @@ const initializeDropdownAnswers = () => {
 initializeDropdownAnswers()
 
 const multipleChoiceAnswers = ref<Record<number, number[]>>({})
+
+// 既存の複数選択回答を初期化
+if (props.existingAnswers) {
+    Object.keys(props.existingAnswers).forEach(key => {
+        const questionId = Number(key)
+        const answer = props.existingAnswers![questionId]
+        if (Array.isArray(answer)) {
+            multipleChoiceAnswers.value[questionId] = answer
+        }
+    })
+}
 const clientValidationErrors = ref<Record<number, string>>({})
 
 const handleMultipleChoiceChange = (questionId: number, optionId: number, checked: boolean) => {
@@ -140,7 +153,7 @@ const cancel = () => {
                     <Button variant="ghost" size="icon" @click="cancel">
                         <ArrowLeft class="h-5 w-5" />
                     </Button>
-                    <CardTitle>{{ survey.title }}</CardTitle>
+                    <CardTitle>{{ survey.title }}{{ isEditing ? ' - 回答を編集' : '' }}</CardTitle>
                 </div>
                 <p class="text-sm text-gray-500 mb-2">{{ survey.description }}</p>
                 <p class="text-sm text-gray-500">
@@ -306,7 +319,7 @@ const cancel = () => {
                                 キャンセル
                             </Button>
                             <Button type="submit" variant="outline" :disabled="form.processing">
-                                {{ form.processing ? '送信中...' : '回答を送信' }}
+                                {{ form.processing ? '送信中...' : (isEditing ? '回答を更新' : '回答を送信') }}
                             </Button>
                         </div>
                     </form>

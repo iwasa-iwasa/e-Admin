@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { Link, usePage, router } from '@inertiajs/vue3'
 import { ref, provide, computed} from 'vue'
-import { Calendar, StickyNote, BarChart3, Mail, Home, Settings, Monitor, Trash2, Users, Bell } from 'lucide-vue-next'
+import { Calendar, StickyNote, BarChart3, Mail, Home, Settings, Monitor, Trash2, Users, Bell, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import LogoTitle from '@/components/logoTitle.vue'
+
+const props = defineProps<{
+  isTablet?: boolean
+}>()
+
+const emit = defineEmits(['close'])
 
 const page = usePage()
 
@@ -56,12 +62,20 @@ const currentURL = computed(() => page.url )
 </script>
 
 <template>
-  <aside class="w-64 bg-white border-r border-gray-300 flex flex-col h-screen">
+  <aside class="w-full bg-white border-r border-gray-300 flex flex-col h-screen">
     <ScrollArea>
     
     <!-- ナビゲーション -->
     
     <nav class="flex-1 p-4 space-y-2">
+      <!-- 閉じるボタン (iPad Air/Proのみ) -->
+      <div v-if="props.isTablet" class="flex items-center justify-between mb-4">
+        <div class="text-lg font-semibold">メニュー</div>
+        <Button variant="ghost" size="icon" @click="emit('close')">
+          <X class="h-5 w-5" />
+        </Button>
+      </div>
+      
       <!-- ロゴ・タイトル -->
       <!-- サイドバー用ロゴコンポーネント -->
       <div class="p-6">
@@ -186,7 +200,7 @@ const currentURL = computed(() => page.url )
 
       <div class="px-3 py-2 text-xs text-gray-500">部署メンバー</div>
 
-      <ScrollArea>
+      <ScrollArea class="flex-1">
         <div class="space-y-1">
           <Button
             v-for="member in teamMembers"
@@ -207,6 +221,6 @@ const currentURL = computed(() => page.url )
         </div>
       </ScrollArea>
     </nav>
-  </ScrollArea>
+    </ScrollArea>
   </aside>
 </template>

@@ -14,6 +14,7 @@ import {
     Repeat,
     Paperclip,
     CheckCircle,
+    Info,
 } from "lucide-vue-next";
 import {
     Dialog,
@@ -64,6 +65,11 @@ const page = usePage()
 const saveMessage = ref('')
 const messageType = ref<'success' | 'error'>('success')
 const messageTimer = ref<number | null>(null)
+const showDraftBanner = ref(false)
+const showDraftDialog = ref(false)
+const pendingDraft = ref<any>(null)
+
+const DRAFT_KEY = 'event_draft'
 
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
@@ -188,11 +194,17 @@ watch(() => props.open, (isOpen) => {
       date.value = form.date_range;
       is_all_day.value = form.is_all_day;
     } else {
-      form.reset();
-      const now = new Date();
-      date.value = [now, now];
-      form.date_range = [now, now];
-      is_all_day.value = false;
+      const draft = loadDraft()
+      if (draft) {
+        pendingDraft.value = draft
+        showDraftDialog.value = true
+      } else {
+        form.reset();
+        const now = new Date();
+        date.value = [now, now];
+        form.date_range = [now, now];
+        is_all_day.value = false;
+      }
     }
   }
 }, { immediate: true });
@@ -283,7 +295,72 @@ const toggleByDay = (day: string) => {
     }
 };
 
+const saveDraft = () => {
+  const draft = {
+    title: form.title,
+    is_all_day: form.is_all_day,
+    date_range: form.date_range,
+    start_time: form.start_time,
+    end_time: form.end_time,
+    participants: form.participants,
+    location: form.location,
+    description: form.description,
+    url: form.url,
+    category: form.category,
+    importance: form.importance,
+    progress: form.progress,
+    recurrence: form.recurrence,
+  }
+  sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+}
+
+const loadDraft = () => {
+  const draft = sessionStorage.getItem(DRAFT_KEY)
+  return draft ? JSON.parse(draft) : null
+}
+
+const clearDraft = () => {
+  sessionStorage.removeItem(DRAFT_KEY)
+  showDraftBanner.value = false
+}
+
+const restoreDraft = () => {
+  if (pendingDraft.value) {
+    form.title = pendingDraft.value.title
+    form.is_all_day = pendingDraft.value.is_all_day
+    form.date_range = pendingDraft.value.date_range.map((d: string) => new Date(d))
+    form.start_time = pendingDraft.value.start_time
+    form.end_time = pendingDraft.value.end_time
+    form.participants = pendingDraft.value.participants
+    form.location = pendingDraft.value.location
+    form.description = pendingDraft.value.description
+    form.url = pendingDraft.value.url
+    form.category = pendingDraft.value.category
+    form.importance = pendingDraft.value.importance
+    form.progress = pendingDraft.value.progress
+    form.recurrence = pendingDraft.value.recurrence
+    date.value = form.date_range as [Date, Date]
+    is_all_day.value = form.is_all_day
+    showDraftBanner.value = true
+  }
+  showDraftDialog.value = false
+  pendingDraft.value = null
+}
+
+const discardDraft = () => {
+  clearDraft()
+  showDraftDialog.value = false
+  pendingDraft.value = null
+  form.reset()
+  const now = new Date()
+  date.value = [now, now]
+  form.date_range = [now, now]
+  is_all_day.value = false
+}
+
 const handleSave = () => {
+  saveDraft()
+  
   const transformData = (data: any) => {
     const transformed: Record<string, any> = {
         ...data,
@@ -297,6 +374,7 @@ const handleSave = () => {
 
   const options = {
     onSuccess: () => {
+      clearDraft()
       handleClose()
       setTimeout(() => {
         showMessage(`予定を${isEditMode.value ? '更新' : '作成'}しました`, 'success')
@@ -366,11 +444,21 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
 
 <template>
     <Dialog :open="open" @update:open="handleClose">
-        <DialogContent class="max-w-3xl max-h-[90vh]">
+        <DialogContent class="max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] md:w-[66vw] max-h-[90vh]">
             <DialogHeader>
                             <DialogTitle>{{ isEditMode ? (canEdit ? '予定編集' : '予定確認') : '新規予定作成' }}</DialogTitle>
                             <DialogDescription>{{ isEditMode ? (canEdit ? '部署内共有カレンダーの予定を編集します' : '部署内共有カレンダーの予定を確認します') : '部署内共有カレンダーに予定を追加します' }}</DialogDescription>
                         </DialogHeader>
+            
+            <div v-if="showDraftBanner" class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div class="flex-1">
+                <p class="text-sm text-blue-800">前回の下書きを復元しました</p>
+              </div>
+              <button @click="showDraftBanner = false" class="text-blue-600 hover:text-blue-800">
+                <X class="h-4 w-4" />
+              </button>
+            </div>
             
                         <Tabs default-value="basic" class="w-full">
                             <TabsList class="grid w-full grid-cols-3">
@@ -424,6 +512,12 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                         <div class="flex items-center gap-2">
                                                             <div class="w-3 h-3 rounded-full bg-[#f06292]"></div>
                                                             <span>休暇</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="その他">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-gray-500"></div>
+                                                            <span>その他</span>
                                                         </div>
                                                     </SelectItem>
                                                 </SelectContent>
@@ -732,5 +826,20 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
         </div>
       </div>
     </Transition>
+
+    <!-- ドラフト復元確認ダイアログ -->
+    <Dialog :open="showDraftDialog" @update:open="(val) => !val && discardDraft()">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>下書きが見つかりました</DialogTitle>
+          <DialogDescription>前回保存に失敗した内容が残っています。復元しますか？</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="discardDraft">破棄</Button>
+          <Button @click="restoreDraft">復元</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </Dialog>
 </template>
+

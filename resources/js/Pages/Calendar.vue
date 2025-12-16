@@ -33,8 +33,8 @@ const clearFilter = () => {
 
 <template>
     <Head title="カレンダー" />
-    <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-6">
-        <div class="flex-[2.9] h-full flex flex-col">
+    <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-4 md:p-6">
+        <div class="flex-1 h-full flex flex-col">
             <SharedCalendar :events="props.events" :show-back-button="true" />
         </div>
     </div>

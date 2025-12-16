@@ -16,6 +16,7 @@ import { router } from '@inertiajs/vue3'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import { all } from 'axios'
@@ -35,15 +36,35 @@ const calendarTitle = ref('')
 const hoveredEvent = ref<any>(null)
 const hoverPosition = ref({ x: 0, y: 0 })
 const searchQuery = ref('')
+const genreFilter = ref('all')
 
 // 今日がビュー内にあるかどうかを保持
 const isTodayInCurrentView = ref(false)
 
 const filteredEvents = computed(() => {
-    if (!searchQuery.value.trim()) return props.events
+    let filtered = props.events
+    
+    if (genreFilter.value !== 'all') {
+        const genreMap: Record<string, string> = {
+            blue: '会議',
+            green: '業務',
+            yellow: '来客',
+            purple: '出張',
+            pink: '休暇'
+        }
+        
+        if (genreFilter.value === 'other') {
+            const knownCategories = Object.values(genreMap)
+            filtered = filtered.filter(event => !knownCategories.includes(event.category))
+        } else {
+            filtered = filtered.filter(event => event.category === genreMap[genreFilter.value])
+        }
+    }
+    
+    if (!searchQuery.value.trim()) return filtered
     
     const query = searchQuery.value.toLowerCase()
-    return props.events.filter(event => {
+    return filtered.filter(event => {
         const title = event.title?.toLowerCase() || ''
         const description = event.description?.toLowerCase() || ''
         const creatorName = event.creator?.name?.toLowerCase() || ''
@@ -102,6 +123,7 @@ const legendItems = [
     { label: '来客', color: '#FFA726' },
     { label: '出張', color: '#9575CD' },
     { label: '休暇', color: '#F06292' },
+    { label: 'その他', color: '#6b7280' },
 ];
 
 const calendarOptions = computed((): CalendarOptions => ({
@@ -410,6 +432,50 @@ watch(highlightId, (id) => {
                     <CardTitle class="whitespace-nowrap">部署内共有カレンダー</CardTitle>
                 </div>
                 <div class="flex items-center gap-2">
+                    <Select v-model="genreFilter">
+                        <SelectTrigger class="w-[140px]">
+                            <SelectValue placeholder="ジャンル" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">すべて</SelectItem>
+                            <SelectItem value="blue">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                                    会議
+                                </div>
+                            </SelectItem>
+                            <SelectItem value="green">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                    業務
+                                </div>
+                            </SelectItem>
+                            <SelectItem value="yellow">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    来客
+                                </div>
+                            </SelectItem>
+                            <SelectItem value="purple">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-purple-500"></div>
+                                    出張
+                                </div>
+                            </SelectItem>
+                            <SelectItem value="pink">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-pink-500"></div>
+                                    休暇
+                                </div>
+                            </SelectItem>
+                            <SelectItem value="other">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-gray-500"></div>
+                                    その他
+                                </div>
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                     <div class="relative">
                         <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                         <Input

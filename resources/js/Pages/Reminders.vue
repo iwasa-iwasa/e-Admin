@@ -45,6 +45,7 @@ const reminderToDelete = ref<App.Models.Reminder | null>(null)
 const selectedActiveItems = ref<Set<number>>(new Set())
 const selectedCompletedItems = ref<Set<number>>(new Set())
 const searchQuery = ref('')
+const searchInputRef = ref<HTMLInputElement | null>(null)
 const filterTag = ref('_all_')
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
@@ -315,11 +316,12 @@ const confirmBulkDelete = () => {
             </Select>
             <div class="relative">
               <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
+              <input
+                ref="searchInputRef"
                 v-model="searchQuery"
                 type="text"
                 placeholder="タイトル、タグ、期限、詳細で検索..."
-                class="pl-9 pr-4 w-[280px]"
+                class="pl-9 pr-4 w-[280px] flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
             <Button variant="outline" @click="() => { isCreateDialogOpen = true; isCreatingNew = true }" class="gap-2">
@@ -360,7 +362,7 @@ const confirmBulkDelete = () => {
             <CardContent class="flex-1 overflow-hidden p-6">
               <div class="h-full overflow-auto">
                 <div class="space-y-3">
-                  <div v-for="reminder in activeReminders" :key="reminder.reminder_id" :class="['border-2 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer', selectedActiveItems.has(reminder.reminder_id) ? 'border-blue-500 bg-blue-50' : 'border-gray-300']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { selectedReminder = reminder } }">
+                  <div v-for="reminder in activeReminders" :key="reminder.reminder_id" :class="['border-2 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer', selectedActiveItems.has(reminder.reminder_id) ? 'border-blue-500 bg-blue-50' : 'border-gray-300']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedActiveItems.size > 0) { const checked = selectedActiveItems.has(reminder.reminder_id); if (checked) { selectedActiveItems.delete(reminder.reminder_id) } else { selectedActiveItems.add(reminder.reminder_id) }; selectedActiveItems = new Set(selectedActiveItems) } else { selectedReminder = reminder } } }">
                     <div class="flex items-start gap-3">
                       <input
                         type="checkbox"
@@ -444,7 +446,7 @@ const confirmBulkDelete = () => {
             <CardContent class="flex-1 overflow-hidden p-6">
               <div class="h-full overflow-auto">
                 <div class="space-y-3">
-                  <div v-for="reminder in completedReminders" :key="reminder.reminder_id" :class="['border-2 bg-gray-100 rounded-lg p-4 opacity-60', selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 opacity-100' : 'border-gray-300']">
+                  <div v-for="reminder in completedReminders" :key="reminder.reminder_id" :class="['border-2 bg-gray-100 rounded-lg p-4 opacity-60 cursor-pointer', selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 opacity-100' : 'border-gray-300']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedCompletedItems.size > 0) { const checked = selectedCompletedItems.has(reminder.reminder_id); if (checked) { selectedCompletedItems.delete(reminder.reminder_id) } else { selectedCompletedItems.add(reminder.reminder_id) }; selectedCompletedItems = new Set(selectedCompletedItems) } } }">
                     <div class="flex items-start gap-3">
                       <input
                         type="checkbox"

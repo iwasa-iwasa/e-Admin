@@ -354,7 +354,7 @@ const editedContent = computed({
 
 <template>
   <Dialog :open="open" @update:open="closeDialog" :modal="true">
-    <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]" @pointerDownOutside.prevent @interactOutside.prevent>
+    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] max-h-[90vh]" @pointerDownOutside.prevent @interactOutside.prevent>
       <DialogHeader>
         <div class="flex flex-col items-startgap-4">
           <div class="flex items-center  justify-between ">
@@ -511,7 +511,10 @@ const editedContent = computed({
         </div>
         <!-- 参加者編集UI -->
         <div v-if="isEditing && editedNote" class="space-y-2 mt-3">
-          <label class="text-xs font-medium text-gray-700 block">共有メンバー</label>
+          <label class="text-xs font-medium text-gray-700 block">共有範囲</label>
+          <div class="text-xs text-gray-600 p-2 bg-gray-50 rounded border">
+            💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
+          </div>
           <template v-if="!canEditParticipants">
             <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
               共有メンバーの変更は作成者または参加者のみ可能です
@@ -538,13 +541,19 @@ const editedContent = computed({
               </label>
             </div>
           </template>
-          <div v-if="editedNote.participants && editedNote.participants.length > 0" class="flex flex-wrap gap-1">
-            <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">
-              {{ participant.name }}
-              <button v-if="canEdit && canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
-                <X class="h-2 w-2" />
-              </button>
-            </Badge>
+          <div v-if="editedNote.participants && editedNote.participants.length > 0" class="min-h-[60px] p-3 border border-purple-300 rounded-md bg-purple-50">
+            <div class="text-xs font-medium text-purple-800 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
+            <div class="flex flex-wrap gap-1">
+              <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">
+                {{ participant.name }}
+                <button v-if="canEdit && canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                  <X class="h-2 w-2" />
+                </button>
+              </Badge>
+            </div>
+          </div>
+          <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 text-blue-700 text-sm">
+            🌐 全体公開: 全員に表示されます
           </div>
         </div>
       </div>
@@ -631,3 +640,4 @@ const editedContent = computed({
     </Transition>
   </Dialog>
 </template>
+

@@ -90,7 +90,7 @@ class NoteController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'content' => ['nullable', 'string'],
-            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
+            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple,gray'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
@@ -99,6 +99,7 @@ class NoteController extends Controller
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
             'pinned' => ['nullable', 'boolean'],
+            'linked_event_id' => ['nullable', 'exists:events,event_id'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -114,6 +115,7 @@ class NoteController extends Controller
             'title' => $validated['title'],
             'content' => $validated['content'],
             'author_id' => Auth::id(),
+            'linked_event_id' => $validated['linked_event_id'] ?? null,
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
             'deadline_date' => $deadlineDate,
@@ -172,7 +174,7 @@ class NoteController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'content' => ['nullable', 'string'],
-            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
+            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple,gray'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],

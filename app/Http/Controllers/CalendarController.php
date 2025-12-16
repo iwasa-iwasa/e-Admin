@@ -78,7 +78,7 @@ class CalendarController extends Controller
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張',
+            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張,その他',
             'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
             'recurrence' => 'nullable|array',
@@ -146,6 +146,7 @@ class CalendarController extends Controller
                 '来客' => 'yellow',
                 '出張' => 'purple',
                 '休暇' => 'pink',
+                'その他' => 'gray',
             ];
             
             $sharedNote = \App\Models\SharedNote::create([
@@ -190,7 +191,7 @@ class CalendarController extends Controller
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張',
+            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張,その他',
             'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
             'attachments' => 'nullable|array',
@@ -252,6 +253,7 @@ class CalendarController extends Controller
                 '来客' => 'yellow',
                 '出張' => 'purple',
                 '休暇' => 'pink',
+                'その他' => 'gray',
             ];
             
             $sharedNote->update([
@@ -274,6 +276,7 @@ class CalendarController extends Controller
                 '来客' => 'yellow',
                 '出張' => 'purple',
                 '休暇' => 'pink',
+                'その他' => 'gray',
             ];
             
             $sharedNote = \App\Models\SharedNote::create([
