@@ -17,12 +17,21 @@ return new class extends Migration
         });
         
         // 既存のdeadlineデータを分割
-        DB::statement("
-            UPDATE surveys 
-            SET deadline_date = DATE(deadline),
-                deadline_time = TIME(deadline)
-            WHERE deadline IS NOT NULL
-        ");
+        if (DB::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement("
+                UPDATE surveys 
+                SET deadline_date = CAST(deadline AS DATE),
+                    deadline_time = CAST(deadline AS TIME)
+                WHERE deadline IS NOT NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE surveys 
+                SET deadline_date = DATE(deadline),
+                    deadline_time = TIME(deadline)
+                WHERE deadline IS NOT NULL
+            ");
+        }
         
         Schema::table('surveys', function (Blueprint $table) {
             $table->dropColumn('deadline');
@@ -39,11 +48,19 @@ return new class extends Migration
         });
         
         // deadline_dateとdeadline_timeを結合
-        DB::statement("
-            UPDATE surveys 
-            SET deadline = TIMESTAMP(deadline_date, COALESCE(deadline_time, '23:59:59'))
-            WHERE deadline_date IS NOT NULL
-        ");
+        if (DB::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement("
+                UPDATE surveys 
+                SET deadline = deadline_date + COALESCE(deadline_time, '23:59:59'::time)
+                WHERE deadline_date IS NOT NULL
+            ");
+        } else {
+            DB::statement("
+                UPDATE surveys 
+                SET deadline = TIMESTAMP(deadline_date, COALESCE(deadline_time, '23:59:59'))
+                WHERE deadline_date IS NOT NULL
+            ");
+        }
         
         Schema::table('surveys', function (Blueprint $table) {
             $table->dropColumn(['deadline_date', 'deadline_time']);
