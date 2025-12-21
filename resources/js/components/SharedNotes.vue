@@ -169,8 +169,22 @@ const getColorClass = (color: string) => {
     green: 'bg-green-100 border-green-300',
     pink: 'bg-pink-100 border-pink-300',
     purple: 'bg-purple-100 border-purple-300',
+    gray: 'bg-gray-100 border-gray-300',
   };
   return colorMap[color] || 'bg-gray-100 border-gray-300';
+}
+
+const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  return deadline < now
 }
 
 const toggleSortOrder = () => {
@@ -270,7 +284,12 @@ const sortedNotes = computed(() => {
             v-for="note in sortedNotes"
             :key="note.note_id"
             :data-note-id="note.note_id"
-            :class="[getColorClass(note.color), 'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow']"
+            :class="[
+              isOverdue(note.deadline_date, note.deadline_time) 
+                ? 'bg-gray-100 border-gray-400 border-2' 
+                : getColorClass(note.color), 
+              'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow'
+            ]"
             @click="selectedNote = note"
           >
             <div class="flex items-start justify-between mb-2">
@@ -317,7 +336,10 @@ const sortedNotes = computed(() => {
                     </Badge>
                   </template>
                 </div>
-                <Badge variant="outline" class="text-xs h-5">
+                <Badge v-if="isOverdue(note.deadline_date, note.deadline_time)" variant="outline" class="text-xs h-5 bg-gray-200 text-gray-700 border-gray-400">
+                  期限切れ
+                </Badge>
+                <Badge v-else variant="outline" class="text-xs h-5">
                   {{ note.deadline_date ? '期限' : '作成日' }}: {{ note.deadline_date ? `${new Date(note.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(note.deadline_time || '23:59:00').substring(0, 5)}` : new Date(note.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
                 </Badge>
               </div>

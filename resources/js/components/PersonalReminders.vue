@@ -41,6 +41,33 @@ let resizeObserver: ResizeObserver | null = null
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
 const activeCount = computed(() => props.reminders.filter((r) => !r.completed).length)
 
+const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  return deadline < now
+}
+
+const isUpcoming = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+  return deadline >= now && deadline <= threeDaysLater
+}
+
 const displayedReminders = computed(() => {
   return showCompleted.value 
     ? props.reminders.filter((r) => r.completed)
@@ -254,7 +281,13 @@ onUnmounted(() => {
             v-for="reminder in displayedReminders"
             :key="reminder.reminder_id"
             :id="`reminder-${reminder.reminder_id}`"
-            :class="['transition-all cursor-pointer', reminder.completed ? 'opacity-60' : 'hover:shadow-md']"
+            :class="[
+              'transition-all cursor-pointer border',
+              reminder.completed ? 'opacity-60' : 'hover:shadow-md',
+              reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
+              reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
+              'border-gray-300'
+            ]"
 @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
           >
             <CardHeader>
@@ -286,7 +319,7 @@ onUnmounted(() => {
                     </div>
                   </div>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex flex-col items-end gap-2 flex-shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
@@ -296,6 +329,12 @@ onUnmounted(() => {
                     <Trash2 class="h-4 w-4" />
                     完全に削除
                   </Button>
+                  <Badge v-if="reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400">
+                    期限切れ
+                  </Badge>
+                  <Badge v-else-if="reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-yellow-100 text-yellow-700 border-yellow-400">
+                    期限間近
+                  </Badge>
                 </div>
               </div>
             </CardHeader>

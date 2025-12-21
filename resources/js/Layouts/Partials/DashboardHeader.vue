@@ -653,6 +653,9 @@ onMounted(() => {
             <DropdownMenuItem as-child>
               <Link :href="route('profile.edit')">プロフィール設定</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem as-child>
+              <Link :href="route('trash.auto-delete')">ゴミ箱自動削除設定</Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem @click="showConfirmLogoutModal = true">
               ログアウト
