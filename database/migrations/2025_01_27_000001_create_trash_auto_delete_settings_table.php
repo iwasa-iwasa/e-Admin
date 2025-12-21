@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('trash_auto_delete_settings', function (Blueprint $table) {
             $table->id();
-            $table->enum('auto_delete_period', ['disabled', '1_minute', '1_month', '3_months', '6_months', '1_year'])->default('disabled');
+            $table->enum('auto_delete_period', ['disabled', '1_month', '3_months', '6_months', '1_year'])->default('disabled');
             $table->timestamps();
         });
         

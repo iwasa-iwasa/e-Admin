@@ -135,7 +135,6 @@ const formatDate = (dateString) => {
 const getPeriodLabel = (period) => {
     const labels = {
         'disabled': '自動削除しない',
-        '1_minute': '1分後（テスト用）',
         '1_month': '1ヶ月後',
         '3_months': '3ヶ月後',
         '6_months': '6ヶ月後',

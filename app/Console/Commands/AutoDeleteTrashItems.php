@@ -70,7 +70,6 @@ class AutoDeleteTrashItems extends Command
         $now = now();
         
         return match ($setting) {
-            '1_minute' => $now->subMinute(),
             '1_month' => $now->subMonth(),
             '3_months' => $now->subMonths(3),
             '6_months' => $now->subMonths(6),
