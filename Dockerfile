@@ -54,5 +54,6 @@ RUN a2enmod rewrite
 # ポート開放
 EXPOSE 80
 
-# サーバー起動
-CMD apache2-foreground
+# サーバー起動 (マイグレーションを実行してからApacheを起動)
+CMD sh -c "php artisan migrate:fresh --force --seed && apache2-foreground"
+
