@@ -34,10 +34,10 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # 7. PHPの依存関係インストール（コメントアウト - 手動で実行）
-# RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader
 
 # 8. フロントエンドの依存関係インストールとビルド（コメントアウト）
-# RUN npm install --legacy-peer-deps && npm run build
+RUN npm install --legacy-peer-deps && npm run build
 
 # 9. パーミッションの設定
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache || true
