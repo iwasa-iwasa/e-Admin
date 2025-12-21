@@ -10,10 +10,12 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. PHP拡張モジュールのインストール（個別に）
 RUN docker-php-ext-install pdo_mysql
+RUN docker-php-ext-install pdo_pgsql
 RUN docker-php-ext-install mbstring
 RUN docker-php-ext-install exif
 RUN docker-php-ext-install pcntl
@@ -34,10 +36,10 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # 7. PHPの依存関係インストール（コメントアウト - 手動で実行）
-# RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader
 
 # 8. フロントエンドの依存関係インストールとビルド（コメントアウト）
-# RUN npm install --legacy-peer-deps && npm run build
+RUN npm install --legacy-peer-deps && npm run build
 
 # 9. パーミッションの設定
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache || true
