@@ -78,7 +78,7 @@ class SurveyResponseSeeder extends Seeder
     private function generateAnswer($question)
     {
         switch ($question->question_type) {
-            case 'single_choice':
+            case 'single':
             case 'radio':
                 // 選択肢からランダムに1つ選択
                 $options = $question->options;
@@ -91,6 +91,7 @@ class SurveyResponseSeeder extends Seeder
                     'option_id' => $selectedOption->option_id,
                 ];
 
+            case 'multiple':
             case 'multiple_choice':
                 // 選択肢から複数ランダムに選択（1-3個）
                 $options = $question->options;
@@ -161,16 +162,32 @@ class SurveyResponseSeeder extends Seeder
                 ];
 
             case 'scale':
-                // ランダムなスケール値（1-5）
-                $scale = rand(1, 5);
+                // リッカートスケール：複数項目に対する評価
+                // scaleタイプの場合、optionsが評価項目を表す
+                $options = $question->options;
+                if ($options->isEmpty()) {
+                    // optionsがない場合は単一値
+                    $scale = rand(1, 5);
+                    return [
+                        'text' => (string) $scale,
+                        'option_id' => null,
+                    ];
+                }
+                
+                // 各項目に対してランダムな評価値を生成
+                $scaleData = [];
+                foreach ($options as $option) {
+                    $scaleData[$option->option_text] = rand(1, 5);
+                }
+                
                 return [
-                    'text' => (string) $scale,
+                    'text' => json_encode($scaleData, JSON_UNESCAPED_UNICODE),
                     'option_id' => null,
                 ];
 
             case 'date':
-                // ランダムな日付
-                $date = now()->subDays(rand(0, 30))->format('Y-m-d H:i:s');
+                // ランダムな日付（秒なし）
+                $date = now()->subDays(rand(0, 30))->format('Y-m-d H:i:00');
                 return [
                     'text' => $date,
                     'option_id' => null,

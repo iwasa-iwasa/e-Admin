@@ -49,7 +49,7 @@ const props = defineProps<{
 }>()
 
 const form = useForm({
-    answers: props.existingAnswers || {} as Record<number, any>
+    answers: props.existingAnswers ? JSON.parse(JSON.stringify(props.existingAnswers)) : {} as Record<number, any>
 })
 
 // ドロップダウンの初期値を空文字列に設定
@@ -71,8 +71,10 @@ if (props.existingAnswers) {
     Object.keys(props.existingAnswers).forEach(key => {
         const questionId = Number(key)
         const answer = props.existingAnswers![questionId]
-        if (Array.isArray(answer)) {
-            multipleChoiceAnswers.value[questionId] = answer
+        const question = props.questions.find(q => q.question_id === questionId)
+        
+        if (question?.question_type === 'multiple_choice' && Array.isArray(answer)) {
+            multipleChoiceAnswers.value[questionId] = [...answer]
         }
     })
 }
@@ -205,6 +207,7 @@ const cancel = () => {
                                         <input 
                                             type="checkbox"
                                             :id="`q${question.question_id}_${option.option_id}`"
+                                            :checked="multipleChoiceAnswers[question.question_id]?.includes(option.option_id)"
                                             @change="handleMultipleChoiceChange(question.question_id, option.option_id, ($event.target as HTMLInputElement).checked)"
                                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                         />
@@ -236,6 +239,7 @@ const cancel = () => {
                                     :required="question.is_required"
                                     v-model="form.answers[question.question_id]"
                                     type="datetime-local"
+                                    step="60"
                                 />
 
                                 <!-- Rating -->

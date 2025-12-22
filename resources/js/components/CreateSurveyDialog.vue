@@ -259,6 +259,14 @@ const removeOption = (questionId: string, optionIndex: number) => {
 };
 
 const handleSave = (isDraft: boolean = false) => {
+    // 未入力の選択肢を自動削除
+    questions.value = questions.value.map((q) => {
+        if (["single", "multiple", "dropdown"].includes(q.type)) {
+            return { ...q, options: q.options.filter((opt) => opt.trim()) };
+        }
+        return q;
+    });
+
     // クライアント側のバリデーション
     const errors: string[] = [];
     
@@ -278,8 +286,7 @@ const handleSave = (isDraft: boolean = false) => {
             break;
         }
         if (["single", "multiple", "dropdown"].includes(question.type)) {
-            const validOptions = question.options.filter((opt) => opt.trim());
-            if (validOptions.length < 2) {
+            if (question.options.length < 2) {
                 errors.push('選択肢形式の質問には最低2つの選択肢が必要です');
                 break;
             }

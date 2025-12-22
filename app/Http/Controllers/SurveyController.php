@@ -363,12 +363,27 @@ class SurveyController extends Controller
         $existingAnswers = [];
         if ($existingResponse) {
             foreach ($existingResponse->answers as $answer) {
+                $question = $survey->questions->firstWhere('question_id', $answer->question_id);
+                
                 if ($answer->selected_option_id) {
                     $existingAnswers[$answer->question_id] = $answer->selected_option_id;
                 } else {
                     // JSON配列の場合はデコード
                     $decoded = json_decode($answer->answer_text, true);
-                    $existingAnswers[$answer->question_id] = is_array($decoded) ? $decoded : $answer->answer_text;
+                    
+                    if (is_array($decoded) && $question && $question->question_type === 'multiple_choice') {
+                        // multiple_choiceの場合、テキストからoption_idに変換
+                        $optionIds = [];
+                        foreach ($decoded as $text) {
+                            $option = $question->options->firstWhere('option_text', $text);
+                            if ($option) {
+                                $optionIds[] = $option->option_id;
+                            }
+                        }
+                        $existingAnswers[$answer->question_id] = $optionIds;
+                    } else {
+                        $existingAnswers[$answer->question_id] = is_array($decoded) ? $decoded : $answer->answer_text;
+                    }
                 }
             }
         }
@@ -430,24 +445,43 @@ class SurveyController extends Controller
                 foreach ($validated['answers'] as $questionId => $answerData) {
                     if ($answerData !== null && $answerData !== '') {
                         $question = SurveyQuestion::find($questionId);
-                        $selectedOptionId = null;
-                        $answerText = $answerData;
                         
-                        // Handle option-based questions
-                        if (in_array($question->question_type, ['single_choice', 'dropdown']) && is_numeric($answerData)) {
-                            $selectedOptionId = $answerData;
-                            $option = SurveyQuestionOption::find($answerData);
-                            $answerText = $option ? $option->option_text : $answerData;
-                        } elseif (is_array($answerData)) {
-                            $answerText = json_encode($answerData);
+                        // multiple_choiceの場合、配列をカンマ区切りのテキストに変換
+                        if ($question->question_type === 'multiple_choice' && is_array($answerData)) {
+                            $optionTexts = [];
+                            foreach ($answerData as $optionId) {
+                                $option = SurveyQuestionOption::find($optionId);
+                                if ($option) {
+                                    $optionTexts[] = $option->option_text;
+                                }
+                            }
+                            
+                            SurveyAnswer::create([
+                                'response_id' => $response->response_id,
+                                'question_id' => $questionId,
+                                'answer_text' => implode(', ', $optionTexts),
+                                'selected_option_id' => null,
+                            ]);
+                        } else {
+                            $selectedOptionId = null;
+                            $answerText = $answerData;
+                            
+                            // single_choiceとdropdownの場合
+                            if (in_array($question->question_type, ['single_choice', 'dropdown']) && is_numeric($answerData)) {
+                                $selectedOptionId = $answerData;
+                                $option = SurveyQuestionOption::find($answerData);
+                                $answerText = $option ? $option->option_text : $answerData;
+                            } elseif (is_array($answerData)) {
+                                $answerText = json_encode($answerData);
+                            }
+                            
+                            SurveyAnswer::create([
+                                'response_id' => $response->response_id,
+                                'question_id' => $questionId,
+                                'answer_text' => $answerText,
+                                'selected_option_id' => $selectedOptionId,
+                            ]);
                         }
-                        
-                        SurveyAnswer::create([
-                            'response_id' => $response->response_id,
-                            'question_id' => $questionId,
-                            'answer_text' => $answerText,
-                            'selected_option_id' => $selectedOptionId,
-                        ]);
                     }
                 }
             });

@@ -124,6 +124,15 @@ const removeOption = (questionId: string, optionIndex: number) => {
   })
 }
 
+const cleanEmptyOptions = () => {
+  questions.value = questions.value.map((q) => {
+    if (['single', 'multiple', 'dropdown'].includes(q.type)) {
+      return { ...q, options: q.options.filter((opt) => opt.trim()) }
+    }
+    return q
+  })
+}
+
 const validateSurvey = () => {
   const errors: string[] = []
   
@@ -157,6 +166,16 @@ const validateSurvey = () => {
 const handleSave = (isDraft: boolean = false) => {
   console.log('handleSave called with isDraft:', isDraft)
   
+  if (!isDraft) {
+    cleanEmptyOptions()
+    const errors = validateSurvey()
+    if (errors.length > 0) {
+      const errorMessage = errors.join('\n')
+      showMessage(errorMessage, 'error')
+      return
+    }
+  }
+  
   const surveyData = {
     title: title.value,
     description: description.value,
@@ -168,49 +187,20 @@ const handleSave = (isDraft: boolean = false) => {
 
   console.log('Survey data:', surveyData)
 
-  if (isDraft) {
-    console.log('Processing draft save...')
-    // 一時保存はバリデーションなし
-    router.post(route('surveys.store'), surveyData, {
-      preserveScroll: true,
-      onSuccess: () => {
-        console.log('Draft save success')
-        showMessage('アンケートが保存されました。', 'success')
-        setTimeout(() => {
-          router.get('/surveys')
-        }, 1500)
-      },
-      onError: (errors) => {
-        console.log('Draft save error:', errors)
-        showMessage('保存に失敗しました。', 'error')
-      }
-    })
-  } else {
-    console.log('Processing publish...')
-    // アンケート公開時はバリデーション実行
-    const errors = validateSurvey()
-    if (errors.length > 0) {
-      console.log('Validation errors:', errors)
-      const errorMessage = errors.join('\n')
-      showMessage(errorMessage, 'error')
-      return
+  router.post(route('surveys.store'), surveyData, {
+    preserveScroll: true,
+    onSuccess: () => {
+      console.log(isDraft ? 'Draft save success' : 'Publish success')
+      showMessage(isDraft ? 'アンケートが保存されました。' : 'アンケートを公開しました。', 'success')
+      setTimeout(() => {
+        router.get('/surveys')
+      }, 1500)
+    },
+    onError: (errors) => {
+      console.log(isDraft ? 'Draft save error:' : 'Publish error:', errors)
+      showMessage(isDraft ? '保存に失敗しました。' : '公開に失敗しました。', 'error')
     }
-    
-    router.post(route('surveys.store'), surveyData, {
-      preserveScroll: true,
-      onSuccess: () => {
-        console.log('Publish success')
-        showMessage('アンケートを公開しました。', 'success')
-        setTimeout(() => {
-          router.get('/surveys')
-        }, 1500)
-      },
-      onError: (errors) => {
-        console.log('Publish error:', errors)
-        showMessage('公開に失敗しました。', 'error')
-      }
-    })
-  }
+  })
 }
 
 const handleCancel = () => {
