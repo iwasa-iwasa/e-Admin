@@ -10,10 +10,12 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. PHP拡張モジュールのインストール（個別に）
 RUN docker-php-ext-install pdo_mysql
+RUN docker-php-ext-install pdo_pgsql
 RUN docker-php-ext-install mbstring
 RUN docker-php-ext-install exif
 RUN docker-php-ext-install pcntl
