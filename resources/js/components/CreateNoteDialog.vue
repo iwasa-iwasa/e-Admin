@@ -220,6 +220,7 @@ const getColorInfo = (c: string) => {
         yellow: { bg: "bg-yellow-100", label: "来客", color: "#ffa726" },
         purple: { bg: "bg-purple-100", label: "出張", color: "#9575cd" },
         pink: { bg: "bg-pink-100", label: "休暇", color: "#f06292" },
+        gray: { bg: "bg-gray-100", label: "その他", color: "#9e9e9e" },
     };
     return colorMap[c] || colorMap.yellow;
 };
@@ -337,6 +338,7 @@ watch(() => props.open, (isOpen) => {
                                             'yellow',
                                             'purple',
                                             'pink',
+                                            'gray',
                                         ]"
                                         :key="c"
                                         :value="c"

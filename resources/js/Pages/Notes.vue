@@ -345,8 +345,22 @@ const getColorClass = (color: string) => {
     green: 'bg-green-50 border-green-300 hover:bg-green-100',
     pink: 'bg-pink-50 border-pink-300 hover:bg-pink-100',
     purple: 'bg-purple-50 border-purple-300 hover:bg-purple-100',
+    gray: 'bg-gray-50 border-gray-300 hover:bg-gray-100',
   }
   return colorMap[color] || 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+}
+
+const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  return deadline < now
 }
 
 const scrollToNote = (noteId: string) => {
@@ -391,6 +405,7 @@ const getColorInfo = (c: string) => {
     yellow: { bg: 'bg-yellow-100', label: '来客', color: '#ffa726' },
     purple: { bg: 'bg-purple-100', label: '出張', color: '#9575cd' },
     pink: { bg: 'bg-pink-100', label: '休暇', color: '#f06292' },
+    gray: { bg: 'bg-gray-100', label: 'その他', color: '#9e9e9e' },
   }
   return colorMap[c] || colorMap.yellow
 }
@@ -583,7 +598,13 @@ const handleRemoveParticipant = (participantId: number) => {
             :key="note.note_id"
             :data-note-id="note.note_id"
             @click="handleSelectNote(note)"
-            :class="['cursor-pointer transition-all border-l-4', selectedNote?.note_id === note.note_id ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md', getColorClass(note.color)]"
+            :class="[
+              'cursor-pointer transition-all border-l-4', 
+              selectedNote?.note_id === note.note_id ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md', 
+              isOverdue(note.deadline_date, note.deadline_time) 
+                ? 'bg-gray-100 border-gray-400 hover:bg-gray-200' 
+                : getColorClass(note.color)
+            ]"
           >
             <div class="p-4">
               <div class="flex items-start gap-3 mb-2">
@@ -622,6 +643,9 @@ const handleRemoveParticipant = (participantId: number) => {
                       </Badge>
                     </template>
                   </div>
+                  <Badge v-if="isOverdue(note.deadline_date, note.deadline_time)" variant="outline" class="text-xs bg-gray-200 text-gray-700 border-gray-400">
+                    期限切れ
+                  </Badge>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
@@ -711,7 +735,7 @@ const handleRemoveParticipant = (participantId: number) => {
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem v-for="c in ['blue', 'green', 'yellow', 'purple', 'pink']" :key="c" :value="c">
+                    <SelectItem v-for="c in ['blue', 'green', 'yellow', 'purple', 'pink', 'gray']" :key="c" :value="c">
                       <div class="flex items-center gap-2">
                         <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
                         <span>{{ getColorInfo(c).label }}</span>

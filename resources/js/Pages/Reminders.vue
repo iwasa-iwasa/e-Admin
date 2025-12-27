@@ -159,6 +159,33 @@ const allTags = computed(() => {
   return Array.from(tags).sort()
 })
 
+const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  return deadline < now
+}
+
+const isUpcoming = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+  return deadline >= now && deadline <= threeDaysLater
+}
+
 const filteredReminders = computed(() => {
   return props.reminders.filter(reminder => {
     const matchesSearch = !searchQuery.value.trim() || (() => {
@@ -362,7 +389,15 @@ const confirmBulkDelete = () => {
             <CardContent class="flex-1 overflow-hidden p-6">
               <div class="h-full overflow-auto">
                 <div class="space-y-3">
-                  <div v-for="reminder in activeReminders" :key="reminder.reminder_id" :class="['border-2 bg-white rounded-lg p-4 hover:shadow-md transition-all cursor-pointer', selectedActiveItems.has(reminder.reminder_id) ? 'border-blue-500 bg-blue-50' : 'border-gray-300']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedActiveItems.size > 0) { const checked = selectedActiveItems.has(reminder.reminder_id); if (checked) { selectedActiveItems.delete(reminder.reminder_id) } else { selectedActiveItems.add(reminder.reminder_id) }; selectedActiveItems = new Set(selectedActiveItems) } else { selectedReminder = reminder } } }">
+                  <div v-for="reminder in activeReminders" :key="reminder.reminder_id" 
+                    :class="[
+                      'rounded-lg p-4 hover:shadow-md transition-all cursor-pointer border bg-white',
+                      selectedActiveItems.has(reminder.reminder_id) ? 'border-blue-500 bg-blue-50' : 
+                      reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
+                      reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
+                      'border-gray-300'
+                    ]" 
+                    @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedActiveItems.size > 0) { const checked = selectedActiveItems.has(reminder.reminder_id); if (checked) { selectedActiveItems.delete(reminder.reminder_id) } else { selectedActiveItems.add(reminder.reminder_id) }; selectedActiveItems = new Set(selectedActiveItems) } else { selectedReminder = reminder } } }">
                     <div class="flex items-start gap-3">
                       <input
                         type="checkbox"
@@ -392,11 +427,19 @@ const confirmBulkDelete = () => {
                           </Badge>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" class="gap-1 sm:gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 whitespace-nowrap" @click.stop="handleDeletePermanently(reminder)">
-                        <Trash2 class="h-4 w-4" />
-                        <span class="hidden sm:inline">完全に削除</span>
-                        <span class="sm:hidden">削除</span>
-                      </Button>
+                      <div class="flex flex-col items-end gap-2">
+                        <Button variant="outline" size="sm" class="gap-1 sm:gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 whitespace-nowrap" @click.stop="handleDeletePermanently(reminder)">
+                          <Trash2 class="h-4 w-4" />
+                          <span class="hidden sm:inline">完全に削除</span>
+                          <span class="sm:hidden">削除</span>
+                        </Button>
+                        <Badge v-if="reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400">
+                          期限切れ
+                        </Badge>
+                        <Badge v-else-if="reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-yellow-100 text-yellow-700 border-yellow-400">
+                          期限間近
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                   <div v-if="activeReminders.length === 0" class="text-center py-12 text-gray-500">
@@ -446,7 +489,15 @@ const confirmBulkDelete = () => {
             <CardContent class="flex-1 overflow-hidden p-6">
               <div class="h-full overflow-auto">
                 <div class="space-y-3">
-                  <div v-for="reminder in completedReminders" :key="reminder.reminder_id" :class="['border-2 bg-gray-100 rounded-lg p-4 opacity-60 cursor-pointer', selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 opacity-100' : 'border-gray-300']" @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedCompletedItems.size > 0) { const checked = selectedCompletedItems.has(reminder.reminder_id); if (checked) { selectedCompletedItems.delete(reminder.reminder_id) } else { selectedCompletedItems.add(reminder.reminder_id) }; selectedCompletedItems = new Set(selectedCompletedItems) } } }">
+                  <div v-for="reminder in completedReminders" :key="reminder.reminder_id" 
+                    :class="[
+                      'rounded-lg p-4 opacity-60 cursor-pointer border bg-gray-100',
+                      selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 opacity-100' : 
+                      reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
+                      reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
+                      'border-gray-300'
+                    ]" 
+                    @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedCompletedItems.size > 0) { const checked = selectedCompletedItems.has(reminder.reminder_id); if (checked) { selectedCompletedItems.delete(reminder.reminder_id) } else { selectedCompletedItems.add(reminder.reminder_id) }; selectedCompletedItems = new Set(selectedCompletedItems) } } }">
                     <div class="flex items-start gap-3">
                       <input
                         type="checkbox"
@@ -476,11 +527,19 @@ const confirmBulkDelete = () => {
                           </Badge>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" class="gap-1 sm:gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 whitespace-nowrap" @click="handleDeletePermanently(reminder)">
-                        <Trash2 class="h-4 w-4" />
-                        <span class="hidden sm:inline">完全に削除</span>
-                        <span class="sm:hidden">削除</span>
-                      </Button>
+                      <div class="flex flex-col items-end gap-2">
+                        <Button variant="outline" size="sm" class="gap-1 sm:gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 whitespace-nowrap" @click="handleDeletePermanently(reminder)">
+                          <Trash2 class="h-4 w-4" />
+                          <span class="hidden sm:inline">完全に削除</span>
+                          <span class="sm:hidden">削除</span>
+                        </Button>
+                        <Badge v-if="reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400 opacity-60">
+                          期限切れ
+                        </Badge>
+                        <Badge v-else-if="reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-yellow-100 text-yellow-700 border-yellow-400 opacity-60">
+                          期限間近
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                   <div v-if="completedReminders.length === 0" class="text-center py-12 text-gray-500">

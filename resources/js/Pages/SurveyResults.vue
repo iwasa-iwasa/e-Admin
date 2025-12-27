@@ -92,6 +92,7 @@ interface QuestionResult {
     responses: any[];
     aggregatedData?: any;
     scaleMax?: number;
+    averageRating?: number;
 }
 
 const mockSurveyResult: SurveyResult = {
@@ -286,16 +287,27 @@ const surveyData = computed(() => {
                 props.survey.questions?.map((q: any) => {
                     const questionStats =
                         props.statistics?.[q.question_id] || {};
+                    const responses = getQuestionResponses(
+                        q,
+                        props.responses || []
+                    );
+                    
+                    // rating/scaleの平均値を計算
+                    const averageRating = responses.length > 0
+                        ? responses.reduce((sum, r) => sum + Number(r.value || 0), 0) / responses.length
+                        : 0;
+                    
                     return {
                         id: String(q.question_id),
                         question: q.question_text,
                         type: mapQuestionTypeToFrontend(q.question_type),
                         required: q.is_required,
                         scaleMax: q.scale_max,
-                        responses: getQuestionResponses(
-                            q,
-                            props.responses || []
-                        ),
+                        scaleMin: q.scale_min,
+                        scaleMinLabel: q.scale_min_label,
+                        scaleMaxLabel: q.scale_max_label,
+                        responses,
+                        averageRating,
                         aggregatedData: questionStats.distribution
                             ? Object.entries(questionStats.distribution).map(
                                   ([name, value]) => {
@@ -359,8 +371,8 @@ const getQuestionResponses = (
         if (answer) {
             let value: any = answer.answer_text;
 
-            // 複数選択の場合、JSON配列をパース
-            if (question.question_type === 'multiple_choice' && typeof value === 'string') {
+            // 複数選択・scaleの場合、JSONをパース
+            if ((question.question_type === 'multiple_choice' || question.question_type === 'scale') && typeof value === 'string') {
                 try {
                     value = JSON.parse(value);
                 } catch (e) {
@@ -749,18 +761,7 @@ const getQuestionResponses = (
                                         平均評価
                                     </p>
                                     <p class="text-4xl text-blue-600 mb-2">
-                                        {{
-                                            question.responses.length > 0
-                                                ? (
-                                                      question.responses.reduce(
-                                                          (sum, r) =>
-                                                              sum + r.value,
-                                                          0
-                                                      ) /
-                                                      question.responses.length
-                                                  ).toFixed(1)
-                                                : "回答なし"
-                                        }}
+                                        {{ question.averageRating ? question.averageRating.toFixed(1) : '回答なし' }}
                                     </p>
                                     <div
                                         class="flex items-center justify-center gap-1"
@@ -770,16 +771,7 @@ const getQuestionResponses = (
                                             :key="i"
                                             :class="[
                                                 'text-2xl',
-                                                i <=
-                                                Math.round(
-                                                    question.responses.reduce(
-                                                        (sum, r) =>
-                                                            sum + r.value,
-                                                        0
-                                                    ) /
-                                                        question.responses
-                                                            .length
-                                                )
+                                                i <= (question.averageRating || 0)
                                                     ? 'text-yellow-400'
                                                     : 'text-gray-300',
                                             ]"
@@ -881,73 +873,41 @@ const getQuestionResponses = (
                             <div class="space-y-6">
                                 <div>
                                     <h4 class="text-sm mb-4 text-gray-600">
-                                        各項目の平均評価（{{ question.scaleMax || 5 }}段階）
+                                        平均評価（{{ question.scaleMax || 5 }}段階）
                                     </h4>
-                                    <div v-if="question.aggregatedData && question.aggregatedData.length > 0" style="height: 400px; position: relative">
-                                        <Radar
-                                            :data="{
-                                                labels: question.aggregatedData.map(
-                                                    (d) => d.subject
-                                                ),
-                                                datasets: [
-                                                    {
-                                                        label: '平均評価',
-                                                        backgroundColor:
-                                                            'rgba(139, 92, 246, 0.6)',
-                                                        borderColor: '#8b5cf6',
-                                                        pointBackgroundColor:
-                                                            '#8b5cf6',
-                                                        data: question.aggregatedData.map(
-                                                            (d) => d.A
-                                                        ),
-                                                    },
-                                                ],
-                                            }"
-                                            :options="{
-                                                responsive: true,
-                                                maintainAspectRatio: false,
-                                                scales: {
-                                                    r: {
-                                                        angleLines: {
-                                                            display: false,
-                                                        },
-                                                        suggestedMin: 0,
-                                                        suggestedMax: question.scaleMax || 5,
-                                                        ticks: {
-                                                            stepSize: 1
-                                                        }
-                                                    },
-                                                },
-                                            }"
-                                        />
+                                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 text-center">
+                                        <p class="text-sm text-gray-600 mb-2">平均評価</p>
+                                        <p class="text-4xl text-purple-600 mb-2">{{ question.averageRating ? question.averageRating.toFixed(1) : '回答なし' }}</p>
+                                        <div v-if="question.scaleMinLabel && question.scaleMaxLabel" class="flex items-center justify-center gap-2 text-sm text-gray-500">
+                                            <span>{{ question.scaleMinLabel }}</span>
+                                            <Progress :model-value="(question.averageRating / (question.scaleMax || 5)) * 100" class="h-2 w-32" />
+                                            <span>{{ question.scaleMaxLabel }}</span>
+                                        </div>
+                                        <p class="text-sm text-gray-500 mt-2">{{ question.responses.length }}件の回答</p>
                                     </div>
                                 </div>
                                 <div>
                                     <h4 class="text-sm mb-4 text-gray-600">
                                         回答者別の評価
                                     </h4>
-                                    <ScrollArea class="h-[400px] pr-4">
-                                        <div class="space-y-3">
-                                            <div
-                                                v-for="(response, index) in question.responses"
-                                                :key="index"
-                                                class="bg-gray-50 border border-gray-300 rounded-lg p-4"
-                                            >
-                                                <Badge variant="outline" class="text-xs mb-3">{{ response.respondent }}</Badge>
-                                                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                                    <div
-                                                        v-for="(value, key) in response.value"
-                                                        :key="key"
-                                                        v-if="key !== 'respondent'"
-                                                        class="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
-                                                    >
-                                                        <span class="text-sm text-gray-700">{{ key }}</span>
-                                                        <Badge class="bg-purple-100 text-purple-700">{{ value }}</Badge>
-                                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div
+                                            v-for="(response, rIndex) in question.responses"
+                                            :key="rIndex"
+                                            class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                        >
+                                            <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                                    <div class="bg-purple-500 h-full" :style="{ width: `${(response.value / (question.scaleMax || 5)) * 100}%` }"></div>
                                                 </div>
+                                                <Badge class="bg-purple-100 text-purple-700">{{ response.value }} / {{ question.scaleMax || 5 }}</Badge>
                                             </div>
+                                            <p v-if="question.scaleMinLabel && question.scaleMaxLabel" class="text-xs text-gray-500 mt-2">
+                                                {{ response.value <= (question.scaleMax || 5) / 2 ? question.scaleMinLabel : question.scaleMaxLabel }}寄り
+                                            </p>
                                         </div>
-                                    </ScrollArea>
+                                    </div>
                                 </div>
                             </div>
                         </template>

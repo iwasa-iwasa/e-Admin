@@ -77,6 +77,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/trash/{id}', [\App\Http\Controllers\TrashController::class, 'destroy'])->name('trash.destroy');
     Route::post('/trash/destroy-multiple', [\App\Http\Controllers\TrashController::class, 'destroyMultiple'])->name('trash.destroyMultiple');
     Route::delete('/trash', [\App\Http\Controllers\TrashController::class, 'emptyTrash'])->name('trash.empty');
+    
+    // Trash Auto Delete Settings (総務部のみ)
+    Route::get('/trash/auto-delete', [\App\Http\Controllers\TrashAutoDeleteController::class, 'index'])->name('trash.auto-delete');
+    Route::post('/trash/auto-delete', [\App\Http\Controllers\TrashAutoDeleteController::class, 'update'])->name('trash.auto-delete.update');
 
     // Member Calendar
     Route::get('/member-calendar', function () {
