@@ -45,7 +45,7 @@ class EventSeeder extends Seeder
         }
 
         $events = [];
-        for ($i = 1; $i <= 50; $i++) {
+        for ($i = 1; $i <= 150; $i++) {
             $category = $categories[array_rand($categories)];
             $importance = $importances[array_rand($importances)];
             $location = $locations[array_rand($locations)];
