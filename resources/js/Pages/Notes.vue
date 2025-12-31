@@ -150,17 +150,6 @@ watch(selectedNote, (newNote) => {
   }
 })
 
-watch(showFilters, (newValue, oldValue) => {
-  // フィルターを閉じた時に検索欄にフォーカス
-  if (oldValue === true && newValue === false) {
-    setTimeout(() => {
-      const inputElement = searchInputRef.value?.$el?.querySelector('input') || searchInputRef.value
-      if (inputElement && typeof inputElement.focus === 'function') {
-        inputElement.focus()
-      }
-    }, 100)
-  }
-})
 
 watch(() => props.notes, (newNotes, oldNotes) => {
   // 新しいメモが追加された場合の処理
@@ -244,6 +233,22 @@ const filteredNotes = computed(() => {
   })
 })
 
+watch(showFilters, (isOpen) => {
+  if (!isOpen) {
+    requestAnimationFrame(() => {
+      const inputElement = searchInputRef.value?.$el?.querySelector('input') || searchInputRef.value
+      if (inputElement && typeof inputElement.focus === 'function') {
+        inputElement.focus()
+      }
+    })
+  }
+})
+
+watch(searchQuery, () => {
+  if (searchQuery.value && showFilters.value) {
+    showFilters.value = false
+  }
+})
 
 const authors = computed(() => Array.from(new Set(props.notes.map((note) => note.author?.name).filter(Boolean))))
 

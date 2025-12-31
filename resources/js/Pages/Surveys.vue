@@ -194,7 +194,7 @@ watch(
 watch(
     () => surveyToDelete.value,
     (survey) => {
-        console.log('surveyToDelete changed:', survey);
+        // デバッグコード削除
     }
 );
 
@@ -224,26 +224,20 @@ const handleDialogClose = () => {
 
 // 削除確認ダイアログを表示
 const handleDelete = (survey: App.Models.Survey) => {
-    console.log('handleDelete called for survey:', survey.survey_id);
     surveyToDelete.value = survey;
-    console.log('surveyToDelete set to:', surveyToDelete.value);
 };
 
 // 実際の削除処理
 const confirmDelete = () => {
-    console.log('confirmDelete called');
     if (surveyToDelete.value) {
         const surveyId = surveyToDelete.value.survey_id;
-        console.log('Deleting survey:', surveyId);
         lastDeletedSurvey.value = surveyToDelete.value;
         router.delete(`/surveys/${surveyId}`, {
-            onSuccess: (page) => {
-                console.log('Delete success:', page);
+            onSuccess: () => {
                 surveyToDelete.value = null;
                 showMessage('アンケートを削除しました。', 'delete');
             },
-            onError: (errors) => {
-                console.error('Delete error:', errors);
+            onError: () => {
                 surveyToDelete.value = null;
                 lastDeletedSurvey.value = null;
                 showMessage('アンケートの削除に失敗しました', 'success');
@@ -277,27 +271,17 @@ const handleUndoDelete = () => {
 onMounted(() => {
     const page = usePage()
     const highlightId = (page.props as any).highlight
-    console.log('Surveys onMounted - highlightId:', highlightId)
-    console.log('All page props:', page.props)
     if (highlightId) {
-        console.log('Setting activeTab to all')
         activeTab.value = 'all'
         nextTick(() => {
             setTimeout(() => {
-                const elementId = `item-${highlightId}`
-                console.log('Looking for element with ID:', elementId)
-                const element = document.getElementById(elementId)
-                console.log('Found element:', element)
+                const element = document.getElementById(`item-${highlightId}`)
                 if (element) {
-                    console.log('Scrolling to element')
                     element.scrollIntoView({ behavior: 'smooth', block: 'center' })
                     setTimeout(() => {
                         element.classList.add('highlight-flash')
                         setTimeout(() => element.classList.remove('highlight-flash'), 3000)
                     }, 500)
-                } else {
-                    console.log('Element not found. Available survey IDs:')
-                    props.surveys.forEach(s => console.log('Survey ID:', s.survey_id))
                 }
             }, 500)
         })
@@ -340,7 +324,7 @@ onMounted(() => {
                             @click="handleCreate"
                         >
                             <Plus class="h-4 w-4" />
-                            新しいアンケートを作成
+                            新規作成
                         </Button>
                     </div>
                 </div>
