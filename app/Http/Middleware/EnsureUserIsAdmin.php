@@ -22,3 +22,10 @@ class EnsureUserIsAdmin
         return $next($request);
     }
 }
+
+/**
+ * NOTE:
+ * This middleware may be executed for Inertia requests.
+ * Do NOT return JSON responses here.
+ * Use redirect or abort if access is denied.
+ */
