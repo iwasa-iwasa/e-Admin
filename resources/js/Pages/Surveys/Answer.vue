@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { ArrowLeft, Star, AlertCircle } from 'lucide-vue-next'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
@@ -117,7 +116,7 @@ const validateAnswers = () => {
         nextTick(() => {
             const firstErrorId = Object.keys(clientValidationErrors.value)[0]
             const element = document.getElementById(`question_${firstErrorId}`)
-            element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
         })
         return false
     }
@@ -146,189 +145,138 @@ const cancel = () => {
 </script>
 
 <template>
-    <Head :title="`${survey.title} - 回答`" />
-    
-    <div class="max-w-[1800px] mx-auto h-full p-6">
-        <Card class="h-full overflow-hidden">
-            <div class="p-4 border-b border-gray-300">
-                <div class="flex items-center gap-3 mb-2">
-                    <Button variant="ghost" size="icon" @click="cancel">
-                        <ArrowLeft class="h-5 w-5" />
-                    </Button>
-                    <CardTitle>{{ survey.title }}{{ isEditing ? ' - 回答を編集' : '' }}</CardTitle>
-                </div>
-                <p class="text-sm text-gray-500 mb-2">{{ survey.description }}</p>
-                <p class="text-sm text-gray-500">
-                    回答期限: 
-                    <template v-if="survey.deadline_date">
-                        {{ new Date(survey.deadline_date).toLocaleDateString('ja-JP') }}
-                        <template v-if="survey.deadline_time">
-                            {{ survey.deadline_time.substring(0, 5) }}
-                        </template>
-                    </template>
-                    <template v-else-if="survey.deadline">
-                        {{ new Date(survey.deadline).toLocaleDateString('ja-JP') }}
-                    </template>
-                </p>
-            </div>
-            
-            <ScrollArea class="h-[calc(100vh-280px)]">
-                <div class="p-6">
-                    <form @submit.prevent="submitAnswer" class="space-y-6">
-                        <div v-for="question in questions" :key="question.question_id" :id="`question_${question.question_id}`" class="border-b border-gray-200 pb-6 last:border-b-0">
-                            <Label class="text-base font-medium block mb-4">
-                                {{ question.question_text }}
-                                <span v-if="question.is_required" class="text-red-500 ml-1">*</span>
-                            </Label>
-                            <div v-if="clientValidationErrors[question.question_id]" class="flex items-center gap-2 text-red-600 text-sm mb-2">
-                                <AlertCircle class="h-4 w-4" />
-                                <span>{{ clientValidationErrors[question.question_id] }}</span>
-                            </div>
-                            <div>
-                                <!-- Single Choice -->
-                                <div v-if="question.question_type === 'single_choice'" class="space-y-2">
-                                    <div v-for="option in question.options" :key="option.option_id" class="flex items-center space-x-2">
-                                        <input 
-                                            type="radio" 
-                                            :name="`question_${question.question_id}`"
-                                            :value="option.option_id" 
-                                            :id="`q${question.question_id}_${option.option_id}`"
-                                            :required="question.is_required"
-                                            v-model="form.answers[question.question_id]"
-                                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                                        />
-                                        <Label :for="`q${question.question_id}_${option.option_id}`">{{ option.option_text }}</Label>
-                                    </div>
-                                </div>
-
-                                <!-- Multiple Choice -->
-                                <div v-else-if="question.question_type === 'multiple_choice'" class="space-y-2">
-                                    <div v-for="option in question.options" :key="option.option_id" class="flex items-center space-x-2">
-                                        <input 
-                                            type="checkbox"
-                                            :id="`q${question.question_id}_${option.option_id}`"
-                                            :checked="multipleChoiceAnswers[question.question_id]?.includes(option.option_id)"
-                                            @change="handleMultipleChoiceChange(question.question_id, option.option_id, ($event.target as HTMLInputElement).checked)"
-                                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                        />
-                                        <Label :for="`q${question.question_id}_${option.option_id}`">{{ option.option_text }}</Label>
-                                    </div>
-                                </div>
-
-                                <!-- Text Input -->
-                                <Input 
-                                    v-else-if="question.question_type === 'text'"
-                                    :required="question.is_required"
-                                    v-model="form.answers[question.question_id]"
-                                    placeholder="回答を入力してください"
-                                    class="placeholder:text-gray-400"
-                                />
-
-                                <!-- Textarea -->
-                                <Textarea 
-                                    v-else-if="question.question_type === 'textarea'"
-                                    :required="question.is_required"
-                                    v-model="form.answers[question.question_id]"
-                                    placeholder="回答を入力してください"
-                                    class="min-h-[100px] placeholder:text-gray-400"
-                                />
-
-                                <!-- Date -->
-                                <Input 
-                                    v-else-if="question.question_type === 'date'"
-                                    :required="question.is_required"
-                                    v-model="form.answers[question.question_id]"
-                                    type="datetime-local"
-                                    step="60"
-                                />
-
-                                <!-- Rating -->
-                                <div v-else-if="question.question_type === 'rating'" class="space-y-2">
-                                    <div class="flex items-center gap-2">
-                                        <div v-for="rating in (question.scale_max || 5)" :key="rating" class="flex items-center">
-                                            <input 
-                                                type="radio" 
-                                                :name="`question_${question.question_id}`"
-                                                :value="rating" 
-                                                :id="`q${question.question_id}_${rating}`"
-                                                :required="question.is_required"
-                                                v-model="form.answers[question.question_id]"
-                                                class="sr-only"
-                                            />
-                                            <label :for="`q${question.question_id}_${rating}`" class="cursor-pointer">
-                                                <Star 
-                                                    class="h-8 w-8 transition-colors"
-                                                    :class="rating <= (form.answers[question.question_id] || 0) 
-                                                        ? 'text-yellow-400 fill-yellow-400' 
-                                                        : 'text-gray-300'"
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Scale -->
-                                <div v-else-if="question.question_type === 'scale'" class="space-y-2">
-                                    <div class="flex items-center gap-2">
-                                        <div v-for="scale in 5" :key="scale" class="flex items-center">
-                                            <input 
-                                                type="radio" 
-                                                :name="`question_${question.question_id}`"
-                                                :value="scale" 
-                                                :id="`q${question.question_id}_scale_${scale}`"
-                                                :required="question.is_required"
-                                                v-model="form.answers[question.question_id]"
-                                                class="sr-only"
-                                            />
-                                            <label 
-                                                :for="`q${question.question_id}_scale_${scale}`" 
-                                                class="w-12 h-12 rounded-full border-2 transition-colors cursor-pointer flex items-center justify-center"
-                                                :class="scale == form.answers[question.question_id]
-                                                    ? 'border-blue-500 bg-blue-500 text-white'
-                                                    : 'border-gray-300 hover:border-gray-400'"
-                                            >
-                                                {{ scale }}
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Dropdown -->
-                                <select 
-                                    v-else-if="question.question_type === 'dropdown'" 
-                                        :required="question.is_required"
-                                        v-model="form.answers[question.question_id]"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        :class="form.answers[question.question_id] === '' || !form.answers[question.question_id] ? 'text-gray-400' : 'text-gray-900'"
-                                    >
-                                        <option value="" selected>選択してください</option>
-                                        <option v-for="option in question.options" :key="option.option_id" :value="option.option_id">
-                                            {{ option.option_text }}
-                                        </option>
-                                    </select>
-                            </div>
-                        </div>
-
-                        <!-- エラー表示 -->
-                        <div v-if="Object.keys(form.errors).length > 0" class="bg-red-50 border border-red-200 rounded-md p-4">
-                            <div class="text-red-800">
-                                <div v-for="(error, key) in form.errors" :key="key" class="text-sm">
-                                    {{ error }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-4 justify-end pt-4 border-t border-gray-200">
-                            <Button type="button" variant="outline" @click="cancel">
-                                キャンセル
-                            </Button>
-                            <Button type="submit" variant="outline" :disabled="form.processing">
-                                {{ form.processing ? '送信中...' : (isEditing ? '回答を更新' : '回答を送信') }}
-                            </Button>
-                        </div>
-                    </form>
-                </div>
-            </ScrollArea>
-        </Card>
-    </div>
+  <Head :title="`${survey.title} - 回答`" />
+  
+  <div class="max-w-[1800px] mx-auto h-full p-6 min-h-0 overflow-hidden">
+    <Card class="flex flex-col h-full overflow-hidden">
+      <!-- ヘッダー -->
+      <div class="p-4 border-b shrink-0">
+        <div class="flex items-center gap-3 mb-2">
+          <Button variant="ghost" size="icon" @click="cancel">
+            <ArrowLeft class="h-5 w-5" />
+          </Button>
+          <CardTitle>{{ survey.title }}</CardTitle>
+        </div>
+        <p class="text-sm text-gray-500">{{ survey.description }}</p>
+      </div>
+      
+      <!-- 中央スクロール -->
+      <div class="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+        <div
+          v-for="q in questions"
+          :key="q.question_id"
+          :id="`question_${q.question_id}`"
+          class="pb-6 border-b last:border-b-0"
+        >
+          <Label class="block mb-2 font-medium">
+            {{ q.question_text }}
+            <span v-if="q.is_required" class="text-red-500">*</span>
+          </Label>
+          
+          <div
+            v-if="clientValidationErrors[q.question_id]"
+            class="flex items-center gap-2 text-red-600 text-sm mb-2"
+          >
+            <AlertCircle class="h-4 w-4" />
+            {{ clientValidationErrors[q.question_id] }}
+          </div>
+          
+          <!-- Single -->
+          <div v-if="q.question_type === 'single_choice'" class="space-y-2">
+            <label v-for="o in q.options" :key="o.option_id" class="flex gap-2">
+              <input type="radio" :value="o.option_id" v-model="form.answers[q.question_id]" />
+              {{ o.option_text }}
+            </label>
+          </div>
+          
+          <!-- Multiple -->
+          <div v-else-if="q.question_type === 'multiple_choice'" class="space-y-2">
+            <label v-for="o in q.options" :key="o.option_id" class="flex gap-2">
+              <input
+                type="checkbox"
+                :checked="multipleChoiceAnswers[q.question_id]?.includes(o.option_id)"
+                @change="handleMultipleChoiceChange(
+                  q.question_id,
+                  o.option_id,
+                  ($event.target as HTMLInputElement).checked
+                )"
+              />
+              {{ o.option_text }}
+            </label>
+          </div>
+          
+          <!-- Text -->
+          <Input
+            v-else-if="q.question_type === 'text'"
+            v-model="form.answers[q.question_id]"
+          />
+          
+          <!-- Textarea -->
+          <Textarea
+            v-else-if="q.question_type === 'textarea'"
+            v-model="form.answers[q.question_id]"
+          />
+          
+          <!-- Date -->
+          <Input
+            v-else-if="q.question_type === 'date'"
+            type="datetime-local"
+            step="60"
+            v-model="form.answers[q.question_id]"
+          />
+          
+          <!-- Rating -->
+          <div v-else-if="q.question_type === 'rating'" class="flex gap-1">
+            <label v-for="n in (q.scale_max || 5)" :key="n">
+              <input type="radio" class="sr-only" :value="n" v-model="form.answers[q.question_id]" />
+              <Star
+                class="h-8 w-8"
+                :class="n <= (form.answers[q.question_id] || 0)
+                  ? 'text-yellow-400 fill-yellow-400'
+                  : 'text-gray-300'"
+              />
+            </label>
+          </div>
+          
+          <!-- Scale -->
+          <div v-else-if="q.question_type === 'scale'" class="flex gap-2">
+            <label
+              v-for="n in (q.scale_max || 5)"
+              :key="n"
+              class="w-10 h-10 flex items-center justify-center rounded-full border cursor-pointer"
+              :class="n === form.answers[q.question_id]
+                ? 'bg-blue-500 text-white border-blue-500'
+                : 'border-gray-300'"
+            >
+              <input type="radio" class="sr-only" :value="n" v-model="form.answers[q.question_id]" />
+              {{ n }}
+            </label>
+          </div>
+          
+          <!-- Dropdown -->
+          <select
+            v-else-if="q.question_type === 'dropdown'"
+            v-model="form.answers[q.question_id]"
+            class="w-full border rounded px-3 py-2"
+            :class="!form.answers[q.question_id] ? 'text-gray-400' : 'text-gray-900'"
+          >
+            <option value="">選択してください</option>
+            <option v-for="o in q.options" :key="o.option_id" :value="o.option_id">
+              {{ o.option_text }}
+            </option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- フッター -->
+      <div class="p-4 border-t shrink-0 bg-white">
+        <div class="flex justify-end gap-4">
+          <Button variant="outline" @click="cancel">キャンセル</Button>
+          <Button variant="outline" :disabled="form.processing" @click="submitAnswer">
+            {{ isEditing ? '回答を更新' : '回答を送信' }}
+          </Button>
+        </div>
+      </div>
+    </Card>
+  </div>
 </template>

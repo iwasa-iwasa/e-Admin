@@ -57,8 +57,8 @@ onMounted(() => {
 <template>
   <div class="flex h-screen bg-gray-50">
     <!-- Overlay (タブレットのみ) -->
-    <div 
-      v-if="isSidebarOpen && isTablet" 
+    <div
+      v-if="isSidebarOpen && isTablet"
       class="fixed inset-0 bg-black/50 z-40"
       @click="isSidebarOpen = false"
     ></div>
@@ -78,11 +78,12 @@ onMounted(() => {
         </div>
       </Transition>
     </template>
+    
     <template v-else>
       <div class="relative" :style="{ width: sidebarWidth + 'px' }">
         <DashboardSidebar :is-tablet="false" />
         <div class="absolute top-0 right-0 h-full flex items-center" style="width: 12px; margin-right: -6px;">
-          <div 
+          <div
             class="absolute inset-0 cursor-col-resize z-10"
             @mousedown="startResize"
           ></div>
@@ -94,15 +95,16 @@ onMounted(() => {
     </template>
     
     <div class="flex-1 flex flex-col overflow-hidden">
-      <DashboardHeader 
-        @toggle-sidebar="isSidebarOpen = !isSidebarOpen" 
+      <DashboardHeader
+        @toggle-sidebar="isSidebarOpen = !isSidebarOpen"
         :is-sidebar-open="isSidebarOpen"
         :is-tablet="isTablet"
       />
-      <main class="flex-1 overflow-hidden">
+      <main class="flex-1 min-h-0 overflow-hidden">
         <slot />
       </main>
     </div>
+    
     <Toaster />
   </div>
 </template>
