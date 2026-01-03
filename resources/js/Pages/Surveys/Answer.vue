@@ -65,15 +65,33 @@
   
   const multipleChoiceAnswers = ref<Record<number, number[]>>({})
   
-  // 既存の複数選択回答を初期化
+  // 既存回答を初期化
   if (props.existingAnswers) {
       Object.keys(props.existingAnswers).forEach(key => {
           const questionId = Number(key)
           const answer = props.existingAnswers![questionId]
           const question = props.questions.find(q => q.question_id === questionId)
           
-          if (question?.question_type === 'multiple_choice' && Array.isArray(answer)) {
-              multipleChoiceAnswers.value[questionId] = [...answer]
+          if (question?.question_type === 'multiple_choice') {
+              if (Array.isArray(answer)) {
+                  // 配列の場合（option_idの配列）
+                  multipleChoiceAnswers.value[questionId] = [...answer]
+                  form.answers[questionId] = [...answer]
+              } else if (typeof answer === 'string' && answer.includes(',')) {
+                  // カンマ区切りテキストの場合、option_idに変換
+                  const optionTexts = answer.split(', ')
+                  const optionIds: number[] = []
+                  for (const text of optionTexts) {
+                      const option = question.options?.find(o => o.option_text === text.trim())
+                      if (option) {
+                          optionIds.push(option.option_id)
+                      }
+                  }
+                  multipleChoiceAnswers.value[questionId] = optionIds
+                  form.answers[questionId] = optionIds
+              }
+          } else if (question?.question_type === 'scale' && answer) {
+              form.answers[questionId] = Number(answer)
           }
       })
   }
@@ -274,7 +292,7 @@
           <div class="p-4 border-t shrink-0 bg-white">
             <div class="flex justify-end gap-4">
               <Button variant="outline" @click="cancel">キャンセル</Button>
-              <Button :disabled="form.processing" @click="submitAnswer">
+              <Button variant="outline" :disabled="form.processing" @click="submitAnswer">
                 {{ isEditing ? '回答を更新' : '回答を送信' }}
               </Button>
             </div>
