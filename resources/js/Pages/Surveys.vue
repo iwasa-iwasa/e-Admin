@@ -58,12 +58,15 @@ defineOptions({
 
 interface SurveyWithResponse extends App.Models.Survey {
     has_responded?: boolean;
-    respondent_names?: any[];
+    respondent_names?: string[];
+    unanswered_names?: string[];
+    deadline_date?: string;
+    deadline_time?: string;
 }
 
 const props = defineProps<{
     surveys: SurveyWithResponse[];
-    editSurvey?: Object;
+    editSurvey?: SurveyWithResponse;
     teamMembers?: Array<{id: number, name: string}>;
     errors?: any;
     auth?: any;
@@ -80,11 +83,11 @@ const activeTab = ref("active");
 const isCreateSurveyDialogOpen = ref(false);
 const showCreateDialog = ref(false);
 const editingSurvey = ref(null);
-const surveyToDelete = ref<App.Models.Survey | null>(null);
+const surveyToDelete = ref<SurveyWithResponse | null>(null);
 const saveMessage = ref('');
 const messageType = ref<'success' | 'delete'>('success');
 const messageTimer = ref<number | null>(null);
-const lastDeletedSurvey = ref<App.Models.Survey | null>(null);
+const lastDeletedSurvey = ref<SurveyWithResponse | null>(null);
 const scrollAreaRef = ref<any>(null);
 
 // メッセージ表示関数
@@ -118,23 +121,17 @@ const filteredSurveys = computed(() => {
 
         const matchesCategory = true;
         
-        const now = new Date();
-        let deadline = null;
-        if (survey.deadline_date) {
-            const deadlineStr = survey.deadline_date + ' ' + (survey.deadline_time || '23:59:59');
-            deadline = new Date(deadlineStr);
-        }
-        const isExpired = deadline ? deadline < now : false;
+        const surveyExpired = isExpired(survey);
 
         let matchesTab = false;
         if (activeTab.value === "all") {
             matchesTab = true;
         } else if (activeTab.value === "active") {
-            matchesTab = survey.is_active && !isExpired;
+            matchesTab = survey.is_active && !surveyExpired;
         } else if (activeTab.value === "unanswered") {
-            matchesTab = survey.is_active && !survey.has_responded && !isExpired;
+            matchesTab = survey.is_active && !survey.has_responded && !surveyExpired;
         } else if (activeTab.value === "closed") {
-            matchesTab = !survey.is_active || isExpired;
+            matchesTab = !survey.is_active || surveyExpired;
         }
 
         return matchesSearch && matchesCategory && matchesTab;
@@ -142,18 +139,29 @@ const filteredSurveys = computed(() => {
 });
 
 // ユーティリティ関数
-const getResponseRate = (survey: App.Models.Survey) => {
+const getDeadlineDate = (survey: SurveyWithResponse): Date | null => {
+    if (!survey.deadline_date) return null;
+    const timeStr = survey.deadline_time || '23:59:59';
+    return new Date(`${survey.deadline_date} ${timeStr}`);
+};
+
+const isExpired = (survey: SurveyWithResponse): boolean => {
+    const deadline = getDeadlineDate(survey);
+    return deadline ? deadline < new Date() : false;
+};
+
+const getResponseRate = (survey: SurveyWithResponse) => {
     const total = (survey.unanswered_names?.length || 0) + (survey.respondent_names?.length || 0);
-    const responded = survey.responses.length;
+    const responded = survey.respondent_names?.length || 0;
     return total > 0 ? (responded / total) * 100 : 0;
 };
 
-const getDaysUntilDeadline = (survey: any) => {
-    if (!survey.deadline_date) return 0;
+const getDaysUntilDeadline = (survey: SurveyWithResponse) => {
+    const deadline = getDeadlineDate(survey);
+    if (!deadline) return 0;
+    
     const today = new Date();
-    const deadlineStr = survey.deadline_date + ' ' + (survey.deadline_time || '23:59:59');
-    const deadlineDate = new Date(deadlineStr);
-    const diffTime = deadlineDate.getTime() - today.getTime();
+    const diffTime = deadline.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
 };
@@ -187,16 +195,16 @@ const handleCreate = () => {
     showCreateDialog.value = true;
 };
 
-const handleEdit = (survey: App.Models.Survey) => {
+const handleEdit = (survey: SurveyWithResponse) => {
     editingSurvey.value = survey as any;
     showCreateDialog.value = true;
 };
 
-const handleAnswer = (survey: App.Models.Survey) => {
+const handleAnswer = (survey: SurveyWithResponse) => {
     router.get(`/surveys/${survey.survey_id}/answer`);
 };
 
-const handleResults = (survey: App.Models.Survey) => {
+const handleResults = (survey: SurveyWithResponse) => {
     router.get(`/surveys/${survey.survey_id}/results`);
 };
 
@@ -205,7 +213,7 @@ const handleDialogClose = () => {
     editingSurvey.value = null;
 };
 
-const handleDelete = (survey: App.Models.Survey) => {
+const handleDelete = (survey: SurveyWithResponse) => {
     surveyToDelete.value = survey;
 };
 
@@ -318,39 +326,15 @@ onMounted(() => {
                             </TabsTrigger>
                             <TabsTrigger value="active" class="gap-2 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-green-200 data-[state=active]:text-green-800">
                                 <CheckCircle2 class="h-4 w-4" />
-                                回答受付中 ({{ surveys.filter((s) => {
-                                    const now = new Date();
-                                    let deadline = null;
-                                    if (s.deadline_date) {
-                                        const deadlineStr = s.deadline_date + ' ' + (s.deadline_time || '23:59:59');
-                                        deadline = new Date(deadlineStr);
-                                    }
-                                    return s.is_active && (deadline ? deadline >= now : false);
-                                }).length }})
+                                回答受付中 ({{ surveys.filter(s => s.is_active && !isExpired(s)).length }})
                             </TabsTrigger>
                             <TabsTrigger value="unanswered" class="gap-2 bg-orange-50 text-orange-700 hover:bg-orange-100 data-[state=active]:bg-orange-200 data-[state=active]:text-orange-800">
                                 <AlertCircle class="h-4 w-4" />
-                                未回答 ({{ surveys.filter((s) => {
-                                    const now = new Date();
-                                    let deadline = null;
-                                    if (s.deadline_date) {
-                                        const deadlineStr = s.deadline_date + ' ' + (s.deadline_time || '23:59:59');
-                                        deadline = new Date(deadlineStr);
-                                    }
-                                    return s.is_active && !s.has_responded && (deadline ? deadline >= now : false);
-                                }).length }})
+                                未回答 ({{ surveys.filter(s => s.is_active && !s.has_responded && !isExpired(s)).length }})
                             </TabsTrigger>
                             <TabsTrigger value="closed" class="gap-2 bg-gray-50 text-gray-700 hover:bg-gray-100 data-[state=active]:bg-gray-200 data-[state=active]:text-gray-800">
                                 <Clock class="h-4 w-4" />
-                                終了済み ({{ surveys.filter((s) => {
-                                    const now = new Date();
-                                    let deadline = null;
-                                    if (s.deadline_date) {
-                                        const deadlineStr = s.deadline_date + ' ' + (s.deadline_time || '23:59:59');
-                                        deadline = new Date(deadlineStr);
-                                    }
-                                    return !s.is_active || (deadline ? deadline < now : true);
-                                }).length }})
+                                終了済み ({{ surveys.filter(s => !s.is_active || isExpired(s)).length }})
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
@@ -417,8 +401,11 @@ onMounted(() => {
                                     <div class="flex items-center gap-1">
                                         <CalendarIcon class="h-3 w-3" />
                                         期限:
-                                        {{ survey.deadline_date ? new Date(survey.deadline_date).toLocaleDateString('ja-JP') : '' }}
-                                        {{ survey.deadline_time ? survey.deadline_time.substring(0, 5) : '' }}
+                                        <span v-if="survey.deadline_date">
+                                            {{ new Date(survey.deadline_date).toLocaleDateString('ja-JP') }}
+                                            {{ survey.deadline_time ? survey.deadline_time.substring(0, 5) : '23:59' }}
+                                        </span>
+                                        <span v-else>なし</span>
                                     </div>
                                     <div class="flex items-center gap-1">
                                         作成者: {{ survey.creator?.name }}
