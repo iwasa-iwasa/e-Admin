@@ -646,6 +646,11 @@ class SurveyController extends Controller
     {
         // アンケート本体と質問を取得
         $survey->load(['questions.options', 'creator', 'designatedUsers']);
+        
+        // 質問の詳細情報を取得（scale_min_label, scale_max_labelを含む）
+        $survey->questions->each(function ($question) {
+            $question->makeVisible(['scale_min_label', 'scale_max_label']);
+        });
 
         // このアンケートの回答データを取得
         $responses = $survey->responses()
