@@ -396,27 +396,25 @@ class SurveyController extends Controller
         // 既存の回答をマップ化
         $existingAnswers = [];
         if ($existingResponse) {
-            foreach ($existingResponse->answers as $answer) {
-                $question = $survey->questions->firstWhere('question_id', $answer->question_id);
+            // 質問ごとに回答をグループ化
+            $answersByQuestion = $existingResponse->answers->groupBy('question_id');
+            
+            foreach ($answersByQuestion as $questionId => $answers) {
+                $question = $survey->questions->firstWhere('question_id', $questionId);
                 
-                if ($answer->selected_option_id) {
-                    $existingAnswers[$answer->question_id] = $answer->selected_option_id;
+                if ($question && $question->question_type === 'multiple_choice') {
+                    // 複数選択の場合、全てのoption_idを配列で収集
+                    $optionIds = $answers->pluck('selected_option_id')->filter()->values()->toArray();
+                    $existingAnswers[$questionId] = $optionIds;
                 } else {
-                    // JSON配列の場合はデコード
-                    $decoded = json_decode($answer->answer_text, true);
+                    // その他の場合は最初の回答を使用
+                    $answer = $answers->first();
                     
-                    if (is_array($decoded) && $question && $question->question_type === 'multiple_choice') {
-                        // multiple_choiceの場合、テキストからoption_idに変換
-                        $optionIds = [];
-                        foreach ($decoded as $text) {
-                            $option = $question->options->firstWhere('option_text', $text);
-                            if ($option) {
-                                $optionIds[] = $option->option_id;
-                            }
-                        }
-                        $existingAnswers[$answer->question_id] = $optionIds;
+                    if ($answer->selected_option_id) {
+                        $existingAnswers[$questionId] = $answer->selected_option_id;
                     } else {
-                        $existingAnswers[$answer->question_id] = is_array($decoded) ? $decoded : $answer->answer_text;
+                        $decoded = json_decode($answer->answer_text, true);
+                        $existingAnswers[$questionId] = is_array($decoded) ? $decoded : $answer->answer_text;
                     }
                 }
             }

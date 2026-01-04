@@ -45,6 +45,10 @@
       questions: Question[]
       existingAnswers?: Record<number, any>
       isEditing?: boolean
+      errors?: any
+      auth?: any
+      ziggy?: any
+      flash?: any
   }>()
   
   const form = useForm({
@@ -67,19 +71,23 @@
   
   // 既存回答を初期化
   if (props.existingAnswers) {
+      console.log('existingAnswers:', props.existingAnswers)
       Object.keys(props.existingAnswers).forEach(key => {
           const questionId = Number(key)
           const answer = props.existingAnswers![questionId]
           const question = props.questions.find(q => q.question_id === questionId)
+          
+          console.log(`Question ${questionId}:`, { answer, questionType: question?.question_type })
           
           if (question?.question_type === 'multiple_choice') {
               if (Array.isArray(answer)) {
                   // 配列の場合（option_idの配列）
                   multipleChoiceAnswers.value[questionId] = [...answer]
                   form.answers[questionId] = [...answer]
-              } else if (typeof answer === 'string' && answer.includes(',')) {
-                  // カンマ区切りテキストの場合、option_idに変換
-                  const optionTexts = answer.split(', ')
+                  console.log(`Multiple choice (array) for ${questionId}:`, multipleChoiceAnswers.value[questionId])
+              } else if (typeof answer === 'string') {
+                  // 文字列の場合、option_idに変換
+                  const optionTexts = answer.includes(',') ? answer.split(', ') : [answer]
                   const optionIds: number[] = []
                   for (const text of optionTexts) {
                       const option = question.options?.find(o => o.option_text === text.trim())
@@ -89,11 +97,34 @@
                   }
                   multipleChoiceAnswers.value[questionId] = optionIds
                   form.answers[questionId] = optionIds
+                  console.log(`Multiple choice (string) for ${questionId}:`, { optionTexts, optionIds })
+              }
+          } else if (question?.question_type === 'single_choice') {
+              // 単一選択の場合
+              if (answer && typeof answer === 'object') {
+                  if (answer.option_id) {
+                      form.answers[questionId] = answer.option_id
+                  } else if (answer.answer_text) {
+                      const option = question.options?.find(o => o.option_text === answer.answer_text.trim())
+                      form.answers[questionId] = option ? option.option_id : null
+                  }
+              } else if (typeof answer === 'number') {
+                  form.answers[questionId] = answer
+              } else if (typeof answer === 'string') {
+                  const option = question.options?.find(o => o.option_text === answer.trim())
+                  form.answers[questionId] = option ? option.option_id : null
+              } else {
+                  form.answers[questionId] = null
               }
           } else if (question?.question_type === 'scale' && answer) {
               form.answers[questionId] = Number(answer)
+          } else {
+              // その他の場合（text, textarea, date, dropdownなど）
+              form.answers[questionId] = answer
           }
       })
+      console.log('Final multipleChoiceAnswers:', multipleChoiceAnswers.value)
+      console.log('Final form.answers:', form.answers)
   }
   const clientValidationErrors = ref<Record<number, string>>({})
   
