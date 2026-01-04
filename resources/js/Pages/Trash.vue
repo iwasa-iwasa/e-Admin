@@ -351,29 +351,23 @@ onMounted(() => {
             <CardTitle>ゴミ箱</CardTitle>
           </div>
           
-          <!-- 検索・フィルター部分 -->
-          <div class="flex items-center gap-3 flex-1 justify-center px-8">
-            <div class="flex gap-2">
-              <div class="relative flex-1">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  ref="searchInputRef"
-                  placeholder="タイトル検索"
-                  v-model="filterTitle"
-                  class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-[300px]"
-                />
-                <button v-if="filterTitle" @click="filterTitle = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <X class="h-4 w-4" />
-                </button>
-              </div>
-              <Button variant="outline" size="icon" @click="showFilterDialog = !showFilterDialog" :class="showFilterDialog ? 'bg-gray-100' : ''">
-                <Filter class="h-4 w-4" />
-              </Button>
+          <!-- 検索・フィルター・アクションボタン -->
+          <div class="flex items-center gap-3">
+            <Button variant="outline" size="icon" @click="showFilterDialog = !showFilterDialog" :class="showFilterDialog ? 'bg-gray-100' : ''">
+              <Filter class="h-4 w-4" />
+            </Button>
+            <div class="relative">
+              <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                ref="searchInputRef"
+                placeholder="タイトルなどで検索"
+                v-model="filterTitle"
+                class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-[300px]"
+              />
+              <button v-if="filterTitle" @click="filterTitle = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X class="h-4 w-4" />
+              </button>
             </div>
-          </div>
-          
-          <!-- アクションボタン -->
-          <div class="flex items-center gap-2">
             <Button 
               v-if="selectedItems.size > 0" 
               variant="outline" 
@@ -464,7 +458,7 @@ onMounted(() => {
         
         <p class="text-sm text-gray-500 px-4 py-2">削除されたアイテム ({{ sortedItems.length }}件)</p>
         <!-- テーブルヘッダー -->
-        <div v-if="trashItems.length > 0" class="grid grid-cols-12 gap-4 py-2 px-4 bg-gray-50 border-t border-b text-sm font-medium text-gray-700">
+        <div v-if="trashItems.length > 0" class="grid grid-cols-12 gap-3 py-2 px-4 bg-gray-50 border-t border-b text-sm font-medium text-gray-700">
           <div class="col-span-1 flex items-center">
             <input 
               type="checkbox" 
@@ -474,11 +468,10 @@ onMounted(() => {
             />
           </div>
           <div class="col-span-1">種類</div>
-          <div class="col-span-2">タイトル</div>
+          <div class="col-span-4">タイトルと詳細</div>
           <div class="col-span-1">作成者</div>
           <div class="col-span-2">削除した日時</div>
-          <div class="col-span-3">詳細</div>
-          <div class="col-span-2 text-right">アクション</div>
+          <div class="col-span-3 text-right">アクション</div>
         </div>
       </div>
       
@@ -494,13 +487,13 @@ onMounted(() => {
         </div>
         
         <!-- テーブル -->
-        <div v-else class="p-6">
+        <div v-else class="px-4 pt-6">
           <div class="space-y-2">
             <div 
               v-for="item in sortedItems" 
               :key="item.id || 'unknown'" 
               :id="`item-${item.id}`" 
-              :class="['grid grid-cols-12 gap-4 py-3 px-4 border-b hover:bg-gray-50 cursor-pointer', selectedItems.has(item.id) ? 'bg-blue-50' : '']"
+              :class="['grid grid-cols-12 gap-3 py-3 px-4 border-b hover:bg-gray-50 cursor-pointer', selectedItems.has(item.id) ? 'bg-blue-50' : '']"
               @click="handleRowClick($event, item)"
             >
               <div class="col-span-1 flex items-center">
@@ -511,26 +504,25 @@ onMounted(() => {
                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
               </div>
-              <div class="col-span-1 flex items-center">
-                <Badge v-if="item" variant="outline" :class="['gap-1', getItemTypeInfo(item.type || 'shared_note').color]">
-                  <component :is="getItemTypeInfo(item.type || 'shared_note').icon" class="h-4 w-4" />
-                  {{ getItemTypeInfo(item.type || 'shared_note').label }}
+              <div class="col-span-1 flex items-center justify-center min-w-0">
+                <Badge v-if="item" variant="outline" :class="['gap-1 max-w-full', getItemTypeInfo(item.type || 'shared_note').color]">
+                  <component :is="getItemTypeInfo(item.type || 'shared_note').icon" class="h-4 w-4 flex-shrink-0" />
+                  <span class="truncate">{{ getItemTypeInfo(item.type || 'shared_note').label }}</span>
                 </Badge>
-                <Badge v-else variant="outline" class="gap-1 bg-gray-100 text-gray-700 border-gray-300">
-                  <StickyNote class="h-4 w-4" />
-                  不明
+                <Badge v-else variant="outline" class="gap-1 bg-gray-100 text-gray-700 border-gray-300 max-w-full">
+                  <StickyNote class="h-4 w-4 flex-shrink-0" />
+                  <span class="truncate">不明</span>
                 </Badge>
               </div>
-              <div class="col-span-2 flex items-center text-sm">{{ item?.title || '不明' }}</div>
-              <div class="col-span-1 flex items-center text-sm">{{ item?.creatorName || '不明' }}</div>
+              <div class="col-span-4 flex flex-col justify-center text-sm">
+                <div class="font-medium">{{ item?.title || '不明' }}</div>
+                <div v-if="item?.description" class="text-xs text-gray-500 truncate mt-1">
+                  {{ item.description.length > 60 ? item.description.substring(0, 60) + '...' : item.description }}
+                </div>
+              </div>
+              <div class="col-span-1 flex items-center justfy-center text-sm">{{ item?.creatorName || '不明' }}</div>
               <div class="col-span-2 flex items-center text-sm text-gray-600">{{ item?.deletedAt || '不明' }}</div>
-              <div class="col-span-3 flex items-center text-sm text-gray-500">
-                <span v-if="item?.description" class="line-clamp-2">
-                  {{ item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description }}
-                </span>
-                <span v-else class="italic">詳細なし</span>
-              </div>
-              <div class="col-span-2 flex items-center justify-end gap-2">
+              <div class="col-span-3 flex items-center justify-end gap-2">
                 <Button variant="outline" size="sm" @click="handleRestore(item.id)" class="gap-2" :disabled="!item">
                   <RotateCcw class="h-4 w-4" />
                   元に戻す
