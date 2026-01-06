@@ -119,6 +119,33 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
   }, 4000)
 }
 
+const originalData = ref<any>(null)
+const hasNonDeadlineChanges = computed(() => {
+    if (!isEditMode.value || !originalData.value) return false
+    
+    // 質問の変更をチェック
+    const questionsChanged = JSON.stringify(questions.value.map(q => ({
+        question: q.question,
+        type: q.type,
+        required: q.required,
+        options: q.options,
+        scaleMin: q.scaleMin,
+        scaleMax: q.scaleMax,
+        scaleMinLabel: q.scaleMinLabel,
+        scaleMaxLabel: q.scaleMaxLabel
+    }))) !== JSON.stringify(originalData.value.questions || [])
+    
+    // 回答者の削除をチェック（追加は問題なし）
+    const originalRespondents = originalData.value.respondents || []
+    const removedRespondents = originalRespondents.filter(id => !selectedRespondents.value.includes(id))
+    const hasRemovedRespondents = removedRespondents.length > 0
+    
+    return questionsChanged || hasRemovedRespondents
+})
+
+const showConfirmDialog = ref(false)
+const confirmData = ref<any>(null)
+const pendingSave = ref(false)
 const form = useForm({
     title: "",
     description: "",
@@ -259,6 +286,19 @@ const removeOption = (questionId: string, optionIndex: number) => {
 };
 
 const handleSave = (isDraft: boolean = false) => {
+    // 編集モードで期限以外が変更された場合、確認ダイアログを表示
+    if (isEditMode.value && hasNonDeadlineChanges.value && !pendingSave.value) {
+        // 回答数をチェック（実際の回答数はサーバーで確認）
+        const responseCount = props.survey?.responses?.length || 0
+        if (responseCount > 0) {
+            confirmData.value = {
+                response_count: responseCount,
+                message: `このアンケートには${responseCount}件の回答があります。質問や回答者を変更するとすでに回答された方からの回答が失われる可能性があります。それでも変更しますか？`
+            }
+            showConfirmDialog.value = true
+            return
+        }
+    }
     // 未入力の選択肢を自動削除
     questions.value = questions.value.map((q) => {
         if (["single", "multiple", "dropdown"].includes(q.type)) {
@@ -320,14 +360,31 @@ const handleSave = (isDraft: boolean = false) => {
     // リクエストを送信
     if (isEditMode.value && props.survey) {
         // 編集モード: PUTリクエスト
+        const requestData = pendingSave.value ? { ...form.data(), confirm_reset: true } : form.data()
+        
         form.put(`/surveys/${props.survey.survey_id}`, {
+            data: requestData,
             preserveScroll: true,
             onSuccess: () => {
                 clearFailureDraft()
-                showMessage('アンケートを更新しました。', 'success');
+                pendingSave.value = false
+                const message = pendingSave.value ? 'アンケートを更新しました。既存の回答は削除されました。' : 'アンケートを更新しました。'
+                showMessage(message, 'success');
                 handleClose();
             },
             onError: (errors) => {
+                pendingSave.value = false
+                
+                // 確認が必要なエラーをチェック
+                if (errors.requires_confirmation) {
+                    confirmData.value = {
+                        response_count: errors.response_count,
+                        message: errors.message
+                    }
+                    showConfirmDialog.value = true
+                    return
+                }
+                
                 const errorMessages: any[] = [];
                 for (const [field, messages] of Object.entries(errors)) {
                     if (Array.isArray(messages)) {
@@ -548,6 +605,14 @@ const discardFailureDraft = () => {
     pendingFailureDraft.value = null
 }
 
+const handleConfirmSave = () => {
+    showConfirmDialog.value = false
+    pendingSave.value = true
+    
+    // 確認後の保存処理
+    handleSave(false)
+}
+
 // 下書き削除の取り消し
 const undoDeleteDraft = () => {
     if (deletedDraft.value) {
@@ -707,6 +772,23 @@ const loadEditData = () => {
             };
             return question;
         }) || [];
+        
+    // 元データを保存
+    originalData.value = {
+        title: title.value,
+        description: description.value,
+        respondents: selectedRespondents.value.slice(),
+        questions: questions.value.map(q => ({
+            question: q.question,
+            type: q.type,
+            required: q.required,
+            options: q.options,
+            scaleMin: q.scaleMin,
+            scaleMax: q.scaleMax,
+            scaleMinLabel: q.scaleMinLabel,
+            scaleMaxLabel: q.scaleMaxLabel
+        }))
+    }
 };
 
 // ダイアログが開いた時の処理
@@ -1464,6 +1546,22 @@ watch(
         <DialogFooter>
           <Button variant="outline" @click="discardFailureDraft">破棄</Button>
           <Button @click="restoreFailureDraft">復元</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    
+    <!-- 既存回答削除確認ダイアログ -->
+    <Dialog :open="showConfirmDialog" @update:open="(val) => showConfirmDialog = val">
+      <DialogContent class="max-w-md z-[70]">
+        <DialogHeader>
+          <DialogTitle>既存回答の削除確認</DialogTitle>
+          <DialogDescription v-if="confirmData">
+            {{ confirmData.message }}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showConfirmDialog = false">キャンセル</Button>
+          <Button @click="handleConfirmSave" class="bg-red-600 hover:bg-red-700">続行する</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

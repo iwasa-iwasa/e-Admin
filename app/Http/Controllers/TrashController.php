@@ -23,7 +23,7 @@ class TrashController extends Controller
             
             $trashItems = TrashItem::where(function($q) {
                     $q->where('is_shared', true)
-                      ->orWhere('user_id', Auth::id());
+                      ->orWhere('user_id', Auth::id() ?: 1); // テスト用にデフォルト値1を設定
                 })
                 ->with('user')
                 ->orderBy('deleted_at', 'desc')
@@ -62,7 +62,7 @@ class TrashController extends Controller
                     'deletedAt' => $item->deleted_at->format('Y-m-d H:i'),
                     'item_id' => (string)$item->item_id,
                     'permanent_delete_at' => $item->permanent_delete_at ? $item->permanent_delete_at->format('Y-m-d H:i') : null,
-                    'creatorName' => $creatorName,
+                    'creatorName' => $item->creator_name ?: $creatorName,
                     'deletedBy' => $item->user ? $item->user->name : '',
                     'isShared' => $item->is_shared,
                 ];

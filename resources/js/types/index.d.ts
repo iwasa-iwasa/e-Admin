@@ -5,6 +5,9 @@ export interface User {
     email_verified_at?: string;
     department: string;
     role: string;
+    is_active: boolean;
+    deactivated_at?: string;
+    reason?: string;
 }
 
 export type PageProps<

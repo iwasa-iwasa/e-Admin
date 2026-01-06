@@ -92,6 +92,9 @@ interface QuestionResult {
     responses: any[];
     aggregatedData?: any;
     scaleMax?: number;
+    scaleMin?: number;
+    scaleMinLabel?: string;
+    scaleMaxLabel?: string;
     averageRating?: number;
 }
 
@@ -293,8 +296,11 @@ const surveyData = computed(() => {
                     );
                     
                     // rating/scaleの平均値を計算
-                    const averageRating = responses.length > 0
-                        ? responses.reduce((sum, r) => sum + Number(r.value || 0), 0) / responses.length
+                    const averageRating = responses.length > 0 && (q.question_type === 'rating' || q.question_type === 'scale')
+                        ? responses.reduce((sum, r) => {
+                            const numValue = Number(r.value);
+                            return sum + (isNaN(numValue) ? 0 : numValue);
+                        }, 0) / responses.length
                         : 0;
                     
                     return {
@@ -342,7 +348,29 @@ const surveyData = computed(() => {
     return mockSurveyResult;
 });
 
-// 質問タイプのマッピング
+// 締切の日付と時刻を分割する関数
+const getDeadlineInfo = (survey: any) => {
+    if (!survey?.deadline_date && !survey?.deadline) return { date: null, time: null };
+    
+    // deadline_dateとdeadline_timeが存在する場合
+    if (survey.deadline_date) {
+        return {
+            date: survey.deadline_date,
+            time: survey.deadline_time || '23:59:00'
+        };
+    }
+    
+    // deadlineから分割する場合
+    if (survey.deadline) {
+        const dt = new Date(survey.deadline);
+        return {
+            date: dt.toISOString().split('T')[0],
+            time: dt.toTimeString().split(' ')[0]
+        };
+    }
+    
+    return { date: null, time: null };
+};
 const mapQuestionTypeToFrontend = (dbType: string): string => {
     const mapping: Record<string, string> = {
         single_choice: "single",
@@ -403,10 +431,10 @@ const getQuestionResponses = (
 </script>
 
 <template>
-    <Head title="アンケート結果" />
+    <Head :title="`${surveyData.title} - 結果`" />
     <div class="max-w-[1800px] mx-auto h-full p-6">
-        <Card class="h-full overflow-hidden">
-            <div class="p-4 border-b border-gray-300">
+        <Card class="h-full overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-gray-300 shrink-0">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-2">
                         <Button
@@ -417,7 +445,7 @@ const getQuestionResponses = (
                         >
                             <ArrowLeft class="h-5 w-5" />
                         </Button>
-                        <h1 class="text-blue-600">アンケート結果</h1>
+                        <h1>{{ surveyData.title }}</h1>
                     </div>
                     <Button @click="handleDownloadCSV" variant="outline" class="gap-2">
                         <Download class="h-4 w-4" />
@@ -427,8 +455,7 @@ const getQuestionResponses = (
                 <p class="text-sm text-gray-500">集計結果の分析</p>
             </div>
             
-            <ScrollArea class="h-[calc(100vh-240px)]">
-                <div class="p-6 space-y-6">
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
             <Card class="mb-6">
                 <CardHeader>
                     <div class="flex items-start justify-between">
@@ -444,7 +471,12 @@ const getQuestionResponses = (
                             >
                                 <div class="flex items-center gap-1">
                                     <CalendarIcon class="h-4 w-4" />
-                                    締切: {{ surveyData.deadline ? formatDate(surveyData.deadline) : '' }}
+                                    締切: 
+                                    <span v-if="getDeadlineInfo(props.survey).date">
+                                        {{ new Date(getDeadlineInfo(props.survey).date).toLocaleDateString('ja-JP') }}
+                                        {{ getDeadlineInfo(props.survey).time.substring(0, 5) }}
+                                    </span>
+                                    <span v-else>なし</span>
                                 </div>
                                 <div class="flex items-center gap-1">
                                     作成者: {{ surveyData.createdBy }}
@@ -652,8 +684,7 @@ const getQuestionResponses = (
                                                     datasets: [
                                                         {
                                                             label: '回答数',
-                                                            backgroundColor:
-                                                                '#3b82f6',
+                                                            backgroundColor: COLORS.slice(0, question.aggregatedData.length),
                                                             data: question.aggregatedData.map(
                                                                 (d) => d.value
                                                             ),
@@ -729,26 +760,24 @@ const getQuestionResponses = (
                                     <h4 class="text-sm mb-4 text-gray-600">
                                         回答者別の選択内容
                                     </h4>
-                                    <ScrollArea class="h-[300px] pr-4">
-                                        <div class="space-y-3">
-                                            <div
-                                                v-for="(response, index) in question.responses"
-                                                :key="index"
-                                                class="bg-gray-50 border border-gray-300 rounded-lg p-4"
-                                            >
-                                                <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
-                                                <div class="flex flex-wrap gap-2">
-                                                    <Badge
-                                                        v-for="(item, i) in (Array.isArray(response.value) ? response.value : [response.value])"
-                                                        :key="i"
-                                                        class="bg-green-100 text-green-700"
-                                                    >
-                                                        {{ item }}
-                                                    </Badge>
-                                                </div>
+                                    <div class="space-y-3">
+                                        <div
+                                            v-for="(response, index) in question.responses"
+                                            :key="index"
+                                            class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                        >
+                                            <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
+                                            <div class="flex flex-wrap gap-2">
+                                                <Badge
+                                                    v-for="(item, i) in (Array.isArray(response.value) ? response.value : [response.value])"
+                                                    :key="i"
+                                                    class="bg-green-100 text-green-700"
+                                                >
+                                                    {{ item }}
+                                                </Badge>
                                             </div>
                                         </div>
-                                    </ScrollArea>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -880,7 +909,7 @@ const getQuestionResponses = (
                                         <p class="text-4xl text-purple-600 mb-2">{{ question.averageRating ? question.averageRating.toFixed(1) : '回答なし' }}</p>
                                         <div v-if="question.scaleMinLabel && question.scaleMaxLabel" class="flex items-center justify-center gap-2 text-sm text-gray-500">
                                             <span>{{ question.scaleMinLabel }}</span>
-                                            <Progress :model-value="(question.averageRating / (question.scaleMax || 5)) * 100" class="h-2 w-32" />
+                                            <Progress :model-value="((question.averageRating || 0) / (question.scaleMax || 5)) * 100" class="h-2 w-32" />
                                             <span>{{ question.scaleMaxLabel }}</span>
                                         </div>
                                         <p class="text-sm text-gray-500 mt-2">{{ question.responses.length }}件の回答</p>
@@ -911,11 +940,35 @@ const getQuestionResponses = (
                                 </div>
                             </div>
                         </template>
+                        <template v-if="question.type === 'date'">
+                            <div class="space-y-4">
+                                <h4 class="text-sm text-gray-600">
+                                    回答者別の選択内容
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    <div
+                                        v-for="(response, index) in question.responses"
+                                        :key="index"
+                                        class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                    >
+                                        <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
+                                        <p class="text-sm text-gray-700 font-medium">
+                                            {{ response.value ? new Date(response.value).toLocaleString('ja-JP', { 
+                                                year: 'numeric', 
+                                                month: '2-digit', 
+                                                day: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            }) : response.value }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                         <template
                             v-if="
                                 question.type === 'text' ||
-                                question.type === 'textarea' ||
-                                question.type === 'date'
+                                question.type === 'textarea'
                             "
                         >
                             <div class="space-y-4">
@@ -924,67 +977,53 @@ const getQuestionResponses = (
                                         question.responses.length
                                     }}件）
                                 </h4>
-                                <ScrollArea class="h-[400px] pr-4">
-                                    <div class="space-y-3">
+                                <div class="space-y-3">
+                                    <div
+                                        v-for="(
+                                            response, index
+                                        ) in question.responses"
+                                        :key="index"
+                                        class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                    >
                                         <div
-                                            v-for="(
-                                                response, index
-                                            ) in question.responses"
-                                            :key="index"
-                                            class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                            class="flex items-start justify-between mb-2"
                                         >
                                             <div
-                                                class="flex items-start justify-between mb-2"
+                                                class="flex items-center gap-2"
                                             >
-                                                <div
-                                                    class="flex items-center gap-2"
+                                                <Badge
+                                                    variant="outline"
+                                                    class="text-xs"
+                                                    >{{
+                                                        response.respondent
+                                                    }}</Badge
                                                 >
-                                                    <Badge
-                                                        variant="outline"
-                                                        class="text-xs"
-                                                        >{{
-                                                            response.respondent
-                                                        }}</Badge
-                                                    >
-                                                    <span
-                                                        v-if="
+                                                <span
+                                                    v-if="
+                                                        response.timestamp
+                                                    "
+                                                    class="text-xs text-gray-500"
+                                                    >{{
+                                                        formatDate(
                                                             response.timestamp
-                                                        "
-                                                        class="text-xs text-gray-500"
-                                                        >{{
-                                                            formatDate(
-                                                                response.timestamp
-                                                            )
-                                                        }}</span
-                                                    >
-                                                </div>
+                                                        )
+                                                    }}</span
+                                                >
                                             </div>
-                                            <p
-                                                class="text-gray-700 whitespace-pre-wrap"
-                                            >
-                                                <template v-if="question.type === 'date'">
-                                                    {{ response.value ? new Date(response.value).toLocaleString('ja-JP', { 
-                                                        year: 'numeric', 
-                                                        month: '2-digit', 
-                                                        day: '2-digit',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    }) : response.value }}
-                                                </template>
-                                                <template v-else>
-                                                    {{ response.value }}
-                                                </template>
-                                            </p>
                                         </div>
+                                        <p
+                                            class="text-gray-700 whitespace-pre-wrap"
+                                        >
+                                            {{ response.value }}
+                                        </p>
                                     </div>
-                                </ScrollArea>
+                                </div>
                             </div>
                         </template>
                     </CardContent>
                 </Card>
             </div>
                 </div>
-            </ScrollArea>
         </Card>
     </div>
 </template>

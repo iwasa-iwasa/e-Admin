@@ -67,7 +67,7 @@ const sortKey = ref<'priority' | 'deadline' | 'updated_at'>('updated_at')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const editedTitle = ref(selectedNote.value?.title || '')
 const editedContent = ref(selectedNote.value?.content || '')
-const editedDeadline = ref(selectedNote.value?.deadline || '')
+const editedDeadline = ref('')
 const editedPriority = ref<Priority>(selectedNote.value?.priority as Priority || 'medium')
 const editedColor = ref(selectedNote.value?.color || 'yellow')
 const editedTags = ref<string[]>(selectedNote.value?.tags.map(tag => tag.tag_name) || [])
@@ -141,7 +141,13 @@ watch(selectedNote, (newNote) => {
   if (newNote) {
     editedTitle.value = newNote.title
     editedContent.value = newNote.content || ''
-    editedDeadline.value = newNote.deadline || ''
+    // deadline_dateとdeadline_timeを結合してdatetime-local形式に変換
+    if (newNote.deadline_date) {
+      const time = newNote.deadline_time || '23:59'
+      editedDeadline.value = `${newNote.deadline_date}T${time}`
+    } else {
+      editedDeadline.value = ''
+    }
     editedPriority.value = newNote.priority as Priority
     editedColor.value = newNote.color
     editedTags.value = newNote.tags.map(tag => tag.tag_name)
@@ -150,17 +156,6 @@ watch(selectedNote, (newNote) => {
   }
 })
 
-watch(showFilters, (newValue, oldValue) => {
-  // フィルターを閉じた時に検索欄にフォーカス
-  if (oldValue === true && newValue === false) {
-    setTimeout(() => {
-      const inputElement = searchInputRef.value?.$el?.querySelector('input') || searchInputRef.value
-      if (inputElement && typeof inputElement.focus === 'function') {
-        inputElement.focus()
-      }
-    }, 100)
-  }
-})
 
 watch(() => props.notes, (newNotes, oldNotes) => {
   // 新しいメモが追加された場合の処理
@@ -244,6 +239,22 @@ const filteredNotes = computed(() => {
   })
 })
 
+watch(showFilters, (isOpen) => {
+  if (!isOpen) {
+    requestAnimationFrame(() => {
+      const inputElement = searchInputRef.value?.$el?.querySelector('input') || searchInputRef.value
+      if (inputElement && typeof inputElement.focus === 'function') {
+        inputElement.focus()
+      }
+    })
+  }
+})
+
+watch(searchQuery, () => {
+  if (searchQuery.value && showFilters.value) {
+    showFilters.value = false
+  }
+})
 
 const authors = computed(() => Array.from(new Set(props.notes.map((note) => note.author?.name).filter(Boolean))))
 
@@ -261,10 +272,20 @@ const handleSaveNote = () => {
   isSaving.value = true
   saveMessage.value = ''
   
+  // datetime-localの値をdateとtimeに分割
+  let deadlineDate = null
+  let deadlineTime = null
+  if (editedDeadline.value) {
+    const [date, time] = editedDeadline.value.split('T')
+    deadlineDate = date
+    deadlineTime = time
+  }
+  
   const updateData = {
     title: editedTitle.value,
     content: editedContent.value,
-    deadline: editedDeadline.value || null,
+    deadline_date: deadlineDate,
+    deadline_time: deadlineTime,
     priority: editedPriority.value,
     color: editedColor.value,
     tags: editedTags.value,

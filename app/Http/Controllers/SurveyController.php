@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use App\Models\Survey;
@@ -219,7 +220,7 @@ class SurveyController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             
-            \Log::error('Survey store error', [
+            Log::error('Survey store error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
@@ -269,6 +270,7 @@ class SurveyController extends Controller
             ->map(function ($survey) use ($userId) {
                 $survey->has_responded = $survey->responses()->where('respondent_id', $userId)->exists();
                 $survey->respondent_names = $survey->responses->pluck('respondent.name')->filter()->values();
+                
                 return $survey;
             });
 
@@ -289,10 +291,30 @@ class SurveyController extends Controller
             'description' => 'nullable|string',
             'deadline' => 'required',
             'questions' => 'required|array',
+            'confirm_reset' => 'boolean',
         ]);
 
         try {
-            DB::transaction(function () use ($request, $survey) {
+            // 既存回答の確認
+            $hasResponses = $survey->responses()->exists();
+            $responseCount = $survey->responses()->count();
+            
+            // 質問内容の変更チェック
+            $questionsChanged = $this->questionsChanged($survey, $request->questions);
+            
+            // 期限のみの変更チェック
+            $onlyDeadlineChanged = $this->onlyDeadlineChanged($survey, $request->all());
+            
+            // 既存回答があり、質問が変更され、確認が取れていない場合
+            if ($hasResponses && $questionsChanged && !$onlyDeadlineChanged && !$request->confirm_reset) {
+                return back()->withErrors([
+                    'requires_confirmation' => true,
+                    'response_count' => $responseCount,
+                    'message' => "このアンケートには{$responseCount}件の回答があります。質問を変更すると既存の回答が削除されます。続行しますか？"
+                ]);
+            }
+
+            DB::transaction(function () use ($request, $survey, $hasResponses, $questionsChanged, $onlyDeadlineChanged) {
                 $deadline = $request->deadline;
                 $deadlineDate = null;
                 $deadlineTime = null;
@@ -310,30 +332,42 @@ class SurveyController extends Controller
                     'deadline_time' => $deadlineTime,
                 ]);
 
-                $survey->questions()->each(fn($question) => $question->options()->delete());
-                $survey->questions()->delete();
+                // 期限のみの変更の場合は質問と回答を保持
+                if (!$onlyDeadlineChanged) {
+                    // 既存回答があり質問が変更された場合は回答を削除
+                    if ($hasResponses && $questionsChanged) {
+                        $survey->responses()->each(function ($response) {
+                            $response->answers()->delete();
+                        });
+                        $survey->responses()->delete();
+                    }
+                    
+                    // 質問を再作成
+                    $survey->questions()->each(fn($question) => $question->options()->delete());
+                    $survey->questions()->delete();
 
-                foreach ($request->questions as $index => $questionData) {
-                    $question = SurveyQuestion::create([
-                        'survey_id' => $survey->survey_id,
-                        'question_text' => $questionData['question'],
-                        'question_type' => $this->mapQuestionType($questionData['type']),
-                        'is_required' => $questionData['required'] ?? false,
-                        'display_order' => $index + 1,
-                        'scale_min' => $questionData['scaleMin'] ?? null,
-                        'scale_max' => $questionData['scaleMax'] ?? null,
-                        'scale_min_label' => $questionData['scaleMinLabel'] ?? null,
-                        'scale_max_label' => $questionData['scaleMaxLabel'] ?? null,
-                    ]);
+                    foreach ($request->questions as $index => $questionData) {
+                        $question = SurveyQuestion::create([
+                            'survey_id' => $survey->survey_id,
+                            'question_text' => $questionData['question'],
+                            'question_type' => $this->mapQuestionType($questionData['type']),
+                            'is_required' => $questionData['required'] ?? false,
+                            'display_order' => $index + 1,
+                            'scale_min' => $questionData['scaleMin'] ?? null,
+                            'scale_max' => $questionData['scaleMax'] ?? null,
+                            'scale_min_label' => $questionData['scaleMinLabel'] ?? null,
+                            'scale_max_label' => $questionData['scaleMaxLabel'] ?? null,
+                        ]);
 
-                    if (in_array($questionData['type'], ['single', 'multiple', 'dropdown']) && !empty($questionData['options'])) {
-                        foreach ($questionData['options'] as $optionIndex => $optionText) {
-                            if (!empty(trim($optionText))) {
-                                SurveyQuestionOption::create([
-                                    'question_id' => $question->question_id,
-                                    'option_text' => trim($optionText),
-                                    'display_order' => $optionIndex + 1,
-                                ]);
+                        if (in_array($questionData['type'], ['single', 'multiple', 'dropdown']) && !empty($questionData['options'])) {
+                            foreach ($questionData['options'] as $optionIndex => $optionText) {
+                                if (!empty(trim($optionText))) {
+                                    SurveyQuestionOption::create([
+                                        'question_id' => $question->question_id,
+                                        'option_text' => trim($optionText),
+                                        'display_order' => $optionIndex + 1,
+                                    ]);
+                                }
                             }
                         }
                     }
@@ -362,27 +396,25 @@ class SurveyController extends Controller
         // 既存の回答をマップ化
         $existingAnswers = [];
         if ($existingResponse) {
-            foreach ($existingResponse->answers as $answer) {
-                $question = $survey->questions->firstWhere('question_id', $answer->question_id);
+            // 質問ごとに回答をグループ化
+            $answersByQuestion = $existingResponse->answers->groupBy('question_id');
+            
+            foreach ($answersByQuestion as $questionId => $answers) {
+                $question = $survey->questions->firstWhere('question_id', $questionId);
                 
-                if ($answer->selected_option_id) {
-                    $existingAnswers[$answer->question_id] = $answer->selected_option_id;
+                if ($question && $question->question_type === 'multiple_choice') {
+                    // 複数選択の場合、全てのoption_idを配列で収集
+                    $optionIds = $answers->pluck('selected_option_id')->filter()->values()->toArray();
+                    $existingAnswers[$questionId] = $optionIds;
                 } else {
-                    // JSON配列の場合はデコード
-                    $decoded = json_decode($answer->answer_text, true);
+                    // その他の場合は最初の回答を使用
+                    $answer = $answers->first();
                     
-                    if (is_array($decoded) && $question && $question->question_type === 'multiple_choice') {
-                        // multiple_choiceの場合、テキストからoption_idに変換
-                        $optionIds = [];
-                        foreach ($decoded as $text) {
-                            $option = $question->options->firstWhere('option_text', $text);
-                            if ($option) {
-                                $optionIds[] = $option->option_id;
-                            }
-                        }
-                        $existingAnswers[$answer->question_id] = $optionIds;
+                    if ($answer->selected_option_id) {
+                        $existingAnswers[$questionId] = $answer->selected_option_id;
                     } else {
-                        $existingAnswers[$answer->question_id] = is_array($decoded) ? $decoded : $answer->answer_text;
+                        $decoded = json_decode($answer->answer_text, true);
+                        $existingAnswers[$questionId] = is_array($decoded) ? $decoded : $answer->answer_text;
                     }
                 }
             }
@@ -425,7 +457,7 @@ class SurveyController extends Controller
             DB::transaction(function () use ($survey, $validated) {
                 // 既存の回答を確認
                 $existingResponse = $survey->responses()
-                    ->where('respondent_id', auth()->id())
+                    ->where('respondent_id', Auth::id())
                     ->first();
                 
                 if ($existingResponse) {
@@ -437,7 +469,7 @@ class SurveyController extends Controller
                     // 新規回答を作成
                     $response = SurveyResponse::create([
                         'survey_id' => $survey->survey_id,
-                        'respondent_id' => auth()->id(),
+                        'respondent_id' => Auth::id(),
                         'submitted_at' => now(),
                     ]);
                 }
@@ -489,9 +521,9 @@ class SurveyController extends Controller
             return redirect()->route('surveys')
                 ->with('success', '回答を送信しました');
         } catch (\Exception $e) {
-            \Log::error('Survey answer submission failed', [
+            Log::error('Survey answer submission failed', [
                 'survey_id' => $survey->survey_id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -512,7 +544,7 @@ class SurveyController extends Controller
             DB::transaction(function () use ($request, $survey) {
                 $response = SurveyResponse::create([
                     'survey_id' => $survey->survey_id,
-                    'respondent_id' => auth()->id(),
+                    'respondent_id' => Auth::id(),
                     'submitted_at' => now(),
                 ]);
 
@@ -540,11 +572,11 @@ class SurveyController extends Controller
     public function destroy(Survey $survey)
     {
         try {
-            \Log::info('SurveyController destroy called for survey: ' . $survey->survey_id . ' by user: ' . Auth::id());
+            Log::info('SurveyController destroy called for survey: ' . $survey->survey_id . ' by user: ' . Auth::id());
             
             // 既に削除済みかチェック
             if ($survey->is_deleted) {
-                \Log::info('Survey already deleted: ' . $survey->survey_id);
+                Log::info('Survey already deleted: ' . $survey->survey_id);
                 return redirect()->route('surveys')
                     ->with('error', 'このアンケートは既に削除されています。');
             }
@@ -553,7 +585,7 @@ class SurveyController extends Controller
 
             // アンケートを削除済みにする
             $survey->update(['is_deleted' => true, 'deleted_at' => now()]);
-            \Log::info('Survey marked as deleted: ' . $survey->survey_id);
+            Log::info('Survey marked as deleted: ' . $survey->survey_id);
 
             // ゴミ箱に追加
             $trashItem = \App\Models\TrashItem::create([
@@ -565,17 +597,17 @@ class SurveyController extends Controller
                 'deleted_at' => now(),
                 'permanent_delete_at' => now()->addMonth(),
             ]);
-            \Log::info('TrashItem created with ID: ' . $trashItem->id . ' for survey_id: ' . $survey->survey_id);
-            \Log::info('Survey added to trash: ' . $survey->survey_id);
+            Log::info('TrashItem created with ID: ' . $trashItem->id . ' for survey_id: ' . $survey->survey_id);
+            Log::info('Survey added to trash: ' . $survey->survey_id);
 
             DB::commit();
-            \Log::info('Survey deletion completed successfully');
+            Log::info('Survey deletion completed successfully');
 
             return redirect()->route('surveys')
                 ->with('success', 'アンケートをゴミ箱に移動しました。');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('SurveyController destroy error: ' . $e->getMessage());
+            Log::error('SurveyController destroy error: ' . $e->getMessage());
 
             return redirect()->back()
                 ->with('error', 'アンケートの削除に失敗しました。');
@@ -614,6 +646,11 @@ class SurveyController extends Controller
     {
         // アンケート本体と質問を取得
         $survey->load(['questions.options', 'creator', 'designatedUsers']);
+        
+        // 質問の詳細情報を取得（scale_min_label, scale_max_labelを含む）
+        $survey->questions->each(function ($question) {
+            $question->makeVisible(['scale_min_label', 'scale_max_label']);
+        });
 
         // このアンケートの回答データを取得
         $responses = $survey->responses()
@@ -781,24 +818,76 @@ class SurveyController extends Controller
     }
 
     /**
-     * Map database question type to frontend question type.
-     *
-     * @param  string  $dbType
-     * @return string
+     * Check if only deadline has changed.
      */
-    private function mapQuestionTypeToFrontend(string $dbType): string
+    private function onlyDeadlineChanged($survey, $requestData)
     {
-        $mapping = [
-            'single_choice' => 'single',
-            'multiple_choice' => 'multiple',
-            'text' => 'text',
-            'textarea' => 'textarea',
-            'rating' => 'rating',
-            'scale' => 'scale',
-            'dropdown' => 'dropdown',
-            'date' => 'date',
-        ];
-
-        return $mapping[$dbType] ?? $dbType;
+        $currentDeadline = null;
+        if ($survey->deadline_date) {
+            $currentDeadline = $survey->deadline_date . ' ' . ($survey->deadline_time ?? '23:59:00');
+        }
+        
+        $newDeadline = $requestData['deadline'] ?? null;
+        
+        // タイトル、説明、質問が変更されていないかチェック
+        $titleChanged = $survey->title !== $requestData['title'];
+        $descriptionChanged = $survey->description !== ($requestData['description'] ?? null);
+        $questionsChanged = $this->questionsChanged($survey, $requestData['questions']);
+        
+        return !$titleChanged && !$descriptionChanged && !$questionsChanged;
+    }
+    
+    /**
+     * Check if questions have changed.
+     */
+    private function questionsChanged($survey, $newQuestions)
+    {
+        $currentQuestions = $survey->questions()->with('options')->orderBy('display_order')->get();
+        
+        if ($currentQuestions->count() !== count($newQuestions)) {
+            return true;
+        }
+        
+        foreach ($currentQuestions as $index => $currentQuestion) {
+            $newQuestion = $newQuestions[$index] ?? null;
+            
+            if (!$newQuestion) {
+                return true;
+            }
+            
+            // 質問テキストの比較
+            if ($currentQuestion->question_text !== $newQuestion['question']) {
+                return true;
+            }
+            
+            // 質問タイプの比較
+            $newType = $this->mapQuestionType($newQuestion['type']);
+            if ($currentQuestion->question_type !== $newType) {
+                return true;
+            }
+            
+            // 必須フラグの比較
+            if ($currentQuestion->is_required !== ($newQuestion['required'] ?? false)) {
+                return true;
+            }
+            
+            // 選択肢の比較
+            if (in_array($newQuestion['type'], ['single', 'multiple', 'dropdown'])) {
+                $currentOptions = $currentQuestion->options->pluck('option_text')->toArray();
+                $newOptions = array_filter($newQuestion['options'] ?? [], fn($opt) => !empty(trim($opt)));
+                
+                if (count($currentOptions) !== count($newOptions)) {
+                    return true;
+                }
+                
+                foreach ($currentOptions as $i => $currentOption) {
+                    if (!isset($newOptions[$i]) || $currentOption !== trim($newOptions[$i])) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
     }
 }
