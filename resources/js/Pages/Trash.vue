@@ -335,32 +335,36 @@ onMounted(() => {
   <div class="max-w-[1800px] mx-auto h-full p-6">
     <Card class="h-full overflow-hidden flex flex-col">
       <!-- ヘッダー部分 -->
-      <div class="p-4 border-b border-gray-300 shrink-0">
-        <div class="flex items-center justify-between ">
+      <div class="p-6 border-b border-gray-200 shrink-0 bg-white">
+        <div class="flex items-center justify-between mb-4">
           <!-- タイトル部分 -->
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
               @click="router.get(route('dashboard'))"
-              class="mr-1"
             >
               <ArrowLeft class="h-5 w-5" />
             </Button>
             <Trash2 class="h-6 w-6 text-gray-600" />
-            <CardTitle>ゴミ箱</CardTitle>
+            <CardTitle class="text-2xl">ゴミ箱</CardTitle>
           </div>
           
           <!-- 検索・フィルター・アクションボタン -->
-          <div class="flex items-center gap-3">
-            <Button variant="outline" size="icon" @click="showFilterDialog = !showFilterDialog" :class="showFilterDialog ? 'bg-gray-100' : ''">
+          <div class="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              @click="showFilterDialog = !showFilterDialog" 
+              :class="showFilterDialog ? 'bg-gray-100' : ''"
+            >
               <Filter class="h-4 w-4" />
             </Button>
             <div class="relative">
               <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 ref="searchInputRef"
-                placeholder="タイトルなどで検索"
+                placeholder="タイトルで検索"
                 v-model="filterTitle"
                 class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-[300px]"
               />
@@ -384,16 +388,7 @@ onMounted(() => {
               class="gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700"
             >
               <Trash2 class="h-4 w-4" />
-              選択を削除
-            </Button>
-            <Button 
-              v-if="selectedItems.size > 0" 
-              variant="outline" 
-              @click="handleDeleteSelected('unselected')" 
-              class="gap-2"
-            >
-              <Trash2 class="h-4 w-4" />
-              他を削除
+              選択を完全削除
             </Button>
             <Button 
               v-if="trashItems.length > 0 && selectedItems.size === 0" 
@@ -407,138 +402,212 @@ onMounted(() => {
           </div>
         </div>
         
-        <div v-if="showFilterDialog" class="space-y-2 mb-2 p-3 bg-gray-50 rounded-lg border mx-4">
-          <div>
-            <label class="text-xs font-medium text-gray-700 mb-1 block">種類</label>
-            <Select v-model="filterType">
-              <SelectTrigger class="h-8 border-gray-300">
-                <SelectValue placeholder="すべての種類" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">すべての種類</SelectItem>
-                <SelectItem value="event">共有カレンダー</SelectItem>
-                <SelectItem value="shared_note">共有メモ</SelectItem>
-                <SelectItem value="survey">アンケート</SelectItem>
-                <SelectItem value="reminder">個人リマインダー</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label class="text-xs font-medium text-gray-700 mb-1 block">作成者</label>
-            <Select v-model="filterCreator">
-              <SelectTrigger class="h-8 border-gray-300">
-                <SelectValue placeholder="すべての作成者" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">すべての作成者</SelectItem>
-                <SelectItem v-for="creator in uniqueCreators" :key="creator" :value="creator">
-                  {{ creator }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label class="text-xs font-medium text-gray-700 mb-1 block">削除日</label>
-            <div class="flex gap-2">
-              <Input
-                type="date"
-                v-model="filterDateFrom"
-                placeholder="開始日"
-                class="h-8 text-xs flex-1"
-              />
-              <Input
-                type="date"
-                v-model="filterDateTo"
-                placeholder="終了日"
-                class="h-8 text-xs flex-1"
-              />
+        <!-- フィルターパネル -->
+        <div v-if="showFilterDialog" class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200 mb-4">
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="text-xs font-medium text-gray-700 mb-1.5 block">種類</label>
+              <Select v-model="filterType">
+                <SelectTrigger class="h-9 border-gray-300">
+                  <SelectValue placeholder="すべての種類" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべての種類</SelectItem>
+                  <SelectItem value="event">共有カレンダー</SelectItem>
+                  <SelectItem value="shared_note">共有メモ</SelectItem>
+                  <SelectItem value="survey">アンケート</SelectItem>
+                  <SelectItem value="reminder">個人リマインダー</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 mb-1.5 block">作成者</label>
+              <Select v-model="filterCreator">
+                <SelectTrigger class="h-9 border-gray-300">
+                  <SelectValue placeholder="すべての作成者" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべての作成者</SelectItem>
+                  <SelectItem v-for="creator in uniqueCreators" :key="creator" :value="creator">
+                    {{ creator }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-700 mb-1.5 block">削除日</label>
+              <div class="flex gap-2">
+                <Input
+                  type="date"
+                  v-model="filterDateFrom"
+                  placeholder="開始日"
+                  class="h-9 text-xs flex-1"
+                />
+                <Input
+                  type="date"
+                  v-model="filterDateTo"
+                  placeholder="終了日"
+                  class="h-9 text-xs flex-1"
+                />
+              </div>
             </div>
           </div>
         </div>
         
-        <p class="text-sm text-gray-500 px-4 py-2">削除されたアイテム ({{ sortedItems.length }}件)</p>
-        <!-- テーブルヘッダー -->
-        <div v-if="trashItems.length > 0" class="grid grid-cols-12 gap-3 py-2 px-4 bg-gray-50 border-t border-b text-sm font-medium text-gray-700">
-          <div class="col-span-1 flex items-center">
+        <div class="flex items-center justify-between">
+          <p class="text-sm text-gray-600">
+            削除されたアイテム <span class="font-semibold text-gray-900">{{ sortedItems.length }}件</span>
+          </p>
+          <div v-if="selectedItems.size > 0" class="flex items-center gap-2">
             <input 
               type="checkbox" 
               :checked="isAllSelected" 
               @change="(e) => toggleAll((e.target as HTMLInputElement).checked)"
               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
+            <span class="text-sm text-gray-600">{{ selectedItems.size }}件選択中</span>
           </div>
-          <div class="col-span-1">種類</div>
-          <div class="col-span-4">タイトルと詳細</div>
-          <div class="col-span-1">作成者</div>
-          <div class="col-span-2">削除した日時</div>
-          <div class="col-span-3 text-right">アクション</div>
+        </div>
+      </div>
+      
+      <!-- テーブルヘッダー (固定) -->
+      <div v-if="trashItems.length > 0" class="sticky top-0 z-10 bg-white border-b border-gray-200 shrink-0">
+        <div class="grid grid-cols-12 gap-3 py-3 px-4 text-sm font-medium text-gray-700">
+          <div class="col-span-1 flex items-center justify-center">
+            <div class="translate-x-2">
+              <input 
+                type="checkbox" 
+                :checked="isAllSelected" 
+                @change="(e) => toggleAll((e.target as HTMLInputElement).checked)"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div class="col-span-2 flex items-center justify-center">種類</div>
+          <div class="col-span-6 flex items-center">タイトルと説明</div>
+          <div class="col-span-3 flex items-center justify-center">アクション</div>
         </div>
       </div>
       
       <!-- メインコンテンツ -->
-      <div class="flex-1 overflow-y-auto">
+      <div class="flex-1 overflow-y-auto bg-gray-50">
         <!-- 空の状態 -->
         <div v-if="trashItems.length === 0" class="flex items-center justify-center h-full">
           <div class="text-center py-16">
             <Trash2 class="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <h2 class="mb-2 text-gray-900">ゴミ箱は空です</h2>
+            <h2 class="text-xl font-semibold mb-2 text-gray-900">ゴミ箱は空です</h2>
             <p class="text-gray-500">削除されたアイテムはここに表示されます</p>
           </div>
         </div>
         
-        <!-- テーブル -->
-        <div v-else class="px-4 pt-6">
-          <div class="space-y-2">
-            <div 
-              v-for="item in sortedItems" 
-              :key="item.id || 'unknown'" 
-              :id="`item-${item.id}`" 
-              :class="['grid grid-cols-12 gap-3 py-3 px-4 border-b hover:bg-gray-50 cursor-pointer', selectedItems.has(item.id) ? 'bg-blue-50' : '']"
-              @click="handleRowClick($event, item)"
-            >
-              <div class="col-span-1 flex items-center">
-                <input 
-                  type="checkbox" 
-                  :checked="selectedItems.has(item.id)" 
-                  @change="(e) => toggleItem(item.id, (e.target as HTMLInputElement).checked)"
-                  class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-              </div>
-              <div class="col-span-1 flex items-center justify-center min-w-0">
-                <Badge v-if="item" variant="outline" :class="['gap-1 max-w-full', getItemTypeInfo(item.type || 'shared_note').color]">
-                  <component :is="getItemTypeInfo(item.type || 'shared_note').icon" class="h-4 w-4 flex-shrink-0" />
-                  <span class="truncate">{{ getItemTypeInfo(item.type || 'shared_note').label }}</span>
-                </Badge>
-                <Badge v-else variant="outline" class="gap-1 bg-gray-100 text-gray-700 border-gray-300 max-w-full">
-                  <StickyNote class="h-4 w-4 flex-shrink-0" />
-                  <span class="truncate">不明</span>
-                </Badge>
-              </div>
-              <div class="col-span-4 flex flex-col justify-center text-sm">
-                <div class="font-medium">{{ item?.title || '不明' }}</div>
-                <div v-if="item?.description" class="text-xs text-gray-500 truncate mt-1">
-                  {{ item.description.length > 60 ? item.description.substring(0, 60) + '...' : item.description }}
+        <!-- アイテムリスト -->
+        <div v-else class="p-2 space-y-3">
+          <div 
+            v-for="item in sortedItems" 
+            :key="item.id" 
+            :id="`item-${item.id}`" 
+            :class="[
+              'bg-white rounded-lg border transition-all duration-200 hover:shadow-md',
+              selectedItems.has(item.id) ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200'
+            ]"
+            @click="handleRowClick($event, item)"
+          >
+            <div class="grid grid-cols-12 gap-3 px-4 py-3">
+                <!-- チェックボックス -->
+                <div class="col-span-1 flex items-center justify-center">
+                  <div class="w-6 flex justify-center">
+                    <input 
+                      type="checkbox" 
+                      :checked="selectedItems.has(item.id)" 
+                      @change="(e) => toggleItem(item.id, (e.target as HTMLInputElement).checked)"
+                      class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div class="col-span-1 flex items-center justfy-center text-sm">{{ item?.creatorName || '不明' }}</div>
-              <div class="col-span-2 flex items-center text-sm text-gray-600">{{ item?.deletedAt || '不明' }}</div>
-              <div class="col-span-3 flex items-center justify-end gap-2">
-                <Button variant="outline" size="sm" @click="handleRestore(item.id)" class="gap-2" :disabled="!item">
-                  <RotateCcw class="h-4 w-4" />
-                  元に戻す
-                </Button>
-                <Button variant="outline" size="sm" @click="itemToDelete = item?.id" class="gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700" :disabled="!item">
-                  <X class="h-4 w-4" />
-                  完全に削除
-                </Button>
-              </div>
+                
+                <!-- バッジ（種類） -->
+                <div class="col-span-2 flex items-center justify-center">
+                  <Badge 
+                    v-if="item" 
+                    variant="outline" 
+                    :class="getItemTypeInfo(item.type).color"
+                  >
+                    <component :is="getItemTypeInfo(item.type).icon" class="h-4 w-4" />
+                    <span class="text-xs font-medium ml-1">{{ getItemTypeInfo(item.type).label }}</span>
+                  </Badge>
+                </div>
+                
+                <!-- タイトルと詳細 -->
+                <div class="col-span-6 min-w-0">
+                  <!-- メイン行（列の基準） -->
+                  <div class="flex items-center gap-2 min-w-0">
+                    <h3 class="text-sm truncate font-semibold text-gray-900">
+                      {{ item?.title || '不明' }}
+                    </h3>
+
+                    <!-- モバイル用バッジ（横に出す） -->
+                    <Badge
+                      v-if="item"
+                      variant="outline"
+                      :class="['gap-1 px-2 py-0.5 text-xs inline-flex shrink-0 sm:hidden', getItemTypeInfo(item.type).color]"
+                    >
+                      <component :is="getItemTypeInfo(item.type).icon" class="h-3 w-3" />
+                      <span class="font-medium">{{ getItemTypeInfo(item.type).label }}</span>
+                    </Badge>
+                  </div>
+
+                  <!-- サブ情報 -->
+                  <div class="mt-1.5 space-y-1">
+                    <p v-if="item?.description" class="text-xs text-gray-600 line-clamp-2">
+                      {{ item.description }}
+                    </p>
+
+                    <div class="flex flex-wrap gap-4 text-xs text-gray-500">
+                      <div class="flex items-center gap-1.5">
+                        <span class="font-medium">作成者:</span>
+                        <span>{{ item?.creatorName || '不明' }}</span>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <span class="font-medium">削除日時:</span>
+                        <span class="whitespace-nowrap">{{ item?.deletedAt || '不明' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                
+                <!-- アクションボタン -->
+                <div class="col-span-3 flex flex-col items-center justify-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    @click.stop="handleRestore(item.id)" 
+                    class="w-[150px] flex items-center justify-center gap-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700"
+                    :disabled="!item"
+                  >
+                    <RotateCcw class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span class="hidden sm:inline">元に戻す</span>
+                    <span class="sm:hidden">復元</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    @click.stop="itemToDelete = item?.id" 
+                    class="w-[150px] flex items-center justify-center gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600"
+                    :disabled="!item"
+                  >
+                    <X class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span class="hidden sm:inline">完全に削除</span>
+                    <span class="sm:hidden">削除</span>
+                  </Button>
+                </div>
             </div>
           </div>
         </div>
       </div>
     </Card>
 
-    <!-- ダイアログ -->
+    <!-- ダイアログ（元のまま） -->
     <AlertDialog :open="itemToDelete !== null">
       <AlertDialogContent class="bg-white">
         <AlertDialogHeader>
