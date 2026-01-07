@@ -330,7 +330,7 @@ const confirmBulkDelete = () => {
                 <SelectValue>
                   <div class="flex items-center gap-2">
                     <Tag class="h-4 w-4" />
-                    <span>{{ filterTag === '_all_' ? 'タグで絞り込み' : filterTag }}</span>
+                    <span>{{ filterTag === '_all_' ? 'タグ絞り込み' : filterTag }}</span>
                   </div>
                 </SelectValue>
               </SelectTrigger>
@@ -347,7 +347,7 @@ const confirmBulkDelete = () => {
                 ref="searchInputRef"
                 v-model="searchQuery"
                 type="text"
-                placeholder="タイトル、タグ、期限、詳細で検索..."
+                placeholder="タイトルなどで検索"
                 class="pl-9 pr-4 w-[280px] flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>

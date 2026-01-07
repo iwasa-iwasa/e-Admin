@@ -603,17 +603,18 @@ const handleTodayClick = () => {
     }
 }
 
-const changeView = (view: string) => {
-    viewMode.value = view
+const changeView = (view: string | number) => {
+    const viewStr = String(view)
+    viewMode.value = viewStr
     
-    if (view === 'timeGridWeek') {
+    if (viewStr === 'timeGridWeek') {
         currentWeekStart.value = getWeekStart(new Date())
-    } else if (view === 'timeGridDay') {
+    } else if (viewStr === 'timeGridDay') {
         currentDayViewDate.value = new Date()
     } else {
         const api = fullCalendar.value?.getApi()
         if (api) {
-            api.changeView(view)
+            api.changeView(viewStr)
         }
     }
 }
@@ -732,7 +733,7 @@ watch([viewMode, currentDayViewDate, currentWeekStart], () => {
                         <Input
                             v-model="searchQuery"
                             type="text"
-                            placeholder="タイトル、詳細、名前で検索..."
+                            placeholder="タイトルなどで検索"
                             class="pl-9 pr-4 w-[280px]"
                         />
                     </div>
