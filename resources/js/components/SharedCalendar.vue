@@ -681,7 +681,7 @@ watch([viewMode, currentDayViewDate, currentWeekStart], () => {
                         <ArrowLeft class="h-5 w-5" />
                     </Button>
                     <CalendarIcon class="h-6 w-6 text-blue-700" />
-                    <CardTitle class="whitespace-nowrap">部署内共有カレンダー</CardTitle>
+                    <CardTitle class="whitespace-nowrap">共有カレンダー</CardTitle>
                 </div>
                 <div class="flex items-center gap-2">
                     <Select v-model="genreFilter">
