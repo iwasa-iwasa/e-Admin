@@ -60,8 +60,6 @@ interface SurveyWithResponse extends App.Models.Survey {
     has_responded?: boolean;
     respondent_names?: string[];
     unanswered_names?: string[];
-    deadline_date?: string;
-    deadline_time?: string;
 }
 
 const props = defineProps<{
@@ -304,7 +302,7 @@ onMounted(() => {
                         <div class="relative">
                             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
-                                placeholder="アンケートのタイトル、説明、作成者で検索..."
+                                placeholder="タイトルなどで検索"
                                 v-model="searchQuery"
                                 class="pl-9 w-80"
                             />

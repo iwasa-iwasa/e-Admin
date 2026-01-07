@@ -515,21 +515,25 @@ const goBackOneLevel = () => {
         viewMode.value = 'timeGridWeek'
     } else if (viewMode.value === 'timeGridWeek') {
         // 週→月（その週を含む月）
-        const api = fullCalendar.value?.getApi()
-        if (api) {
-            viewMode.value = 'dayGridMonth'
-            api.changeView('dayGridMonth')
-            api.gotoDate(currentWeekStart.value)
-        }
+        viewMode.value = 'dayGridMonth'
+        nextTick(() => {
+            const api = fullCalendar.value?.getApi()
+            if (api) {
+                api.changeView('dayGridMonth')
+                api.gotoDate(currentWeekStart.value)
+            }
+        })
     } else if (viewMode.value === 'dayGridMonth') {
         // 月→年（その月を含む年）
-        const api = fullCalendar.value?.getApi()
-        if (api) {
-            viewMode.value = 'multiMonthYear'
-            api.changeView('multiMonthYear')
-            const currentDate = api.getDate()
-            api.gotoDate(currentDate)
-        }
+        viewMode.value = 'multiMonthYear'
+        nextTick(() => {
+            const api = fullCalendar.value?.getApi()
+            if (api) {
+                api.changeView('multiMonthYear')
+                const currentDate = api.getDate()
+                api.gotoDate(currentDate)
+            }
+        })
     }
 }
 
@@ -599,17 +603,18 @@ const handleTodayClick = () => {
     }
 }
 
-const changeView = (view: string) => {
-    viewMode.value = view
+const changeView = (view: string | number) => {
+    const viewStr = String(view)
+    viewMode.value = viewStr
     
-    if (view === 'timeGridWeek') {
+    if (viewStr === 'timeGridWeek') {
         currentWeekStart.value = getWeekStart(new Date())
-    } else if (view === 'timeGridDay') {
+    } else if (viewStr === 'timeGridDay') {
         currentDayViewDate.value = new Date()
     } else {
         const api = fullCalendar.value?.getApi()
         if (api) {
-            api.changeView(view)
+            api.changeView(viewStr)
         }
     }
 }
@@ -676,7 +681,7 @@ watch([viewMode, currentDayViewDate, currentWeekStart], () => {
                         <ArrowLeft class="h-5 w-5" />
                     </Button>
                     <CalendarIcon class="h-6 w-6 text-blue-700" />
-                    <CardTitle class="whitespace-nowrap">部署内共有カレンダー</CardTitle>
+                    <CardTitle class="whitespace-nowrap">共有カレンダー</CardTitle>
                 </div>
                 <div class="flex items-center gap-2">
                     <Select v-model="genreFilter">
@@ -728,7 +733,7 @@ watch([viewMode, currentDayViewDate, currentWeekStart], () => {
                         <Input
                             v-model="searchQuery"
                             type="text"
-                            placeholder="タイトル、詳細、名前で検索..."
+                            placeholder="タイトルなどで検索"
                             class="pl-9 pr-4 w-[280px]"
                         />
                     </div>

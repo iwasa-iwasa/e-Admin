@@ -343,7 +343,6 @@ const sortedNotes = computed(() => {
                   {{ note.deadline_date ? '期限' : '作成日' }}: {{ note.deadline_date ? `${new Date(note.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(note.deadline_time || '23:59:00').substring(0, 5)}` : new Date(note.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
                 </Badge>
               </div>
-              <span>{{ new Date(note.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\//g, '-') }}</span>
             </div>
           </div>
         </div>

@@ -44,7 +44,7 @@ const clearFilter = () => {
   })
 }
 
-const isAllUsers = (participants: any[]) => {
+const isAllUsers = (participants: App.Models.User[] | undefined) => {
   return participants && participants.length === props.totalUsers
 }
 
@@ -75,14 +75,14 @@ const editedParticipants = ref<App.Models.User[]>(selectedNote.value?.participan
 const participantSelectValue = ref<string | null>(null)
 const tagInput = ref('')
 const showTagSuggestions = ref(false)
-const tagDebounceTimer = ref<number | null>(null)
+const tagDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const isCreateDialogOpen = ref(false)
 const isSaving = ref(false)
 const saveMessage = ref('')
 
 // メッセージとUndoロジック
 const messageType = ref<'success' | 'delete'>('success')
-const messageTimer = ref<number | null>(null)
+const messageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const lastDeletedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null>(null)
 
 onMounted(() => {
@@ -131,7 +131,7 @@ const showMessage = (message: string, type: 'success' | 'delete' = 'success') =>
     saveMessage.value = message
     messageType.value = type
     
-    messageTimer.value = setTimeout(() => {
+    messageTimer.value = window.setTimeout(() => {
         saveMessage.value = ''
         lastDeletedNote.value = null
     }, 4000)
@@ -242,7 +242,7 @@ const filteredNotes = computed(() => {
 watch(showFilters, (isOpen) => {
   if (!isOpen) {
     requestAnimationFrame(() => {
-      const inputElement = searchInputRef.value?.$el?.querySelector('input') || searchInputRef.value
+      const inputElement = searchInputRef.value as HTMLInputElement
       if (inputElement && typeof inputElement.focus === 'function') {
         inputElement.focus()
       }
@@ -273,8 +273,8 @@ const handleSaveNote = () => {
   saveMessage.value = ''
   
   // datetime-localの値をdateとtimeに分割
-  let deadlineDate = null
-  let deadlineTime = null
+  let deadlineDate: string | null = null
+  let deadlineTime: string | null = null
   if (editedDeadline.value) {
     const [date, time] = editedDeadline.value.split('T')
     deadlineDate = date
@@ -385,7 +385,7 @@ const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => 
 }
 
 const scrollToNote = (noteId: string) => {
-  setTimeout(() => {
+  window.setTimeout(() => {
     const element = document.querySelector(`[data-note-id="${noteId}"]`)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -454,7 +454,7 @@ const handleTagInputChange = () => {
   if (tagDebounceTimer.value) {
     clearTimeout(tagDebounceTimer.value)
   }
-  tagDebounceTimer.value = setTimeout(() => {
+  tagDebounceTimer.value = window.setTimeout(() => {
     showTagSuggestions.value = true
   }, 300)
 }
@@ -473,6 +473,12 @@ const handleAddParticipant = (memberId: unknown) => {
   }
   // Selectの値をクリア
   participantSelectValue.value = null
+}
+
+const handleTagBlur = () => {
+  setTimeout(() => {
+    showTagSuggestions.value = false
+  }, 200)
 }
 
 const handleRemoveParticipant = (participantId: number) => {
@@ -506,7 +512,7 @@ const handleRemoveParticipant = (participantId: number) => {
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               ref="searchInputRef"
-              placeholder="タイトル、内容、名前、タグで検索"
+              placeholder="タイトルなどで検索"
               v-model="searchQuery"
               class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
@@ -696,11 +702,11 @@ const handleRemoveParticipant = (participantId: number) => {
                 </div>
                 <div class="flex items-center gap-1">
                   <Calendar class="h-3 w-3" />
-                  <span>{{ selectedNote.deadline_date ? new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') }}</span>
+                  <span>{{ selectedNote.deadline_date ? new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : (selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : '') }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
-                  <span>{{ selectedNote.deadline_date ? (selectedNote.deadline_time || '23:59:00').substring(0, 5) : new Date(selectedNote.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                  <span>{{ selectedNote.deadline_date ? (selectedNote.deadline_time || '23:59:00').substring(0, 5) : (selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '') }}</span>
                 </div>
               </div>
             </div>
@@ -773,7 +779,7 @@ const handleRemoveParticipant = (participantId: number) => {
                     v-model="tagInput"
                     @input="handleTagInputChange"
                     @focus="showTagSuggestions = true"
-                    @blur="setTimeout(() => showTagSuggestions = false, 200)"
+                    @blur="handleTagBlur"
                     @keypress.enter.prevent="handleAddTag()"
                     class="h-8 text-xs flex-1"
                   />

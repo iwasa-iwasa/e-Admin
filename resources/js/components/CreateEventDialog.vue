@@ -130,7 +130,7 @@ const form = useForm({
   url: '',
   category: '会議',
   importance: '中',
-  progress: 0,
+  event_progress: 0,
 
   recurrence: {
     is_recurring: false,
@@ -173,7 +173,7 @@ watch(() => props.open, (isOpen) => {
       form.url = eventData.url || '';
       form.category = eventData.category || '会議';
       form.importance = eventData.importance || '中';
-      form.progress = eventData.progress || 0;
+      form.event_progress = (eventData.progress ?? 0) as number;
 
       
       if (eventData.recurrence) {
@@ -184,7 +184,12 @@ watch(() => props.open, (isOpen) => {
         form.recurrence.by_set_pos = eventData.recurrence.by_set_pos;
         form.recurrence.end_date = eventData.recurrence.end_date ? new Date(eventData.recurrence.end_date) : null;
       } else {
-        form.reset('recurrence');
+        form.recurrence.is_recurring = false;
+        form.recurrence.recurrence_type = 'daily';
+        form.recurrence.recurrence_interval = 1;
+        form.recurrence.by_day = [];
+        form.recurrence.by_set_pos = null;
+        form.recurrence.end_date = null;
       }
 
       form.attachments.existing = eventData.attachments || [];
@@ -308,7 +313,7 @@ const saveDraft = () => {
     url: form.url,
     category: form.category,
     importance: form.importance,
-    progress: form.progress,
+    progress: form.event_progress,
     recurrence: form.recurrence,
   }
   sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
@@ -337,7 +342,7 @@ const restoreDraft = () => {
     form.url = pendingDraft.value.url
     form.category = pendingDraft.value.category
     form.importance = pendingDraft.value.importance
-    form.progress = pendingDraft.value.progress
+    form.event_progress = pendingDraft.value.progress
     form.recurrence = pendingDraft.value.recurrence
     date.value = form.date_range as [Date, Date]
     is_all_day.value = form.is_all_day
@@ -382,7 +387,7 @@ const handleSave = () => {
     },
     onError: (errors: any) => {
       console.log(errors)
-      const firstError = Object.values(errors)[0]
+      const firstError = Object.values(errors)[0] as string
       showMessage(firstError || '保存に失敗しました', 'error')
     }
   };
@@ -553,11 +558,11 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                             <Input id="location" placeholder="例：会議室A、オンライン（Zoom）" v-model="form.location" :disabled="!canEdit" />
                                         </div>
                                         <div v-if="isEditMode" class="space-y-2">
-                                            <Label for="progress">進捗 ({{ form.progress }}%)</Label>
+                                            <Label for="progress">進捗 ({{ form.event_progress }}%)</Label>
                                             <div class="relative">
                                                 <div 
                                                     class="w-full h-2 rounded-lg overflow-hidden mb-2"
-                                                    :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${form.progress}%, #e5e7eb ${form.progress}%, #e5e7eb 100%)` }"
+                                                    :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${form.event_progress}%, #e5e7eb ${form.event_progress}%, #e5e7eb 100%)` }"
                                                 >
                                                 </div>
                                                 <input 
@@ -565,7 +570,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                     type="range" 
                                                     min="0" 
                                                     max="100" 
-                                                    v-model.number="form.progress" 
+                                                    v-model.number="form.event_progress" 
                                                     :disabled="!canEdit"
                                                     class="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider absolute top-0"
                                                 />

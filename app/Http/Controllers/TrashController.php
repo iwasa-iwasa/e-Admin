@@ -174,6 +174,87 @@ class TrashController extends Controller
     }
 
     /**
+     * Restore multiple items from trash.
+     */
+    public function restoreMultiple(Request $request)
+    {
+        try {
+            $items = $request->input('items', []);
+            \Log::info('TrashController restoreMultiple called with items: ' . json_encode($items));
+            
+            if (empty($items)) {
+                return back()->with('error', '復元するアイテムがありません。');
+            }
+            
+            $restoredCount = 0;
+            
+            \DB::transaction(function () use ($items, &$restoredCount) {
+                foreach ($items as $itemData) {
+                    $trashItem = TrashItem::where('id', $itemData['id'])
+                        ->where('user_id', Auth::id())
+                        ->first();
+                        
+                    if (!$trashItem) {
+                        \Log::warning('TrashItem not found for ID: ' . $itemData['id']);
+                        continue;
+                    }
+                    
+                    if ($trashItem->item_type === 'shared_note') {
+                        $note = \App\Models\SharedNote::find($trashItem->item_id);
+                        if ($note) {
+                            $note->update([
+                                'is_deleted' => false,
+                                'deleted_at' => null,
+                            ]);
+                            $trashItem->delete();
+                            $restoredCount++;
+                        }
+                    }
+                    
+                    if ($trashItem->item_type === 'reminder') {
+                        $reminder = \App\Models\Reminder::find($trashItem->item_id);
+                        if ($reminder) {
+                            $reminder->update([
+                                'completed' => false,
+                                'completed_at' => null,
+                            ]);
+                            $trashItem->delete();
+                            $restoredCount++;
+                        }
+                    }
+                    
+                    if ($trashItem->item_type === 'survey') {
+                        $survey = \App\Models\Survey::where('survey_id', $trashItem->item_id)->first();
+                        if ($survey) {
+                            $survey->update([
+                                'is_deleted' => false,
+                                'deleted_at' => null,
+                            ]);
+                            $trashItem->delete();
+                            $restoredCount++;
+                        }
+                    }
+                    
+                    if ($trashItem->item_type === 'event') {
+                        $event = \App\Models\Event::withTrashed()->where('event_id', $trashItem->item_id)->first();
+                        if ($event) {
+                            $event->restore();
+                            $trashItem->delete();
+                            $restoredCount++;
+                        }
+                    }
+                }
+            });
+            
+            \Log::info('Successfully restored ' . $restoredCount . ' items');
+            return back()->with('success', $restoredCount . '件のアイテムを復元しました。');
+        } catch (\Exception $e) {
+            \Log::error('TrashController restoreMultiple error: ' . $e->getMessage());
+            return back()->with('error', '復元に失敗しました。');
+        }
+    }
+
+    /**
      * Permanently delete an item.
      */
     public function destroy($id)

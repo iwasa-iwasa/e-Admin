@@ -183,15 +183,19 @@ const handleRowClick = (e: Event, item: TrashItem) => {
 
 const handleRestore = (id: string) => {
   const item = trashItems.value.find((i) => i.id === id)
+  if (!item) return
   
-  router.post(route('trash.restore', { id: id }), {}, {
+  const restoreData = {
+    type: item.type,
+    item_id: item.item_id
+  }
+  
+  router.post(route('trash.restore', { id: id }), restoreData, {
     preserveScroll: true,
     onSuccess: () => {
-      if (item) {
-        trashItems.value = trashItems.value.filter((i) => i.id !== id)
-        const itemTypeLabel = getItemTypeInfo(item.type).label
-        showMessage(`${itemTypeLabel}が元に戻されました。`, 'success')
-      }
+      trashItems.value = trashItems.value.filter((i) => i.id !== id)
+      const itemTypeLabel = getItemTypeInfo(item.type).label
+      showMessage(`${itemTypeLabel}が元に戻されました。`, 'success')
     },
     onError: (errors) => {
       console.error('Restore error:', errors)
@@ -271,24 +275,34 @@ const confirmDeleteSelected = () => {
 }
 
 const confirmRestoreSelected = () => {
-  const idsToRestore = restoreMode.value === 'selected' 
-    ? Array.from(selectedItems.value)
-    : sortedItems.value.filter(item => !selectedItems.value.has(item.id)).map(item => item.id)
+  const itemsToRestore = restoreMode.value === 'selected' 
+    ? sortedItems.value.filter(item => selectedItems.value.has(item.id))
+    : sortedItems.value.filter(item => !selectedItems.value.has(item.id))
   
-  if (idsToRestore.length === 0) {
+  if (itemsToRestore.length === 0) {
     showMessage('復元するアイテムがありません', 'success')
     showRestoreSelectedDialog.value = false
     return
   }
   
-  router.post(route('trash.restoreMultiple'), { ids: idsToRestore }, {
+  const restoreData = {
+    items: itemsToRestore.map(item => ({
+      id: item.id,
+      type: item.type,
+      item_id: item.item_id
+    }))
+  }
+  
+  router.post(route('trash.restoreMultiple'), restoreData, {
     preserveScroll: true,
     onSuccess: () => {
-      trashItems.value = trashItems.value.filter(item => !idsToRestore.includes(item.id))
+      const restoredIds = itemsToRestore.map(item => item.id)
+      trashItems.value = trashItems.value.filter(item => !restoredIds.includes(item.id))
       selectedItems.value.clear()
-      showMessage(`${idsToRestore.length}件のアイテムを復元しました`, 'success')
+      showMessage(`${itemsToRestore.length}件のアイテムを復元しました`, 'success')
     },
-    onError: () => {
+    onError: (errors) => {
+      console.error('Restore error:', errors)
       showMessage('復元に失敗しました', 'success')
     }
   })
@@ -364,7 +378,7 @@ onMounted(() => {
               <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 ref="searchInputRef"
-                placeholder="タイトルで検索"
+                placeholder="タイトルなどで検索"
                 v-model="filterTitle"
                 class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-[300px]"
               />
