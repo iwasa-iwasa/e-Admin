@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { Link, usePage, router } from '@inertiajs/vue3'
-  import { ref, computed } from 'vue'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
   import {
     Calendar, StickyNote, BarChart3, Mail, Home,
     Trash2, Users, Bell, X
@@ -12,7 +12,9 @@
   import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
   import LogoTitle from '@/components/logoTitle.vue'
   
-  const props = defineProps<{ isTablet?: boolean }>()
+  const props = defineProps<{ 
+    isTablet?: boolean
+  }>()
   const emit = defineEmits(['close'])
   
   const page = usePage()
@@ -45,10 +47,52 @@
   }
   
   const currentURL = computed(() => page.url)
+  
+  // リサイズ機能
+  const sidebarRef = ref<HTMLElement | null>(null)
+  const isResizing = ref(false)
+  const sidebarWidth = ref(260)
+  
+  const startResize = (e: MouseEvent) => {
+    isResizing.value = true
+    document.addEventListener('mousemove', handleResize)
+    document.addEventListener('mouseup', stopResize)
+    e.preventDefault()
+  }
+  
+  const handleResize = (e: MouseEvent) => {
+    if (!isResizing.value || !sidebarRef.value) return
+    const rect = sidebarRef.value.getBoundingClientRect()
+    const newWidth = Math.max(220, Math.min(270, e.clientX - rect.left))
+    sidebarWidth.value = newWidth
+  }
+  
+  const stopResize = () => {
+    isResizing.value = false
+    document.removeEventListener('mousemove', handleResize)
+    document.removeEventListener('mouseup', stopResize)
+    // リサイズ終了時にカレンダーに通知
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'))
+    }, 0)
+  }
+  
+  onUnmounted(() => {
+    document.removeEventListener('mousemove', handleResize)
+    document.removeEventListener('mouseup', stopResize)
+  })
   </script>
   
   <template>
-    <aside class="bg-white border-r border-gray-300 flex flex-col h-screen w-[260px]">
+    <aside 
+      ref="sidebarRef" 
+      class="bg-white flex flex-col h-screen relative select-none"
+      :style="{
+        width: sidebarWidth + 'px',
+        minWidth: '220px',
+        maxWidth: '270px'
+      }"
+    >
       <ScrollArea>
         <nav class="flex-1 p-4 space-y-2">
   
@@ -213,6 +257,12 @@
   
         </nav>
       </ScrollArea>
+      
+      <!-- リサイズバー -->
+      <div 
+        class="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-gray-200 hover:bg-gray-300 transition-colors"
+        @mousedown="startResize"
+      ></div>
     </aside>
   </template>
   

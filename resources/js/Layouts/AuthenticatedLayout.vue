@@ -17,27 +17,6 @@
     )
   }
   
-  const startResize = () => {
-    isResizing.value = true
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-  }
-  
-  const stopResize = () => {
-    isResizing.value = false
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-    localStorage.setItem('sidebarWidth', sidebarWidth.value.toString())
-  }
-  
-  const resize = (e: MouseEvent) => {
-    if (!isResizing.value) return
-    const newWidth = e.clientX
-    if (newWidth >= 200 && newWidth <= 500) {
-      sidebarWidth.value = newWidth
-    }
-  }
-  
   onMounted(() => {
     // viewport固定のためにhtml/bodyのoverflowを制御
     document.documentElement.style.overflow = 'hidden'
@@ -47,8 +26,6 @@
     
     checkDevice()
     window.addEventListener('resize', checkDevice)
-    window.addEventListener('mousemove', resize)
-    window.addEventListener('mouseup', stopResize)
     
     const savedWidth = localStorage.getItem('sidebarWidth')
     if (savedWidth) {
@@ -67,8 +44,6 @@
     document.body.style.height = ''
     
     window.removeEventListener('resize', checkDevice)
-    window.removeEventListener('mousemove', resize)
-    window.removeEventListener('mouseup', stopResize)
   })
   </script>
   
@@ -98,18 +73,7 @@
       </template>
       
       <template v-else>
-        <div class="relative" :style="{ width: sidebarWidth + 'px' }">
-          <DashboardSidebar :is-tablet="false" />
-          <div class="absolute top-0 right-0 h-full flex items-center" style="width: 12px; margin-right: -6px;">
-            <div
-              class="absolute inset-0 cursor-col-resize z-10"
-              @mousedown="startResize"
-            ></div>
-            <div class="w-1 h-full bg-gray-300 hover:bg-blue-500 transition-colors pointer-events-none relative">
-              <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-12 bg-gray-300 group-hover:bg-blue-500"></div>
-            </div>
-          </div>
-        </div>
+        <DashboardSidebar :is-tablet="false" />
       </template>
       
       <div class="flex-1 flex flex-col overflow-hidden">
