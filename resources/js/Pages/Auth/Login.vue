@@ -27,6 +27,8 @@ const submit = () => {
         onFinish: () => {
             form.reset('password');
         },
+        preserveScroll: true,
+        only: ['errors'],
     });
 };
 </script>
