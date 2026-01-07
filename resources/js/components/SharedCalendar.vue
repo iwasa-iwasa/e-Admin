@@ -515,21 +515,25 @@ const goBackOneLevel = () => {
         viewMode.value = 'timeGridWeek'
     } else if (viewMode.value === 'timeGridWeek') {
         // 週→月（その週を含む月）
-        const api = fullCalendar.value?.getApi()
-        if (api) {
-            viewMode.value = 'dayGridMonth'
-            api.changeView('dayGridMonth')
-            api.gotoDate(currentWeekStart.value)
-        }
+        viewMode.value = 'dayGridMonth'
+        nextTick(() => {
+            const api = fullCalendar.value?.getApi()
+            if (api) {
+                api.changeView('dayGridMonth')
+                api.gotoDate(currentWeekStart.value)
+            }
+        })
     } else if (viewMode.value === 'dayGridMonth') {
         // 月→年（その月を含む年）
-        const api = fullCalendar.value?.getApi()
-        if (api) {
-            viewMode.value = 'multiMonthYear'
-            api.changeView('multiMonthYear')
-            const currentDate = api.getDate()
-            api.gotoDate(currentDate)
-        }
+        viewMode.value = 'multiMonthYear'
+        nextTick(() => {
+            const api = fullCalendar.value?.getApi()
+            if (api) {
+                api.changeView('multiMonthYear')
+                const currentDate = api.getDate()
+                api.gotoDate(currentDate)
+            }
+        })
     }
 }
 
