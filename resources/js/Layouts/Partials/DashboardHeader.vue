@@ -52,6 +52,7 @@ interface Event {
   end_date?: string
   end_time?: string
   creator: { name: string }
+  participants?: { id: number; name: string }[]
   location?: string
   description?: string
   importance?: string
@@ -62,6 +63,7 @@ interface Note {
   title: string
   content: string
   author: { name: string }
+  participants?: { id: number; name: string }[]
   deadline_date?: string
   deadline_time?: string
   color: string
@@ -105,7 +107,14 @@ const showNotesFilter = ref<'mine' | 'all'>(
   (localStorage.getItem('notif_notes_filter') as 'mine' | 'all') || 'mine'
 )
 
-const notifications = ref({ events: [], notes: [], surveys: [], reminders: [] })
+interface NotificationsData {
+  events: Event[]
+  notes: Note[]
+  surveys: Survey[]
+  reminders: Reminder[]
+}
+
+const notifications = ref<NotificationsData>({ events: [], notes: [], surveys: [], reminders: [] })
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
@@ -372,7 +381,7 @@ const handleUndoDelete = async () => {
         await fetchNotifications()
       }
       // ページ全体を更新
-      router.reload({ only: ['personalReminders'], preserveScroll: true, preserveState: true })
+      router.reload()
     } else {
       const errorData = await response.json().catch(() => ({}))
       console.error('Restore error:', response.status, errorData)

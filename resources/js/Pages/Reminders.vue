@@ -418,8 +418,8 @@ const confirmBulkDelete = () => {
                             期限なし
                           </div>
                           <Badge
-                            v-for="tag in reminder.tags"
-                            :key="tag.tag_id"
+                            v-for="(tag, index) in reminder.tags"
+                            :key="index"
                             variant="secondary"
                             class="text-xs"
                           >
@@ -518,8 +518,8 @@ const confirmBulkDelete = () => {
                             期限なし
                           </div>
                           <Badge
-                            v-for="tag in reminder.tags"
-                            :key="tag.tag_id"
+                            v-for="(tag, index) in reminder.tags"
+                            :key="index"
                             variant="secondary"
                             class="text-xs opacity-60"
                           >

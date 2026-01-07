@@ -60,8 +60,6 @@ interface SurveyWithResponse extends App.Models.Survey {
     has_responded?: boolean;
     respondent_names?: string[];
     unanswered_names?: string[];
-    deadline_date?: string;
-    deadline_time?: string;
 }
 
 const props = defineProps<{

@@ -36,8 +36,4 @@ createInertiaApp({
     progress: {
         color: '#4B5563',
     },
-    onError: (error) => {
-        console.error('Inertia error:', error);
-        return false;
-    },
 });
