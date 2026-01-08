@@ -243,6 +243,13 @@ const props = defineProps<{
     responses?: App.Models.SurveyResponse[];
     statistics?: any;
     unansweredUsers?: Array<{id: number, name: string}>;
+    errors?: any;
+    auth?: any;
+    ziggy?: any;
+    flash?: any;
+    teamMembers?: any;
+    totalUsers?: any;
+    unansweredSurveysCount?: any;
 }>();
 
 const handleDownloadCSV = () => {
@@ -385,6 +392,26 @@ const mapQuestionTypeToFrontend = (dbType: string): string => {
     return mapping[dbType] || "text";
 };
 
+// 複数選択の値を適切に処理する関数
+const getMultipleChoiceValues = (value: any): string[] => {
+    if (Array.isArray(value)) {
+        return value;
+    }
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : [value];
+        } catch (e) {
+            // JSON文字列でない場合は、カンマ区切りかもしれない
+            if (value.includes(',')) {
+                return value.split(',').map(v => v.trim());
+            }
+            return [value];
+        }
+    }
+    return [String(value)];
+};
+
 // 質問ごとの回答を取得
 const getQuestionResponses = (
     question: any,
@@ -393,36 +420,73 @@ const getQuestionResponses = (
     const questionResponses: any[] = [];
 
     responses.forEach((response) => {
-        const answer = response.answers?.find(
+        const answers = response.answers?.filter(
             (a: any) => a.question_id === question.question_id
-        );
-        if (answer) {
-            let value: any = answer.answer_text;
+        ) || [];
+        
+        if (answers.length > 0) {
+            // 複数選択の場合、複数の回答がある可能性
+            if (question.question_type === 'multiple_choice') {
+                const selectedValues: string[] = [];
+                
+                answers.forEach((answer: any) => {
+                    if (answer.selected_option_id && question.options) {
+                        const option = question.options.find(
+                            (opt: any) => opt.option_id === answer.selected_option_id
+                        );
+                        if (option) {
+                            selectedValues.push(option.option_text);
+                        }
+                    } else if (answer.answer_text) {
+                        // answer_textがJSON配列の場合
+                        try {
+                            const parsed = JSON.parse(answer.answer_text);
+                            if (Array.isArray(parsed)) {
+                                selectedValues.push(...parsed);
+                            } else {
+                                selectedValues.push(answer.answer_text);
+                            }
+                        } catch (e) {
+                            selectedValues.push(answer.answer_text);
+                        }
+                    }
+                });
+                
+                questionResponses.push({
+                    value: selectedValues,
+                    respondent: response.respondent?.name || "匿名",
+                    timestamp: response.submitted_at,
+                });
+            } else {
+                // 単一選択やその他の場合
+                const answer = answers[0];
+                let value: any = answer.answer_text;
 
-            // 複数選択・scaleの場合、JSONをパース
-            if ((question.question_type === 'multiple_choice' || question.question_type === 'scale') && typeof value === 'string') {
-                try {
-                    value = JSON.parse(value);
-                } catch (e) {
-                    // パースできない場合はそのまま使用
+                // scale の場合、JSONをパース
+                if (question.question_type === 'scale' && typeof value === 'string') {
+                    try {
+                        value = JSON.parse(value);
+                    } catch (e) {
+                        // パースできない場合はそのまま使用
+                    }
                 }
-            }
 
-            // 選択肢がある場合は選択肢テキストを使用
-            if (answer.selected_option_id && question.options) {
-                const option = question.options.find(
-                    (opt: any) => opt.option_id === answer.selected_option_id
-                );
-                if (option) {
-                    value = option.option_text;
+                // 選択肢がある場合は選択肢テキストを使用
+                if (answer.selected_option_id && question.options) {
+                    const option = question.options.find(
+                        (opt: any) => opt.option_id === answer.selected_option_id
+                    );
+                    if (option) {
+                        value = option.option_text;
+                    }
                 }
-            }
 
-            questionResponses.push({
-                value,
-                respondent: response.respondent?.name || "匿名",
-                timestamp: response.submitted_at,
-            });
+                questionResponses.push({
+                    value,
+                    respondent: response.respondent?.name || "匿名",
+                    timestamp: response.submitted_at,
+                });
+            }
         }
     });
 
@@ -769,7 +833,7 @@ const getQuestionResponses = (
                                             <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
                                             <div class="flex flex-wrap gap-2">
                                                 <Badge
-                                                    v-for="(item, i) in (Array.isArray(response.value) ? response.value : [response.value])"
+                                                    v-for="(item, i) in getMultipleChoiceValues(response.value)"
                                                     :key="i"
                                                     class="bg-green-100 text-green-700"
                                                 >
