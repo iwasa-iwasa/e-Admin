@@ -51,10 +51,10 @@ class EventSeeder extends Seeder
             $location = $locations[array_rand($locations)];
                // ランダムなユーザーを選択
             $randomUser = $users->random();
-               // 2025年9月〜12月の間でランダムな日付
-            $month = rand(9, 12);
+               // 2026年9月〜12月の間でランダムな日付
+            $month = rand(1, 4);
             $day = rand(1, 28);
-            $startDate = sprintf('2025-%02d-%02d', $month, $day);
+            $startDate = sprintf('2026-%02d-%02d', $month, $day);
             $durationDays = rand(0, 2);
             $endDate = date('Y-m-d', strtotime($startDate . " +{$durationDays} day"));
             $startHour = rand(8, 17);
