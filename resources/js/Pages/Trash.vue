@@ -404,15 +404,7 @@ onMounted(() => {
               <Trash2 class="h-4 w-4" />
               選択を完全削除
             </Button>
-            <Button 
-              v-if="trashItems.length > 0 && selectedItems.size === 0" 
-              variant="outline" 
-              @click="showEmptyTrashDialog = true" 
-              class="gap-2"
-            >
-              <Trash2 class="h-4 w-4" />
-              全て削除
-            </Button>
+            
           </div>
         </div>
         
