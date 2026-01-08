@@ -34,15 +34,15 @@ const clearFilter = () => {
     replace: true,
   })
 }
+//iPad判定ロジック
+const isIPad = ref(false)
+const isLandscape = ref(false)
+
 
 // iPad横画面判定とカード高さ計算
 const isIPadLayout = computed(() => {
-  const width = window.innerWidth
-  return (width >= 1180 && width <= 1366)
+  return isIPad.value && isLandscape.value
 })
-
-const isIPadPro = computed(() => window.innerWidth >= 1300)
-const cardHeight = computed(() => isIPadPro.value ? 780 : 600)
 
 // PC用リサイズ機能
 const calendarWidth = ref(parseFloat(localStorage.getItem('dashboard_calendar_width') || '58'))
@@ -99,12 +99,21 @@ const stopDrag = () => {
 
 // iPadレイアウト変更時のカレンダー調整
 const handleResize = () => {
+  isLandscape.value = window.innerWidth > window.innerHeight
+
   if (isIPadLayout.value) {
     setTimeout(() => window.dispatchEvent(new Event('resize')), 0)
   }
 }
 
 onMounted(() => {
+  const ua = navigator.userAgent
+  const isTouch = navigator.maxTouchPoints > 1
+
+  // iPadOSはMacintoshを名乗る
+  isIPad.value = /iPad|Macintosh/.test(ua) && isTouch
+  isLandscape.value = window.innerWidth > window.innerHeight
+
   window.addEventListener('mousemove', onDrag)
   window.addEventListener('mouseup', stopDrag)
   window.addEventListener('resize', handleResize)
@@ -133,7 +142,7 @@ onUnmounted(() => {
             <div class="flex-1 overflow-y-auto p-6 space-y-6">
                 <Card class="hover:shadow-md transition-shadow">
                     <CardContent class="p-0">
-                        <div :style="{ height: cardHeight + 'px' }" class="overflow-hidden">
+                      <div class="h-[80vh] min-h-0 overflow-hidden">
                             <SharedCalendar :events="events" />
                         </div>
                     </CardContent>
@@ -141,7 +150,7 @@ onUnmounted(() => {
                 
                 <Card class="hover:shadow-md transition-shadow">
                     <CardContent class="p-0">
-                        <div :style="{ height: cardHeight + 'px' }" class="overflow-hidden">
+                      <div class="h-[80vh] min-h-0 overflow-hidden">
                             <SharedNotes :notes="sharedNotes" :totalUsers="totalUsers" :teamMembers="teamMembers" />
                         </div>
                     </CardContent>
@@ -149,7 +158,7 @@ onUnmounted(() => {
                 
                 <Card class="hover:shadow-md transition-shadow">
                     <CardContent class="p-0">
-                        <div :style="{ height: cardHeight + 'px' }" class="overflow-hidden">
+                      <div class="h-[80vh] min-h-0 overflow-hidden">
                             <PersonalReminders :reminders="personalReminders" />
                         </div>
                     </CardContent>
@@ -157,47 +166,65 @@ onUnmounted(() => {
             </div>
         </Card>
         
-        <!-- PC：横並びレイアウト -->
-        <div v-else ref="dashboardRef" class="flex h-full">
-            <div :style="{ width: calendarWidth + '%' }" class="h-full pr-3">
-                <SharedCalendar :events="events" />
-            </div>
-            
-            <!-- 横リサイズバー -->
-            <div class="relative flex items-center justify-center" style="width: 16px; margin: 0 -8px;">
-                <div 
-                    class="absolute inset-0 cursor-col-resize z-10 hover:bg-blue-100 hover:bg-opacity-50 rounded transition-colors"
-                    @mousedown="startDragH"
-                ></div>
-                <div class="w-1 h-full bg-gray-300 hover:bg-blue-500 transition-colors pointer-events-none relative z-0">
-                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                        <GripVertical class="h-4 w-4 text-gray-400" />
-                    </div>
-                </div>
-            </div>
-            
-            <div ref="rightPanelRef" :style="{ width: (100 - calendarWidth) + '%' }" class="h-full flex flex-col pl-3">
-                <div :style="{ height: notesHeight + '%' }" class="pb-3">
-                    <SharedNotes :notes="sharedNotes" :totalUsers="totalUsers" :teamMembers="teamMembers" />
-                </div>
-                
-                <!-- 縦リサイズバー -->
-                <div class="relative flex items-center justify-center" style="height: 16px; margin: -8px 0;">
-                    <div 
-                        class="absolute inset-0 cursor-row-resize z-10 hover:bg-blue-100 hover:bg-opacity-50 rounded transition-colors"
-                        @mousedown="startDragV"
-                    ></div>
-                    <div class="h-1 w-full bg-gray-300 hover:bg-blue-500 transition-colors pointer-events-none relative z-0">
-                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                            <GripVertical class="h-4 w-4 text-gray-400 rotate-90" />
-                        </div>
-                    </div>
-                </div>
-                
-                <div :style="{ height: (100 - notesHeight) + '%' }" class="pt-3">
-                    <PersonalReminders :reminders="personalReminders" />
-                </div>
-            </div>
+      <!-- PC：横並びレイアウト -->
+      <div v-else ref="dashboardRef" class="flex h-full">
+        <div :style="{ width: calendarWidth + '%' }" class="h-full pr-3">
+          <SharedCalendar :events="events" />
         </div>
+
+        <!-- 横リサイズバー -->
+        <div class="relative flex items-center justify-center" style="width: 16px; margin: 0 -8px;">
+          <div
+            class="absolute inset-0 cursor-col-resize z-10 hover:bg-blue-100 hover:bg-opacity-50 rounded transition-colors"
+            @mousedown="startDragH"
+          />
+          <div class="w-1 h-full bg-gray-300 pointer-events-none relative">
+            <GripVertical class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+        </div>
+
+        <!-- 右ペイン -->
+        <div
+          ref="rightPanelRef"
+          :style="{ width: (100 - calendarWidth) + '%' }"
+          class="h-full flex flex-col min-h-0 pl-3"
+        >
+          <!-- 上：Notes -->
+          <div
+            class="flex min-h-0 pb-3"
+            :style="{ flexGrow: notesHeight, flexBasis: 0 }"
+          >
+            <div class="flex-1 min-h-0 overflow-y-auto">
+              <SharedNotes
+                :notes="sharedNotes"
+                :totalUsers="totalUsers"
+                :teamMembers="teamMembers"
+              />
+            </div>
+          </div>
+
+          <!-- 縦リサイズバー -->
+          <div class="relative flex items-center justify-center" style="height: 16px; margin: -8px 0;">
+            <div
+              class="absolute inset-0 cursor-row-resize z-10 hover:bg-blue-100 hover:bg-opacity-50 rounded transition-colors"
+              @mousedown="startDragV"
+            />
+            <div class="h-1 w-full bg-gray-300 pointer-events-none relative">
+              <GripVertical class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+            </div>
+          </div>
+
+          <!-- 下：Reminders -->
+          <div
+            class="flex min-h-0 pt-3"
+            :style="{ flexGrow: 100 - notesHeight, flexBasis: 0 }"
+          >
+            <div class="flex-1 min-h-0 overflow-y-auto">
+              <PersonalReminders :reminders="personalReminders" />
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 </template>
