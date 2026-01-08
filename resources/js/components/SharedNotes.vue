@@ -19,7 +19,16 @@ const props = defineProps<{
   teamMembers?: App.Models.User[]
 }>()
 
-const isAllUsers = (participants: any[]) => {
+// 修正1: props直接変更を防ぐためローカルstateを作成
+const localNotes = ref<App.Models.SharedNote[]>([...props.notes])
+
+// propsの変更を監視してlocalNotesを同期
+watch(() => props.notes, (newNotes) => {
+  localNotes.value = [...newNotes]
+}, { deep: true })
+
+// 修正4: any型を排除し型安全性を強化
+const isAllUsers = (participants: App.Models.User[]) => {
   return participants && props.totalUsers && participants.length === props.totalUsers
 }
 
@@ -32,7 +41,6 @@ const messageTimer = ref<number | null>(null)
 const skipDialogOpen = ref(false)
 const isNarrow = ref(false)
 const sortButtonContainerRef = ref<HTMLElement | null>(null)
-const headerWrapperRef = ref<HTMLElement | null>(null)
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
@@ -40,7 +48,7 @@ onMounted(() => {
   const selectNoteId = url.searchParams.get('selectNote')
   if (selectNoteId) {
     skipDialogOpen.value = true
-    const noteToSelect = props.notes.find(note => note.note_id.toString() === selectNoteId)
+    const noteToSelect = localNotes.value.find(note => note.note_id.toString() === selectNoteId)
     if (noteToSelect) {
       scrollToNote(selectNoteId)
     }
@@ -74,7 +82,8 @@ onUnmounted(() => {
   }
 })
 
-watch(() => props.notes, (newNotes) => {
+// selectNote処理もlocalNotesを使用
+watch(() => localNotes.value, (newNotes) => {
   const url = new URL(window.location.href)
   const selectNoteId = url.searchParams.get('selectNote')
   
@@ -92,24 +101,23 @@ watch(() => props.notes, (newNotes) => {
   }
 }, { deep: true })
 
+// 修正1: localNotesを更新するように変更
 const handleUpdateNote = (updatedNote: App.Models.SharedNote) => {
-  // This should ideally emit an event to the parent to refresh data
-  const index = props.notes.findIndex(note => note.note_id === updatedNote.note_id)
+  const index = localNotes.value.findIndex(note => note.note_id === updatedNote.note_id)
   if (index !== -1) {
-    props.notes[index] = updatedNote
+    localNotes.value[index] = updatedNote
   }
 }
 
 const handleSaveNote = (updatedNote: App.Models.SharedNote) => {
-  // NoteDetailDialogで既に保存処理を行っているので、ここではローカル更新のみ
   handleUpdateNote(updatedNote)
 }
 
+// 修正1: localNotesを更新するように変更
 const handleDeleteNote = (deletedNote: App.Models.SharedNote) => {
-  // 削除されたメモをリストから除外
-  const index = props.notes.findIndex(note => note.note_id === deletedNote.note_id)
+  const index = localNotes.value.findIndex(note => note.note_id === deletedNote.note_id)
   if (index !== -1) {
-    props.notes.splice(index, 1)
+    localNotes.value.splice(index, 1)
   }
   selectedNote.value = null
 }
@@ -187,10 +195,6 @@ const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => 
   return deadline < now
 }
 
-const toggleSortOrder = () => {
-  sortOrder.value = sortOrder.value === 'priority' ? 'deadline' : 'priority'
-}
-
 const scrollToNote = (noteId: string) => {
   setTimeout(() => {
     const element = document.querySelector(`[data-note-id="${noteId}"]`)
@@ -209,9 +213,33 @@ const handleSortClick = (key: SortKey) => {
   }
 }
 
+// 修正5: 日付フォーマット処理をcomputed関数に切り出し
+const formatDeadlineDate = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return ''
+  const formatted = new Date(deadlineDate).toLocaleDateString('ja-JP', { 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  }).replace(/\//g, '-')
+  const time = (deadlineTime || '23:59:00').substring(0, 5)
+  return `${formatted} ${time}`
+}
+
+const formatCreatedDate = (createdAt: string | null) => {
+  if (!createdAt) return ''
+  return new Date(createdAt).toLocaleString('ja-JP', { 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit', 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  }).replace(/\//g, '-')
+}
+
+// localNotesを使用するように変更
 const sortedNotes = computed(() => {
-  if (!props.notes) return []
-  return [...props.notes].sort((a, b) => {
+  if (!localNotes.value) return []
+  return [...localNotes.value].sort((a, b) => {
     let result = 0
     if (sortKey.value === 'priority') {
       result = getPriorityValue(b.priority as Priority) - getPriorityValue(a.priority as Priority)
@@ -233,16 +261,16 @@ const sortedNotes = computed(() => {
 <template>
   <Card class="h-full flex flex-col">
     <CardHeader>
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/notes')">
           <StickyNote class="h-6 w-6 text-orange-600" />
           <CardTitle>共有メモ</CardTitle>
         </div>
-        <div ref="headerWrapperRef" class="flex items-center gap-3">
-          <div ref="sortButtonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg', isNarrow ? 'flex-col' : 'flex-row items-center']">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div ref="sortButtonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg flex-wrap', isNarrow ? 'flex-col' : 'flex-row items-center']">
             <button
               @click="handleSortClick('priority')"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <AlertCircle :class="['h-3.5 w-3.5 flex-shrink-0', sortKey === 'priority' ? 'text-red-500' : 'text-gray-400']" />
               <span>重要度順</span>
@@ -254,7 +282,7 @@ const sortedNotes = computed(() => {
             </button>
             <button
               @click="handleSortClick('deadline')"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <Calendar :class="['h-3.5 w-3.5 flex-shrink-0', sortKey === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
               <span>期限順</span>
@@ -268,7 +296,7 @@ const sortedNotes = computed(() => {
           <Button
             size="sm"
             variant="outline"
-            class="h-8 gap-1"
+            class="h-8 gap-1 flex-shrink-0"
             @click="isCreateDialogOpen = true"
           >
             <Plus class="h-3 w-3" />
@@ -288,13 +316,14 @@ const sortedNotes = computed(() => {
               isOverdue(note.deadline_date, note.deadline_time) 
                 ? 'bg-gray-100 border-gray-400 border-2' 
                 : getColorClass(note.color), 
-              'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow'
+              'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow',
+              selectedNote?.note_id === note.note_id ? 'ring-2 ring-blue-500' : ''
             ]"
             @click="selectedNote = note"
           >
-            <div class="flex items-start justify-between mb-2">
-              <div class="flex-1">
-                <h4 class="mb-1">{{ note.title }}</h4>
+            <div class="flex items-start justify-between mb-2 flex-wrap gap-2">
+              <div class="flex-1 min-w-0">
+                <h4 class="mb-1 truncate">{{ note.title }}</h4>
                 <div v-if="note.progress !== undefined && note.progress !== null" class="flex items-center gap-2">
                   <div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                     <div 
@@ -305,7 +334,7 @@ const sortedNotes = computed(() => {
                   <span class="text-xs text-gray-600">{{ note.progress }}%</span>
                 </div>
               </div>
-              <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5']">
+              <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5 flex-shrink-0']">
                 {{ getPriorityInfo(note.priority as Priority).label }}
               </Badge>
             </div>
@@ -317,13 +346,13 @@ const sortedNotes = computed(() => {
                 {{ tag.tag_name }}
               </Badge>
             </div>
-            <div class="flex items-center justify-between text-xs text-gray-600">
-              <div class="flex items-center gap-2">
+            <div class="flex items-center justify-between text-xs text-gray-600 flex-wrap gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <div class="flex items-center gap-1">
                   <User class="h-3 w-3" />
-                  {{ note.author?.name || 'N/A' }}
+                  <span class="truncate">{{ note.author?.name || 'N/A' }}</span>
                 </div>
-                <div v-if="note.participants && note.participants.length > 0" class="flex items-center gap-1">
+                <div v-if="note.participants && note.participants.length > 0" class="flex items-center gap-1 flex-wrap">
                   <Badge v-if="isAllUsers(note.participants)" variant="outline" class="text-xs text-blue-600 border-blue-300">
                     全員
                   </Badge>
@@ -340,7 +369,7 @@ const sortedNotes = computed(() => {
                   期限切れ
                 </Badge>
                 <Badge v-else variant="outline" class="text-xs h-5">
-                  {{ note.deadline_date ? '期限' : '作成日' }}: {{ note.deadline_date ? `${new Date(note.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(note.deadline_time || '23:59:00').substring(0, 5)}` : new Date(note.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
+                  {{ note.deadline_date ? '期限' : '作成日' }}: {{ note.deadline_date ? formatDeadlineDate(note.deadline_date, note.deadline_time) : formatCreatedDate(note.created_at) }}
                 </Badge>
               </div>
             </div>
