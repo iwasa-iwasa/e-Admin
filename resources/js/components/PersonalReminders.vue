@@ -34,8 +34,6 @@ const showCompleted = ref(false)
 const reminderToDelete = ref<App.Models.Reminder | null>(null)
 const isNarrow = ref(false)
 const buttonContainerRef = ref<HTMLElement | null>(null)
-const headerWrapperRef = ref<HTMLElement | null>(null)
-
 let resizeObserver: ResizeObserver | null = null
 
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
@@ -234,29 +232,29 @@ onUnmounted(() => {
 <template>
   <Card class="h-full flex flex-col relative">
     <CardHeader>
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
-          <Bell class="h-5 w-5 text-green-700" />
+          <Bell class="h-6 w-6 text-green-700" />
           <CardTitle>個人リマインダー</CardTitle>
         </div>
-        <div ref="headerWrapperRef" class="flex items-center gap-3">
-          <div ref="buttonContainerRef" class="flex flex-col gap-2 p-1 bg-gray-100 rounded-lg">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div ref="buttonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg flex-wrap', isNarrow ? 'flex-col' : 'flex-row items-center']">
             <button
               @click="showCompleted = false"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <Clock :class="['h-3.5 w-3.5 flex-shrink-0', !showCompleted ? 'text-orange-500' : 'text-gray-400']" />
-              未完了
+              <span>未完了</span>
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ activeCount }}
               </Badge>
             </button>
             <button
               @click="showCompleted = true"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px]', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
               <CheckCircle :class="['h-3.5 w-3.5 flex-shrink-0', showCompleted ? 'text-green-500' : 'text-gray-400']" />
-              完了済
+              <span>完了済</span>
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ completedCount }}
               </Badge>
@@ -265,7 +263,7 @@ onUnmounted(() => {
           <Button
             size="sm"
             variant="outline"
-            class="h-8 gap-1"
+            class="h-8 gap-1 flex-shrink-0"
             @click="isCreateDialogOpen = true"
           >
             <Plus class="h-3 w-3" />
@@ -288,7 +286,7 @@ onUnmounted(() => {
               reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
               'border-gray-300'
             ]"
-@click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
+            @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
           >
             <CardHeader>
               <div class="flex items-start justify-between gap-4">
@@ -308,15 +306,9 @@ onUnmounted(() => {
                       </CardTitle>
                     </div>
                     <p v-if="reminder.description" :class="['text-sm text-gray-600 mb-3', reminder.completed ? 'text-gray-500 line-through' : '']">
-                      {{ reminder.description }}
+                      {{ reminder.description.length > 20 ? reminder.description.substring(0, 20) + '...' : reminder.description }}
                     </p>
-                    <div :class="['flex flex-wrap items-center gap-3 text-xs text-gray-500', reminder.completed ? 'opacity-60' : '']">
-                      <div class="flex items-center gap-1">
-                        <Badge v-if="reminder.deadline_date" variant="outline" class="text-xs h-5 bg-white border-gray-400">
-                          期限: {{ formatDate(reminder.deadline_date) }} {{ reminder.deadline_time ? reminder.deadline_time.substring(0, 5) : '' }}
-                        </Badge>
-                      </div>
-                    </div>
+
                   </div>
                 </div>
                 <div class="flex flex-col items-end gap-2 flex-shrink-0">
@@ -329,6 +321,13 @@ onUnmounted(() => {
                     <Trash2 class="h-4 w-4" />
                     完全に削除
                   </Button>
+                  <div class="flex items-center gap-1 text-xs">
+                    <CheckCircle v-if="reminder.completed" class="h-3 w-3 text-green-600" />
+                    <Clock v-else class="h-3 w-3 text-orange-600" />
+                    <span v-if="reminder.deadline_date" class="text-gray-500">
+                      {{ formatDate(reminder.deadline_date) }}{{ reminder.deadline_time ? ` ${reminder.deadline_time.substring(0, 5)}` : '' }}
+                    </span>
+                  </div>
                   <Badge v-if="reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400">
                     期限切れ
                   </Badge>
@@ -338,20 +337,7 @@ onUnmounted(() => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div class="space-y-2">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-600">ステータス</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm">
-                  <CheckCircle v-if="reminder.completed" class="h-4 w-4 text-green-600" />
-                  <Clock v-else class="h-4 w-4 text-orange-600" />
-                  <span :class="reminder.completed ? 'text-green-600' : 'text-orange-600'">
-                    {{ reminder.completed ? '完了済' : '未完了' }}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
+
           </Card>
         </div>
       </ScrollArea>
@@ -397,7 +383,7 @@ onUnmounted(() => {
     >
       <div 
         v-if="saveMessage"
-        :class="['absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 p-3 text-white rounded-lg shadow-lg',
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[9999] p-3 text-white rounded-lg shadow-lg',
           messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
       >
         <div class="flex items-center gap-2">
