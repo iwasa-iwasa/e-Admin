@@ -77,7 +77,7 @@ class EventSeeder extends Seeder
             ];
 
             $title = $titles[$category][array_rand($titles[$category])];
-            $description = $descriptions[$category][array_rand($descriptions[$category])] . ' ' . $faker->realText(20);
+            $description = $descriptions[$category][array_rand($descriptions[$category])];
             $events[] = [
                 'title' => $title,
                 'description' => $description,
