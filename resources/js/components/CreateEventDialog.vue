@@ -216,17 +216,16 @@ watch(() => props.open, (isOpen) => {
 
 
 watch(date, (newDates) => {
-    if (newDates && newDates[0]) {
+    if (newDates && Array.isArray(newDates) && newDates[0] instanceof Date) {
         const startDate = newDates[0];
-        // If the second date is null or undefined, set it to the start date.
-        const endDate = newDates[1] instanceof Date ? newDates[1] : startDate;
+        const endDate = (newDates[1] instanceof Date) ? newDates[1] : startDate;
         form.date_range = [startDate, endDate];
     } else {
-        // If no date is selected (e.g., cleared), reset to today's date
         const now = new Date();
         form.date_range = [now, now];
+        date.value = [now, now];
     }
-});
+}, { deep: true });
 
 const format = (dates: Date[]) => {
     if (dates && dates.length === 2) {
@@ -364,11 +363,35 @@ const discardDraft = () => {
 }
 
 const handleSave = () => {
+  // 必須項目の検証
+  if (!form.title?.trim()) {
+    showMessage('タイトルを入力してください', 'error')
+    return
+  }
+  
+  // date_rangeの検証を強化
+  if (!form.date_range || !Array.isArray(form.date_range) || 
+      !form.date_range[0] || !form.date_range[1] ||
+      !(form.date_range[0] instanceof Date) || !(form.date_range[1] instanceof Date)) {
+    showMessage('日付が正しく設定されていません', 'error')
+    return
+  }
+  
   saveDraft()
   
   const transformData = (data: any) => {
+    // date_rangeが正しく設定されていることを確認
+    if (!data.date_range || !Array.isArray(data.date_range) || data.date_range.length !== 2) {
+      throw new Error('Invalid date_range')
+    }
+    
     const transformed: Record<string, any> = {
         ...data,
+        // date_rangeを確実にISO文字列として送信
+        date_range: [
+          data.date_range[0].toISOString().split('T')[0],
+          data.date_range[1].toISOString().split('T')[0]
+        ],
         participants: data.participants.map((p: App.Models.User) => p.id)
     };
     if (isEditMode.value) {
