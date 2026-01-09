@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreEventRequest;
+use App\Http\Requests\UpdateEventRequest;
 use Inertia\Inertia;
 use App\Models\Event;
-use App\Models\EventAttachment;
+use App\Models\Calendar;
+use App\Models\SharedNote;
+use App\Models\TrashItem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class CalendarController extends Controller
@@ -20,8 +23,6 @@ class CalendarController extends Controller
      */
     public function index(Request $request)
     {
-        $user = Auth::user();
-
         $memberId = $request->query('member_id');
 
         // Build query for events
@@ -61,41 +62,15 @@ class CalendarController extends Controller
     /**
      * Store a newly created event in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\StoreEventRequest  $request
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function store(Request $request)
+    public function store(StoreEventRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'date_range' => 'required|array|size:2',
-            'date_range.*' => 'required|date',
-            'is_all_day' => 'required|boolean',
-            'start_time' => 'nullable|required_if:is_all_day,false|date_format:H:i',
-            'end_time' => 'nullable|required_if:is_all_day,false|date_format:H:i|after:start_time',
-            'participants' => 'nullable|array',
-            'participants.*' => 'exists:users,id',
-            'location' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張,その他',
-            'importance' => 'required|string|in:重要,中,低',
-            'progress' => 'nullable|integer|min:0|max:100',
-            'recurrence' => 'nullable|array',
-            'recurrence.is_recurring' => 'boolean',
-            'recurrence.recurrence_type' => 'required_if:recurrence.is_recurring,true|string|in:daily,weekly,monthly,yearly',
-            'recurrence.recurrence_interval' => 'required_if:recurrence.is_recurring,true|integer|min:1',
-            'recurrence.by_day' => 'nullable|array',
-            'recurrence.by_day.*' => [Rule::in(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'])],
-            'recurrence.by_set_pos' => 'nullable|integer',
-            'recurrence.end_date' => 'nullable|date|after_or_equal:end_date',
-            'attachments' => 'nullable|array',
-            'attachments.new_files' => 'nullable|array',
-            'attachments.new_files.*' => 'file|max:10240', // 10MB max
-        ]);
+        $validated = $request->validated();
 
         $event = Event::create([
-            'calendar_id' => \App\Models\Calendar::first()->calendar_id,
+            'calendar_id' => Calendar::first()->calendar_id,
             'title' => $validated['title'],
             'start_date' => Carbon::parse($validated['date_range'][0])->format('Y-m-d'),
             'end_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
@@ -111,95 +86,28 @@ class CalendarController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        if (isset($validated['recurrence']) && $validated['recurrence']['is_recurring']) {
-            $event->recurrence()->create([
-                'recurrence_type' => $validated['recurrence']['recurrence_type'],
-                'recurrence_interval' => $validated['recurrence']['recurrence_interval'],
-                'by_day' => $validated['recurrence']['by_day'] ?? null,
-                'by_set_pos' => $validated['recurrence']['by_set_pos'] ?? null,
-                'end_date' => $validated['recurrence']['end_date'] ?? null,
-            ]);
-        }
-//...
-
-        if (isset($validated['attachments']['new_files'])) {
-            foreach ($validated['attachments']['new_files'] as $file) {
-                $path = $file->store('attachments', 'public');
-                $event->attachments()->create([
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $path,
-                    'file_size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType(),
-                ]);
-            }
-        }
+        $this->handleRecurrence($event, $validated);
+        $this->handleAttachments($event, $validated);
 
         if (isset($validated['participants'])) {
             $event->participants()->attach($validated['participants']);
         }
 
-        // Save to shared notes if description exists
-        if (!empty($validated['description'])) {
-            $categoryColorMap = [
-                '会議' => 'blue',
-                '業務' => 'green',
-                '来客' => 'yellow',
-                '出張' => 'purple',
-                '休暇' => 'pink',
-                'その他' => 'gray',
-            ];
-            
-            $sharedNote = \App\Models\SharedNote::create([
-                'title' => $validated['title'],
-                'content' => $validated['description'],
-                'priority' => $validated['importance'] === '重要' ? 'high' : ($validated['importance'] === '中' ? 'medium' : 'low'),
-                'color' => $categoryColorMap[$validated['category']] ?? 'blue',
-                'author_id' => auth()->id(),
-                'linked_event_id' => $event->event_id,
-                'deadline_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
-                'deadline_time' => $validated['is_all_day'] ? '23:59:00' : $validated['end_time'],
-            ]);
-            
-            // Add participants to shared note
-            if (isset($validated['participants'])) {
-                $sharedNote->participants()->attach($validated['participants']);
-            }
-        }
+        $this->syncSharedNote($event, $validated);
 
         return redirect()->back();
-        
     }
 
     /**
      * Update the specified event in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\UpdateEventRequest  $request
      * @param  \App\Models\Event  $event
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function update(Request $request, Event $event)
+    public function update(UpdateEventRequest $request, Event $event)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'date_range' => 'required|array|size:2',
-            'date_range.*' => 'required|date',
-            'is_all_day' => 'required|boolean',
-            'start_time' => 'nullable|required_if:is_all_day,false|date_format:H:i',
-            'end_time' => 'nullable|required_if:is_all_day,false|date_format:H:i|after:start_time',
-            'participants' => 'nullable|array',
-            'participants.*' => 'exists:users,id',
-            'location' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張,その他',
-            'importance' => 'required|string|in:重要,中,低',
-            'progress' => 'nullable|integer|min:0|max:100',
-            'attachments' => 'nullable|array',
-            'attachments.new_files' => 'nullable|array',
-            'attachments.new_files.*' => 'file|max:10240', // 10MB max
-            'attachments.removed_ids' => 'nullable|array',
-            'attachments.removed_ids.*' => 'integer',
-        ]);
+        $validated = $request->validated();
 
         $event->update([
             'title' => $validated['title'],
@@ -216,84 +124,17 @@ class CalendarController extends Controller
             'progress' => $validated['progress'] ?? 0,
         ]);
 
-        // Update participants
         if (isset($validated['participants'])) {
             $event->participants()->sync($validated['participants']);
         }
 
-        // Handle new attachments
-        if (isset($validated['attachments']['new_files'])) {
-            foreach ($validated['attachments']['new_files'] as $file) {
-                $path = $file->store('attachments', 'public');
-                $event->attachments()->create([
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $path,
-                    'file_size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType(),
-                ]);
-            }
-        }
-
-        // Handle removed attachments
-        if (isset($validated['attachments']['removed_ids'])) {
-            $attachmentsToDelete = $event->attachments()->whereIn('attachment_id', $validated['attachments']['removed_ids'])->get();
-            foreach ($attachmentsToDelete as $attachment) {
-                Storage::disk('public')->delete($attachment->file_path);
-                $attachment->delete();
-            }
-        }
-
-        // Update linked shared note
-        $sharedNote = \App\Models\SharedNote::where('linked_event_id', $event->event_id)->first();
+        $this->handleAttachments($event, $validated);
+        $this->handleDeletedAttachments($event, $validated);
         
-        if ($sharedNote) {
-            $categoryColorMap = [
-                '会議' => 'blue',
-                '業務' => 'green',
-                '来客' => 'yellow',
-                '出張' => 'purple',
-                '休暇' => 'pink',
-                'その他' => 'gray',
-            ];
-            
-            $sharedNote->update([
-                'title' => $validated['title'],
-                'content' => $validated['description'],
-                'priority' => $validated['importance'] === '重要' ? 'high' : ($validated['importance'] === '中' ? 'medium' : 'low'),
-                'color' => $categoryColorMap[$validated['category']] ?? 'blue',
-                'deadline_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
-                'deadline_time' => $validated['is_all_day'] ? '23:59:00' : $validated['end_time'],
-            ]);
-            
-            if (isset($validated['participants'])) {
-                $sharedNote->participants()->sync($validated['participants']);
-            }
-        } elseif (!empty($validated['description'])) {
-            // Create new linked note if description was added
-            $categoryColorMap = [
-                '会議' => 'blue',
-                '業務' => 'green',
-                '来客' => 'yellow',
-                '出張' => 'purple',
-                '休暇' => 'pink',
-                'その他' => 'gray',
-            ];
-            
-            $sharedNote = \App\Models\SharedNote::create([
-                'title' => $validated['title'],
-                'content' => $validated['description'],
-                'priority' => $validated['importance'] === '重要' ? 'high' : ($validated['importance'] === '中' ? 'medium' : 'low'),
-                'color' => $categoryColorMap[$validated['category']] ?? 'blue',
-                'author_id' => $event->created_by,
-                'linked_event_id' => $event->event_id,
-                'deadline_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
-                'deadline_time' => $validated['is_all_day'] ? '23:59:00' : $validated['end_time'],
-            ]);
-            
-            if (isset($validated['participants'])) {
-                $sharedNote->participants()->attach($validated['participants']);
-            }
-        }
+        // Recurrence update logic is omitted as per original code structure, 
+        // assuming it's not supported in update or handled elsewhere if needed.
+
+        $this->syncSharedNote($event, $validated);
 
         return redirect()->back();
     }
@@ -307,7 +148,7 @@ class CalendarController extends Controller
     public function destroy(Event $event)
     {
         // Create trash item
-        \App\Models\TrashItem::create([
+        TrashItem::create([
             'user_id' => auth()->id(),
             'item_type' => 'event',
             'is_shared' => true,
@@ -334,11 +175,119 @@ class CalendarController extends Controller
         $event->restore();
 
         // Remove from trash
-        \App\Models\TrashItem::where('item_type', 'event')
+        TrashItem::where('item_type', 'event')
             ->where('item_id', $eventId)
             ->where('user_id', auth()->id())
             ->delete();
 
         return redirect()->back();
+    }
+
+    /**
+     * Handle recurrence creation.
+     */
+    private function handleRecurrence(Event $event, array $validated): void
+    {
+        if (isset($validated['recurrence']) && $validated['recurrence']['is_recurring']) {
+            $event->recurrence()->create([
+                'recurrence_type' => $validated['recurrence']['recurrence_type'],
+                'recurrence_interval' => $validated['recurrence']['recurrence_interval'],
+                'by_day' => $validated['recurrence']['by_day'] ?? null,
+                'by_set_pos' => $validated['recurrence']['by_set_pos'] ?? null,
+                'end_date' => $validated['recurrence']['end_date'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Handle new attachments.
+     */
+    private function handleAttachments(Event $event, array $validated): void
+    {
+        if (isset($validated['attachments']['new_files'])) {
+            foreach ($validated['attachments']['new_files'] as $file) {
+                $path = $file->store('attachments', 'public');
+                $event->attachments()->create([
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Handle deleted attachments.
+     */
+    private function handleDeletedAttachments(Event $event, array $validated): void
+    {
+        if (isset($validated['attachments']['removed_ids'])) {
+            $attachmentsToDelete = $event->attachments()
+                ->whereIn('attachment_id', $validated['attachments']['removed_ids'])
+                ->get();
+                
+            foreach ($attachmentsToDelete as $attachment) {
+                Storage::disk('public')->delete($attachment->file_path);
+                $attachment->delete();
+            }
+        }
+    }
+
+    /**
+     * Sync shared note with event.
+     */
+    private function syncSharedNote(Event $event, array $validated): void
+    {
+        // Skip if description is empty and no linked note exists (for create) or update
+        // But for update we need to check if note exists to update it.
+        
+        $sharedNote = SharedNote::where('linked_event_id', $event->event_id)->first();
+
+        // Common data preparation
+        $deadlineDate = Carbon::parse($validated['date_range'][1])->format('Y-m-d');
+        $deadlineTime = $validated['is_all_day'] ? '23:59:00' : $validated['end_time'];
+        
+        // Priority mapping
+        $priority = match ($validated['importance']) {
+            Event::IMPORTANCE_HIGH => 'high',
+            Event::IMPORTANCE_MEDIUM => 'medium',
+            default => 'low',
+        };
+
+        // Color mapping using Event constants
+        $color = Event::CATEGORY_COLORS[$validated['category']] ?? Event::COLOR_BLUE;
+
+        if ($sharedNote) {
+            // Update existing note
+            $sharedNote->update([
+                'title' => $validated['title'],
+                'content' => $validated['description'],
+                'priority' => $priority,
+                'color' => $color,
+                'deadline_date' => $deadlineDate,
+                'deadline_time' => $deadlineTime,
+            ]);
+            
+            if (isset($validated['participants'])) {
+                $sharedNote->participants()->sync($validated['participants']);
+            }
+        } elseif (!empty($validated['description'])) {
+            // Create new note
+            $sharedNote = SharedNote::create([
+                'title' => $validated['title'],
+                'content' => $validated['description'],
+                'priority' => $priority,
+                'color' => $color,
+                'author_id' => $event->created_by, // Use creator of event
+                'linked_event_id' => $event->event_id,
+                'deadline_date' => $deadlineDate,
+                'deadline_time' => $deadlineTime,
+            ]);
+            
+            if (isset($validated['participants'])) {
+                $sharedNote->participants()->attach($validated['participants']);
+            }
+        }
     }
 }

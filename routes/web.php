@@ -83,10 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/trash/auto-delete', [\App\Http\Controllers\TrashAutoDeleteController::class, 'index'])->name('trash.auto-delete');
     Route::post('/trash/auto-delete', [\App\Http\Controllers\TrashAutoDeleteController::class, 'update'])->name('trash.auto-delete.update');
 
-    // Member Calendar
-    Route::get('/member-calendar', function () {
-        return Inertia::render('MemberCalendar');
-    })->name('member.calendar');
+    // Member Calendar Route Removed
 
     Route::post('/events', [CalendarController::class, 'store'])->name('events.store');
     Route::put('/events/{event}', [CalendarController::class, 'update'])->name('events.update');

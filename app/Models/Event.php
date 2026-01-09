@@ -15,6 +15,33 @@ class Event extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const CATEGORY_MEETING = '会議';
+    public const CATEGORY_WORK = '業務';
+    public const CATEGORY_VISITOR = '来客';
+    public const CATEGORY_BUSINESS_TRIP = '出張';
+    public const CATEGORY_VACATION = '休暇';
+    public const CATEGORY_OTHER = 'その他';
+
+    public const IMPORTANCE_HIGH = '重要';
+    public const IMPORTANCE_MEDIUM = '中';
+    public const IMPORTANCE_LOW = '低';
+
+    public const COLOR_BLUE = 'blue';
+    public const COLOR_GREEN = 'green';
+    public const COLOR_YELLOW = 'yellow';
+    public const COLOR_PURPLE = 'purple';
+    public const COLOR_PINK = 'pink';
+    public const COLOR_GRAY = 'gray';
+
+    public const CATEGORY_COLORS = [
+        self::CATEGORY_MEETING => self::COLOR_BLUE,
+        self::CATEGORY_WORK => self::COLOR_GREEN,
+        self::CATEGORY_VISITOR => self::COLOR_YELLOW,
+        self::CATEGORY_BUSINESS_TRIP => self::COLOR_PURPLE,
+        self::CATEGORY_VACATION => self::COLOR_PINK,
+        self::CATEGORY_OTHER => self::COLOR_GRAY,
+    ];
+
     /**
      * The table associated with the model.
      *

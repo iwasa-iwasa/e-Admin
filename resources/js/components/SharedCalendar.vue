@@ -23,6 +23,7 @@ import DayViewGantt from '@/components/DayViewGantt.vue'
 import WeekSummaryView from '@/components/WeekSummaryView.vue'
 import { all } from 'axios'
 import ScrollArea from './ui/scroll-area/ScrollArea.vue'
+import { CATEGORY_COLORS, CATEGORY_LABELS, GENRE_FILTERS, Category } from '@/constants/calendar'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -70,20 +71,20 @@ const isTodayInViewForFullCalendar = ref(false)
 const filteredEvents = computed(() => {
     let filtered = props.events
     
-    if (genreFilter.value !== 'all') {
-        const genreMap: Record<string, string> = {
-            blue: '会議',
-            green: '業務',
-            yellow: '来客',
-            purple: '出張',
-            pink: '休暇'
-        }
-        
-        if (genreFilter.value === 'other') {
-            const knownCategories = Object.values(genreMap)
-            filtered = filtered.filter(event => !knownCategories.includes(event.category))
+    if (genreFilter.value !== GENRE_FILTERS.ALL) {
+        if (genreFilter.value === GENRE_FILTERS.OTHER) {
+            const knownCategories = Object.keys(CATEGORY_COLORS)
+            filtered = filtered.filter(event => !Object.keys(CATEGORY_COLORS).includes(event.category))
         } else {
-            filtered = filtered.filter(event => event.category === genreMap[genreFilter.value])
+             // COLOR to CATEGORY mapping for filter
+             const colorToCategory: Record<string, string> = {
+                [GENRE_FILTERS.BLUE]: CATEGORY_LABELS['会議'],
+                [GENRE_FILTERS.GREEN]: CATEGORY_LABELS['業務'],
+                [GENRE_FILTERS.YELLOW]: CATEGORY_LABELS['来客'],
+                [GENRE_FILTERS.PURPLE]: CATEGORY_LABELS['出張'],
+                [GENRE_FILTERS.PINK]: CATEGORY_LABELS['休暇'],
+             }
+            filtered = filtered.filter(event => event.category === colorToCategory[genreFilter.value])
         }
     }
     
@@ -133,14 +134,7 @@ const openEditDialog = (eventId: number) => {
 }
 
 const getEventColor = (category: string) => {
-    const categoryColorMap: { [key: string]: string } = {
-        '会議': '#42A5F5', // blue
-        '業務': '#66BB6A', // green
-        '来客': '#FFA726', // orange
-        '出張': '#9575CD', // purple
-        '休暇': '#F06292', // pink
-    };
-    return categoryColorMap[category] || '#6b7280';
+    return CATEGORY_COLORS[category as Category] || CATEGORY_COLORS['その他'];
 }
 
 const legendItems = [
@@ -689,41 +683,41 @@ watch([viewMode, currentDayViewDate, currentWeekStart], () => {
                             <SelectValue placeholder="ジャンル" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">すべて</SelectItem>
-                            <SelectItem value="blue">
+                            <SelectItem :value="GENRE_FILTERS.ALL">すべて</SelectItem>
+                            <SelectItem :value="GENRE_FILTERS.BLUE">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                                    会議
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['会議'] }"></div>
+                                    {{ CATEGORY_LABELS['会議'] }}
                                 </div>
                             </SelectItem>
-                            <SelectItem value="green">
+                            <SelectItem :value="GENRE_FILTERS.GREEN">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                                    業務
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['業務'] }"></div>
+                                    {{ CATEGORY_LABELS['業務'] }}
                                 </div>
                             </SelectItem>
-                            <SelectItem value="yellow">
+                            <SelectItem :value="GENRE_FILTERS.YELLOW">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                    来客
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['来客'] }"></div>
+                                    {{ CATEGORY_LABELS['来客'] }}
                                 </div>
                             </SelectItem>
-                            <SelectItem value="purple">
+                            <SelectItem :value="GENRE_FILTERS.PURPLE">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-purple-500"></div>
-                                    出張
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['出張'] }"></div>
+                                    {{ CATEGORY_LABELS['出張'] }}
                                 </div>
                             </SelectItem>
-                            <SelectItem value="pink">
+                            <SelectItem :value="GENRE_FILTERS.PINK">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-pink-500"></div>
-                                    休暇
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['休暇'] }"></div>
+                                    {{ CATEGORY_LABELS['休暇'] }}
                                 </div>
                             </SelectItem>
-                            <SelectItem value="other">
+                            <SelectItem :value="GENRE_FILTERS.OTHER">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full bg-gray-500"></div>
-                                    その他
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['その他'] }"></div>
+                                    {{ CATEGORY_LABELS['その他'] }}
                                 </div>
                             </SelectItem>
                         </SelectContent>
