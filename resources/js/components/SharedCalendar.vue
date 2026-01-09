@@ -38,7 +38,8 @@ const currentEvents = ref<App.Models.Event[]>([])
 const { 
     searchQuery, 
     genreFilter, 
-    canEditEvent 
+    canEditEvent,
+    fetchEvents
 } = useCalendarEvents()
 
 // 2. View Logic
@@ -96,11 +97,8 @@ const handleEventsFetched = (events: any[]) => {
 
 // 4. FullCalendar Config
 const { calendarOptions } = useFullCalendarConfig(
-    {
-        searchQuery,
-        genreFilter,
-        memberId: computed(() => props.filteredMemberId)
-    },
+    fetchEvents,
+    computed(() => props.filteredMemberId),
     viewMode,
     fullCalendar,
     getEventColor,
@@ -117,13 +115,53 @@ const { calendarOptions } = useFullCalendarConfig(
     handleEventsFetched
 )
 
+// Manual Fetch Logic for Custom Views (Day/Week)
+const fetchEventsForCustomView = async () => {
+    let startStr = ''
+    let endStr = ''
+
+    if (viewMode.value === 'timeGridDay') {
+        // Pre-fetch: current day +/- 1 week
+        const start = new Date(currentDayViewDate.value)
+        start.setDate(start.getDate() - 7)
+        start.setHours(0, 0, 0, 0)
+        startStr = start.toISOString().split('T')[0]
+        
+        const end = new Date(currentDayViewDate.value)
+        end.setDate(end.getDate() + 8) // +1 (next day) +7 (buffer)
+        endStr = end.toISOString().split('T')[0]
+    } else if (viewMode.value === 'timeGridWeek') {
+        // Pre-fetch: current week +/- 2 weeks
+        const start = new Date(currentWeekStart.value)
+        start.setDate(start.getDate() - 14)
+        start.setHours(0, 0, 0, 0)
+        startStr = start.toISOString().split('T')[0]
+        
+        const end = new Date(currentWeekStart.value)
+        end.setDate(end.getDate() + 21) // +7 (next week start) + 14 (buffer)
+        endStr = end.toISOString().split('T')[0]
+    } else {
+        return // FullCalendar handles other views
+    }
+
+    const events = await fetchEvents(startStr, endStr, props.filteredMemberId)
+    currentEvents.value = events
+}
+
 // Watch filters to refetch events
 watch([searchQuery, genreFilter, () => props.filteredMemberId], () => {
     const api = fullCalendar.value?.getApi()
-    if (api) {
+    if (api && (viewMode.value === 'dayGridMonth' || viewMode.value === 'multiMonthYear')) {
         api.refetchEvents()
+    } else {
+        fetchEventsForCustomView()
     }
 })
+
+// Watch view navigation for custom views
+watch([viewMode, currentDayViewDate, currentWeekStart], () => {
+    fetchEventsForCustomView()
+}, { immediate: true })
 
 // Helper Methods
 const openCreateDialog = () => {
@@ -142,6 +180,7 @@ const openEditDialog = (eventId: number) => {
         isEventFormOpen.value = true
     }
 }
+
 
 const handleEventClickFromGantt = (event: App.Models.Event) => {
     selectedEvent.value = event
