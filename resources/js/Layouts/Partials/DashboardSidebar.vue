@@ -105,7 +105,7 @@
           </div>
   
           <!-- ロゴ -->
-          <div class="px-4 py-6">
+          <div class="px-4 py-3">
             <LogoTitle logo-src="/images/logo.png" />
           </div>
   
@@ -239,19 +239,27 @@
   
           <ScrollArea>
             <div class="space-y-1">
-              <Button
-                v-for="member in teamMembers"
-                :key="member.id"
-                :variant="selectedMember === member.id ? 'default' : 'ghost'"
-                class="max-w-[240px] w-fit justify-start gap-3 px-3"
-                @click="handleMemberClick(member.id, currentURL)"
-              >
-                <Avatar class="h-6 w-6">
-                  <AvatarImage :src="member.avatar || ''" />
-                  <AvatarFallback>{{ member.name.charAt(0) }}</AvatarFallback>
-                </Avatar>
-                {{ member.name }}
-              </Button>
+              <template v-for="member in teamMembers" :key="member.id">
+                <div 
+                  v-if="selectedMember === member.id" 
+                  class="px-2 py-1 mb-1 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100"
+                  @click="handleMemberClick(member.id, currentURL)"
+                >
+                  <div class="text-xs text-blue-700 font-medium">{{ member.name }} フィルター中</div>
+                </div>
+                <Button
+                  v-else
+                  variant="ghost"
+                  class="max-w-[240px] w-fit justify-start gap-3 px-3"
+                  @click="handleMemberClick(member.id, currentURL)"
+                >
+                  <Avatar class="h-6 w-6">
+                    <AvatarImage :src="member.avatar || ''" />
+                    <AvatarFallback>{{ member.name.charAt(0) }}</AvatarFallback>
+                  </Avatar>
+                  {{ member.name }}
+                </Button>
+              </template>
             </div>
           </ScrollArea>
   

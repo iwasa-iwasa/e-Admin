@@ -279,7 +279,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                     ref="searchInputRef"
                     type="text"
                     placeholder="タイトルまたは詳細で横断検索"
-                    class="pl-10 pr-10 py-2 w-full flex h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    class="pl-10 pr-10 py-2 w-full flex h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     v-model="searchQuery"
                     @focus="handleFocus"
                     @blur="handleBlur"
@@ -520,14 +520,6 @@ const canEditNote = (note: App.Models.SharedNote) => {
                     </div>
                 </PopoverContent>
             </Popover>
-        </div>
-        <div class="flex items-center justify-between mt-1 ml-1">
-            <p class="text-xs text-gray-500">
-                すべての予定、メモ、リマインダー、アンケート、ゴミ箱を横断検索
-            </p>
-            <p v-if="activeFilterCount > 0" class="text-xs text-blue-600 font-medium">
-                {{ activeFiltersText }}
-            </p>
         </div>
     </div>
     
