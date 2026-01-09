@@ -58,4 +58,12 @@ class NoteTag extends Model
     {
         return $this->belongsToMany(SharedNote::class, 'note_tag_relations', 'tag_id', 'note_id');
     }
+
+    /**
+     * Alias for notes relationship.
+     */
+    public function sharedNotes()
+    {
+        return $this->belongsToMany(SharedNote::class, 'note_tag_relations', 'tag_id', 'note_id');
+    }
 }

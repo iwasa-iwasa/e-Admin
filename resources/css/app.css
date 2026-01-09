@@ -92,8 +92,25 @@
   * {
     @apply border-border;
   }
-  body {
+  
+  html, body {
     @apply bg-background text-foreground;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+  
+  /* iPad Pro用のフォントサイズ調整 */
+  @media (min-width: 1024px) and (min-height: 1024px) {
+    html {
+      font-size: 18px;
+    }
+  }
+  
+  @media (min-width: 1366px) and (min-height: 1024px) {
+    html {
+      font-size: 20px;
+    }
   }
 }
 
@@ -106,5 +123,14 @@
   }
   button[role="switch"][data-state='unchecked'] {
     background-color: hsl(var(--muted));
+  }
+  
+  @keyframes highlight-flash {
+    0%, 100% { background-color: transparent; }
+    50% { background-color: rgba(59, 130, 246, 0.2); }
+  }
+  
+  .highlight-flash {
+    animation: highlight-flash 1s ease-in-out 3;
   }
 }

@@ -218,7 +218,7 @@ const sortedNotes = computed(() => {
         <CardHeader>
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                    <StickyNote class="h-5 w-5 text-yellow-600" />
+                    <StickyNote class="h-5 w-5 text-orange-600" />
                     <CardTitle class="text-lg">共有メモ</CardTitle>
                 </div>
                 <Button
@@ -238,7 +238,7 @@ const sortedNotes = computed(() => {
                 >
                     <AlertCircle :class="['h-3.5 w-3.5', sortOrder === 'priority' ? 'text-red-600' : 'text-gray-400']" />
                     <span :class="['text-xs', sortOrder === 'priority' ? 'text-gray-900' : 'text-gray-500']">
-                        優先度順
+                        重要度順
                     </span>
                 </button>
                 <button

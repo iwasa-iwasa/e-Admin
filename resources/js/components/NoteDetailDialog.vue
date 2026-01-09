@@ -51,12 +51,33 @@ const isAllUsers = (participants: any[]) => {
   return participants && props.totalUsers && participants.length === props.totalUsers
 }
 
+// 編集権限チェック
+const canEdit = computed(() => {
+  if (!props.note) return false
+  const note = props.note
+  const isCreator = note.author?.id === currentUserId.value
+  
+  // 参加者が空：作成者のみ編集可能
+  if (!note.participants || note.participants.length === 0) {
+    return isCreator
+  }
+  
+  // 全員が参加者：全員編集可能
+  if (props.totalUsers && note.participants.length === props.totalUsers) {
+    return true
+  }
+  
+  // 個人指定：作成者または参加者のみ編集可能
+  const isParticipant = note.participants.some(p => p.id === currentUserId.value)
+  return isCreator || isParticipant
+})
+
 const canEditParticipants = computed(() => {
   if (!props.note) return false
-  // 作成者は常に編集可能
-  if (props.note.author?.id === currentUserId.value) return true
-  // 参加者のみ編集可能
-  return props.note.participants?.some(p => p.id === currentUserId.value) || false
+  const isCreator = props.note.author?.id === currentUserId.value
+  if (isAllUsers(props.note.participants || [])) return isCreator // 全員共有は作成者のみ変更可能
+  const isParticipant = props.note.participants?.some(p => p.id === currentUserId.value)
+  return isCreator || isParticipant
 })
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
@@ -102,20 +123,30 @@ const getColorClass = (color: string) => {
 
 const getColorInfo = (c: string) => {
   const colorMap: Record<string, { bg: string; label: string }> = {
-    yellow: { bg: 'bg-yellow-100', label: 'イエロー' },
     blue: { bg: 'bg-blue-100', label: 'ブルー' },
     green: { bg: 'bg-green-100', label: 'グリーン' },
-    pink: { bg: 'bg-pink-100', label: 'ピンク' },
+    yellow: { bg: 'bg-yellow-100', label: 'オレンジ' },
     purple: { bg: 'bg-purple-100', label: 'パープル' },
+    pink: { bg: 'bg-pink-100', label: 'ピンク' },
   }
   return colorMap[c] || colorMap.yellow
 }
 
 const handleEdit = () => {
   if (props.note) {
-    editedNote.value = { ...props.note }
+    editedNote.value = { 
+      ...props.note,
+      deadline: formatDateTimeForInput(props.note.deadline_date, props.note.deadline_time)
+    }
     isEditing.value = true
   }
+}
+
+const handleConfirm = () => {
+  closeDialog()
+  setTimeout(() => {
+    showMessage('確認しました', 'success')
+  }, 100)
 }
 
 const handleSave = () => {
@@ -137,7 +168,10 @@ const handleSave = () => {
     onSuccess: () => {
       emit('save', editedNote.value!)
       isEditing.value = false
-      showMessage('メモが保存されました。', 'success')
+      closeDialog()
+      setTimeout(() => {
+        showMessage('メモが保存されました。', 'success')
+      }, 100)
     },
     onError: () => {
       showMessage('保存に失敗しました。', 'success')
@@ -148,15 +182,18 @@ const handleSave = () => {
 const handleTogglePin = () => {
   if (props.note) {
     emit('toggle-pin', props.note)
-    // ローカルで状態を更新（UIの即座更新のため）
-    props.note.is_pinned = !props.note.is_pinned
+    closeDialog()
   }
 }
 
 const handleCancel = () => {
-  isEditing.value = false
-  if (props.note) {
-    editedNote.value = { ...props.note }
+  if (isEditing.value) {
+    isEditing.value = false
+    if (props.note) {
+      editedNote.value = { ...props.note }
+    }
+  } else {
+    closeDialog()
   }
 }
 
@@ -218,14 +255,14 @@ const handleAddParticipant = (memberId: unknown) => {
   const id = Number(memberId as any)
   if (Number.isNaN(id)) return
   const member = props.teamMembers?.find((m) => m.id === id)
-  if (member && !editedNote.value.participants?.find((p) => p.id === member.id)) {
+  if (member) {
     if (!editedNote.value.participants) {
       editedNote.value.participants = []
     }
-    editedNote.value.participants.push(member)
+    if (!editedNote.value.participants.find((p) => p.id === member.id)) {
+      editedNote.value.participants = [...editedNote.value.participants, member]
+    }
   }
-  // Selectの値をクリア
-  participantSelectValue.value = null
 }
 
 const handleRemoveParticipant = (participantId: number) => {
@@ -317,7 +354,7 @@ const editedContent = computed({
 
 <template>
   <Dialog :open="open" @update:open="closeDialog" :modal="true">
-    <DialogContent v-if="currentNote" class="max-w-2xl max-h-[90vh]" @click.stop>
+    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] max-h-[90vh]" @pointerDownOutside.prevent @interactOutside.prevent>
       <DialogHeader>
         <div class="flex flex-col items-startgap-4">
           <div class="flex items-center  justify-between ">
@@ -325,6 +362,7 @@ const editedContent = computed({
               <Input
                 v-if="isEditing && editedNote"
                 v-model="editedNote.title"
+                :disabled="!canEdit"
                 class="h-8"
                 aria-label="メモタイトル"
               />
@@ -376,6 +414,7 @@ const editedContent = computed({
             <Input
               type="datetime-local"
               v-model="editedNote.deadline"
+              :disabled="!canEdit"
               class="h-7 w-48 text-xs"
               aria-label="期限日時"
             />
@@ -391,7 +430,8 @@ const editedContent = computed({
                   type="range" 
                   min="0" 
                   max="100" 
-                  v-model.number="editedNote.progress" 
+                  v-model.number="editedNote.progress"
+                  :disabled="!canEdit"
                   class="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider absolute top-0"
                 />
               </div>
@@ -407,8 +447,8 @@ const editedContent = computed({
 
       <div v-if="isEditing && editedNote" class="space-y-3 pt-2">
         <div class="flex gap-2">
-          <Select v-model="editedNote.priority">
-            <SelectTrigger class="w-32 h-8 text-xs" aria-label="優先度選択">
+          <Select v-model="editedNote.priority" :disabled="!canEdit">
+            <SelectTrigger class="w-32 h-8 text-xs" aria-label="重要度選択">
               <div class="flex items-center gap-2">
                 <Badge :class="getPriorityInfo(editedNote.priority as Priority).className" class="text-xs px-1 py-0">
                   {{ getPriorityInfo(editedNote.priority as Priority).label }}
@@ -427,7 +467,7 @@ const editedContent = computed({
               </SelectItem>
             </SelectContent>
           </Select>
-          <Select v-model="editedNote.color">
+          <Select v-model="editedNote.color" :disabled="!canEdit">
             <SelectTrigger class="w-32 h-8 text-xs" aria-label="色選択">
               <div class="flex items-center gap-2">
                 <div :class="['w-3 h-3 rounded', getColorInfo(editedNote.color).bg]"></div>
@@ -443,9 +483,9 @@ const editedContent = computed({
               </SelectItem>
             </SelectContent>
           </Select>
-          <div class="flex gap-1">
+          <div v-if="canEdit" class="flex gap-1">
             <Input
-              placeholder="タグを追加..."
+              placeholder="タグを追加"
               v-model="tagInput"
               @keypress.enter.prevent="handleAddTag"
               class="h-8 text-xs flex-1 w-32"
@@ -464,14 +504,17 @@ const editedContent = computed({
         <div v-if="editedNote.tags && editedNote.tags.length > 0" class="flex flex-wrap gap-1">
           <Badge v-for="tag in editedNote.tags" :key="tag.tag_name" variant="secondary" class="text-xs gap-1">
             {{ tag.tag_name }}
-            <button @click="handleRemoveTag(tag.tag_name)" class="hover:bg-gray-300 rounded-full p-0.5">
+            <button v-if="canEdit" @click="handleRemoveTag(tag.tag_name)" class="hover:bg-gray-300 rounded-full p-0.5">
               <X class="h-2 w-2" />
             </button>
           </Badge>
         </div>
         <!-- 参加者編集UI -->
         <div v-if="isEditing && editedNote" class="space-y-2 mt-3">
-          <label class="text-xs font-medium text-gray-700 block">共有メンバー</label>
+          <label class="text-xs font-medium text-gray-700 block">共有範囲</label>
+          <div class="text-xs text-gray-600 p-2 bg-gray-50 rounded border">
+            💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
+          </div>
           <template v-if="!canEditParticipants">
             <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
               共有メンバーの変更は作成者または参加者のみ可能です
@@ -483,24 +526,34 @@ const editedContent = computed({
             </div>
           </template>
           <template v-else>
-            <Select v-model="participantSelectValue" @update:model-value="handleAddParticipant">
-              <SelectTrigger class="h-8 text-xs">
-                <SelectValue placeholder="メンバーを選択..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="member in props.teamMembers?.filter(m => !editedNote.participants?.find(p => p.id === m.id) && m.id !== editedNote.author?.id)" :key="member.id" :value="member.id">
-                  {{ member.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div v-if="editedNote?.participants?.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+              全員が選択されています。変更するにはメンバーを削除してください。
+            </div>
+            <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
+              <label v-for="member in props.teamMembers?.filter(m => m.id !== editedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  :checked="editedNote?.participants?.find(p => p.id === member.id) !== undefined"
+                  @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                  class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                />
+                <span class="text-xs">{{ member.name }}</span>
+              </label>
+            </div>
           </template>
-          <div v-if="editedNote.participants && editedNote.participants.length > 0" class="flex flex-wrap gap-1">
-            <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">
-              {{ participant.name }}
-              <button v-if="canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
-                <X class="h-2 w-2" />
-              </button>
-            </Badge>
+          <div v-if="editedNote.participants && editedNote.participants.length > 0" class="min-h-[60px] p-3 border border-purple-300 rounded-md bg-purple-50">
+            <div class="text-xs font-medium text-purple-800 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
+            <div class="flex flex-wrap gap-1">
+              <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">
+                {{ participant.name }}
+                <button v-if="canEdit && canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                  <X class="h-2 w-2" />
+                </button>
+              </Badge>
+            </div>
+          </div>
+          <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 text-blue-700 text-sm">
+            🌐 全体公開: 全員に表示されます
           </div>
         </div>
       </div>
@@ -515,6 +568,7 @@ const editedContent = computed({
           <Textarea
             v-if="isEditing && editedNote"
             v-model="editedContent"
+            :disabled="!canEdit"
             class="min-h-[200px] whitespace-pre-line bg-white"
             aria-label="メモ内容"
           />
@@ -526,21 +580,28 @@ const editedContent = computed({
 
       <DialogFooter class="gap-2">
         <template v-if="isEditing">
-          <Button variant="outline" @click="handleCancel" size="sm">
+          <Button variant="outline" @click="closeDialog" size="sm">
             <X class="h-4 w-4 mr-1" />
-            キャンセル
+            閉じる
           </Button>
-          <Button variant="outline" @click="handleSave" size="sm">
+          <Button v-if="canEdit" variant="outline" @click="handleSave" size="sm">
             <Save class="h-4 w-4 mr-1" />
             保存
           </Button>
+          <Button v-else variant="outline" @click="handleConfirm" size="sm">
+            <CheckCircle class="h-4 w-4 mr-1" />
+            確認完了
+          </Button>
         </template>
         <template v-else>
+          <Button variant="outline" @click="closeDialog" size="sm">
+            閉じる
+          </Button>
           <Button variant="outline" @click="handleEdit" size="sm">
             <Edit2 class="h-4 w-4 mr-1" />
-            編集
+            {{ canEdit ? '編集' : '確認' }}
           </Button>
-          <Button variant="outline" @click="handleDeleteNote" size="sm" class="text-red-600 hover:text-red-700">
+          <Button v-if="canEdit" variant="outline" @click="handleDeleteNote" size="sm" class="text-red-600 hover:text-red-700">
             <Trash2 class="h-4 w-4 mr-1" />
             削除
           </Button>
@@ -579,3 +640,4 @@ const editedContent = computed({
     </Transition>
   </Dialog>
 </template>
+

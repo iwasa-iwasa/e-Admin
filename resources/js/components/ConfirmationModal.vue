@@ -2,11 +2,14 @@
 import Modal from '@/components/Modal.vue';
 import { Button } from '@/components/ui/button';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     show: boolean;
     title: string;
     message: string;
-}>();
+    processing?: boolean;
+}>(), {
+    processing: false,
+});
 
 const emit = defineEmits(['confirm', 'close']);
 
@@ -31,14 +34,15 @@ const close = () => {
             </p>
 
             <div class="mt-6 flex justify-end">
-                <Button variant="outline" @click="close"> Cancel </Button>
+                <Button variant="outline" @click="close"> キャンセル </Button>
 
                 <Button
-                    variant="destructive"
+                    variant="outline"
                     class="ms-3"
                     @click="confirm"
+                    :disabled="processing"
                 >
-                    Confirm
+                    確認
                 </Button>
             </div>
         </div>

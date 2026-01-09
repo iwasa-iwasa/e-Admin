@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class NoteController extends Controller
 {
@@ -15,10 +16,12 @@ class NoteController extends Controller
      *
      * @return \Inertia\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $notes = SharedNote::with(['author', 'tags', 'participants'])
+        $memberId = $request->query('member_id');
+
+        $notesQuery = SharedNote::with(['author', 'tags', 'participants'])
             ->active()
             ->where(function($query) use ($user) {
                 $query->where('author_id', $user->id)
@@ -26,9 +29,17 @@ class NoteController extends Controller
                           $q->where('users.id', $user->id);
                       })
                       ->orWhereDoesntHave('participants');
-            })
-            ->orderBy('updated_at', 'desc')
-            ->get();
+            });
+
+        if ($memberId) {
+            $notesQuery->where(function($query) use ($memberId) {
+                $query->whereHas('participants', function ($q) use ($memberId) {
+                    $q->where('users.id', $memberId);
+                })->orWhereDoesntHave('participants');
+            });
+        }
+
+        $notes = $notesQuery->orderBy('updated_at', 'desc')->get();
 
         // 認証ユーザーがピン留めしたノートのIDリストを取得
         $pinnedNoteIds = $user->pinnedNotes()->pluck('shared_notes.note_id')->all();
@@ -41,16 +52,34 @@ class NoteController extends Controller
         // is_pinnedを優先してソート（ピン留めが先頭）、次に更新日でソート（DB取得時に適用済み）
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
-        // 現在のユーザーと同じ部署のメンバーを取得（作成者以外）
-        $teamMembers = \App\Models\User::where('department', $user->department)
-            ->where('id', '!=', $user->id)
-            ->get();
+        // 現在のユーザーと同じ部署のメンバーを取得
+        $teamMembers = \App\Models\User::where('is_active', true)->get();
+
+        // すべてのタグを使用回数順で取得
+        $allTags = \App\Models\NoteTag::withCount('sharedNotes')
+            ->orderBy('shared_notes_count', 'desc')
+            ->pluck('tag_name')
+            ->values();
 
         return Inertia::render('Notes', [
             'notes' => $sortedNotes->values(), // ソート後にキーをリセット
             'totalUsers' => \App\Models\User::where('department', $user->department)->count(),
             'teamMembers' => $teamMembers,
+            'allTags' => $allTags,
+            'filteredMemberId' => $memberId ? (int)$memberId : null,
         ]);
+    }
+
+    /**
+     * Get a single note for API.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        $note = SharedNote::with(['author', 'tags', 'participants'])->findOrFail($id);
+        return response()->json($note);
     }
 
     /**
@@ -61,12 +90,16 @@ class NoteController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'content' => ['nullable', 'string'],
-            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
+            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple,gray'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
             'participants' => ['nullable', 'array'],
             'participants.*' => ['exists:users,id'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:50'],
+            'pinned' => ['nullable', 'boolean'],
+            'linked_event_id' => ['nullable', 'exists:events,event_id'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -82,6 +115,7 @@ class NoteController extends Controller
             'title' => $validated['title'],
             'content' => $validated['content'],
             'author_id' => Auth::id(),
+            'linked_event_id' => $validated['linked_event_id'] ?? null,
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
             'deadline_date' => $deadlineDate,
@@ -92,6 +126,21 @@ class NoteController extends Controller
         // Add participants (if empty, everyone can see it)
         if (isset($validated['participants']) && !empty($validated['participants'])) {
             $note->participants()->attach($validated['participants']);
+        }
+
+        // Add tags
+        if (isset($validated['tags']) && !empty($validated['tags'])) {
+            $tagIds = [];
+            foreach ($validated['tags'] as $tagName) {
+                $tag = \App\Models\NoteTag::firstOrCreate(['tag_name' => $tagName]);
+                $tagIds[] = $tag->tag_id;
+            }
+            $note->tags()->attach($tagIds);
+        }
+
+        // Pin note if requested
+        if (isset($validated['pinned']) && $validated['pinned']) {
+            $request->user()->pinnedNotes()->attach($note->note_id);
         }
 
         return back()->with('success', '新しい共有メモを作成しました！');
@@ -125,12 +174,14 @@ class NoteController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'content' => ['nullable', 'string'],
-            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple'],
+            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple,gray'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
             'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
             'participants' => ['nullable', 'array'],
             'participants.*' => ['exists:users,id'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:50'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -157,6 +208,44 @@ class NoteController extends Controller
             $note->participants()->sync($validated['participants']);
         }
 
+        // Update tags
+        if (isset($validated['tags'])) {
+            $tagIds = [];
+            foreach ($validated['tags'] as $tagName) {
+                $tag = \App\Models\NoteTag::firstOrCreate(['tag_name' => $tagName]);
+                $tagIds[] = $tag->tag_id;
+            }
+            $note->tags()->sync($tagIds);
+        }
+
+        // Update linked calendar event
+        if ($note->linked_event_id) {
+            $event = \App\Models\Event::find($note->linked_event_id);
+            
+            if ($event) {
+                $colorCategoryMap = [
+                    'blue' => '会議',
+                    'green' => '業務',
+                    'yellow' => '来客',
+                    'purple' => '出張',
+                    'pink' => '休暇',
+                ];
+                
+                $event->update([
+                    'title' => $validated['title'],
+                    'description' => $validated['content'],
+                    'category' => $colorCategoryMap[$validated['color']] ?? '会議',
+                    'importance' => $validated['priority'] === 'high' ? '重要' : ($validated['priority'] === 'medium' ? '中' : '低'),
+                    'end_date' => $deadlineDate,
+                    'end_time' => $deadlineTime,
+                ]);
+                
+                if (isset($validated['participants'])) {
+                    $event->participants()->sync($validated['participants']);
+                }
+            }
+        }
+
         return back()->with('success', 'メモを更新しました。');
     }
 
@@ -176,6 +265,7 @@ class NoteController extends Controller
             \App\Models\TrashItem::create([
                 'user_id' => Auth::id(),
                 'item_type' => 'shared_note',
+                'is_shared' => true,
                 'item_id' => $note->note_id,
                 'original_title' => $note->title,
                 'deleted_at' => now(),

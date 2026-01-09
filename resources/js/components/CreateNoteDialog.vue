@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useForm, usePage } from "@inertiajs/vue3";
-import { Save, X, CheckCircle } from "lucide-vue-next";
+import { Save, X, CheckCircle, Pin, Info } from "lucide-vue-next";
 import {
     Dialog,
     DialogContent,
@@ -41,6 +41,7 @@ const form = useForm<{
     tags: string[];
     color: string;
     participants: number[];
+    pinned: boolean;
 }>({
     title: "",
     content: "",
@@ -49,6 +50,7 @@ const form = useForm<{
     tags: [] as string[],
     color: "yellow",
     participants: [] as number[],
+    pinned: false,
 });
 
 const tagInput = ref("");
@@ -59,6 +61,11 @@ const { toast } = useToast();
 const currentUserId = computed(() => (usePage().props as any).auth?.user?.id ?? null)
 const saveMessage = ref('')
 const messageTimer = ref<number | null>(null)
+const showDraftBanner = ref(false)
+const showDraftDialog = ref(false)
+const pendingDraft = ref<any>(null)
+
+const DRAFT_KEY = 'note_draft'
 
 const showMessage = (message: string) => {
     if (messageTimer.value) {
@@ -72,6 +79,60 @@ const showMessage = (message: string) => {
     }, 4000)
 }
 
+const saveDraft = () => {
+    const draft = {
+        title: form.title,
+        content: form.content,
+        priority: form.priority,
+        deadline: form.deadline,
+        tags: form.tags,
+        color: form.color,
+        participants: form.participants,
+        selectedParticipants: selectedParticipants.value,
+        pinned: form.pinned,
+    }
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+}
+
+const loadDraft = () => {
+    const draft = sessionStorage.getItem(DRAFT_KEY)
+    return draft ? JSON.parse(draft) : null
+}
+
+const clearDraft = () => {
+    sessionStorage.removeItem(DRAFT_KEY)
+    showDraftBanner.value = false
+}
+
+const restoreDraft = () => {
+    if (pendingDraft.value) {
+        form.title = pendingDraft.value.title
+        form.content = pendingDraft.value.content
+        form.priority = pendingDraft.value.priority
+        form.deadline = pendingDraft.value.deadline
+        form.tags = pendingDraft.value.tags
+        form.color = pendingDraft.value.color
+        form.participants = pendingDraft.value.participants
+        selectedParticipants.value = pendingDraft.value.selectedParticipants
+        form.pinned = pendingDraft.value.pinned
+        showDraftBanner.value = true
+    }
+    showDraftDialog.value = false
+    pendingDraft.value = null
+}
+
+const discardDraft = () => {
+    clearDraft()
+    showDraftDialog.value = false
+    pendingDraft.value = null
+    form.reset()
+    form.tags = []
+    form.participants = []
+    form.pinned = false
+    selectedParticipants.value = []
+    tagInput.value = ""
+}
+
 const handleSave = () => {
     if (!form.title.trim()) {
         toast({
@@ -82,10 +143,13 @@ const handleSave = () => {
         return;
     }
     
+    saveDraft()
+    
     form.post(route("shared-notes.store"), {
         preserveState: true,
         preserveScroll: true,
         onSuccess: () => {
+            clearDraft()
             showMessage('共有メモを正常に作成しました。')
             handleClose();
         },
@@ -104,6 +168,7 @@ const handleClose = () => {
     form.reset();
     form.tags = [];
     form.participants = [];
+    form.pinned = false;
     selectedParticipants.value = [];
     tagInput.value = "";
     activeTab.value = "basic";
@@ -149,26 +214,47 @@ const getPriorityInfo = (p: Priority) => {
 };
 
 const getColorInfo = (c: string) => {
-    const colorMap: Record<string, { bg: string; label: string }> = {
-        yellow: { bg: "bg-yellow-100", label: "イエロー" },
-        blue: { bg: "bg-blue-100", label: "ブルー" },
-        green: { bg: "bg-green-100", label: "グリーン" },
-        pink: { bg: "bg-pink-100", label: "ピンク" },
-        purple: { bg: "bg-purple-100", label: "パープル" },
+    const colorMap: Record<string, { bg: string; label: string; color: string }> = {
+        blue: { bg: "bg-blue-100", label: "会議", color: "#3b82f6" },
+        green: { bg: "bg-green-100", label: "業務", color: "#66bb6a" },
+        yellow: { bg: "bg-yellow-100", label: "来客", color: "#ffa726" },
+        purple: { bg: "bg-purple-100", label: "出張", color: "#9575cd" },
+        pink: { bg: "bg-pink-100", label: "休暇", color: "#f06292" },
+        gray: { bg: "bg-gray-100", label: "その他", color: "#9e9e9e" },
     };
     return colorMap[c] || colorMap.yellow;
 };
+
+watch(() => props.open, (isOpen) => {
+    if (isOpen) {
+        const draft = loadDraft()
+        if (draft) {
+            pendingDraft.value = draft
+            showDraftDialog.value = true
+        }
+    }
+})
 </script>
 
 <template>
     <Dialog :open="open" @update:open="handleClose">
-        <DialogContent class="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent class="max-w-4xl md:max-w-5xl lg:max-w-6xl w-[95vw] md:w-[66vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>新しい共有メモを作成</DialogTitle>
                 <DialogDescription>
                     部署全員で共有できるメモを作成します
                 </DialogDescription>
             </DialogHeader>
+            
+            <div v-if="showDraftBanner" class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div class="flex-1">
+                <p class="text-sm text-blue-800">前回の下書きを復元しました</p>
+              </div>
+              <button @click="showDraftBanner = false" class="text-blue-600 hover:text-blue-800">
+                <X class="h-4 w-4" />
+              </button>
+            </div>
 
             <Tabs v-model="activeTab" class="w-full">
                 <TabsList class="grid w-full grid-cols-2">
@@ -198,7 +284,7 @@ const getColorInfo = (c: string) => {
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="priority">優先度</Label>
+                        <Label for="priority">重要度</Label>
                         <Select v-model="form.priority">
                             <SelectTrigger id="priority">
                                 <div class="flex items-center gap-2">
@@ -229,68 +315,83 @@ const getColorInfo = (c: string) => {
                 </TabsContent>
                 
                 <TabsContent value="settings" class="space-y-4 mt-4">
-                    <div class="space-y-2">
-                        <Label for="deadline">期限（任意）</Label>
-                        <Input id="deadline" type="datetime-local" v-model="form.deadline" />
-                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="space-y-2">
+                            <Label for="deadline">期限（任意）</Label>
+                            <Input id="deadline" type="datetime-local" v-model="form.deadline" />
+                        </div>
 
-                    <div class="space-y-2">
-                        <Label for="color">メモの色</Label>
-                        <Select v-model="form.color">
-                            <SelectTrigger id="color">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        :class="[
-                                            'w-4 h-4 rounded',
-                                            getColorInfo(form.color).bg,
-                                        ]"
-                                    ></div>
-                                    <span>{{ getColorInfo(form.color).label }}</span>
-                                </div>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem
-                                    v-for="c in [
-                                        'yellow',
-                                        'blue',
-                                        'green',
-                                        'pink',
-                                        'purple',
-                                    ]"
-                                    :key="c"
-                                    :value="c"
-                                >
+                        <div class="space-y-2">
+                            <Label for="color">ジャンル</Label>
+                            <Select v-model="form.color">
+                                <SelectTrigger id="color">
                                     <div class="flex items-center gap-2">
-                                        <div
-                                            :class="[
-                                                'w-4 h-4 rounded',
-                                                getColorInfo(c).bg,
-                                            ]"
-                                        ></div>
-                                        <span>{{ getColorInfo(c).label }}</span>
+                                        <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(form.color).color }"></div>
+                                        <span>{{ getColorInfo(form.color).label }}</span>
                                     </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem
+                                        v-for="c in [
+                                            'blue',
+                                            'green',
+                                            'yellow',
+                                            'purple',
+                                            'pink',
+                                            'gray',
+                                        ]"
+                                        :key="c"
+                                        :value="c"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
+                                            <span>{{ getColorInfo(c).label }}</span>
+                                        </div>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label>ピン留め</Label>
+                            <label class="flex items-center gap-2 h-10 px-3 border rounded-md cursor-pointer hover:bg-gray-50">
+                                <input 
+                                    type="checkbox" 
+                                    v-model="form.pinned"
+                                    class="h-4 w-4 text-yellow-600 rounded border-gray-300"
+                                />
+                                <Pin class="h-4 w-4" :class="form.pinned ? 'text-yellow-500 fill-current' : 'text-gray-400'" />
+                                <span class="text-sm">ピン留め</span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="space-y-3">
-                        <Label for="participants">共有メンバー（空白の場合は全員に表示）</Label>
-                        <div class="text-xs text-gray-500 mb-2">
-                            利用可能メンバー: {{ props.teamMembers?.length || 0 }}人
+                        <div class="flex items-center justify-between">
+                            <Label for="participants">共有範囲</Label>
+                            <div class="text-xs text-gray-500">
+                                利用可能メンバー: {{ props.teamMembers?.length || 0 }}人
+                            </div>
                         </div>
-                        <Select @update:model-value="handleAddParticipant">
-                            <SelectTrigger id="participants" class="min-h-[40px]">
-                                <SelectValue placeholder="メンバーを選択..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId && !selectedParticipants.find(p => p.id === m.id))" :key="member.id" :value="member.id">
-                                    {{ member.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border border-gray-300 rounded-md bg-gray-50">
-                            <div class="text-xs font-medium text-gray-700 mb-2">選択されたメンバー:</div>
+                        <div class="text-xs text-gray-600 p-2 bg-gray-50 rounded border">
+                            💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
+                        </div>
+                        <div v-if="selectedParticipants.length === (props.teamMembers?.length || 0)" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+                            全員が選択されています。
+                        </div>
+                        <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
+                            <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    :checked="selectedParticipants.find(p => p.id === member.id) !== undefined"
+                                    @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                                    class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                                />
+                                <span class="text-xs">{{ member.name }}</span>
+                            </label>
+                        </div>
+                        <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border border-purple-300 rounded-md bg-purple-50">
+                            <div class="text-xs font-medium text-purple-800 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
                             <div class="flex flex-wrap gap-2">
                                 <Badge v-for="participant in selectedParticipants" :key="participant.id" variant="secondary" class="gap-2 px-3 py-1">
                                     {{ participant.name }}
@@ -301,7 +402,7 @@ const getColorInfo = (c: string) => {
                             </div>
                         </div>
                         <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 text-blue-700 text-sm">
-                            メンバーが選択されていません（全員に表示されます）
+                            🌐 全体公開: 全員に表示されます
                         </div>
                     </div>
 
@@ -310,7 +411,7 @@ const getColorInfo = (c: string) => {
                         <div class="flex gap-2">
                             <Input
                                 id="tags"
-                                placeholder="タグを追加..."
+                                placeholder="タグを追加"
                                 v-model="tagInput"
                                 @keypress.enter.prevent="handleAddTag"
                             />
@@ -377,5 +478,20 @@ const getColorInfo = (c: string) => {
             </div>
           </div>
         </Transition>
+        
+        <!-- ドラフト復元確認ダイアログ -->
+        <Dialog :open="showDraftDialog" @update:open="(val) => !val && discardDraft()">
+          <DialogContent class="max-w-md">
+            <DialogHeader>
+              <DialogTitle>下書きが見つかりました</DialogTitle>
+              <DialogDescription>前回保存に失敗した内容が残っています。復元しますか？</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" @click="discardDraft">破棄</Button>
+              <Button @click="restoreDraft">復元</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
     </Dialog>
 </template>
+

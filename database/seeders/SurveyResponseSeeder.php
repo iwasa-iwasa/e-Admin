@@ -35,12 +35,13 @@ class SurveyResponseSeeder extends Seeder
                 continue; // 回答できるユーザーがいない場合はスキップ
             }
 
-            // 作成する回答数を決定
-            $responseCount = min($availableUsers->count(), rand(1, 5));
-
-            // shuffle(シャッフル)して take(取得)を使えば、数が1でも複数でも必ずCollectionが返ります
-            // 複雑なif文による分岐が不要になります
-            $selectedUsers = $availableUsers->shuffle()->take($responseCount);
+            // 8問設問のアンケート（社員満足度調査）は全員参加、その他はランダム
+            if ($survey->questions->count() >= 8) {
+                $selectedUsers = $availableUsers; // 全員参加
+            } else {
+                $responseCount = min($availableUsers->count(), rand(1, 5));
+                $selectedUsers = $availableUsers->shuffle()->take($responseCount);
+            }
 
             foreach ($selectedUsers as $user) {
                 // 回答を作成
@@ -55,12 +56,24 @@ class SurveyResponseSeeder extends Seeder
                     $answerData = $this->generateAnswer($question);
 
                     if ($answerData) {
-                        SurveyAnswer::create([
-                            'response_id' => $response->response_id,
-                            'question_id' => $question->question_id,
-                            'answer_text' => $answerData['text'] ?? null,
-                            'selected_option_id' => $answerData['option_id'] ?? null,
-                        ]);
+                        // 複数選択の場合は複数のレコードを作成
+                        if ($question->question_type === 'multiple_choice' && isset($answerData['option_ids'])) {
+                            foreach ($answerData['option_ids'] as $optionId) {
+                                SurveyAnswer::create([
+                                    'response_id' => $response->response_id,
+                                    'question_id' => $question->question_id,
+                                    'answer_text' => null,
+                                    'selected_option_id' => $optionId,
+                                ]);
+                            }
+                        } else {
+                            SurveyAnswer::create([
+                                'response_id' => $response->response_id,
+                                'question_id' => $question->question_id,
+                                'answer_text' => $answerData['text'] ?? null,
+                                'selected_option_id' => $answerData['option_id'] ?? null,
+                            ]);
+                        }
                     }
                 }
             }
@@ -77,8 +90,14 @@ class SurveyResponseSeeder extends Seeder
      */
     private function generateAnswer($question)
     {
+        // デバッグ用ログ
+        $this->command->info("Question: {$question->question_text}");
+        $this->command->info("Type: {$question->question_type}");
+        $this->command->info("Options count: {$question->options->count()}");
+        
         switch ($question->question_type) {
             case 'single_choice':
+            case 'single':
             case 'radio':
                 // 選択肢からランダムに1つ選択
                 $options = $question->options;
@@ -92,6 +111,7 @@ class SurveyResponseSeeder extends Seeder
                 ];
 
             case 'multiple_choice':
+            case 'multiple':
                 // 選択肢から複数ランダムに選択（1-3個）
                 $options = $question->options;
                 if ($options->isEmpty()) {
@@ -99,14 +119,13 @@ class SurveyResponseSeeder extends Seeder
                 }
                 $count = min(rand(1, 3), $options->count());
                 
-                // ここも shuffle()->take() に置き換えてシンプルにします
                 $selectedOptions = $options->shuffle()->take($count);
-                
                 $texts = $selectedOptions->map(fn($opt) => $opt->option_text)->all();
+                $optionIds = $selectedOptions->map(fn($opt) => $opt->option_id)->all();
                 
                 return [
                     'text' => implode(', ', $texts),
-                    'option_id' => $selectedOptions->first()->option_id,
+                    'option_ids' => $optionIds, // 複数のoption_idを配列で返す
                 ];
 
             case 'dropdown':
@@ -161,22 +180,39 @@ class SurveyResponseSeeder extends Seeder
                 ];
 
             case 'scale':
-                // ランダムなスケール値（1-5）
-                $scale = rand(1, 5);
+                // リッカートスケール：複数項目に対する評価
+                // scaleタイプの場合、optionsが評価項目を表す
+                $options = $question->options;
+                if ($options->isEmpty()) {
+                    // optionsがない場合は単一値
+                    $scale = rand(1, 5);
+                    return [
+                        'text' => (string) $scale,
+                        'option_id' => null,
+                    ];
+                }
+                
+                // 各項目に対してランダムな評価値を生成
+                $scaleData = [];
+                foreach ($options as $option) {
+                    $scaleData[$option->option_text] = rand(1, 5);
+                }
+                
                 return [
-                    'text' => (string) $scale,
+                    'text' => json_encode($scaleData, JSON_UNESCAPED_UNICODE),
                     'option_id' => null,
                 ];
 
             case 'date':
-                // ランダムな日付
-                $date = now()->subDays(rand(0, 30))->format('Y-m-d H:i:s');
+                // ランダムな日付（秒なし）
+                $date = now()->subDays(rand(0, 30))->format('Y-m-d H:i:00');
                 return [
                     'text' => $date,
                     'option_id' => null,
                 ];
 
             default:
+                $this->command->warn("Unknown question type: {$question->question_type}");
                 return [
                     'text' => 'サンプル回答',
                     'option_id' => null,

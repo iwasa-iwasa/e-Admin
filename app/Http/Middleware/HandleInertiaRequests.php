@@ -33,24 +33,8 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $teamMembers = $user ? User::get() : [];
         
-        // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
-        $unansweredSurveysCount = 0;
-        if ($user) {
-            $unansweredSurveysCount = Survey::where('is_active', true)
-                ->where('is_deleted', false)
-                ->where(function ($query) {
-                    $query->whereNull('deadline')
-                          ->orWhere('deadline', '>=', now());
-                })
-                ->whereDoesntHave('responses', function ($query) use ($user) {
-                    $query->where('respondent_id', $user->id);
-                })
-                ->count();
-        }
-
-        return array_merge(parent::share($request), [
+        $sharedData = [
             'auth' => [
                 'user' => $user,
             ],
@@ -58,12 +42,33 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
-            'teamMembers' => $teamMembers,
-            'unansweredSurveysCount' => $unansweredSurveysCount,
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
             ],
-        ]);
+        ];
+        
+        // ユーザーが認証されている場合のみ追加データを取得
+        if ($user) {
+            $teamMembers = User::where('is_active', true)->get();
+            
+            // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
+            $unansweredSurveysCount = Survey::where('is_active', true)
+                ->where('is_deleted', false)
+                ->where(function ($query) {
+                    $query->whereNull('deadline_date')
+                          ->orWhere('deadline_date', '>=', now()->toDateString());
+                })
+                ->whereDoesntHave('responses', function ($query) use ($user) {
+                    $query->where('respondent_id', $user->id);
+                })
+                ->count();
+            
+            $sharedData['teamMembers'] = $teamMembers;
+            $sharedData['totalUsers'] = $teamMembers->count();
+            $sharedData['unansweredSurveysCount'] = $unansweredSurveysCount;
+        }
+
+        return array_merge(parent::share($request), $sharedData);
     }
 }

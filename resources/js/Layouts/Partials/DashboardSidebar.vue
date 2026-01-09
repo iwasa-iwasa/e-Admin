@@ -1,209 +1,268 @@
 <script setup lang="ts">
-import { Link, usePage, router } from '@inertiajs/vue3'
-import { ref, provide, computed} from 'vue'
-import { Calendar, StickyNote, BarChart3, Mail, Home, Settings, Monitor, Trash2, Users, Bell } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import LogoTitle from '@/components/logoTitle.vue'
-
-const page = usePage()
-
-const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
-const selectedMember = computed(() => page.props.filteredMemberId as number | null)
-const unansweredSurveysCount = computed(() => page.props.unansweredSurveysCount as number)
-
-const isActive = (path: string) => {
-    if (path === '/dashboard') {
-        return page.url === '/dashboard'
-    }
-    if (path === '/calendar') {
-        return page.url === '/calendar'
-    }
+  import { Link, usePage, router } from '@inertiajs/vue3'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import {
+    Calendar, StickyNote, BarChart3, Mail, Home,
+    Trash2, Users, Bell, X
+  } from 'lucide-vue-next'
+  import { Button } from '@/components/ui/button'
+  import { Separator } from '@/components/ui/separator'
+  import { Badge } from '@/components/ui/badge'
+  import { ScrollArea } from '@/components/ui/scroll-area'
+  import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+  import LogoTitle from '@/components/logoTitle.vue'
+  
+  const props = defineProps<{ 
+    isTablet?: boolean
+  }>()
+  const emit = defineEmits(['close'])
+  
+  const page = usePage()
+  
+  const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
+  const selectedMember = computed(() => page.props.filteredMemberId as number | null)
+  const unansweredSurveysCount = computed(
+    () => page.props.unansweredSurveysCount as number
+  )
+  
+  const isActive = (path: string) => {
+    if (path === '/dashboard') return page.url === '/dashboard'
+    if (path === '/calendar') return page.url === '/calendar'
     return page.url.startsWith(path)
-}
-
-const handleMemberClick = (memberId: number, path: string) => {
-  if (path.slice(0, 10) === '/dashboard') {
-    const routeName = 'dashboard'
-
-    // If the clicked member is already selected, clear the filter.
-    if (selectedMember.value === memberId) {
-      router.get(route(routeName), {}, {
-        preserveState: true,
-        replace: true,
-      })
-    } else {
-      // Otherwise, filter by the new member.
-      router.get(route(routeName), { member_id: memberId }, {
-        preserveState: true,
-        replace: true,
-      })
-    }
   }
-  if (path.slice(0, 9)=== '/calendar') {
-    const routeName = 'calendar'
-
-    // If the clicked member is already selected, clear the filter.
-    if (selectedMember.value === memberId) {
-      router.get(route(routeName), {}, {
-        preserveState: true,
-        replace: true,
-      })
-    } else {
-      // Otherwise, filter by the new member.
-      router.get(route(routeName), { member_id: memberId }, {
-        preserveState: true,
-        replace: true,
-      })
-    }
+  
+  const handleMemberClick = (memberId: number, path: string) => {
+    let routeName = ''
+    if (path.startsWith('/dashboard')) routeName = 'dashboard'
+    else if (path.startsWith('/calendar')) routeName = 'calendar'
+    else if (path.startsWith('/notes')) routeName = 'notes'
+  
+    if (!routeName) return
+  
+    router.get(
+      route(routeName),
+      selectedMember.value === memberId ? {} : { member_id: memberId },
+      { preserveState: true, replace: true }
+    )
   }
-}
-
-// 💡 現在のURL全体を取得 (例: '/calendar?member_id=5')
-const currentURL = computed(() => page.url )
-</script>
-
-<template>
-  <aside class="w-64 bg-white border-r border-gray-300 flex flex-col h-screen">
-    <ScrollArea>
-    
-    <!-- ナビゲーション -->
-    
-    <nav class="flex-1 p-4 space-y-2">
-      <!-- ロゴ・タイトル -->
-      <!-- サイドバー用ロゴコンポーネント -->
-      <div class="p-6">
-        <LogoTitle logo-src="/images/logo.png" />
-      </div>
-   
-      <Separator />
-      <Button
-        :class="[
-        'w-full justify-start gap-3',
-        isActive('/dashboard') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
-      ]"
-        as-child
-      >
-        <Link href="/dashboard">
-          <Home class="h-5 w-5" />
-          ホーム
-        </Link>
-      </Button>
-
-      <Button
-        :class="[
-        'w-full justify-start gap-3',
-        isActive('/calendar') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
-      ]"
-        as-child
-      >
-        <Link href="/calendar">
-          <Calendar class="h-5 w-5" />
-          共有カレンダー
-        </Link>
-      </Button>
-
-      <Button
-        :class="[
-        'w-full justify-start gap-3',
-        isActive('/notes') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
-      ]"
-        as-child
-      >
-        <Link href="/notes">
-          <StickyNote class="h-5 w-5" />
-          共有メモ
-        </Link>
-      </Button>
-
-      <Button
-        :class="[
-        'w-full justify-start gap-3',
-        isActive('/reminders') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
-      ]"
-        as-child
-      >
-        <Link href="/reminders">
-          <Bell class="h-5 w-5" />
-          個人リマインダー
-        </Link>
-      </Button>
-
-      <Button
-        :class="[
-        'w-full justify-start gap-3 relative',
-        isActive('/surveys') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
-      ]"
-        as-child
-      >
-        <Link href="/surveys">
-          <BarChart3 class="h-5 w-5" />
-          アンケート管理
-          <Badge v-if="unansweredSurveysCount > 0" variant="secondary" class="ml-auto">
-            {{ unansweredSurveysCount }}件
-          </Badge>
-        </Link>
-      </Button>
-
-      <Button
-        :class="[
-        'w-full justify-start gap-3',
-        isActive('/trash') ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'
-      ]"
-        as-child
-      >
-        <Link href="/trash">
-          <Trash2 class="h-5 w-5" />
-          ゴミ箱
-        </Link>
-      </Button>
-
-      <Separator class="my-4" />
-
-      <div class="px-3 py-2 text-xs text-gray-500">連携機能</div>
-
-      <div class="space-y-1">
-        <a
-          href="https://outlook.office.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="block"
-        >
-          <Button variant="ghost" class="w-full justify-start gap-3 text-sm">
-            <Mail class="h-5 w-5" />
-            Outlookを開く
-          </Button>
-        </a>
-      </div>
-
-      <Separator class="my-4" />
-
-      <div class="px-3 py-2 text-xs text-gray-500">部署メンバー</div>
-
+  
+  const currentURL = computed(() => page.url)
+  
+  // リサイズ機能
+  const sidebarRef = ref<HTMLElement | null>(null)
+  const isResizing = ref(false)
+  const sidebarWidth = ref(260)
+  
+  const startResize = (e: MouseEvent) => {
+    isResizing.value = true
+    document.addEventListener('mousemove', handleResize)
+    document.addEventListener('mouseup', stopResize)
+    e.preventDefault()
+  }
+  
+  const handleResize = (e: MouseEvent) => {
+    if (!isResizing.value || !sidebarRef.value) return
+    const rect = sidebarRef.value.getBoundingClientRect()
+    const newWidth = Math.max(220, Math.min(270, e.clientX - rect.left))
+    sidebarWidth.value = newWidth
+  }
+  
+  const stopResize = () => {
+    isResizing.value = false
+    document.removeEventListener('mousemove', handleResize)
+    document.removeEventListener('mouseup', stopResize)
+    // リサイズ終了時にカレンダーに通知
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'))
+    }, 0)
+  }
+  
+  onUnmounted(() => {
+    document.removeEventListener('mousemove', handleResize)
+    document.removeEventListener('mouseup', stopResize)
+  })
+  </script>
+  
+  <template>
+    <aside 
+      ref="sidebarRef" 
+      class="bg-white flex flex-col h-screen relative select-none"
+      :style="{
+        width: sidebarWidth + 'px',
+        minWidth: '220px',
+        maxWidth: '270px'
+      }"
+    >
       <ScrollArea>
-        <div class="space-y-1">
+        <nav class="flex-1 p-4 space-y-2">
+  
+          <!-- タブレット用 -->
+          <div v-if="props.isTablet" class="flex items-center justify-between mb-4">
+            <div class="text-lg font-semibold">メニュー</div>
+            <Button variant="ghost" size="icon" @click="emit('close')">
+              <X class="h-5 w-5" />
+            </Button>
+          </div>
+  
+          <!-- ロゴ -->
+          <div class="px-4 py-6">
+            <LogoTitle logo-src="/images/logo.png" />
+          </div>
+  
+          <Separator />
+  
+          <!-- 共通ナビボタン用クラス -->
+          <!-- max-w + w-fit がキモ -->
           <Button
-            v-for="member in teamMembers"
-            :key="member.id"
-            :variant="selectedMember === member.id ? 'default' : 'ghost'"
-            class="w-full justify-start gap-3"
-            @click="handleMemberClick(member.id, currentURL)"
+            :class="[
+              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              isActive('/dashboard')
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            ]"
+            as-child
           >
-            <Avatar class="h-6 w-6">
-              <AvatarImage :src="member.avatar || ''" :alt="member.name" />
-              <AvatarFallback>{{ member.name.charAt(0) }}</AvatarFallback>
-            </Avatar>
-            {{ member.name }}
-            <Badge v-if="selectedMember === member.id" variant="secondary" class="ml-auto text-xs">
-              フィルター中
-            </Badge>
+            <Link href="/dashboard">
+              <Home class="h-5 w-5" />
+              ホーム
+            </Link>
           </Button>
-        </div>
+  
+          <Button
+            :class="[
+              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              isActive('/calendar')
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            ]"
+            as-child
+          >
+            <Link href="/calendar">
+              <Calendar class="h-5 w-5 text-blue-700" />
+              共有カレンダー
+            </Link>
+          </Button>
+  
+          <Button
+            :class="[
+              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              isActive('/notes')
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            ]"
+            as-child
+          >
+            <Link href="/notes">
+              <StickyNote class="h-5 w-5 text-orange-600" />
+              共有メモ
+            </Link>
+          </Button>
+  
+          <Button
+            :class="[
+              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              isActive('/reminders')
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            ]"
+            as-child
+          >
+            <Link href="/reminders">
+              <Bell class="h-5 w-5 text-green-700" />
+              個人リマインダー
+            </Link>
+          </Button>
+  
+          <Button
+            :class="[
+              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              isActive('/surveys')
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            ]"
+            as-child
+          >
+            <Link href="/surveys">
+              <BarChart3 class="h-5 w-5 text-purple-700" />
+              アンケート管理
+              <Badge v-if="unansweredSurveysCount > 0" variant="secondary" class="ml-2">
+                {{ unansweredSurveysCount }}件
+              </Badge>
+            </Link>
+          </Button>
+  
+          <Button
+            v-if="$page.props.auth.user.role === 'admin'"
+            :class="[
+              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              isActive('/admin/users')
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            ]"
+            as-child
+          >
+            <Link href="/admin/users">
+              <Users class="h-5 w-5 text-indigo-700" />
+              ユーザー管理
+            </Link>
+          </Button>
+  
+          <Button
+            :class="[
+              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              isActive('/trash')
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'hover:bg-accent hover:text-accent-foreground'
+            ]"
+            as-child
+          >
+            <Link href="/trash">
+              <Trash2 class="h-5 w-5" />
+              ゴミ箱
+            </Link>
+          </Button>
+  
+          <Separator class="my-4" />
+  
+          <div class="px-3 py-2 text-xs text-gray-500">連携機能</div>
+  
+          <a href="https://outlook.office.com" target="_blank" class="block">
+            <Button variant="ghost" class="max-w-[240px] w-fit justify-start gap-3 px-3">
+              <Mail class="h-5 w-5" />
+              Outlookを開く
+            </Button>
+          </a>
+  
+          <Separator class="my-4" />
+  
+          <div class="px-3 py-2 text-xs text-gray-500">部署メンバー</div>
+  
+          <ScrollArea>
+            <div class="space-y-1">
+              <Button
+                v-for="member in teamMembers"
+                :key="member.id"
+                :variant="selectedMember === member.id ? 'default' : 'ghost'"
+                class="max-w-[240px] w-fit justify-start gap-3 px-3"
+                @click="handleMemberClick(member.id, currentURL)"
+              >
+                <Avatar class="h-6 w-6">
+                  <AvatarImage :src="member.avatar || ''" />
+                  <AvatarFallback>{{ member.name.charAt(0) }}</AvatarFallback>
+                </Avatar>
+                {{ member.name }}
+              </Button>
+            </div>
+          </ScrollArea>
+  
+        </nav>
       </ScrollArea>
-    </nav>
-  </ScrollArea>
-  </aside>
-</template>
+      
+      <!-- リサイズバー -->
+      <div 
+        class="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-gray-200 hover:bg-gray-300 transition-colors"
+        @mousedown="startResize"
+      ></div>
+    </aside>
+  </template>
+  

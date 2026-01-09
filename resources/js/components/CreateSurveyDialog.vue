@@ -16,6 +16,7 @@ import {
     X,
     CheckCircle,
     Undo2,
+    Info,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,10 +95,14 @@ const messageType = ref<'success' | 'delete' | 'error'>('success');
 const messageTimer = ref<number | null>(null);
 const deletedDraft = ref<DraftData | null>(null);
 const undoTimer = ref<number | null>(null);
+const showFailureDraftBanner = ref(false);
+const showFailureDraftDialog = ref(false);
+const pendingFailureDraft = ref<any>(null);
 
 const { toast } = useToast();
 
 const DRAFT_KEY = "survey_draft";
+const FAILURE_DRAFT_KEY = "survey_failure_draft";
 const AUTO_SAVE_DELAY = 30000; // 30秒
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -114,6 +119,33 @@ const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'su
   }, 4000)
 }
 
+const originalData = ref<any>(null)
+const hasNonDeadlineChanges = computed(() => {
+    if (!isEditMode.value || !originalData.value) return false
+    
+    // 質問の変更をチェック
+    const questionsChanged = JSON.stringify(questions.value.map(q => ({
+        question: q.question,
+        type: q.type,
+        required: q.required,
+        options: q.options,
+        scaleMin: q.scaleMin,
+        scaleMax: q.scaleMax,
+        scaleMinLabel: q.scaleMinLabel,
+        scaleMaxLabel: q.scaleMaxLabel
+    }))) !== JSON.stringify(originalData.value.questions || [])
+    
+    // 回答者の削除をチェック（追加は問題なし）
+    const originalRespondents = originalData.value.respondents || []
+    const removedRespondents = originalRespondents.filter(id => !selectedRespondents.value.includes(id))
+    const hasRemovedRespondents = removedRespondents.length > 0
+    
+    return questionsChanged || hasRemovedRespondents
+})
+
+const showConfirmDialog = ref(false)
+const confirmData = ref<any>(null)
+const pendingSave = ref(false)
 const form = useForm({
     title: "",
     description: "",
@@ -134,14 +166,14 @@ const questionTemplates: QuestionTemplate[] = [
         name: "単一選択（ラジオボタン）",
         description: "複数の選択肢から1つを選ぶ形式",
         icon: Circle,
-        defaultOptions: ["選択肢1", "選択肢2", "選択肢3"],
+        defaultOptions: ["", "", ""],
     },
     {
         type: "multiple",
         name: "複数選択（チェックボックス）",
         description: "複数の選択肢から複数選べる形式",
         icon: CheckSquare,
-        defaultOptions: ["選択肢1", "選択肢2", "選択肢3"],
+        defaultOptions: ["", "", ""],
     },
     {
         type: "text",
@@ -169,7 +201,7 @@ const questionTemplates: QuestionTemplate[] = [
     {
         type: "scale",
         name: "評価スケール（リッカート）",
-        description: "段階的に評価する形式（例：5段階評価）",
+        description: "段階的に評価する形式（1〜10段階）",
         icon: BarChart2,
         defaultOptions: [],
         scaleMin: 1,
@@ -180,7 +212,7 @@ const questionTemplates: QuestionTemplate[] = [
         name: "ドロップダウン",
         description: "リストから1つを選ぶ形式",
         icon: List,
-        defaultOptions: ["選択肢1", "選択肢2", "選択肢3"],
+        defaultOptions: ["", "", ""],
     },
     {
         type: "date",
@@ -254,6 +286,27 @@ const removeOption = (questionId: string, optionIndex: number) => {
 };
 
 const handleSave = (isDraft: boolean = false) => {
+    // 編集モードで期限以外が変更された場合、確認ダイアログを表示
+    if (isEditMode.value && hasNonDeadlineChanges.value && !pendingSave.value) {
+        // 回答数をチェック（実際の回答数はサーバーで確認）
+        const responseCount = props.survey?.responses?.length || 0
+        if (responseCount > 0) {
+            confirmData.value = {
+                response_count: responseCount,
+                message: `このアンケートには${responseCount}件の回答があります。質問や回答者を変更するとすでに回答された方からの回答が失われる可能性があります。それでも変更しますか？`
+            }
+            showConfirmDialog.value = true
+            return
+        }
+    }
+    // 未入力の選択肢を自動削除
+    questions.value = questions.value.map((q) => {
+        if (["single", "multiple", "dropdown"].includes(q.type)) {
+            return { ...q, options: q.options.filter((opt) => opt.trim()) };
+        }
+        return q;
+    });
+
     // クライアント側のバリデーション
     const errors: string[] = [];
     
@@ -273,8 +326,7 @@ const handleSave = (isDraft: boolean = false) => {
             break;
         }
         if (["single", "multiple", "dropdown"].includes(question.type)) {
-            const validOptions = question.options.filter((opt) => opt.trim());
-            if (validOptions.length < 2) {
+            if (question.options.length < 2) {
                 errors.push('選択肢形式の質問には最低2つの選択肢が必要です');
                 break;
             }
@@ -285,6 +337,8 @@ const handleSave = (isDraft: boolean = false) => {
         showMessage(errors.join('\n'), 'error');
         return;
     }
+
+    saveFailureDraft()
 
     // フォームデータを準備
     form.title = title.value;
@@ -297,18 +351,40 @@ const handleSave = (isDraft: boolean = false) => {
         type: q.type,
         required: q.required,
         options: q.options,
+        scaleMin: q.scaleMin,
+        scaleMax: q.scaleMax,
+        scaleMinLabel: q.scaleMinLabel,
+        scaleMaxLabel: q.scaleMaxLabel,
     }));
 
     // リクエストを送信
     if (isEditMode.value && props.survey) {
         // 編集モード: PUTリクエスト
+        const requestData = pendingSave.value ? { ...form.data(), confirm_reset: true } : form.data()
+        
         form.put(`/surveys/${props.survey.survey_id}`, {
+            data: requestData,
             preserveScroll: true,
             onSuccess: () => {
-                showMessage('アンケートを更新しました。', 'success');
+                clearFailureDraft()
+                pendingSave.value = false
+                const message = pendingSave.value ? 'アンケートを更新しました。既存の回答は削除されました。' : 'アンケートを更新しました。'
+                showMessage(message, 'success');
                 handleClose();
             },
             onError: (errors) => {
+                pendingSave.value = false
+                
+                // 確認が必要なエラーをチェック
+                if (errors.requires_confirmation) {
+                    confirmData.value = {
+                        response_count: errors.response_count,
+                        message: errors.message
+                    }
+                    showConfirmDialog.value = true
+                    return
+                }
+                
                 const errorMessages: any[] = [];
                 for (const [field, messages] of Object.entries(errors)) {
                     if (Array.isArray(messages)) {
@@ -327,6 +403,7 @@ const handleSave = (isDraft: boolean = false) => {
         form.post("/surveys", {
             preserveScroll: true,
             onSuccess: () => {
+                clearFailureDraft()
                 // 本保存成功時は一時保存データを削除
                 if (!isDraft) {
                     clearDraft();
@@ -487,6 +564,55 @@ const clearDraft = () => {
     }
 };
 
+// 保存失敗時のドラフト保存
+const saveFailureDraft = () => {
+    const draft = {
+        title: title.value,
+        description: description.value,
+        deadline: deadline.value,
+        questions: questions.value,
+        selectedRespondents: selectedRespondents.value,
+    }
+    sessionStorage.setItem(FAILURE_DRAFT_KEY, JSON.stringify(draft))
+}
+
+const loadFailureDraft = () => {
+    const draft = sessionStorage.getItem(FAILURE_DRAFT_KEY)
+    return draft ? JSON.parse(draft) : null
+}
+
+const clearFailureDraft = () => {
+    sessionStorage.removeItem(FAILURE_DRAFT_KEY)
+    showFailureDraftBanner.value = false
+}
+
+const restoreFailureDraft = () => {
+    if (pendingFailureDraft.value) {
+        title.value = pendingFailureDraft.value.title
+        description.value = pendingFailureDraft.value.description
+        deadline.value = pendingFailureDraft.value.deadline
+        questions.value = pendingFailureDraft.value.questions
+        selectedRespondents.value = pendingFailureDraft.value.selectedRespondents
+        showFailureDraftBanner.value = true
+    }
+    showFailureDraftDialog.value = false
+    pendingFailureDraft.value = null
+}
+
+const discardFailureDraft = () => {
+    clearFailureDraft()
+    showFailureDraftDialog.value = false
+    pendingFailureDraft.value = null
+}
+
+const handleConfirmSave = () => {
+    showConfirmDialog.value = false
+    pendingSave.value = true
+    
+    // 確認後の保存処理
+    handleSave(false)
+}
+
 // 下書き削除の取り消し
 const undoDeleteDraft = () => {
     if (deletedDraft.value) {
@@ -619,9 +745,15 @@ const loadEditData = () => {
 
     title.value = props.survey.title || "";
     description.value = props.survey.description || "";
-    deadline.value = props.survey.deadline
-        ? new Date(props.survey.deadline).toISOString().split("T")[0]
-        : "";
+    
+    // deadline_dateとdeadline_timeから結合
+    if (props.survey.deadline_date) {
+        const time = props.survey.deadline_time || '23:59:00';
+        const deadlineStr = `${props.survey.deadline_date}T${time.slice(0, 5)}`;
+        deadline.value = deadlineStr;
+    } else {
+        deadline.value = "";
+    }
 
     // 質問データを変換
     questions.value =
@@ -640,6 +772,23 @@ const loadEditData = () => {
             };
             return question;
         }) || [];
+        
+    // 元データを保存
+    originalData.value = {
+        title: title.value,
+        description: description.value,
+        respondents: selectedRespondents.value.slice(),
+        questions: questions.value.map(q => ({
+            question: q.question,
+            type: q.type,
+            required: q.required,
+            options: q.options,
+            scaleMin: q.scaleMin,
+            scaleMax: q.scaleMax,
+            scaleMinLabel: q.scaleMinLabel,
+            scaleMaxLabel: q.scaleMaxLabel
+        }))
+    }
 };
 
 // ダイアログが開いた時の処理
@@ -656,18 +805,25 @@ watch(
                 // 編集モード: 既存データを読み込む
                 loadEditData();
             } else {
-                // 新規作成モード: 一時保存データをチェック
-                const saved = localStorage.getItem(DRAFT_KEY);
-                if (saved && !draftSavedAt.value) {
-                    // 確認ダイアログを表示
-                    const shouldRestore = window.confirm(
-                        "前回の下書きが見つかりました。復元しますか？"
-                    );
+                // 新規作成モード: 保存失敗ドラフトを優先チェック
+                const failureDraft = loadFailureDraft()
+                if (failureDraft) {
+                    pendingFailureDraft.value = failureDraft
+                    showFailureDraftDialog.value = true
+                } else {
+                    // 一時保存データをチェック
+                    const saved = localStorage.getItem(DRAFT_KEY);
+                    if (saved && !draftSavedAt.value) {
+                        // 確認ダイアログを表示
+                        const shouldRestore = window.confirm(
+                            "前回の下書きが見つかりました。復元しますか？"
+                        );
 
-                    if (shouldRestore) {
-                        loadDraft();
-                    } else {
-                        clearDraft();
+                        if (shouldRestore) {
+                            loadDraft();
+                        } else {
+                            clearDraft();
+                        }
                     }
                 }
             }
@@ -678,7 +834,7 @@ watch(
 
 <template>
     <Dialog :open="props.open" @update:open="handleClose">
-        <DialogContent class="max-w-4xl max-h-[90vh]">
+        <DialogContent class="max-w-4xl md:max-w-5xl lg:max-w-6xl w-[95vw] md:w-[66vw] max-h-[90vh]">
             <DialogHeader>
                 <DialogTitle>{{
                     isEditMode ? "アンケートを編集" : "新しいアンケートを作成"
@@ -689,6 +845,16 @@ watch(
                         : "総務部 共同管理のアンケートを作成します"
                 }}</DialogDescription>
             </DialogHeader>
+            
+            <div v-if="showFailureDraftBanner" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div class="flex-1">
+                <p class="text-sm text-blue-800">前回の下書きを復元しました</p>
+              </div>
+              <button @click="showFailureDraftBanner = false" class="text-blue-600 hover:text-blue-800">
+                <X class="h-4 w-4" />
+              </button>
+            </div>
 
             <!-- 一時保存バナー（新規作成時のみ） -->
             <div
@@ -746,7 +912,7 @@ watch(
                                 <Label for="deadline">回答期限 *</Label>
                                 <Input
                                     id="deadline"
-                                    type="date"
+                                    type="datetime-local"
                                     v-model="deadline"
                                     :class="{
                                         'border-red-500': form.errors.deadline,
@@ -804,7 +970,8 @@ watch(
                         >
                             <CardContent class="py-12 text-center">
                                 <div
-                                    class="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4"
+                                    class="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 cursor-pointer hover:bg-blue-100 transition-colors"
+                                    @click="showTemplateDialog = true"
                                 >
                                     <Plus class="h-8 w-8 text-blue-600" />
                                 </div>
@@ -1096,27 +1263,13 @@ watch(
                                                 />
                                             </div>
                                         </div>
-                                        <div class="grid grid-cols-2 gap-3">
+                                        <div class="grid grid-cols-1 gap-3">
                                             <div class="space-y-2">
-                                                <Label>最小値</Label>
+                                                <Label>星の数（3〜15）</Label>
                                                 <Input
                                                     type="number"
-                                                    :model-value="
-                                                        question.scaleMin || 1
-                                                    "
-                                                    @update:model-value="
-                                                        updateQuestion(
-                                                            question.id,
-                                                            'scaleMin',
-                                                            parseInt(String($event))
-                                                        )
-                                                    "
-                                                />
-                                            </div>
-                                            <div class="space-y-2">
-                                                <Label>最大値</Label>
-                                                <Input
-                                                    type="number"
+                                                    min="3"
+                                                    max="15"
                                                     :model-value="
                                                         question.scaleMax || 5
                                                     "
@@ -1124,7 +1277,22 @@ watch(
                                                         updateQuestion(
                                                             question.id,
                                                             'scaleMax',
-                                                            parseInt(String($event))
+                                                            Math.min(
+                                                                15,
+                                                                Math.max(
+                                                                    3,
+                                                                    parseInt(
+                                                                        String(
+                                                                            $event
+                                                                        )
+                                                                    ) || 5
+                                                                )
+                                                            )
+                                                        );
+                                                        updateQuestion(
+                                                            question.id,
+                                                            'scaleMin',
+                                                            1
                                                         )
                                                     "
                                                 />
@@ -1135,113 +1303,22 @@ watch(
                                         v-if="question.type === 'scale'"
                                         class="space-y-3"
                                     >
-                                        <div class="space-y-2">
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div class="space-y-2">
-                                                    <Label>最小値</Label>
-                                                    <Input
-                                                        type="number"
-                                                        :model-value="
-                                                            question.scaleMin ||
-                                                            1
-                                                        "
-                                                        @update:model-value="
-                                                            updateQuestion(
-                                                                question.id,
-                                                                'scaleMin',
-                                                                parseInt(String($event))
-                                                            )
-                                                        "
-                                                    />
-                                                </div>
-                                                <div class="space-y-2">
-                                                    <Label>最大値</Label>
-                                                    <Input
-                                                        type="number"
-                                                        :model-value="
-                                                            question.scaleMax ||
-                                                            5
-                                                        "
-                                                        @update:model-value="
-                                                            updateQuestion(
-                                                                question.id,
-                                                                'scaleMax',
-                                                                parseInt(String($event))
-                                                            )
-                                                        "
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-3">
-                                                <div class="space-y-2">
-                                                    <Label
-                                                        >最小値ラベル（任意）</Label
-                                                    >
-                                                    <Input
-                                                        placeholder="例：とても悪い"
-                                                        :model-value="
-                                                            question.scaleMinLabel ||
-                                                            ''
-                                                        "
-                                                        @update:model-value="
-                                                            updateQuestion(
-                                                                question.id,
-                                                                'scaleMinLabel',
-                                                                $event
-                                                            )
-                                                        "
-                                                    />
-                                                </div>
-                                                <div class="space-y-2">
-                                                    <Label
-                                                        >最大値ラベル（任意）</Label
-                                                    >
-                                                    <Input
-                                                        placeholder="例：とても良い"
-                                                        :model-value="
-                                                            question.scaleMaxLabel ||
-                                                            ''
-                                                        "
-                                                        @update:model-value="
-                                                            updateQuestion(
-                                                                question.id,
-                                                                'scaleMaxLabel',
-                                                                $event
-                                                            )
-                                                        "
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
                                         <div
                                             class="p-4 bg-gray-50 rounded-md border border-gray-300 "
                                         >
                                             <div
                                                 class="flex items-center justify-between"
                                             >
-                                                <span
-                                                    class="text-sm text-gray-600"
-                                                    >{{
-                                                        question.scaleMinLabel ||
-                                                        question.scaleMin ||
-                                                        1
-                                                    }}</span
-                                                >
+                                                <span class="text-sm text-gray-600">{{ question.scaleMinLabel || '1' }}</span>
                                                 <div class="flex gap-2">
                                                     <div
                                                         v-for="value in Array.from(
                                                             {
                                                                 length:
-                                                                    (question.scaleMax ||
-                                                                        5) -
-                                                                    (question.scaleMin ||
-                                                                        1) +
-                                                                    1,
+                                                                    question.scaleMax ||
+                                                                    5,
                                                             },
-                                                            (_, i) =>
-                                                                i +
-                                                                (question.scaleMin ||
-                                                                    1)
+                                                            (_, i) => i + 1
                                                         )"
                                                         :key="value"
                                                         class="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center text-sm"
@@ -1249,14 +1326,71 @@ watch(
                                                         {{ value }}
                                                     </div>
                                                 </div>
-                                                <span
-                                                    class="text-sm text-gray-600"
-                                                    >{{
-                                                        question.scaleMaxLabel ||
-                                                        question.scaleMax ||
-                                                        5
-                                                    }}</span
+                                                <span class="text-sm text-gray-600">{{ question.scaleMaxLabel || (question.scaleMax || 5) }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <Label>段階数（2〜10）</Label>
+                                            <Input
+                                                type="number"
+                                                min="2"
+                                                max="10"
+                                                :model-value="
+                                                    question.scaleMax ||
+                                                    5
+                                                "
+                                                @update:model-value="
+                                                    updateQuestion(
+                                                        question.id,
+                                                        'scaleMax',
+                                                        Math.min(10, Math.max(2, parseInt(String($event)) || 5))
+                                                    );
+                                                    updateQuestion(
+                                                        question.id,
+                                                        'scaleMin',
+                                                        1
+                                                    )
+                                                "
+                                            />
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div class="space-y-2">
+                                                <Label
+                                                    >最小値ラベル（任意）</Label
                                                 >
+                                                <Input
+                                                    placeholder="例：とても悪い"
+                                                    :model-value="
+                                                        question.scaleMinLabel ||
+                                                        ''
+                                                    "
+                                                    @update:model-value="
+                                                        updateQuestion(
+                                                            question.id,
+                                                            'scaleMinLabel',
+                                                            $event
+                                                        )
+                                                    "
+                                                />
+                                            </div>
+                                            <div class="space-y-2">
+                                                <Label
+                                                    >最大値ラベル（任意）</Label
+                                                >
+                                                <Input
+                                                    placeholder="例：とても良い"
+                                                    :model-value="
+                                                        question.scaleMaxLabel ||
+                                                        ''
+                                                    "
+                                                    @update:model-value="
+                                                        updateQuestion(
+                                                            question.id,
+                                                            'scaleMaxLabel',
+                                                            $event
+                                                        )
+                                                    "
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -1335,7 +1469,7 @@ watch(
     </Dialog>
 
     <Dialog v-model:open="showTemplateDialog">
-        <DialogContent class="max-w-3xl max-h-[80vh] overflow-y-auto z-[60]">
+        <DialogContent class="max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] md:w-[66vw] max-h-[80vh] overflow-y-auto z-[60]">
             <DialogHeader>
                 <DialogTitle>質問形式を選択</DialogTitle>
                 <DialogDescription
@@ -1401,4 +1535,35 @@ watch(
         </div>
       </div>
     </Transition>
+    
+    <!-- 保存失敗ドラフト復元確認ダイアログ -->
+    <Dialog :open="showFailureDraftDialog" @update:open="(val) => !val && discardFailureDraft()">
+      <DialogContent class="max-w-md z-[70]">
+        <DialogHeader>
+          <DialogTitle>下書きが見つかりました</DialogTitle>
+          <DialogDescription>前回保存に失敗した内容が残っています。復元しますか？</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="discardFailureDraft">破棄</Button>
+          <Button @click="restoreFailureDraft">復元</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    
+    <!-- 既存回答削除確認ダイアログ -->
+    <Dialog :open="showConfirmDialog" @update:open="(val) => showConfirmDialog = val">
+      <DialogContent class="max-w-md z-[70]">
+        <DialogHeader>
+          <DialogTitle>既存回答の削除確認</DialogTitle>
+          <DialogDescription v-if="confirmData">
+            {{ confirmData.message }}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showConfirmDialog = false">キャンセル</Button>
+          <Button @click="handleConfirmSave" class="bg-red-600 hover:bg-red-700">続行する</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 </template>
+

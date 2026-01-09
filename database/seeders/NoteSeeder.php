@@ -24,7 +24,7 @@ class NoteSeeder extends Seeder
         $colors = ['yellow', 'blue', 'green', 'pink', 'purple'];
 
         // 50個の共有ノートを作成
-        for ($i = 0; $i < 50; $i++) {
+        for ($i = 0; $i < 20; $i++) {
             $hasDeadline = rand(0, 1); // 50%の確率で期限あり
             $deadlineDate = null;
             $deadlineTime = null;
@@ -53,7 +53,7 @@ class NoteSeeder extends Seeder
                 'Q1: 認証機能の強化, Q2: 新しいダッシュボードの導入, Q3: パフォーマンス改善',
             ];
             $title = $noteTitles[array_rand($noteTitles)];
-            $content = $noteContents[array_rand($noteContents)] . "\n\n" . $faker->realText(100);
+            $content = $noteContents[array_rand($noteContents)];
 
             $note = SharedNote::create([
                 'title' => $title,

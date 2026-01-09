@@ -33,16 +33,24 @@ class DashboardController extends Controller
 
         $events = $eventsQuery->get();
 
-        $notes = SharedNote::with(['author', 'participants'])
+        $notesQuery = SharedNote::with(['author', 'participants'])
             ->where(function($query) use ($user) {
                 $query->where('author_id', $user->id)
                       ->orWhereHas('participants', function($q) use ($user) {
                           $q->where('users.id', $user->id);
                       })
                       ->orWhereDoesntHave('participants');
-            })
-            ->orderBy('updated_at', 'desc')
-            ->get();
+            });
+
+        if ($memberId) {
+            $notesQuery->where(function($query) use ($memberId) {
+                $query->whereHas('participants', function ($q) use ($memberId) {
+                    $q->where('users.id', $memberId);
+                })->orWhereDoesntHave('participants');
+            });
+        }
+
+        $notes = $notesQuery->orderBy('updated_at', 'desc')->get();
 
         // Get IDs of notes pinned by the current user
         $pinnedNoteIds = $user->pinnedNotes()->pluck('shared_notes.note_id')->all();
@@ -56,10 +64,13 @@ class DashboardController extends Controller
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
         $reminders = $user->reminders()
-            ->orderBy('deadline')
+            ->with('tags')
+            ->orderByRaw('CASE WHEN deadline_date IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('deadline_date')
+            ->orderBy('deadline_time')
             ->get();
 
-        $teamMembers = \App\Models\User::all();
+        $teamMembers = \App\Models\User::where('is_active', true)->get();
         
         return Inertia::render('Dashboard', [
             'events' => $events,

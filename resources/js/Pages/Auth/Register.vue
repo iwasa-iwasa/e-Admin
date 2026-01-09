@@ -18,6 +18,8 @@ const submit = () => {
         onFinish: () => {
             form.reset('password', 'password_confirmation');
         },
+        preserveScroll: true,
+        only: ['errors'],
     });
 };
 </script>

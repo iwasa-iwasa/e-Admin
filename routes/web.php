@@ -7,9 +7,11 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,13 +66,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/reminders/{reminder}', [PersonalReminderController::class, 'update'])->name('reminders.update');
     Route::patch('/reminders/{reminder}/complete', [PersonalReminderController::class, 'completeReminder'])->name('reminders.complete');
     Route::post('/reminders/restore', [PersonalReminderController::class, 'restoreReminder'])->name('reminders.restore');
+    Route::post('/reminders/bulk-complete', [PersonalReminderController::class, 'bulkComplete'])->name('reminders.bulkComplete');
+    Route::post('/reminders/bulk-restore', [PersonalReminderController::class, 'bulkRestore'])->name('reminders.bulkRestore');
+    Route::post('/reminders/bulk-delete', [PersonalReminderController::class, 'bulkDelete'])->name('reminders.bulkDelete');
     Route::delete('/reminders/{reminder}', [PersonalReminderController::class, 'destroy'])->name('reminders.destroy');
 
     // Trash
     Route::get('/trash', [\App\Http\Controllers\TrashController::class, 'index'])->name('trash');
     Route::post('/trash/{id}/restore', [\App\Http\Controllers\TrashController::class, 'restore'])->name('trash.restore');
+    Route::post('/trash/restore-multiple', [\App\Http\Controllers\TrashController::class, 'restoreMultiple'])->name('trash.restoreMultiple');
     Route::delete('/trash/{id}', [\App\Http\Controllers\TrashController::class, 'destroy'])->name('trash.destroy');
+    Route::post('/trash/destroy-multiple', [\App\Http\Controllers\TrashController::class, 'destroyMultiple'])->name('trash.destroyMultiple');
     Route::delete('/trash', [\App\Http\Controllers\TrashController::class, 'emptyTrash'])->name('trash.empty');
+    
+    // Trash Auto Delete Settings (総務部のみ)
+    Route::get('/trash/auto-delete', [\App\Http\Controllers\TrashAutoDeleteController::class, 'index'])->name('trash.auto-delete');
+    Route::post('/trash/auto-delete', [\App\Http\Controllers\TrashAutoDeleteController::class, 'update'])->name('trash.auto-delete.update');
 
     // Member Calendar
     Route::get('/member-calendar', function () {
@@ -85,6 +96,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Notifications API
+    Route::get('/api/notifications', [NotificationController::class, 'getNotifications']);
+    
+    // Global Search API
+    Route::get('/api/search', [\App\Http\Controllers\GlobalSearchController::class, 'search']);
+    Route::get('/api/users', function() {
+        return response()->json(\App\Models\User::where('is_active', true)->select('id', 'name')->orderBy('name')->get());
+    });
+    Route::get('/api/events/{id}', [CalendarController::class, 'show']);
+    Route::get('/api/notes/{id}', [NoteController::class, 'show']);
+    Route::get('/api/reminders/{id}', [PersonalReminderController::class, 'show']);
+    Route::get('/api/surveys/{id}', [SurveyController::class, 'show']);
+    Route::post('/api/track-activity', function(Request $request) {
+        \App\Models\RecentActivity::track(
+            auth()->id(),
+            $request->input('type'),
+            $request->input('id')
+        );
+        return response()->json(['success' => true]);
+    });
+
+    Route::middleware(['auth', 'verified', 'admin'])->group(function () {
+        Route::get('/admin/users', [\App\Http\Controllers\AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::delete('/admin/users/{user}', [\App\Http\Controllers\AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+        Route::patch('/admin/users/{user}/restore', [\App\Http\Controllers\AdminUserController::class, 'restore'])->name('admin.users.restore');
+    });
 });
 
 // Laravel Breeze/Jetstreamのデフォルト認証ルート

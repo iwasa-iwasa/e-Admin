@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
+import { useHighlight } from '@/composables/useHighlight'
 import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,12 +25,26 @@ const props = defineProps<{
   notes: (App.Models.SharedNote & { is_pinned: boolean })[]
   totalUsers: number
   teamMembers: App.Models.User[]
+  allTags: string[]
+  filteredMemberId?: number | null
 }>()
 
 const page = usePage()
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
 
-const isAllUsers = (participants: any[]) => {
+const filteredMember = computed(() => {
+  if (!props.filteredMemberId) return null
+  return props.teamMembers.find(member => member.id === props.filteredMemberId)
+})
+
+const clearFilter = () => {
+  router.get(route('notes'), {}, {
+    preserveState: true,
+    replace: true,
+  })
+}
+
+const isAllUsers = (participants: App.Models.User[] | undefined) => {
   return participants && participants.length === props.totalUsers
 }
 
@@ -45,24 +60,29 @@ const selectedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null
 const searchQuery = ref('')
 const filterAuthor = ref('all')
 const filterPinned = ref('all')
+const filterTag = ref('all')
+const showFilters = ref(false)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 const sortKey = ref<'priority' | 'deadline' | 'updated_at'>('updated_at')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const editedTitle = ref(selectedNote.value?.title || '')
 const editedContent = ref(selectedNote.value?.content || '')
-const editedDeadline = ref(selectedNote.value?.deadline || '')
+const editedDeadline = ref('')
 const editedPriority = ref<Priority>(selectedNote.value?.priority as Priority || 'medium')
 const editedColor = ref(selectedNote.value?.color || 'yellow')
 const editedTags = ref<string[]>(selectedNote.value?.tags.map(tag => tag.tag_name) || [])
 const editedParticipants = ref<App.Models.User[]>(selectedNote.value?.participants || [])
 const participantSelectValue = ref<string | null>(null)
 const tagInput = ref('')
+const showTagSuggestions = ref(false)
+const tagDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const isCreateDialogOpen = ref(false)
 const isSaving = ref(false)
 const saveMessage = ref('')
 
 // メッセージとUndoロジック
 const messageType = ref<'success' | 'delete'>('success')
-const messageTimer = ref<number | null>(null)
+const messageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const lastDeletedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null>(null)
 
 onMounted(() => {
@@ -84,6 +104,23 @@ onMounted(() => {
     url.searchParams.delete('select')
     window.history.replaceState({}, '', url.toString())
   }
+  
+  // ハイライト機能
+  const highlightId = (page.props as any).highlight
+  if (highlightId) {
+    const noteToHighlight = props.notes.find(note => note.note_id === highlightId)
+    if (noteToHighlight) {
+      selectedNote.value = noteToHighlight
+      setTimeout(() => {
+        const element = document.querySelector(`[data-note-id="${highlightId}"]`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          element.classList.add('highlight-flash')
+          setTimeout(() => element.classList.remove('highlight-flash'), 3000)
+        }
+      }, 100)
+    }
+  }
 })
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
@@ -94,7 +131,7 @@ const showMessage = (message: string, type: 'success' | 'delete' = 'success') =>
     saveMessage.value = message
     messageType.value = type
     
-    messageTimer.value = setTimeout(() => {
+    messageTimer.value = window.setTimeout(() => {
         saveMessage.value = ''
         lastDeletedNote.value = null
     }, 4000)
@@ -104,7 +141,13 @@ watch(selectedNote, (newNote) => {
   if (newNote) {
     editedTitle.value = newNote.title
     editedContent.value = newNote.content || ''
-    editedDeadline.value = newNote.deadline || ''
+    // deadline_dateとdeadline_timeを結合してdatetime-local形式に変換
+    if (newNote.deadline_date) {
+      const time = newNote.deadline_time || '23:59'
+      editedDeadline.value = `${newNote.deadline_date}T${time}`
+    } else {
+      editedDeadline.value = ''
+    }
     editedPriority.value = newNote.priority as Priority
     editedColor.value = newNote.color
     editedTags.value = newNote.tags.map(tag => tag.tag_name)
@@ -112,6 +155,7 @@ watch(selectedNote, (newNote) => {
     participantSelectValue.value = null
   }
 })
+
 
 watch(() => props.notes, (newNotes, oldNotes) => {
   // 新しいメモが追加された場合の処理
@@ -153,7 +197,8 @@ const filteredNotes = computed(() => {
       (note.content && note.content.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
       (note.author && note.author.name.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
       note.created_at?.includes(searchQuery.value) ||
-      note.updated_at?.includes(searchQuery.value)
+      note.updated_at?.includes(searchQuery.value) ||
+      note.tags.some(tag => tag.tag_name.toLowerCase().includes(searchQuery.value.toLowerCase()))
 
     const matchesAuthor = filterAuthor.value === 'all' || (note.author && note.author.name === filterAuthor.value)
 
@@ -162,7 +207,9 @@ const filteredNotes = computed(() => {
       (filterPinned.value === 'pinned' && note.is_pinned) ||
       (filterPinned.value === 'unpinned' && !note.is_pinned)
 
-    return matchesSearch && matchesAuthor && matchesPinned
+    const matchesTag = filterTag.value === 'all' || note.tags.some(tag => tag.tag_name === filterTag.value)
+
+    return matchesSearch && matchesAuthor && matchesPinned && matchesTag
   })
 
   return filtered.sort((a, b) => {
@@ -192,6 +239,22 @@ const filteredNotes = computed(() => {
   })
 })
 
+watch(showFilters, (isOpen) => {
+  if (!isOpen) {
+    requestAnimationFrame(() => {
+      const inputElement = searchInputRef.value as HTMLInputElement
+      if (inputElement && typeof inputElement.focus === 'function') {
+        inputElement.focus()
+      }
+    })
+  }
+})
+
+watch(searchQuery, () => {
+  if (searchQuery.value && showFilters.value) {
+    showFilters.value = false
+  }
+})
 
 const authors = computed(() => Array.from(new Set(props.notes.map((note) => note.author?.name).filter(Boolean))))
 
@@ -209,10 +272,20 @@ const handleSaveNote = () => {
   isSaving.value = true
   saveMessage.value = ''
   
+  // datetime-localの値をdateとtimeに分割
+  let deadlineDate: string | null = null
+  let deadlineTime: string | null = null
+  if (editedDeadline.value) {
+    const [date, time] = editedDeadline.value.split('T')
+    deadlineDate = date
+    deadlineTime = time
+  }
+  
   const updateData = {
     title: editedTitle.value,
     content: editedContent.value,
-    deadline: editedDeadline.value || null,
+    deadline_date: deadlineDate,
+    deadline_time: deadlineTime,
     priority: editedPriority.value,
     color: editedColor.value,
     tags: editedTags.value,
@@ -293,12 +366,26 @@ const getColorClass = (color: string) => {
     green: 'bg-green-50 border-green-300 hover:bg-green-100',
     pink: 'bg-pink-50 border-pink-300 hover:bg-pink-100',
     purple: 'bg-purple-50 border-purple-300 hover:bg-purple-100',
+    gray: 'bg-gray-50 border-gray-300 hover:bg-gray-100',
   }
   return colorMap[color] || 'bg-gray-50 border-gray-300 hover:bg-gray-100'
 }
 
+const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  return deadline < now
+}
+
 const scrollToNote = (noteId: string) => {
-  setTimeout(() => {
+  window.setTimeout(() => {
     const element = document.querySelector(`[data-note-id="${noteId}"]`)
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -333,21 +420,43 @@ const getPriorityInfo = (priority: Priority) => {
 }
 
 const getColorInfo = (c: string) => {
-  const colorMap: Record<string, { bg: string; label: string }> = {
-    yellow: { bg: 'bg-yellow-100', label: 'イエロー' },
-    blue: { bg: 'bg-blue-100', label: 'ブルー' },
-    green: { bg: 'bg-green-100', label: 'グリーン' },
-    pink: { bg: 'bg-pink-100', label: 'ピンク' },
-    purple: { bg: 'bg-purple-100', label: 'パープル' },
+  const colorMap: Record<string, { bg: string; label: string; color: string }> = {
+    blue: { bg: 'bg-blue-100', label: '会議', color: '#3b82f6' },
+    green: { bg: 'bg-green-100', label: '業務', color: '#66bb6a' },
+    yellow: { bg: 'bg-yellow-100', label: '来客', color: '#ffa726' },
+    purple: { bg: 'bg-purple-100', label: '出張', color: '#9575cd' },
+    pink: { bg: 'bg-pink-100', label: '休暇', color: '#f06292' },
+    gray: { bg: 'bg-gray-100', label: 'その他', color: '#9e9e9e' },
   }
   return colorMap[c] || colorMap.yellow
 }
 
-const handleAddTag = () => {
-  if (tagInput.value.trim() && !editedTags.value.includes(tagInput.value.trim())) {
-    editedTags.value.push(tagInput.value.trim())
-    tagInput.value = ''
+const suggestedTags = computed(() => {
+  if (!tagInput.value.trim()) {
+    return props.allTags.filter(tag => !editedTags.value.includes(tag))
   }
+  return props.allTags.filter(tag => 
+    tag.toLowerCase().includes(tagInput.value.toLowerCase()) && 
+    !editedTags.value.includes(tag)
+  )
+})
+
+const handleAddTag = (tag?: string) => {
+  const tagToAdd = tag || tagInput.value.trim()
+  if (tagToAdd && !editedTags.value.includes(tagToAdd)) {
+    editedTags.value.push(tagToAdd)
+    tagInput.value = ''
+    showTagSuggestions.value = false
+  }
+}
+
+const handleTagInputChange = () => {
+  if (tagDebounceTimer.value) {
+    clearTimeout(tagDebounceTimer.value)
+  }
+  tagDebounceTimer.value = window.setTimeout(() => {
+    showTagSuggestions.value = true
+  }, 300)
 }
 
 const handleRemoveTag = (tagToRemove: string) => {
@@ -366,6 +475,12 @@ const handleAddParticipant = (memberId: unknown) => {
   participantSelectValue.value = null
 }
 
+const handleTagBlur = () => {
+  setTimeout(() => {
+    showTagSuggestions.value = false
+  }, 200)
+}
+
 const handleRemoveParticipant = (participantId: number) => {
   editedParticipants.value = editedParticipants.value.filter((p) => p.id !== participantId)
 }
@@ -380,10 +495,10 @@ const handleRemoveParticipant = (participantId: number) => {
       <div class="p-4 border-b border-gray-300">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
-            <Button variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
+            <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))" class="mr-1">
               <ArrowLeft class="h-5 w-5" />
             </Button>
-            <StickyNote class="h-6 w-6 text-yellow-700" />
+            <StickyNote class="h-6 w-6 text-orange-600" />
             <CardTitle>共有メモ</CardTitle>
           </div>
           <Button variant="outline" @click="handleCreateNote" class="gap-2">
@@ -392,47 +507,66 @@ const handleRemoveParticipant = (participantId: number) => {
           </Button>
         </div>
 
-        <div class="relative mb-3">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="日付、名前、内容で検索..."
-            v-model="searchQuery"
-            class="pl-9 pr-9"
-          />
-          <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            <X class="h-4 w-4" />
-          </button>
+        <div class="flex gap-2 mb-3">
+          <div class="relative flex-1">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              ref="searchInputRef"
+              placeholder="タイトルなどで検索"
+              v-model="searchQuery"
+              class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+          <Button variant="outline" size="icon" @click="showFilters = !showFilters" :class="showFilters ? 'bg-gray-100' : ''">
+            <Filter class="h-4 w-4" />
+          </Button>
         </div>
 
-        <div class="flex gap-2 mb-2">
-          <Select v-model="filterAuthor">
-            <SelectTrigger class="flex-1 h-8 border-gray-300">
-              <div class="flex items-center gap-2">
-                <User class="h-4 w-4" />
-                <SelectValue placeholder="作成者" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべての作成者</SelectItem>
-              <SelectItem v-for="author in authors" :key="author" :value="author">
-                {{ author }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select v-model="filterPinned">
-            <SelectTrigger class="flex-1 h-8 border-gray-300">
-              <div class="flex items-center gap-2">
-                <Filter class="h-4 w-4" />
-                <SelectValue placeholder="フィルター" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべてのメモ</SelectItem>
-              <SelectItem value="pinned">ピン留めのみ</SelectItem>
-              <SelectItem value="unpinned">通常メモのみ</SelectItem>
-            </SelectContent>
-          </Select>
+        <div v-if="showFilters" class="space-y-2 mb-2 p-3 bg-gray-50 rounded-lg border">
+          <div>
+            <label class="text-xs font-medium text-gray-700 mb-1 block">作成者</label>
+            <Select v-model="filterAuthor">
+              <SelectTrigger class="h-8 border-gray-300">
+                <SelectValue placeholder="すべての作成者" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべての作成者</SelectItem>
+                <SelectItem v-for="author in authors" :key="author" :value="author">
+                  {{ author }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-700 mb-1 block">メモの種類</label>
+            <Select v-model="filterPinned">
+              <SelectTrigger class="h-8 border-gray-300">
+                <SelectValue placeholder="すべてのメモ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべてのメモ</SelectItem>
+                <SelectItem value="pinned">ピン留めのみ</SelectItem>
+                <SelectItem value="unpinned">通常メモのみ</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-700 mb-1 block">タグ</label>
+            <Select v-model="filterTag">
+              <SelectTrigger class="h-8 border-gray-300">
+                <SelectValue placeholder="すべてのタグ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべてのタグ</SelectItem>
+                <SelectItem v-for="tag in props.allTags" :key="tag" :value="tag">
+                  {{ tag }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div class="space-y-2">
@@ -456,7 +590,7 @@ const handleRemoveParticipant = (participantId: number) => {
               class="flex-1 h-8 text-xs font-medium transition-all"
             >
               <AlertCircle :class="['h-3.5 w-3.5', sortKey === 'priority' ? 'text-red-500' : 'text-gray-400']" />
-              優先度順
+              重要度順
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'priority'" 
@@ -491,7 +625,13 @@ const handleRemoveParticipant = (participantId: number) => {
             :key="note.note_id"
             :data-note-id="note.note_id"
             @click="handleSelectNote(note)"
-            :class="['cursor-pointer transition-all border-l-4', selectedNote?.note_id === note.note_id ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md', getColorClass(note.color)]"
+            :class="[
+              'cursor-pointer transition-all border-l-4', 
+              selectedNote?.note_id === note.note_id ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md', 
+              isOverdue(note.deadline_date, note.deadline_time) 
+                ? 'bg-gray-100 border-gray-400 hover:bg-gray-200' 
+                : getColorClass(note.color)
+            ]"
           >
             <div class="p-4">
               <div class="flex items-start gap-3 mb-2">
@@ -530,6 +670,9 @@ const handleRemoveParticipant = (participantId: number) => {
                       </Badge>
                     </template>
                   </div>
+                  <Badge v-if="isOverdue(note.deadline_date, note.deadline_time)" variant="outline" class="text-xs bg-gray-200 text-gray-700 border-gray-400">
+                    期限切れ
+                  </Badge>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
@@ -559,11 +702,11 @@ const handleRemoveParticipant = (participantId: number) => {
                 </div>
                 <div class="flex items-center gap-1">
                   <Calendar class="h-3 w-3" />
-                  <span>{{ selectedNote.deadline_date ? new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') }}</span>
+                  <span>{{ selectedNote.deadline_date ? new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : (selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : '') }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
-                  <span>{{ selectedNote.deadline_date ? (selectedNote.deadline_time || '23:59:00').substring(0, 5) : new Date(selectedNote.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                  <span>{{ selectedNote.deadline_date ? (selectedNote.deadline_time || '23:59:00').substring(0, 5) : (selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '') }}</span>
                 </div>
               </div>
             </div>
@@ -587,7 +730,7 @@ const handleRemoveParticipant = (participantId: number) => {
                 />
               </div>
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">優先度</label>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">重要度</label>
                 <Select v-model="editedPriority">
                   <SelectTrigger class="h-8 text-xs border-gray-300">
                     <div class="flex items-center gap-2">
@@ -610,42 +753,55 @@ const handleRemoveParticipant = (participantId: number) => {
                 </Select>
               </div>
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">色</label>
+                <label class="text-xs font-medium text-gray-700 mb-1 block">ジャンル</label>
                 <Select v-model="editedColor">
                   <SelectTrigger class="h-8 text-xs border-gray-300">
                     <div class="flex items-center gap-2">
-                      <div :class="['w-3 h-3 rounded', getColorInfo(editedColor).bg]"></div>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getColorInfo(editedColor).color }"></div>
                       <span>{{ getColorInfo(editedColor).label }}</span>
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem v-for="c in ['yellow', 'blue', 'green', 'pink', 'purple']" :key="c" :value="c">
+                    <SelectItem v-for="c in ['blue', 'green', 'yellow', 'purple', 'pink', 'gray']" :key="c" :value="c">
                       <div class="flex items-center gap-2">
-                        <div :class="['w-3 h-3 rounded', getColorInfo(c).bg]"></div>
+                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
                         <span>{{ getColorInfo(c).label }}</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div class="relative">
                 <label class="text-xs font-medium text-gray-700 mb-1 block">タグ</label>
                 <div class="flex gap-1">
                   <Input
-                    placeholder="タグを追加..."
+                    placeholder="タグを追加"
                     v-model="tagInput"
-                    @keypress.enter.prevent="handleAddTag"
+                    @input="handleTagInputChange"
+                    @focus="showTagSuggestions = true"
+                    @blur="handleTagBlur"
+                    @keypress.enter.prevent="handleAddTag()"
                     class="h-8 text-xs flex-1"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    @click="handleAddTag"
+                    @click="handleAddTag()"
                     class="h-8 px-2 text-xs"
                   >
                     追加
                   </Button>
+                </div>
+                <div v-if="showTagSuggestions && suggestedTags.length > 0" class="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                  <button
+                    v-for="tag in suggestedTags"
+                    :key="tag"
+                    @click="handleAddTag(tag)"
+                    class="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors"
+                  >
+                    {{ tag }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -674,18 +830,22 @@ const handleRemoveParticipant = (participantId: number) => {
               </div>
             </template>
             <template v-else>
-              <Select v-model="participantSelectValue" @update:model-value="handleAddParticipant">
-                <SelectTrigger class="h-8 text-xs">
-                  <SelectValue placeholder="メンバーを選択..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="member in props.teamMembers.filter(m => !editedParticipants.find(p => p.id === m.id) && m.id !== selectedNote?.author?.id)" :key="member.id" :value="member.id">
-                    {{ member.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div v-if="editedParticipants.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+                全員が選択されています。変更するにはメンバーを削除してください。
+              </div>
+              <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
+                <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
+                    @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                    class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                  />
+                  <span class="text-xs">{{ member.name }}</span>
+                </label>
+              </div>
             </template>
-            <div v-if="editedParticipants.length > 0" class="flex flex-wrap gap-1">
+            <div v-if="editedParticipants.length > 0" class="flex flex-wrap gap-1 mt-2">
               <Badge v-for="participant in editedParticipants" :key="participant.id" variant="secondary" class="text-xs gap-1">
                 {{ participant.name }}
                 <button v-if="canEditParticipants && !(isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">

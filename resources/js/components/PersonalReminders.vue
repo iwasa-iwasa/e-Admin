@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { formatDate } from '@/lib/utils'
-import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
-import { Bell, Plus, Clock, CheckCircle, Undo2, Trash2 } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
+import { Bell, Plus, Clock, CheckCircle, Undo2, Trash2, Search } from 'lucide-vue-next'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,9 +32,40 @@ const messageTimer = ref<number | null>(null)
 const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
 const showCompleted = ref(false)
 const reminderToDelete = ref<App.Models.Reminder | null>(null)
+const isNarrow = ref(false)
+const buttonContainerRef = ref<HTMLElement | null>(null)
+let resizeObserver: ResizeObserver | null = null
 
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
 const activeCount = computed(() => props.reminders.filter((r) => !r.completed).length)
+
+const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  return deadline < now
+}
+
+const isUpcoming = (deadlineDate: string | null, deadlineTime: string | null) => {
+  if (!deadlineDate) return false
+  const now = new Date()
+  const deadline = new Date(deadlineDate)
+  if (deadlineTime) {
+    const [hours, minutes] = deadlineTime.split(':')
+    deadline.setHours(parseInt(hours), parseInt(minutes))
+  } else {
+    deadline.setHours(23, 59, 59)
+  }
+  const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+  return deadline >= now && deadline <= threeDaysLater
+}
+
 const displayedReminders = computed(() => {
   return showCompleted.value 
     ? props.reminders.filter((r) => r.completed)
@@ -64,7 +96,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
     router.patch(route('reminders.complete', id), {}, {
       preserveScroll: true,
       onSuccess: () => {
-        showMessage('リマインダーを削除しました。', 'delete')
+        showMessage('リマインダーを完了しました。', 'delete')
       },
       onError: (errors) => {
         console.error('完了エラー:', errors)
@@ -114,8 +146,12 @@ const handleUndoDelete = () => {
 const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
 const isCreateDialogOpen = ref(false)
 
-const handleCloseDetailDialog = (isOpen: boolean) => {
+const handleCloseDetailDialog = (isOpen: boolean, completed?: boolean) => {
   if (!isOpen) {
+    if (completed && selectedReminder.value) {
+      lastDeletedReminder.value = selectedReminder.value
+      showMessage('リマインダーを完了しました。', 'delete')
+    }
     selectedReminder.value = null
   }
 }
@@ -147,34 +183,78 @@ const confirmPermanentDelete = () => {
   reminderToDelete.value = null
 }
 
+onMounted(() => {
+  if (buttonContainerRef.value) {
+    const checkWidth = () => {
+      if (buttonContainerRef.value) {
+        const width = buttonContainerRef.value.offsetWidth
+        isNarrow.value = width < 220
+      }
+    }
+    
+    checkWidth()
+    
+    resizeObserver = new ResizeObserver(() => {
+      checkWidth()
+    })
+    resizeObserver.observe(buttonContainerRef.value)
+  }
+  
+  // ハイライト機能
+  const page = usePage()
+  const highlightId = (page.props as any).highlight_reminder
+  if (highlightId) {
+    nextTick(() => {
+      const reminder = props.reminders.find(r => r.reminder_id === highlightId)
+      if (reminder) {
+        selectedReminder.value = reminder
+        setTimeout(() => {
+          const element = document.getElementById(`reminder-${highlightId}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            element.classList.add('highlight-flash')
+            setTimeout(() => element.classList.remove('highlight-flash'), 3000)
+          }
+        }, 100)
+      }
+    })
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+  }
+})
+
 </script>
 
 <template>
   <Card class="h-full flex flex-col relative">
     <CardHeader>
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <Bell class="h-5 w-5 text-green-700" />
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
+          <Bell class="h-6 w-6 text-green-700" />
           <CardTitle>個人リマインダー</CardTitle>
         </div>
-        <div class="flex items-center gap-2">
-          <div class="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div ref="buttonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg flex-wrap', isNarrow ? 'flex-col' : 'flex-row items-center']">
             <button
               @click="showCompleted = false"
-              :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
-              <Clock :class="['h-3.5 w-3.5', !showCompleted ? 'text-blue-500' : 'text-gray-400']" />
-              未完了
+              <Clock :class="['h-3.5 w-3.5 flex-shrink-0', !showCompleted ? 'text-orange-500' : 'text-gray-400']" />
+              <span>未完了</span>
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ activeCount }}
               </Badge>
             </button>
             <button
               @click="showCompleted = true"
-              :class="['flex items-center gap-1.5 py-1.5 px-3 rounded text-xs transition-all', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
             >
-              <CheckCircle :class="['h-3.5 w-3.5', showCompleted ? 'text-green-500' : 'text-gray-400']" />
-              完了済み
+              <CheckCircle :class="['h-3.5 w-3.5 flex-shrink-0', showCompleted ? 'text-green-500' : 'text-gray-400']" />
+              <span>完了済</span>
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ completedCount }}
               </Badge>
@@ -183,7 +263,7 @@ const confirmPermanentDelete = () => {
           <Button
             size="sm"
             variant="outline"
-            class="h-8 gap-1"
+            class="h-8 gap-1 flex-shrink-0"
             @click="isCreateDialogOpen = true"
           >
             <Plus class="h-3 w-3" />
@@ -191,9 +271,6 @@ const confirmPermanentDelete = () => {
           </Button>
         </div>
       </div>
-      <p v-if="completedCount > 0" class="text-xs text-gray-500 mt-2">
-        ※ チェックした項目は次回ログイン時にゴミ箱へ移動します
-      </p>
     </CardHeader>
     <CardContent class="flex-1 overflow-hidden p-0 px-6 pb-6">
       <ScrollArea class="h-full">
@@ -201,8 +278,15 @@ const confirmPermanentDelete = () => {
           <Card
             v-for="reminder in displayedReminders"
             :key="reminder.reminder_id"
-            :class="['transition-all cursor-pointer', reminder.completed ? 'opacity-60' : 'hover:shadow-md']"
-@click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
+            :id="`reminder-${reminder.reminder_id}`"
+            :class="[
+              'transition-all cursor-pointer border',
+              reminder.completed ? 'opacity-60' : 'hover:shadow-md',
+              reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
+              reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
+              'border-gray-300'
+            ]"
+            @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
           >
             <CardHeader>
               <div class="flex items-start justify-between gap-4">
@@ -220,25 +304,14 @@ const confirmPermanentDelete = () => {
                       >
                         {{ reminder.title }}
                       </CardTitle>
-                      <Badge
-                        :variant="reminder.completed ? 'secondary' : 'outline'"
-                        :class="['text-xs', reminder.completed ? 'opacity-60' : '']"  
-                      >
-                        {{ reminder.category }}
-                      </Badge>
                     </div>
                     <p v-if="reminder.description" :class="['text-sm text-gray-600 mb-3', reminder.completed ? 'text-gray-500 line-through' : '']">
-                      {{ reminder.description }}
+                      {{ reminder.description.length > 20 ? reminder.description.substring(0, 20) + '...' : reminder.description }}
                     </p>
-                    <div :class="['flex flex-wrap items-center gap-3 text-xs text-gray-500', reminder.completed ? 'opacity-60' : '']">
-                      <div class="flex items-center gap-1">
-                        <Clock class="h-3 w-3" />
-                        期限: {{ formatDate(reminder.deadline) }}
-                      </div>
-                    </div>
+
                   </div>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex flex-col items-end gap-2 flex-shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
@@ -248,23 +321,23 @@ const confirmPermanentDelete = () => {
                     <Trash2 class="h-4 w-4" />
                     完全に削除
                   </Button>
+                  <div class="flex items-center gap-1 text-xs">
+                    <CheckCircle v-if="reminder.completed" class="h-3 w-3 text-green-600" />
+                    <Clock v-else class="h-3 w-3 text-orange-600" />
+                    <span v-if="reminder.deadline_date" class="text-gray-500">
+                      {{ formatDate(reminder.deadline_date) }}{{ reminder.deadline_time ? ` ${reminder.deadline_time.substring(0, 5)}` : '' }}
+                    </span>
+                  </div>
+                  <Badge v-if="reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400">
+                    期限切れ
+                  </Badge>
+                  <Badge v-else-if="reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-yellow-100 text-yellow-700 border-yellow-400">
+                    期限間近
+                  </Badge>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div class="space-y-2">
-                <div class="flex items-center justify-between text-sm">
-                  <span class="text-gray-600">ステータス</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm">
-                  <CheckCircle v-if="reminder.completed" class="h-4 w-4 text-green-600" />
-                  <Clock v-else class="h-4 w-4 text-blue-600" />
-                  <span :class="reminder.completed ? 'text-green-600' : 'text-blue-600'">
-                    {{ reminder.completed ? '完了済み' : '未完了' }}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
+
           </Card>
         </div>
       </ScrollArea>
@@ -310,7 +383,7 @@ const confirmPermanentDelete = () => {
     >
       <div 
         v-if="saveMessage"
-        :class="['absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 p-3 text-white rounded-lg shadow-lg',
+        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[9999] p-3 text-white rounded-lg shadow-lg',
           messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
       >
         <div class="flex items-center gap-2">

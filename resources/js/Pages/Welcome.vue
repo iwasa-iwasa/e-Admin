@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import ApplicationLogo from '@/components/ApplicationLogo.vue';
 
 defineOptions({ layout: null });
 </script>
@@ -11,15 +10,13 @@ defineOptions({ layout: null });
     <div class="relative flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900">
         <div class="max-w-md w-full p-6 lg:p-8 bg-white dark:bg-gray-800/50 rounded-lg shadow-2xl">
             <div class="flex justify-center mb-8">
-                <ApplicationLogo class="w-24 h-24 fill-current text-gray-500" />
+                <img src="/logo-title.svg" alt="e-Admin" class="w-[90%]" />
             </div>
 
             <div class="text-center">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                    e-Adminへようこそ
-                </h1>
+                
                 <p class="text-gray-600 dark:text-gray-400 mb-8">
-                    ログインまたは新規登録して、サービスをご利用ください。
+                    ログインまたは新規登録して、<br>サービスをご利用ください。
                 </p>
             </div>
 

@@ -37,11 +37,25 @@ class CalendarController extends Controller
         }
 
         $events = $eventsQuery->get();
+        $teamMembers = \App\Models\User::where('is_active', true)->get();
 
         return Inertia::render('Calendar', [
             'events' => $events,
             'filteredMemberId' => $memberId ? (int)$memberId : null,
+            'teamMembers' => $teamMembers,
         ]);
+    }
+
+    /**
+     * Get a single event for API.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        $event = Event::with(['creator', 'participants', 'attachments', 'recurrence'])->findOrFail($id);
+        return response()->json($event);
     }
 
     /**
@@ -64,7 +78,7 @@ class CalendarController extends Controller
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張',
+            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張,その他',
             'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
             'recurrence' => 'nullable|array',
@@ -123,18 +137,25 @@ class CalendarController extends Controller
         if (isset($validated['participants'])) {
             $event->participants()->attach($validated['participants']);
         }
-        
-        // Creator should also be a participant
-        $event->participants()->attach(Auth::id());
 
         // Save to shared notes if description exists
         if (!empty($validated['description'])) {
+            $categoryColorMap = [
+                '会議' => 'blue',
+                '業務' => 'green',
+                '来客' => 'yellow',
+                '出張' => 'purple',
+                '休暇' => 'pink',
+                'その他' => 'gray',
+            ];
+            
             $sharedNote = \App\Models\SharedNote::create([
                 'title' => $validated['title'],
                 'content' => $validated['description'],
                 'priority' => $validated['importance'] === '重要' ? 'high' : ($validated['importance'] === '中' ? 'medium' : 'low'),
-                'color' => 'blue',
+                'color' => $categoryColorMap[$validated['category']] ?? 'blue',
                 'author_id' => auth()->id(),
+                'linked_event_id' => $event->event_id,
                 'deadline_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
                 'deadline_time' => $validated['is_all_day'] ? '23:59:00' : $validated['end_time'],
             ]);
@@ -170,7 +191,7 @@ class CalendarController extends Controller
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張',
+            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張,その他',
             'importance' => 'required|string|in:重要,中,低',
             'progress' => 'nullable|integer|min:0|max:100',
             'attachments' => 'nullable|array',
@@ -222,6 +243,58 @@ class CalendarController extends Controller
             }
         }
 
+        // Update linked shared note
+        $sharedNote = \App\Models\SharedNote::where('linked_event_id', $event->event_id)->first();
+        
+        if ($sharedNote) {
+            $categoryColorMap = [
+                '会議' => 'blue',
+                '業務' => 'green',
+                '来客' => 'yellow',
+                '出張' => 'purple',
+                '休暇' => 'pink',
+                'その他' => 'gray',
+            ];
+            
+            $sharedNote->update([
+                'title' => $validated['title'],
+                'content' => $validated['description'],
+                'priority' => $validated['importance'] === '重要' ? 'high' : ($validated['importance'] === '中' ? 'medium' : 'low'),
+                'color' => $categoryColorMap[$validated['category']] ?? 'blue',
+                'deadline_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
+                'deadline_time' => $validated['is_all_day'] ? '23:59:00' : $validated['end_time'],
+            ]);
+            
+            if (isset($validated['participants'])) {
+                $sharedNote->participants()->sync($validated['participants']);
+            }
+        } elseif (!empty($validated['description'])) {
+            // Create new linked note if description was added
+            $categoryColorMap = [
+                '会議' => 'blue',
+                '業務' => 'green',
+                '来客' => 'yellow',
+                '出張' => 'purple',
+                '休暇' => 'pink',
+                'その他' => 'gray',
+            ];
+            
+            $sharedNote = \App\Models\SharedNote::create([
+                'title' => $validated['title'],
+                'content' => $validated['description'],
+                'priority' => $validated['importance'] === '重要' ? 'high' : ($validated['importance'] === '中' ? 'medium' : 'low'),
+                'color' => $categoryColorMap[$validated['category']] ?? 'blue',
+                'author_id' => $event->created_by,
+                'linked_event_id' => $event->event_id,
+                'deadline_date' => Carbon::parse($validated['date_range'][1])->format('Y-m-d'),
+                'deadline_time' => $validated['is_all_day'] ? '23:59:00' : $validated['end_time'],
+            ]);
+            
+            if (isset($validated['participants'])) {
+                $sharedNote->participants()->attach($validated['participants']);
+            }
+        }
+
         return redirect()->back();
     }
 
@@ -237,6 +310,7 @@ class CalendarController extends Controller
         \App\Models\TrashItem::create([
             'user_id' => auth()->id(),
             'item_type' => 'event',
+            'is_shared' => true,
             'item_id' => $event->event_id,
             'original_title' => $event->title,
             'deleted_at' => now(),

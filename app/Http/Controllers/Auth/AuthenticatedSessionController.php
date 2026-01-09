@@ -33,6 +33,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if (!Auth::user()->is_active) {
+            Auth::guard('web')->logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'email' => '退職者のアカウントは使用できません。',
+            ]);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
