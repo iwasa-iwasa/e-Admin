@@ -18,6 +18,15 @@ export const CATEGORY_LABELS = {
     'その他': 'その他',
 } as const;
 
+export const getEventColor = (category: string): string => {
+    return CATEGORY_COLORS[category as Category] || CATEGORY_COLORS['その他'];
+};
+
+export const CATEGORY_ITEMS = Object.entries(CATEGORY_LABELS).map(([key, label]) => ({
+    label,
+    color: CATEGORY_COLORS[key as Category]
+}));
+
 export const IMPORTANCE_LABELS = {
     '重要': { label: '重要', color: '#dc2626' }, // red-600
     '中': { label: '中', color: '#f59e0b' },     // amber-500
