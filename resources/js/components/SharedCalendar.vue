@@ -25,20 +25,21 @@ import { useFullCalendarConfig } from '@/composables/calendar/useFullCalendarCon
 const props = defineProps<{
     events: App.Models.Event[]
     showBackButton?: boolean
+    filteredMemberId?: number | null
 }>()
 
 const fullCalendar = ref<any>(null)
 const selectedEvent = ref<App.Models.Event | null>(null)
 const isEventFormOpen = ref(false)
 const editingEvent = ref<App.Models.Event | null>(null)
+const currentEvents = ref<App.Models.Event[]>([])
 
-// 1. Events Logic
+// 1. Events Logic (only for filters state)
 const { 
     searchQuery, 
     genreFilter, 
-    filteredEvents, 
     canEditEvent 
-} = useCalendarEvents({ events: props.events })
+} = useCalendarEvents()
 
 // 2. View Logic
 const { 
@@ -89,9 +90,17 @@ const handleEventClick = (info: any) => {
     }
 }
 
+const handleEventsFetched = (events: any[]) => {
+    currentEvents.value = events
+}
+
 // 4. FullCalendar Config
 const { calendarOptions } = useFullCalendarConfig(
-    filteredEvents,
+    {
+        searchQuery,
+        genreFilter,
+        memberId: computed(() => props.filteredMemberId)
+    },
     viewMode,
     fullCalendar,
     getEventColor,
@@ -104,8 +113,17 @@ const { calendarOptions } = useFullCalendarConfig(
         moreLinkClassNames: getMoreLinkClassNames,
         moreLinkDidMount: handleMoreLinkDidMount,
         dayCellDidMount: handleDayCellDidMount
-    }
+    },
+    handleEventsFetched
 )
+
+// Watch filters to refetch events
+watch([searchQuery, genreFilter, () => props.filteredMemberId], () => {
+    const api = fullCalendar.value?.getApi()
+    if (api) {
+        api.refetchEvents()
+    }
+})
 
 // Helper Methods
 const openCreateDialog = () => {
@@ -114,7 +132,10 @@ const openCreateDialog = () => {
 }
 
 const openEditDialog = (eventId: number) => {
-    const event = props.events.find(e => e.event_id === eventId)
+    // Try to find in current events first
+    let event = currentEvents.value.find(e => e.event_id === eventId)
+    
+    // If not found (might be outside range, but user clicked edit on something visible? should correspond to currentEvents)
     if (event) {
         selectedEvent.value = null
         editingEvent.value = event
@@ -157,7 +178,8 @@ const highlightId = computed(() => (page.props as any).highlight)
 watch(highlightId, (id) => {
     if (id) {
         nextTick(() => {
-            const event = props.events.find(e => e.event_id === id)
+            // Logic to handle highlight: might need to fetch event if not loaded
+            const event = currentEvents.value.find(e => e.event_id === id)
             if (event) {
                 selectedEvent.value = event
             }
@@ -282,14 +304,14 @@ watch(highlightId, (id) => {
             <div class="w-full h-full flex-1">
                 <DayViewGantt
                     v-if="viewMode === 'timeGridDay'"
-                    :events="filteredEvents"
+                    :events="currentEvents"
                     :current-date="currentDayViewDate"
                     @event-click="handleEventClickFromGantt"
                     @event-hover="handleEventHoverFromGantt"
                 />
                 <WeekSummaryView
                     v-else-if="viewMode === 'timeGridWeek'"
-                    :events="filteredEvents"
+                    :events="currentEvents"
                     :week-start="currentWeekStart"
                     @event-click="handleEventClickFromGantt"
                     @date-click="handleDateClickFromWeek"
