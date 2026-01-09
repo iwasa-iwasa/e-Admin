@@ -12,7 +12,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
+    title: (title) => `${title} | ${appName}`,
     resolve: (name) => {
         const page = resolvePageComponent(
             `./Pages/${name}.vue`,

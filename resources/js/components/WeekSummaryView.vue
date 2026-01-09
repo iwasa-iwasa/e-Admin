@@ -34,56 +34,89 @@ interface EventBar {
     stackIndex: number
 }
 
-// 週の日付配列を生成
+const toLocalDateString = (date: Date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+}
+
+// 👇 ここに追加（UTC地雷回避用）
+const toComparableDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    return new Date(y, m - 1, d)
+}
+
+
+// 週の日付配列を生成（日曜日から開始）
 const weekDays = computed(() => {
-    const days = []
+    const days: Date[] = []
+    const startDate = new Date(props.weekStart)
+
+    // ローカル時間で曜日取得（日曜=0）
+    const dayOfWeek = startDate.getDay()
+
+    // 日曜開始に補正
+    const sundayStart = new Date(startDate)
+    sundayStart.setDate(startDate.getDate() - dayOfWeek)
+
     for (let i = 0; i < 7; i++) {
-        const date = new Date(props.weekStart)
-        date.setDate(date.getDate() + i)
+        const date = new Date(sundayStart)
+        date.setDate(sundayStart.getDate() + i)
         days.push(date)
     }
+
     return days
 })
 
-// 週の終了日
-const weekEnd = computed(() => {
-    const end = new Date(props.weekStart)
-    end.setDate(end.getDate() + 6)
+
+
+// 週の開始日と終了日（日曜日ベース）
+const weekStartDate = computed(() => {
+    const start = new Date(weekDays.value[0])
+    start.setHours(0, 0, 0, 0)
+    return start
+})
+
+const weekEndDate = computed(() => {
+    const end = new Date(weekDays.value[6])
+    end.setHours(23, 59, 59, 999)
     return end
 })
 
-// 複数日またぎ・終日予定を1本のバーとして表示
+// 複数日またぎ・終日予定をタイムライン表示
 const multiDayBars = computed(() => {
-    const weekStartDate = new Date(props.weekStart)
-    weekStartDate.setHours(0, 0, 0, 0)
-    const weekEndDate = new Date(weekEnd.value)
-    weekEndDate.setHours(23, 59, 59, 999)
-    
     const bars: EventBar[] = []
     
+    // 週の各日の日付文字列を取得
+    const weekDateStrings = weekDays.value.map(
+        day => toLocalDateString(day)
+    )
+    
     props.events.forEach(event => {
-        const eventStart = new Date(event.start_date.split('T')[0])
-        const eventEnd = new Date(event.end_date.split('T')[0])
+        const eventStartStr = event.start_date.split('T')[0]
+        const eventEndStr = (event.end_date || event.start_date).split('T')[0]
         
-        const isMultiDay = eventStart.getTime() !== eventEnd.getTime() || event.is_all_day
+        const isMultiDay = eventStartStr !== eventEndStr || event.is_all_day
         if (!isMultiDay) return
-        if (!(eventEnd >= weekStartDate && eventStart <= weekEndDate)) return
         
-        // 週範囲でクリップ
-        const clippedStart = eventStart < weekStartDate ? weekStartDate : eventStart
-        const clippedEnd = eventEnd > weekEndDate ? weekEndDate : eventEnd
+        const weekStartStr = weekDateStrings[0]
+        const weekEndStr = weekDateStrings[6]
         
-        // 開始日・終了日のdayIndexを取得
-        const startDayIndex = weekDays.value.findIndex(d => 
-            d.toDateString() === clippedStart.toDateString()
-        )
-        const endDayIndex = weekDays.value.findIndex(d => 
-            d.toDateString() === clippedEnd.toDateString()
-        )
+        // 週と重ならない予定は除外
+        if (eventEndStr < weekStartStr || eventStartStr > weekEndStr) {
+            return
+        }
+        
+        // 週境界でクリップ
+        const actualStartStr = eventStartStr >= weekStartStr ? eventStartStr : weekStartStr
+        const actualEndStr = eventEndStr <= weekEndStr ? eventEndStr : weekEndStr
+        
+        const startDayIndex = weekDateStrings.findIndex(d => d === actualStartStr)
+        const endDayIndex = weekDateStrings.findIndex(d => d === actualEndStr)
         
         if (startDayIndex === -1 || endDayIndex === -1) return
         
-        // 時間範囲を計算
         let startHour = START_HOUR
         let endHour = END_HOUR
         
@@ -101,31 +134,68 @@ const multiDayBars = computed(() => {
             stackIndex: 0
         })
     })
-    
-    // スタックインデックスを計算
+
+    // 優先度と締切日でソート
     bars.sort((a, b) => {
-        if (a.startDayIndex !== b.startDayIndex) return a.startDayIndex - b.startDayIndex
+        const getPriorityWeight = (importance: string | null) => {
+            switch (importance) {
+                case '重要': return 3
+                case '中': return 2
+                case '低': return 1
+                default: return 0
+            }
+        }
+        
+        const priorityA = getPriorityWeight(a.event.importance)
+        const priorityB = getPriorityWeight(b.event.importance)
+        if (priorityA !== priorityB) return priorityB - priorityA
+        
+        const endDateA = toComparableDate(
+            (a.event.end_date || a.event.start_date).split('T')[0]
+        )
+        const endDateB = toComparableDate(
+            (b.event.end_date || b.event.start_date).split('T')[0]
+        )
+
+        if (endDateA.getTime() !== endDateB.getTime()) {
+            return endDateA.getTime() - endDateB.getTime()
+        }
+        
+        if (a.startDayIndex !== b.startDayIndex) {
+            return a.startDayIndex - b.startDayIndex
+        }
         return a.endDayIndex - b.endDayIndex
     })
     
+    // スタックインデックスを計算（空きスペースを活用）
     bars.forEach((bar, i) => {
-        const overlapping = bars.slice(0, i).filter(other => 
-            !(other.endDayIndex < bar.startDayIndex || other.startDayIndex > bar.endDayIndex)
-        )
-        bar.stackIndex = overlapping.length > 0 ? Math.max(...overlapping.map(o => o.stackIndex)) + 1 : 0
+        let stackIndex = 0
+        while (true) {
+            const hasConflict = bars.slice(0, i).some(other =>
+                other.stackIndex === stackIndex &&
+                !(other.endDayIndex < bar.startDayIndex || other.startDayIndex > bar.endDayIndex)
+            )
+            if (!hasConflict) {
+                bar.stackIndex = stackIndex
+                break
+            }
+            stackIndex++
+        }
     })
-    
+
     return bars
 })
 
-// 各日の単日予定を抽出
+
+// 各日の単日予定を抽出（単日予定のみ）
 const dailyEvents = computed(() => {
     return weekDays.value.map(day => {
-        const dateStr = day.toISOString().split('T')[0]
+        const dateStr = toLocalDateString(day)
         return props.events.filter(event => {
             const start = event.start_date.split('T')[0]
-            const end = event.end_date.split('T')[0]
-            return start === dateStr && start === end && !event.is_all_day
+            const end = (event.end_date || event.start_date).split('T')[0]
+            // 単日予定のみを対象とし、複数日予定は週間サマリーエリアで表示
+            return start === end && start === dateStr && !event.is_all_day
         }).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
     })
 })
@@ -148,18 +218,28 @@ const formatTime = (time: string | null) => {
 
 const getDayLabel = (date: Date) => {
     const weekdays = ['日', '月', '火', '水', '木', '金', '土']
-    return `${date.getMonth() + 1}/${date.getDate()}(${weekdays[date.getDay()]})`
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const weekday = weekdays[date.getDay()]
+    
+    // 年跨ぎを考慮した表示
+    const today = new Date()
+    const showYear = year !== today.getFullYear()
+    
+    return showYear ? `${year}/${month}/${day}(${weekday})` : `${month}/${day}(${weekday})`
 }
 
 const isToday = (date: Date) => {
-    const today = new Date()
-    return date.toDateString() === today.toDateString()
+    return toLocalDateString(date) === toLocalDateString(new Date())
 }
 
+
 const getBarStyle = (bar: EventBar) => {
-    const top = bar.stackIndex * 36
+    const top = bar.stackIndex * 32
+    const endColumn = Math.min(bar.endDayIndex + 2, 8)
     return {
-        gridColumn: `${bar.startDayIndex + 1} / ${bar.endDayIndex + 2}`,
+        gridColumn: `${bar.startDayIndex + 1} / ${endColumn}`,
         top: `${top}px`
     }
 }
@@ -211,7 +291,7 @@ const startResize = (e: MouseEvent) => {
                         <div class="day-column-header">{{ getDayLabel(weekDays[dayIndex - 1]) }}</div>
                     </div>
                 </div>
-                <div class="timeline-events" :style="{ height: (maxStackDepth * 36 + 16) + 'px' }">
+                <div class="timeline-events" :style="{ height: maxStackDepth * 32 + 'px', minHeight: '32px' }">
                     <div
                         v-for="(bar, idx) in multiDayBars"
                         :key="idx"
@@ -360,7 +440,7 @@ const startResize = (e: MouseEvent) => {
     cursor: pointer;
     transition: all 0.2s;
     overflow: hidden;
-    margin: 2px 4px;
+    margin: 0px 4px;
 }
 
 .timeline-event:hover {
