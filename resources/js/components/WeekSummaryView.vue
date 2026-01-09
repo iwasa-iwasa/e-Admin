@@ -9,6 +9,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     eventClick: [event: App.Models.Event]
     dateClick: [date: Date]
+    eventHover: [event: App.Models.Event | null, position: { x: number, y: number }]
 }>()
 
 // リサイズ関連
@@ -222,6 +223,8 @@ const startResize = (e: MouseEvent) => {
                             borderColor: bar.event.importance === '重要' ? '#dc2626' : getEventColor(bar.event.category)
                         }"
                         @click="emit('eventClick', bar.event)"
+                        @mouseenter="(e) => emit('eventHover', bar.event, { x: e.clientX, y: e.clientY })"
+                        @mouseleave="() => emit('eventHover', null, { x: 0, y: 0 })"
                     >
                         <span class="event-title">{{ bar.event.title }}</span>
                     </div>
@@ -269,6 +272,8 @@ const startResize = (e: MouseEvent) => {
                             borderColor: event.importance === '重要' ? '#dc2626' : getEventColor(event.category)
                         }"
                         @click="emit('eventClick', event)"
+                        @mouseenter="(e) => emit('eventHover', event, { x: e.clientX, y: e.clientY })"
+                        @mouseleave="() => emit('eventHover', null, { x: 0, y: 0 })"
                     >
                         <div class="event-time">
                             {{ formatTime(event.start_time) }}–{{ formatTime(event.end_time) }}
