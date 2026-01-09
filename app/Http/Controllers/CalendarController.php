@@ -24,20 +24,8 @@ class CalendarController extends Controller
     public function index(Request $request)
     {
         $memberId = $request->query('member_id');
-
-        // Build query for events
-        $eventsQuery = Event::with(['creator', 'participants', 'attachments'])
-            ->orderBy('start_date');
-
-        // If a member_id is provided in the URL, filter events to those
-        // where the member is a participant.
-        if ($memberId) {
-            $eventsQuery->whereHas('participants', function ($q) use ($memberId) {
-                $q->where('users.id', $memberId);
-            });
-        }
-
-        $events = $eventsQuery->get();
+        // Initial load does not fetch events, they are fetched via API
+        $events = []; 
         $teamMembers = \App\Models\User::where('is_active', true)->get();
 
         return Inertia::render('Calendar', [
@@ -45,6 +33,78 @@ class CalendarController extends Controller
             'filteredMemberId' => $memberId ? (int)$memberId : null,
             'teamMembers' => $teamMembers,
         ]);
+    }
+
+    /**
+     * Get events via API with filtering.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getEventsApi(Request $request)
+    {
+        $start = $request->query('start');
+        $end = $request->query('end');
+        $memberId = $request->query('member_id');
+        $searchQuery = $request->query('search_query');
+        $genreFilter = $request->query('genre_filter');
+
+        $query = Event::with(['creator', 'participants', 'attachments', 'recurrence']);
+
+        // Date Range Filtering
+        if ($start && $end) {
+            $startDate = Carbon::parse($start)->format('Y-m-d');
+            $endDate = Carbon::parse($end)->format('Y-m-d');
+            
+            // Events that overlap with the requested range
+            $query->where(function($q) use ($startDate, $endDate) {
+                $q->where('start_date', '<', $endDate)
+                  ->where('end_date', '>=', $startDate);
+            });
+        }
+
+        // Member Filtering
+        if ($memberId) {
+            $query->whereHas('participants', function ($q) use ($memberId) {
+                $q->where('users.id', $memberId);
+            });
+        }
+
+        // Genre Filtering
+        if ($genreFilter && $genreFilter !== 'all') {
+            $categoryMap = [
+                'blue' => '会議',
+                'green' => '業務',
+                'yellow' => '来客',
+                'purple' => '出張',
+                'pink' => '休暇',
+            ];
+
+            if ($genreFilter === 'other') {
+                $query->whereNotIn('category', array_values($categoryMap));
+            } elseif (isset($categoryMap[$genreFilter])) {
+                $query->where('category', $categoryMap[$genreFilter]);
+            }
+        }
+
+        // Search Query
+        if ($searchQuery) {
+            $search = strtolower($searchQuery);
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%")
+                  ->orWhereHas('creator', function($subQ) use ($search) {
+                      $subQ->where('name', 'LIKE', "%{$search}%");
+                  })
+                  ->orWhereHas('participants', function($subQ) use ($search) {
+                      $subQ->where('name', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+
+        $events = $query->orderBy('start_date')->get();
+
+        return response()->json($events);
     }
 
     /**

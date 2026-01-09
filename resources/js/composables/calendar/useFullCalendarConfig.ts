@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { computed, Ref } from 'vue'
 import { CalendarOptions } from '@fullcalendar/core'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -8,7 +9,11 @@ import rrulePlugin from '@fullcalendar/rrule'
 import { getEventColor } from '@/constants/calendar'
 
 export function useFullCalendarConfig(
-    filteredEvents: Ref<any[]>,
+    filters: {
+        searchQuery: Ref<string>,
+        genreFilter: Ref<string>,
+        memberId: Ref<number | null | undefined>
+    },
     viewMode: Ref<string>,
     fullCalendarRef: Ref<any>,
     categoryColorGetter: typeof getEventColor,
@@ -21,7 +26,8 @@ export function useFullCalendarConfig(
         moreLinkClassNames: (arg: any) => string[]
         moreLinkDidMount: (arg: any) => void
         dayCellDidMount: (arg: any) => void
-    }
+    },
+    onEventsFetched?: (events: any[]) => void
 ) {
     const calendarOptions = computed((): CalendarOptions => ({
         plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin, rrulePlugin],
@@ -66,56 +72,82 @@ export function useFullCalendarConfig(
             if (aImportance !== '重要' && bImportance === '重要') return 1
             return 0
         },
-        events: filteredEvents.value.map(event => {
-            const commonProps = {
-                id: String(event.event_id),
-                title: event.title,
-                backgroundColor: categoryColorGetter(event.category),
-                borderColor: event.importance === '重要' ? '#dc2626' : categoryColorGetter(event.category),
-                extendedProps: event,
-                allDay: event.is_all_day,
-                classNames: event.importance === '重要' ? ['important-event'] : [],
-            };
+        events: async (info, successCallback, failureCallback) => {
+            try {
+                const response = await axios.get('/api/events', {
+                    params: {
+                        start: info.startStr,
+                        end: info.endStr,
+                        search_query: filters.searchQuery.value,
+                        genre_filter: filters.genreFilter.value,
+                        member_id: filters.memberId.value
+                    }
+                })
 
-            if (event.rrule) {
-                return {
-                    ...commonProps,
-                    rrule: event.rrule,
-                    duration: event.duration,
-                };
+                const events = response.data
+                const mappedEvents = events.map((event: any) => {
+                    const commonProps = {
+                        id: String(event.event_id),
+                        title: event.title,
+                        backgroundColor: categoryColorGetter(event.category),
+                        borderColor: event.importance === '重要' ? '#dc2626' : categoryColorGetter(event.category),
+                        extendedProps: event,
+                        allDay: event.is_all_day,
+                        classNames: event.importance === '重要' ? ['important-event'] : [],
+                    };
+
+                    if (event.rrule) {
+                        return {
+                            ...commonProps,
+                            rrule: event.rrule,
+                            duration: event.duration,
+                        };
+                    }
+
+                    if (event.is_all_day) {
+                        // event.end_dateの翌日を計算
+                        const [year, month, day] = event.end_date.split('T')[0].split('-').map(Number);
+                        const endDate = new Date(Date.UTC(year, month - 1, day));
+                        endDate.setUTCDate(endDate.getUTCDate() + 1);
+                        const endStr = endDate.toISOString().split('T')[0];
+
+                        return {
+                            ...commonProps,
+                            start: event.start_date.split('T')[0],
+                            end: endStr,
+                        };
+                    }
+
+                    const startDateStr = event.start_date.split('T')[0];
+                    const endDateStr = event.end_date.split('T')[0];
+                    const startTime = event.start_time || '00:00:00';
+                    const endTime = event.end_time || '00:00:00';
+
+                    const formatTime = (time: string) => {
+                        const parts = time.split(':');
+                        if (parts.length === 2) return time + ':00';
+                        return time.substring(0, 8);
+                    };
+
+                    return {
+                        ...commonProps,
+                        start: `${startDateStr}T${formatTime(startTime)}`,
+                        end: `${endDateStr}T${formatTime(endTime)}`,
+                    };
+                })
+
+                if (onEventsFetched) {
+                    // Extract the original events from extendedProps to update various view states
+                    const originalEvents = mappedEvents.map((e: any) => e.extendedProps)
+                    onEventsFetched(originalEvents)
+                }
+
+                successCallback(mappedEvents)
+            } catch (error) {
+                console.error('Error fetching events:', error)
+                failureCallback(error as Error)
             }
-
-            if (event.is_all_day) {
-                // event.end_dateの翌日を計算
-                const [year, month, day] = event.end_date.split('T')[0].split('-').map(Number);
-                const endDate = new Date(Date.UTC(year, month - 1, day));
-                endDate.setUTCDate(endDate.getUTCDate() + 1);
-                const endStr = endDate.toISOString().split('T')[0];
-
-                return {
-                    ...commonProps,
-                    start: event.start_date.split('T')[0],
-                    end: endStr,
-                };
-            }
-
-            const startDateStr = event.start_date.split('T')[0];
-            const endDateStr = event.end_date.split('T')[0];
-            const startTime = event.start_time || '00:00:00';
-            const endTime = event.end_time || '00:00:00';
-
-            const formatTime = (time: string) => {
-                const parts = time.split(':');
-                if (parts.length === 2) return time + ':00';
-                return time.substring(0, 8);
-            };
-
-            return {
-                ...commonProps,
-                start: `${startDateStr}T${formatTime(startTime)}`,
-                end: `${endDateStr}T${formatTime(endTime)}`,
-            };
-        }),
+        },
         locale: 'ja',
         buttonText: {
             today: '今日',

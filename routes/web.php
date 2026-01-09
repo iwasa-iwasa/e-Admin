@@ -102,6 +102,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/users', function() {
         return response()->json(\App\Models\User::where('is_active', true)->select('id', 'name')->orderBy('name')->get());
     });
+    Route::get('/api/events', [CalendarController::class, 'getEventsApi'])->name('api.events.index');
     Route::get('/api/events/{id}', [CalendarController::class, 'show']);
     Route::get('/api/notes/{id}', [NoteController::class, 'show']);
     Route::get('/api/reminders/{id}', [PersonalReminderController::class, 'show']);
