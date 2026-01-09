@@ -105,7 +105,7 @@
           </div>
   
           <!-- ロゴ -->
-          <div class="px-4 py-6">
+          <div class="px-4 py-3">
             <LogoTitle logo-src="/images/logo.png" />
           </div>
   
