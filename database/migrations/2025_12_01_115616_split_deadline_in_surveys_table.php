@@ -34,6 +34,9 @@ return new class extends Migration
         }
         
         Schema::table('surveys', function (Blueprint $table) {
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                return;
+            }
             $table->dropColumn('deadline');
         });
     }

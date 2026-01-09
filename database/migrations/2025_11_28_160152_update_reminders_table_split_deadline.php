@@ -27,6 +27,9 @@ return new class extends Migration
 
         // Drop old column
         Schema::table('reminders', function (Blueprint $table) {
+            if (\DB::connection()->getDriverName() === 'sqlite') {
+                return;
+            }
             $table->dropColumn('deadline');
         });
     }

@@ -25,6 +25,10 @@ return new class extends Migration
                 ALTER COLUMN deadline TYPE TIMESTAMP 
                 USING (deadline::text || ' 23:59:59')::timestamp
             ");
+        } elseif ($driver === 'sqlite') {
+            Schema::table('shared_notes', function (Blueprint $table) {
+                $table->dateTime('deadline')->nullable()->change();
+            });
         } else {
             // -------------------------------------------
             // MySQL / MariaDB (ローカル環境) 用の処理
