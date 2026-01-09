@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import FullCalendar from '@fullcalendar/vue3'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp } from 'lucide-vue-next'
@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
-import DayViewGantt from '@/components/DayViewGantt.vue'
-import WeekSummaryView from '@/components/WeekSummaryView.vue'
 import ScrollArea from './ui/scroll-area/ScrollArea.vue'
 import { CATEGORY_COLORS, CATEGORY_LABELS, GENRE_FILTERS, getEventColor, CATEGORY_ITEMS } from '@/constants/calendar'
+
+const DayViewGantt = defineAsyncComponent(() => import('@/components/DayViewGantt.vue'))
+const WeekSummaryView = defineAsyncComponent(() => import('@/components/WeekSummaryView.vue'))
 
 // Composables
 import { useCalendarEvents } from '@/composables/calendar/useCalendarEvents'
@@ -64,9 +65,11 @@ const {
     hoveredEvents,
     hoverPosition,
     handleDatesSet,
-    handleEventDidMount,
     handleEventMouseEnter,
-    handleEventMouseLeave
+    handleEventMouseLeave,
+    getMoreLinkClassNames,
+    handleMoreLinkDidMount,
+    handleDayCellDidMount
 } = useCalendarDom(fullCalendar, viewMode, isTodayInViewForFullCalendar, calendarTitle)
 
 // Component Specific Logic for Event Click (Navigation vs Selection)
@@ -98,7 +101,9 @@ const { calendarOptions } = useFullCalendarConfig(
         eventMouseEnter: handleEventMouseEnter,
         eventMouseLeave: handleEventMouseLeave,
         datesSet: handleDatesSet,
-        eventDidMount: handleEventDidMount
+        moreLinkClassNames: getMoreLinkClassNames,
+        moreLinkDidMount: handleMoreLinkDidMount,
+        dayCellDidMount: handleDayCellDidMount
     }
 )
 

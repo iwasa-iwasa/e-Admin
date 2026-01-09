@@ -18,7 +18,9 @@ export function useFullCalendarConfig(
         eventMouseEnter: (info: any) => void
         eventMouseLeave: (info: any) => void
         datesSet: (info: any) => void
-        eventDidMount: (info: any) => void
+        moreLinkClassNames: (arg: any) => string[]
+        moreLinkDidMount: (arg: any) => void
+        dayCellDidMount: (arg: any) => void
     }
 ) {
     const calendarOptions = computed((): CalendarOptions => ({
@@ -123,7 +125,9 @@ export function useFullCalendarConfig(
         eventMouseEnter: handlers.eventMouseEnter,
         eventMouseLeave: handlers.eventMouseLeave,
         datesSet: handlers.datesSet,
-        eventDidMount: handlers.eventDidMount,
+        moreLinkClassNames: handlers.moreLinkClassNames,
+        moreLinkDidMount: handlers.moreLinkDidMount,
+        dayCellDidMount: handlers.dayCellDidMount,
     }))
 
     return {
