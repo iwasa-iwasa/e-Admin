@@ -21,6 +21,7 @@ export function useCalendarDom(
     }
 
     const getMoreLinkClassNames = (arg: any) => {
+        if (!arg.hiddenSegs) return []
         const hasImportant = arg.hiddenSegs.some((seg: any) =>
             seg.event.extendedProps?.importance === '重要'
         )
@@ -30,6 +31,7 @@ export function useCalendarDom(
     const handleMoreLinkDidMount = (arg: any) => {
         if (viewMode.value === 'multiMonthYear') {
             arg.el.addEventListener('mouseenter', (e: MouseEvent) => {
+                if (!arg.hiddenSegs) return
                 const hiddenEvents = arg.hiddenSegs.map((seg: any) => seg.event)
                 const sortedEvents = [...hiddenEvents].sort((a: any, b: any) => {
                     const aStart = new Date(a.start).toDateString()
