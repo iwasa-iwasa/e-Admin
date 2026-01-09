@@ -799,6 +799,7 @@ watch([viewMode, currentDayViewDate, currentWeekStart], () => {
                     :week-start="currentWeekStart"
                     @event-click="handleEventClickFromGantt"
                     @date-click="handleDateClickFromWeek"
+                    @event-hover="handleEventHoverFromGantt"
                 />
                 <FullCalendar
                     v-else

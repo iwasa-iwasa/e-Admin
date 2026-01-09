@@ -21,7 +21,7 @@ class NoteController extends Controller
         $user = Auth::user();
         $memberId = $request->query('member_id');
 
-        $notesQuery = SharedNote::with(['author', 'tags', 'participants'])
+        $notesQuery = SharedNote::with(['author', 'tags', 'participants', 'linkedEvent'])
             ->active()
             ->where(function($query) use ($user) {
                 $query->where('author_id', $user->id)
@@ -99,7 +99,6 @@ class NoteController extends Controller
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
             'pinned' => ['nullable', 'boolean'],
-            'linked_event_id' => ['nullable', 'exists:events,event_id'],
         ]);
 
         // deadlineをdeadline_dateとdeadline_timeに分割
@@ -115,7 +114,6 @@ class NoteController extends Controller
             'title' => $validated['title'],
             'content' => $validated['content'],
             'author_id' => Auth::id(),
-            'linked_event_id' => $validated['linked_event_id'] ?? null,
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
             'deadline_date' => $deadlineDate,
@@ -231,14 +229,25 @@ class NoteController extends Controller
                     'pink' => '休暇',
                 ];
                 
-                $event->update([
+                $updateData = [
                     'title' => $validated['title'],
                     'description' => $validated['content'],
                     'category' => $colorCategoryMap[$validated['color']] ?? '会議',
                     'importance' => $validated['priority'] === 'high' ? '重要' : ($validated['priority'] === 'medium' ? '中' : '低'),
-                    'end_date' => $deadlineDate,
-                    'end_time' => $deadlineTime,
-                ]);
+                ];
+                
+                // deadlineが設定されているかどうかに関わらず、常に更新する
+                // ただし、end_dateがnullの場合は既存の値を保持
+                if (isset($validated['deadline']) && $deadlineDate !== null) {
+                    // end_dateがstart_dateより前にならないようにチェック
+                    if ($deadlineDate >= $event->start_date) {
+                        $updateData['end_date'] = $deadlineDate;
+                        $updateData['end_time'] = $deadlineTime;
+                    }
+                    // end_dateがstart_dateより前の場合はイベントの日付を更新しない
+                }
+                
+                $event->update($updateData);
                 
                 if (isset($validated['participants'])) {
                     $event->participants()->sync($validated['participants']);
