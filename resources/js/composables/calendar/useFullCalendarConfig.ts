@@ -9,11 +9,8 @@ import rrulePlugin from '@fullcalendar/rrule'
 import { getEventColor } from '@/constants/calendar'
 
 export function useFullCalendarConfig(
-    filters: {
-        searchQuery: Ref<string>,
-        genreFilter: Ref<string>,
-        memberId: Ref<number | null | undefined>
-    },
+    fetchEvents: (start: string, end: string, memberId?: number | null) => Promise<any[]>,
+    memberId: Ref<number | null | undefined>,
     viewMode: Ref<string>,
     fullCalendarRef: Ref<any>,
     categoryColorGetter: typeof getEventColor,
@@ -74,17 +71,12 @@ export function useFullCalendarConfig(
         },
         events: async (info, successCallback, failureCallback) => {
             try {
-                const response = await axios.get('/api/events', {
-                    params: {
-                        start: info.startStr,
-                        end: info.endStr,
-                        search_query: filters.searchQuery.value,
-                        genre_filter: filters.genreFilter.value,
-                        member_id: filters.memberId.value
-                    }
-                })
+                const events = await fetchEvents(
+                    info.startStr,
+                    info.endStr,
+                    memberId.value
+                )
 
-                const events = response.data
                 const mappedEvents = events.map((event: any) => {
                     const commonProps = {
                         id: String(event.event_id),
