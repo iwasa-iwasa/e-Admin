@@ -175,17 +175,17 @@
   
           <Button
             :class="[
-              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              'max-w-[240px] w-fit justify-start gap-3 px-3 overflow-hidden',
               isActive('/surveys')
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'hover:bg-accent hover:text-accent-foreground'
             ]"
             as-child
           >
-            <Link href="/surveys">
-              <BarChart3 class="h-5 w-5 text-purple-700" />
-              アンケート管理
-              <Badge v-if="unansweredSurveysCount > 0" variant="secondary" class="ml-2">
+            <Link href="/surveys" class="flex items-center gap-3 w-full">
+              <BarChart3 class="h-5 w-5 text-purple-700 flex-shrink-0" />
+              <span class="flex-shrink-0">アンケート管理</span>
+              <Badge v-if="unansweredSurveysCount > 0" variant="secondary" class="ml-auto flex-shrink-0">
                 {{ unansweredSurveysCount }}件
               </Badge>
             </Link>
