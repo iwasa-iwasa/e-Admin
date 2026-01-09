@@ -701,16 +701,16 @@ const handleRemoveParticipant = (participantId: number) => {
                 </div>
                 <div class="flex items-center gap-1">
                   <Calendar class="h-3 w-3" />
-                  <span>{{ selectedNote.linked_event_id && selectedNote.linked_event ? 
-                    new Date(selectedNote.linked_event.end_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : 
+                  <span>{{ (selectedNote as any).linked_event_id && (selectedNote as any).linked_event ? 
+                    new Date((selectedNote as any).linked_event.end_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : 
                     (selectedNote.deadline_date ? 
                       new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : 
                       (selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : '')) }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
-                  <span>{{ selectedNote.linked_event_id && selectedNote.linked_event ? 
-                    (selectedNote.linked_event.end_time || '23:59:00').substring(0, 5) : 
+                  <span>{{ (selectedNote as any).linked_event_id && (selectedNote as any).linked_event ? 
+                    ((selectedNote as any).linked_event.end_time || '23:59:00').substring(0, 5) : 
                     (selectedNote.deadline_date ? 
                       (selectedNote.deadline_time || '23:59:00').substring(0, 5) : 
                       (selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '')) }}</span>
