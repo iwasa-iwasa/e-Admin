@@ -486,8 +486,8 @@ const updateCalendarTitle = () => {
 
 const getWeekStart = (date: Date) => {
     const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    const day = d.getDay() // 0=日曜日, 1=月曜日, ...
+    const diff = d.getDate() - day // 日曜日からの日数差を計算
     return new Date(d.setDate(diff))
 }
 
