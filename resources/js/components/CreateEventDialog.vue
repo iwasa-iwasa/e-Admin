@@ -574,10 +574,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                             </Select>
                                         </div>
                                         <div class="space-y-2">
-                                            <Label for="location" class="flex items-center gap-2">
-                                                <MapPin class="h-4 w-4" />
-                                                場所・会議室
-                                            </Label>
+                                            <Label for="location">場所・会議室</Label>
                                             <Input id="location" placeholder="例：会議室A、オンライン（Zoom）" v-model="form.location" :disabled="!canEdit" />
                                         </div>
                                         <div v-if="isEditMode" class="space-y-2">
@@ -608,61 +605,72 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                     </TabsContent>
             
                                     <TabsContent value="datetime" class="space-y-4 min-h-[400px]">
-                                        <div class="flex items-center space-x-2">
-                                            <Switch
-                                              id="allDay"
-                                              :checked="is_all_day"
-                                              v-model="form.is_all_day"
-                                              @update:checked="handleAllDayToggle"
-                                              :disabled="!canEdit"
-                                            />
-                                            <Label for="allDay" class="text-sm cursor-pointer">終日</Label>
-                                        </div>
-                                        <div class="space-y-2">
-                                            <Label class="flex items-center gap-2">
-                                                <CalendarIcon class="h-4 w-4" />
-                                                期間 *
-                                            </Label>
-                                            <VueDatePicker
-                                                v-model="date"
-                                                range
-                                                :time-config="{ enableTimePicker: false }"
-                                                placeholder="期間を選択"
-                                                :locale="ja"
-                                                :format="format"
-                                                auto-apply
-                                                teleport-center
-                                                :disabled="!canEdit"
-                                            />
-                                        </div>
-                                        <div v-if="!form.is_all_day" class="flex flex-col sm:flex-row gap-4">
-                                            <div class="space-y-2 flex-1">
-                                                <Label>開始時刻</Label>
-                                                <Popover>
-                                                    <PopoverTrigger as-child>
-                                                        <Button variant="outline" class="w-full justify-start font-normal" :disabled="!canEdit">
-                                                            <Clock class="mr-2 h-4 w-4" />
-                                                            {{ form.start_time || 'Select time' }}
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent class="w-auto p-0" v-if="canEdit">
-                                                        <time-picker v-model="form.start_time" />
-                                                    </PopoverContent>
-                                                </Popover>
+                                        <div class="flex items-center gap-6">
+                                            <div class="flex items-center space-x-2">
+                                                <Switch
+                                                  id="allDay"
+                                                  :checked="is_all_day"
+                                                  v-model="form.is_all_day"
+                                                  @update:checked="handleAllDayToggle"
+                                                  :disabled="!canEdit"
+                                                />
+                                                <Label for="allDay" class="text-sm cursor-pointer">終日</Label>
                                             </div>
-                                            <div class="space-y-2 flex-1">
-                                                <Label>終了時刻</Label>
-                                                <Popover>
-                                                    <PopoverTrigger as-child>
-                                                        <Button variant="outline" class="w-full justify-start font-normal" :disabled="!canEdit">
-                                                            <Clock class="mr-2 h-4 w-4" />
-                                                            {{ form.end_time || 'Select time' }}
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent class="w-auto p-0" v-if="canEdit">
-                                                        <time-picker v-model="form.end_time" />
-                                                    </PopoverContent>
-                                                </Popover>
+                                            <div class="flex items-center space-x-2">
+                                                <Switch id="recurring" v-model="form.recurrence.is_recurring" :disabled="!canEdit" />
+                                                <Label for="recurring" class="text-sm cursor-pointer flex items-center gap-2">
+                                                    <Repeat class="h-4 w-4" />
+                                                    繰り返し
+                                                </Label>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col lg:flex-row gap-4 items-end">
+                                            <div class="flex-1">
+                                                <Label class="flex items-center gap-2 mb-2">
+                                                    <CalendarIcon class="h-4 w-4" />
+                                                    期間 *
+                                                </Label>
+                                                <VueDatePicker
+                                                    v-model="date"
+                                                    range
+                                                    :time-config="{ enableTimePicker: false }"
+                                                    placeholder="期間を選択"
+                                                    :locale="ja"
+                                                    :format="format"
+                                                    auto-apply
+                                                    teleport-center
+                                                    :disabled="!canEdit"
+                                                />
+                                            </div>
+                                            <div v-if="!form.is_all_day" class="flex flex-col sm:flex-row gap-4 flex-1">
+                                                <div class="flex-1">
+                                                    <Label class="mb-2 block">開始時刻</Label>
+                                                    <Popover>
+                                                        <PopoverTrigger as-child>
+                                                            <Button variant="outline" class="w-full justify-start font-normal h-10" :disabled="!canEdit">
+                                                                <Clock class="mr-2 h-4 w-4" />
+                                                                {{ form.start_time || 'Select time' }}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent class="w-auto p-0" v-if="canEdit">
+                                                            <time-picker v-model="form.start_time" />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <Label class="mb-2 block">終了時刻</Label>
+                                                    <Popover>
+                                                        <PopoverTrigger as-child>
+                                                            <Button variant="outline" class="w-full justify-start font-normal h-10" :disabled="!canEdit">
+                                                                <Clock class="mr-2 h-4 w-4" />
+                                                                {{ form.end_time || 'Select time' }}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent class="w-auto p-0" v-if="canEdit">
+                                                            <time-picker v-model="form.end_time" />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                             </div>
                                         </div>
                                         <div v-if="canEditParticipants" class="space-y-2">
@@ -710,15 +718,8 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                             </div>
                                         </div>
 
-                                        <div class="space-y-4 pt-4">
-                                            <div class="flex items-center space-x-2">
-                                                <Switch id="recurring" v-model="form.recurrence.is_recurring" :disabled="!canEdit" />
-                                                <Label for="recurring" class="text-sm cursor-pointer flex items-center gap-2">
-                                                    <Repeat class="h-4 w-4" />
-                                                    この予定を繰り返す
-                                                </Label>
-                                            </div>
-                                            <div v-if="form.recurrence.is_recurring" class="space-y-4 pl-6 border-l-2 border-gray-300 ml-3">
+                                        <div v-if="form.recurrence.is_recurring" class="space-y-4 pt-4">
+                                            <div class="space-y-4 pl-6 border-l-2 border-gray-300 ml-3">
                                                 <div class="space-y-2">
                                                     <Label for="recurrence_type">繰り返しパターン</Label>
                                                     <Select v-model="form.recurrence.recurrence_type" :disabled="!canEdit">
