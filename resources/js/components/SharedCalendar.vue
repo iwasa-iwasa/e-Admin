@@ -389,7 +389,7 @@ const toggleSearch = () => {
 
                     <!-- 検索エリア -->
                     <div class="relative transition-all duration-300 ease-in-out flex-shrink">
-                        <div v-if="!showBackButton && (layoutMode === 'default' || layoutMode === 'filter-small')" class="relative">
+                        <div v-if="(layoutMode === 'default' || layoutMode === 'filter-small')" class="relative">
                             <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                             <Input
                                 v-model="searchQuery"
@@ -399,7 +399,7 @@ const toggleSearch = () => {
                                 :class="layoutMode === 'filter-small' ? 'max-w-[200px]' : 'max-w-[280px]'"
                             />
                         </div>
-                        <div v-else-if="!showBackButton || layoutMode === 'search-icon' || layoutMode === 'title-hide' || layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal'" class="flex items-center transition-all duration-300 ease-in-out">
+                        <div v-else-if="layoutMode === 'search-icon' || layoutMode === 'title-hide' || layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal'" class="flex items-center transition-all duration-300 ease-in-out">
                             <div class="relative flex items-center">
                                 <Button
                                     variant="outline"
