@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import FullCalendar from '@fullcalendar/vue3'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp, ChevronDown } from 'lucide-vue-next'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -226,24 +226,116 @@ watch(highlightId, (id) => {
         })
     }
 }, { immediate: true })
+
+// 🔽 検索アイコン展開用（minimal時）
+const isSearchOpen = ref(false)
+const headerRef = ref<HTMLElement | null>(null)
+const layoutMode = ref<'default'|'filter-small'|'search-icon'|'title-hide'|'compact'|'minimal'|'ultra-minimal'>('default')
+
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+    if(!headerRef.value) return
+
+    resizeObserver = new ResizeObserver(entries => {
+        const width = entries[0].contentRect.width
+
+        layoutMode.value = 
+            width < 480 ? 'ultra-minimal' // 新規作成アイコン化
+            : width < 540 ? 'minimal'     // 新規作成アイコン化
+            : width < 600 ? 'compact'     // フィルターアイコン化
+            : width < 650 ? 'title-hide'  // タイトル消える
+            : width < 700 ? 'search-icon' // 検索バー縮小
+            : width < 750 ? 'filter-small'// フィルター縮小
+            : 'default'                   // 通常表示
+    })
+
+    resizeObserver.observe(headerRef.value)
+})
+
+onUnmounted(() => {
+    resizeObserver?.disconnect()
+})
+
+// 検索バー閉じる処理
+const searchInput = ref<HTMLInputElement | null>(null)
+const toggleSearch = () => {
+    isSearchOpen.value = !isSearchOpen.value
+    if (!isSearchOpen.value) {
+        searchQuery.value = ''
+    }
+}
+
+// 検索バー展開時にフォーカス
+// watch(isSearchOpen, (isOpen) => {
+//     if (isOpen) {
+//         nextTick(() => {
+//             setTimeout(() => {
+//                 searchInput.value?.focus()
+//             }, 50)
+//         })
+//     }
+// })
 </script>
 
 <template>
     <Card class="flex flex-col h-full overflow-hidden">
-        <div class="p-4">
+        <div ref="headerRef" class="p-4">
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2" :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" @click="!showBackButton && router.visit('/calendar')">
+                <div class="flex items-center gap-2 min-w-0" 
+                    :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" 
+                    @click="!showBackButton && router.visit('/calendar')">
                     <Button v-if="showBackButton" variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
                         <ArrowLeft class="h-5 w-5" />
                     </Button>
-                    <CalendarIcon class="h-6 w-6 text-blue-700" />
-                    <CardTitle class="whitespace-nowrap">共有カレンダー</CardTitle>
+
+                    <CalendarIcon class="h-6 w-6 text-blue-700 flex-shrink-0" />
+
+                    <Transition
+                        enter-active-class="transition-all duration-300 ease-in-out"
+                        leave-active-class="transition-all duration-300 ease-in-out"
+                        enter-from-class="opacity-0 scale-95"
+                        enter-to-class="opacity-100 scale-100"
+                        leave-from-class="opacity-100 scale-100"
+                        leave-to-class="opacity-0 scale-95"
+                    >
+                        <CardTitle 
+                            v-if="layoutMode === 'default' || layoutMode === 'filter-small' || layoutMode === 'search-icon'"
+                            class="transition-all duration-300 ease-in-out whitespace-nowrap"
+                        >
+                            共有カレンダー
+                        </CardTitle>
+                    </Transition>
                 </div>
-                <div class="flex items-center gap-2">
-                    <Select v-model="genreFilter">
-                        <SelectTrigger class="w-[140px]">
-                            <SelectValue placeholder="ジャンル" />
-                        </SelectTrigger>
+                <!-- 右上操作エリア -->
+                <div class="flex items-center gap-2 min-w-0">
+                    <!-- ジャンル Select -->
+                    <div class="transition-all duration-300 ease-in-out">
+                        <Select v-model="genreFilter" :key="`genre-${layoutMode}`">
+                            <SelectTrigger 
+                                class="transition-all duration-300 ease-in-out"
+                                :class="{
+                                    'w-10 justify-center px-0': layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal',
+                                    'w-[80px]': layoutMode === 'title-hide',
+                                    'w-[100px]': layoutMode === 'search-icon',
+                                    'w-[120px]': layoutMode === 'filter-small',
+                                    'w-[140px]': layoutMode === 'default'
+                                }"
+                            >
+                                <Transition
+                                    enter-active-class="transition-all duration-300 ease-in-out"
+                                    leave-active-class="transition-all duration-300 ease-in-out"
+                                    enter-from-class="w-0 opacity-0"
+                                    enter-to-class="w-auto opacity-100"
+                                    leave-from-class="w-auto opacity-100"
+                                    leave-to-class="w-0 opacity-0"
+                                >
+                                    <SelectValue 
+                                        v-if="layoutMode === 'default' || layoutMode === 'filter-small' || layoutMode === 'search-icon' || layoutMode === 'title-hide'" 
+                                        placeholder="ジャンル"
+                                    />
+                                </Transition>
+                            </SelectTrigger>
                         <SelectContent>
                             <SelectItem :value="GENRE_FILTERS.ALL">すべて</SelectItem>
                             <SelectItem :value="GENRE_FILTERS.BLUE">
@@ -283,52 +375,149 @@ watch(highlightId, (id) => {
                                 </div>
                             </SelectItem>
                         </SelectContent>
-                    </Select>
-                    <div class="relative">
-                        <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                        <Input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="タイトルなどで検索"
-                            class="pl-9 pr-4 w-[280px]"
-                        />
+                        </Select>
                     </div>
-                    <Button
-                        variant="outline"
-                        class="gap-2"
-                        @click="openCreateDialog"
+
+                    <!-- 検索エリア -->
+                    <div class="relative transition-all duration-300 ease-in-out">
+                        <div v-if="!showBackButton && (layoutMode === 'default' || layoutMode === 'filter-small')" class="relative">
+                            <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <Input
+                                v-model="searchQuery"
+                                type="text"
+                                placeholder="タイトルなどで検索"
+                                class="pl-10 min-w-0 transition-all duration-300 ease-in-out"
+                                :class="layoutMode === 'filter-small' ? 'max-w-[200px]' : 'max-w-[280px]'"
+                            />
+                        </div>
+                        <div v-else-if="!showBackButton || layoutMode === 'search-icon' || layoutMode === 'title-hide' || layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal'" class="flex items-center transition-all duration-300 ease-in-out">
+                            <div class="relative flex items-center">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    @click="toggleSearch"
+                                    class="transition-all duration-300 ease-in-out"
+                                    :class="isSearchOpen ? 'rounded-r-none border-r-0' : ''"
+                                    tabindex="-1"
+                                >
+                                    <Search class="h-4 w-4"/>
+                                </Button>
+                                <Transition
+                                    enter-active-class="transition-all duration-300 ease-in-out"
+                                    leave-active-class="transition-all duration-300 ease-in-out"
+                                    enter-from-class="w-0 opacity-0"
+                                    enter-to-class="w-[140px] opacity-100"
+                                    leave-from-class="w-[140px] opacity-100"
+                                    leave-to-class="w-0 opacity-0"
+                                >
+                                    <Input
+                                        v-if="isSearchOpen"
+                                        v-model="searchQuery"
+                                        type="text"
+                                        placeholder="タイトルなどで検索"
+                                        class="rounded-l-none border-l-0 transition-all duration-300 ease-in-out"
+                                        @blur="!searchQuery && toggleSearch()"
+                                        @keydown.escape="toggleSearch()"
+                                        ref="searchInput"
+                                    />
+                                </Transition>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 新規作成 -->
+                    <Transition
+                        enter-active-class="transition-all duration-300 ease-in-out"
+                        leave-active-class="transition-all duration-300 ease-in-out"
+                        enter-from-class="opacity-0 scale-95"
+                        enter-to-class="opacity-100 scale-100"
+                        leave-from-class="opacity-100 scale-100"
+                        leave-to-class="opacity-0 scale-95"
                     >
-                        <Plus class="h-4 w-4" />
-                        新規作成
-                    </Button>
+                        <div class="transition-all duration-300 ease-in-out">
+                            <Button
+                                :key="`create-${layoutMode}`"
+                                variant="outline"
+                                class="transition-all duration-300 ease-in-out"
+                                :class="layoutMode === 'default' || layoutMode === 'filter-small' ? 'gap-2' : ''"
+                                @click="openCreateDialog"
+                                :title="layoutMode === 'search-icon' || layoutMode === 'title-hide' || layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal' ? '新規作成' : undefined"
+                            >
+                                <Plus class="h-4 w-4" />
+                                <Transition
+                                    enter-active-class="transition-all duration-300 ease-in-out"
+                                    leave-active-class="transition-all duration-300 ease-in-out"
+                                    enter-from-class="w-0 opacity-0"
+                                    enter-to-class="w-auto opacity-100"
+                                    leave-from-class="w-auto opacity-100"
+                                    leave-to-class="w-0 opacity-0"
+                                >
+                                    <span v-if="layoutMode === 'default' || layoutMode === 'filter-small'" class="whitespace-nowrap">
+                                        新規作成
+                                    </span>
+                                </Transition>
+                            </Button>
+                        </div>
+                    </Transition>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-                <Tabs :model-value="viewMode" @update:model-value="changeView" class="flex-1">
-                    <TabsList class="grid w-full max-w-[400px] grid-cols-4 bg-gray-100">
-                        <TabsTrigger value="multiMonthYear">年</TabsTrigger>
-                        <TabsTrigger value="dayGridMonth">月</TabsTrigger>
-                        <TabsTrigger value="timeGridWeek">週</TabsTrigger>
-                        <TabsTrigger value="timeGridDay">日</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+            <div class="flex items-center gap-4 transition-all duration-300 ease-in-out" :class="layoutMode === 'default' ? 'justify-between' : 'justify-end'">
+                <Transition
+                    enter-active-class="transition-all duration-300 ease-in-out"
+                    leave-active-class="transition-all duration-300 ease-in-out"
+                    enter-from-class="opacity-0 scale-95"
+                    enter-to-class="opacity-100 scale-100"
+                    leave-from-class="opacity-100 scale-100"
+                    leave-to-class="opacity-0 scale-95"
+                >
+                    <div v-if="layoutMode === 'default'" class="flex-1">
+                        <Tabs :model-value="viewMode" @update:model-value="changeView" class="flex-1">
+                            <TabsList class="grid w-full max-w-[400px] grid-cols-4 bg-gray-100">
+                                <TabsTrigger value="multiMonthYear">年</TabsTrigger>
+                                <TabsTrigger value="dayGridMonth">月</TabsTrigger>
+                                <TabsTrigger value="timeGridWeek">週</TabsTrigger>
+                                <TabsTrigger value="timeGridDay">日</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </div>
+                </Transition>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 transition-all duration-300 ease-in-out">
                     <Button 
                         v-if="canGoBack" 
                         variant="outline" 
                         size="sm" 
                         @click="goBackOneLevel"
-                        class="gap-1"
+                        class="gap-1 transition-all duration-300 ease-in-out"
                     >
                         <ChevronUp class="h-4 w-4" />
-                        戻る
+                        <Transition
+                            enter-active-class="transition-all duration-300 ease-in-out"
+                            leave-active-class="transition-all duration-300 ease-in-out"
+                            enter-from-class="w-0 opacity-0"
+                            enter-to-class="w-auto opacity-100"
+                            leave-from-class="w-auto opacity-100"
+                            leave-to-class="w-0 opacity-0"
+                        >
+                            <span v-if="layoutMode === 'default' || layoutMode === 'filter-small'" class="whitespace-nowrap">戻る</span>
+                        </Transition>
                     </Button>
                     <Button variant="outline" size="sm" @click="previousPeriod">
                         <ChevronLeft class="h-4 w-4" />
                     </Button>
-                    <div class="min-w-[200px] text-center font-semibold">
+                    <div 
+                        class="text-center font-semibold truncate transition-all duration-300 ease-in-out"
+                        :class="{
+                            'max-w-[60px]': layoutMode === 'ultra-minimal',
+                            'max-w-[80px]': layoutMode === 'minimal',
+                            'max-w-[100px]': layoutMode === 'compact', 
+                            'max-w-[120px]': layoutMode === 'title-hide',
+                            'max-w-[140px]': layoutMode === 'search-icon',
+                            'max-w-[160px]': layoutMode === 'filter-small',
+                            'min-w-[200px]': layoutMode === 'default'
+                        }"
+                    >
                         {{ calendarTitle }}
                     </div>
                     <Button variant="outline" size="sm" @click="nextPeriod">

@@ -80,16 +80,17 @@ const performSearch = async () => {
     isSearching.value = true
     try {
         const types = selectedTypes.value.filter(t => t !== '_all_')
-        const params = new URLSearchParams({
-            q: searchQuery.value,
-            search_field: searchField.value,
-            creator_name: creatorName.value === '_all_' ? '' : creatorName.value,
-            participant_name: participantName.value === '_all_' ? '' : participantName.value,
-            date_from: dateFrom.value,
-            date_to: dateTo.value,
-            date_type: dateType.value,
-            ...(types.length > 0 && { types: types.join(',') })
-        })
+        const params = new URLSearchParams()
+        params.append('q', searchQuery.value)
+        params.append('search_field', searchField.value)
+        params.append('creator_name', creatorName.value === '_all_' ? '' : creatorName.value)
+        params.append('participant_name', participantName.value === '_all_' ? '' : participantName.value)
+        params.append('date_from', dateFrom.value)
+        params.append('date_to', dateTo.value)
+        params.append('date_type', dateType.value)
+        if (types.length > 0) {
+            params.append('types', types.join(','))
+        }
         
         const response = await fetch(`/api/search?${params}`)
         const data = await response.json()
@@ -258,7 +259,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
     const currentUserId = (usePage().props as any).auth?.user?.id ?? null
     const teamMembers = (usePage().props as any).teamMembers || []
     
-    const isCreator = note.created_by === currentUserId
+    const isCreator = note.author?.id === currentUserId
     if (isCreator) return true
     
     if (Array.isArray(teamMembers) && teamMembers.length > 0 && note.participants && note.participants.length === teamMembers.length) {
@@ -407,7 +408,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         <div class="space-y-3">
                             <div class="space-y-2">
                                 <Label class="text-xs font-medium text-gray-700">種類</Label>
-                                <Select v-model="selectedTypes[0]" @update:model-value="(val) => selectedTypes = val ? [val] : []">
+                                <Select v-model="selectedTypes[0]" @update:model-value="(val: any) => selectedTypes = val ? [val] : []">
                                     <SelectTrigger class="h-8">
                                         <SelectValue placeholder="種類を選択" />
                                     </SelectTrigger>
@@ -449,7 +450,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="_all_">すべて</SelectItem>
-                                        <SelectItem v-for="user in allUsers" :key="user.id" :value="user.name">
+                                        <SelectItem v-for="user in allUsers" :key="user.id" :value="String(user.name)">
                                             {{ user.name }}
                                         </SelectItem>
                                     </SelectContent>
@@ -464,7 +465,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="_all_">すべて</SelectItem>
-                                        <SelectItem v-for="user in allUsers" :key="user.id" :value="user.name">
+                                        <SelectItem v-for="user in allUsers" :key="user.id" :value="String(user.name)">
                                             {{ user.name }}
                                         </SelectItem>
                                     </SelectContent>

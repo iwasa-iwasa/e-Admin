@@ -624,7 +624,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 </Label>
                                             </div>
                                         </div>
-                                        <div class="flex flex-col lg:flex-row gap-4 items-end">
+                                        <div class="flex flex-col lg:flex-row gap-4 lg:items-end">
                                             <div class="flex-1">
                                                 <Label class="flex items-center gap-2 mb-2">
                                                     <CalendarIcon class="h-4 w-4" />
