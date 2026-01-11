@@ -25,7 +25,7 @@ const props = defineProps<{
   reminders: App.Models.Reminder[]
 }>()
 
-const selectedReminder = ref<App.Models.Reminder | null>(null)
+const selectedReminder = ref<any>(null)
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
