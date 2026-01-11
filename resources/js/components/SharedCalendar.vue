@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import FullCalendar from '@fullcalendar/vue3'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp, ChevronDown } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp, ChevronDown, Filter } from 'lucide-vue-next'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -232,6 +232,34 @@ const isSearchOpen = ref(false)
 const headerRef = ref<HTMLElement | null>(null)
 const layoutMode = ref<'default'|'filter-small'|'search-icon'|'title-hide'|'compact'|'minimal'|'ultra-minimal'>('default')
 
+// 縮小時の日付表示用
+const compactCalendarTitle = computed(() => {
+    if (layoutMode.value === 'default' || layoutMode.value === 'filter-small') {
+        return calendarTitle.value
+    }
+    
+    if (viewMode.value === 'timeGridDay') {
+        // 日表示: 「3月16日」のみ
+        return currentDayViewDate.value.toLocaleDateString('ja-JP', {
+            month: 'long',
+            day: 'numeric'
+        })
+    } else if (viewMode.value === 'timeGridWeek') {
+        // 週表示: 「3月16日〜22日」
+        const start = new Date(currentWeekStart.value)
+        const end = new Date(start)
+        end.setDate(end.getDate() + 6)
+        if (start.getMonth() === end.getMonth()) {
+            return `${start.getMonth() + 1}月${start.getDate()}日〜${end.getDate()}日`
+        } else {
+            return `${start.getMonth() + 1}月${start.getDate()}日〜${end.getMonth() + 1}月${end.getDate()}日`
+        }
+    } else {
+        // 月表示や年表示は既存のタイトルを使用
+        return calendarTitle.value
+    }
+})
+
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
@@ -282,7 +310,7 @@ const toggleSearch = () => {
     <Card class="flex flex-col h-full overflow-hidden">
         <div ref="headerRef" class="p-4">
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2 min-w-0" 
+                <div class="flex items-center gap-2 min-w-0 flex-shrink-0" 
                     :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" 
                     @click="!showBackButton && router.visit('/calendar')">
                     <Button v-if="showBackButton" variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
@@ -308,33 +336,14 @@ const toggleSearch = () => {
                     </Transition>
                 </div>
                 <!-- 右上操作エリア -->
-                <div class="flex items-center gap-2 min-w-0">
+                <div class="flex items-center gap-2 min-w-0 flex-shrink">
                     <!-- ジャンル Select -->
-                    <div class="transition-all duration-300 ease-in-out">
+                    <div class="transition-all duration-300 ease-in-out flex-shrink">
                         <Select v-model="genreFilter" :key="`genre-${layoutMode}`">
                             <SelectTrigger 
-                                class="transition-all duration-300 ease-in-out"
-                                :class="{
-                                    'w-10 justify-center px-0': layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal',
-                                    'w-[80px]': layoutMode === 'title-hide',
-                                    'w-[100px]': layoutMode === 'search-icon',
-                                    'w-[120px]': layoutMode === 'filter-small',
-                                    'w-[140px]': layoutMode === 'default'
-                                }"
+                                class="transition-all duration-300 ease-in-out w-10 justify-center px-0 [&>svg:last-child]:hidden"
                             >
-                                <Transition
-                                    enter-active-class="transition-all duration-300 ease-in-out"
-                                    leave-active-class="transition-all duration-300 ease-in-out"
-                                    enter-from-class="w-0 opacity-0"
-                                    enter-to-class="w-auto opacity-100"
-                                    leave-from-class="w-auto opacity-100"
-                                    leave-to-class="w-0 opacity-0"
-                                >
-                                    <SelectValue 
-                                        v-if="layoutMode === 'default' || layoutMode === 'filter-small' || layoutMode === 'search-icon' || layoutMode === 'title-hide'" 
-                                        placeholder="ジャンル"
-                                    />
-                                </Transition>
+                                <Filter class="h-4 w-4" />
                             </SelectTrigger>
                         <SelectContent>
                             <SelectItem :value="GENRE_FILTERS.ALL">すべて</SelectItem>
@@ -379,7 +388,7 @@ const toggleSearch = () => {
                     </div>
 
                     <!-- 検索エリア -->
-                    <div class="relative transition-all duration-300 ease-in-out">
+                    <div class="relative transition-all duration-300 ease-in-out flex-shrink">
                         <div v-if="!showBackButton && (layoutMode === 'default' || layoutMode === 'filter-small')" class="relative">
                             <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                             <Input
@@ -438,7 +447,7 @@ const toggleSearch = () => {
                             <Button
                                 :key="`create-${layoutMode}`"
                                 variant="outline"
-                                class="transition-all duration-300 ease-in-out"
+                                class="transition-all duration-300 ease-in-out flex-shrink-0"
                                 :class="layoutMode === 'default' || layoutMode === 'filter-small' ? 'gap-2' : ''"
                                 @click="openCreateDialog"
                                 :title="layoutMode === 'search-icon' || layoutMode === 'title-hide' || layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal' ? '新規作成' : undefined"
@@ -489,7 +498,7 @@ const toggleSearch = () => {
                         variant="outline" 
                         size="sm" 
                         @click="goBackOneLevel"
-                        class="gap-1 transition-all duration-300 ease-in-out"
+                        class="gap-1 transition-all duration-300 ease-in-out flex-shrink-0"
                     >
                         <ChevronUp class="h-4 w-4" />
                         <Transition
@@ -503,27 +512,18 @@ const toggleSearch = () => {
                             <span v-if="layoutMode === 'default' || layoutMode === 'filter-small'" class="whitespace-nowrap">戻る</span>
                         </Transition>
                     </Button>
-                    <Button variant="outline" size="sm" @click="previousPeriod">
+                    <Button variant="outline" size="sm" @click="previousPeriod" class="flex-shrink-0">
                         <ChevronLeft class="h-4 w-4" />
                     </Button>
                     <div 
-                        class="text-center font-semibold truncate transition-all duration-300 ease-in-out"
-                        :class="{
-                            'max-w-[60px]': layoutMode === 'ultra-minimal',
-                            'max-w-[80px]': layoutMode === 'minimal',
-                            'max-w-[100px]': layoutMode === 'compact', 
-                            'max-w-[120px]': layoutMode === 'title-hide',
-                            'max-w-[140px]': layoutMode === 'search-icon',
-                            'max-w-[160px]': layoutMode === 'filter-small',
-                            'min-w-[200px]': layoutMode === 'default'
-                        }"
+                        class="text-center font-semibold truncate transition-all duration-300 ease-in-out flex-shrink-0"
                     >
-                        {{ calendarTitle }}
+                        {{ compactCalendarTitle }}
                     </div>
-                    <Button variant="outline" size="sm" @click="nextPeriod">
+                    <Button variant="outline" size="sm" @click="nextPeriod" class="flex-shrink-0">
                         <ChevronRight class="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" @click="handleTodayClick">{{ todayButtonText }}</Button>
+                    <Button variant="outline" size="sm" @click="handleTodayClick" class="flex-shrink-0">{{ todayButtonText }}</Button>
                 </div>
             </div>
         </div>
@@ -557,7 +557,17 @@ const toggleSearch = () => {
 
         <CardContent>
         <div class="flex flex-wrap gap-x-3 gap-y-2 text-xs mt-1">
-            <div v-for="item in CATEGORY_ITEMS" :key="item.label" class="flex items-center gap-1.5">
+            <div v-for="item in CATEGORY_ITEMS" :key="item.label" class="flex items-center gap-1.5 transition-all duration-200"
+                :class="{
+                    'ring-2 ring-blue-500 ring-offset-1 rounded px-1 py-0.5': 
+                        (genreFilter as string) === GENRE_FILTERS.BLUE && item.label === '会議' ||
+                        (genreFilter as string) === GENRE_FILTERS.GREEN && item.label === '業務' ||
+                        (genreFilter as string) === GENRE_FILTERS.YELLOW && item.label === '来客' ||
+                        (genreFilter as string) === GENRE_FILTERS.PURPLE && item.label === '出張' ||
+                        (genreFilter as string) === GENRE_FILTERS.PINK && item.label === '休暇' ||
+                        (genreFilter as string) === GENRE_FILTERS.OTHER && item.label === 'その他'
+                }"
+            >
                 <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
                 <span>{{ item.label }}</span>
             </div>
