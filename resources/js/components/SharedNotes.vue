@@ -12,6 +12,7 @@ import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 type Priority = 'high' | 'medium' | 'low'
 type SortKey = 'priority' | 'deadline'
 type SortDirection = 'asc' | 'desc'
+type HeaderStage = 'normal' | 'compact' | 'iconOnly'
 
 const props = defineProps<{
   notes: App.Models.SharedNote[]
@@ -39,8 +40,8 @@ const selectedNote = ref<App.Models.SharedNote | null>(null)
 const saveMessage = ref('')
 const messageTimer = ref<number | null>(null)
 const skipDialogOpen = ref(false)
-const isNarrow = ref(false)
-const sortButtonContainerRef = ref<HTMLElement | null>(null)
+const headerRef = ref<HTMLElement | null>(null)
+const headerStage = ref<HeaderStage>('normal')
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
@@ -59,20 +60,18 @@ onMounted(() => {
     }, 500)
   }
   
-  if (sortButtonContainerRef.value) {
-    const checkWidth = () => {
-      if (sortButtonContainerRef.value) {
-        const width = sortButtonContainerRef.value.offsetWidth
-        isNarrow.value = width < 220
+  if (headerRef.value) {
+    resizeObserver = new ResizeObserver(entries => {
+      const width = entries[0].contentRect.width
+      if (width < 350) {
+        headerStage.value = 'iconOnly'
+      } else if (width < 520) {
+        headerStage.value = 'compact'
+      } else {
+        headerStage.value = 'normal'
       }
-    }
-    
-    checkWidth()
-    
-    resizeObserver = new ResizeObserver(() => {
-      checkWidth()
     })
-    resizeObserver.observe(sortButtonContainerRef.value)
+    resizeObserver.observe(headerRef.value)
   }
 })
 
@@ -261,19 +260,42 @@ const sortedNotes = computed(() => {
 <template>
   <Card class="h-full flex flex-col">
     <CardHeader>
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/notes')">
-          <StickyNote class="h-6 w-6 text-orange-600" />
-          <CardTitle>共有メモ</CardTitle>
+      <div ref="headerRef" class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/notes')">
+          <StickyNote class="h-6 w-6 text-orange-600 flex-shrink-0" />
+          <Transition
+            enter-active-class="transition-all duration-300 ease-in-out"
+            leave-active-class="transition-all duration-300 ease-in-out"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <CardTitle v-if="headerStage !== 'iconOnly'" class="whitespace-nowrap">共有メモ</CardTitle>
+          </Transition>
         </div>
-        <div class="flex items-center gap-3 flex-wrap">
-          <div ref="sortButtonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg flex-wrap', isNarrow ? 'flex-col' : 'flex-row items-center']">
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <div class="flex gap-1 p-1 bg-gray-100 rounded-lg">
             <button
               @click="handleSortClick('priority')"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="[
+                'flex items-center justify-center rounded text-xs transition-all duration-300 ease-in-out',
+                headerStage === 'iconOnly' ? 'w-8 h-8 p-0' : 'gap-1 py-1 px-2',
+                sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500'
+              ]"
+              :title="headerStage !== 'normal' ? '重要度順' : undefined"
             >
               <AlertCircle :class="['h-3.5 w-3.5 flex-shrink-0', sortKey === 'priority' ? 'text-red-500' : 'text-gray-400']" />
-              <span>重要度順</span>
+              <Transition
+                enter-active-class="transition-all duration-300 ease-in-out"
+                leave-active-class="transition-all duration-300 ease-in-out"
+                enter-from-class="w-0 opacity-0"
+                enter-to-class="w-auto opacity-100"
+                leave-from-class="w-auto opacity-100"
+                leave-to-class="w-0 opacity-0"
+              >
+                <span v-if="headerStage === 'normal'" class="whitespace-nowrap">重要度順</span>
+              </Transition>
               <component 
                 :is="sortDirection === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'priority'" 
@@ -282,10 +304,24 @@ const sortedNotes = computed(() => {
             </button>
             <button
               @click="handleSortClick('deadline')"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="[
+                'flex items-center justify-center rounded text-xs transition-all duration-300 ease-in-out',
+                headerStage === 'iconOnly' ? 'w-8 h-8 p-0' : 'gap-1 py-1 px-2',
+                sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500'
+              ]"
+              :title="headerStage !== 'normal' ? '期限順' : undefined"
             >
               <Calendar :class="['h-3.5 w-3.5 flex-shrink-0', sortKey === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
-              <span>期限順</span>
+              <Transition
+                enter-active-class="transition-all duration-300 ease-in-out"
+                leave-active-class="transition-all duration-300 ease-in-out"
+                enter-from-class="w-0 opacity-0"
+                enter-to-class="w-auto opacity-100"
+                leave-from-class="w-auto opacity-100"
+                leave-to-class="w-0 opacity-0"
+              >
+                <span v-if="headerStage === 'normal'" class="whitespace-nowrap">期限順</span>
+              </Transition>
               <component 
                 :is="sortDirection === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'deadline'" 
@@ -293,15 +329,35 @@ const sortedNotes = computed(() => {
               />
             </button>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            class="h-8 gap-1 flex-shrink-0"
-            @click="isCreateDialogOpen = true"
+          <Transition
+            enter-active-class="transition-all duration-300 ease-in-out"
+            leave-active-class="transition-all duration-300 ease-in-out"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
           >
-            <Plus class="h-3 w-3" />
-            新規作成
-          </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              class="transition-all duration-300 ease-in-out flex-shrink-0"
+              :class="headerStage === 'normal' ? 'gap-1' : ''"
+              @click="isCreateDialogOpen = true"
+              :title="headerStage !== 'normal' ? '新規作成' : undefined"
+            >
+              <Plus class="h-3 w-3" />
+              <Transition
+                enter-active-class="transition-all duration-300 ease-in-out"
+                leave-active-class="transition-all duration-300 ease-in-out"
+                enter-from-class="w-0 opacity-0"
+                enter-to-class="w-auto opacity-100"
+                leave-from-class="w-auto opacity-100"
+                leave-to-class="w-0 opacity-0"
+              >
+                <span v-if="headerStage === 'normal'" class="whitespace-nowrap">新規作成</span>
+              </Transition>
+            </Button>
+          </Transition>
         </div>
       </div>
     </CardHeader>
