@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, withDefaults } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3' // Inertiaのインポート
 import { StickyNote, Plus, User, AlertCircle, Calendar, MapPin, CheckCircle, Undo2 } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

@@ -80,6 +80,16 @@ export function useCalendarDom(
         todayMidnight.setHours(0, 0, 0, 0)
         isTodayInViewForFullCalendar.value = info.view.currentStart <= todayMidnight && todayMidnight < info.view.currentEnd
 
+        // 月表示に切り替わった時に今日の週にスクロール
+        if (info.view.type === 'dayGridMonth') {
+            setTimeout(() => {
+                const todayCell = document.querySelector('.fc-day-today')
+                if (todayCell) {
+                    todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }
+            }, 200)
+        }
+
         // 年表示：月セル全体をクリック可能にする（軽量化）
         if (viewMode.value === 'multiMonthYear') {
             setTimeout(() => {

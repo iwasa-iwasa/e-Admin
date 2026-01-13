@@ -25,15 +25,15 @@ const props = defineProps<{
   reminders: App.Models.Reminder[]
 }>()
 
-const selectedReminder = ref<App.Models.Reminder | null>(null)
+const selectedReminder = ref<any>(null)
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
 const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
 const showCompleted = ref(false)
 const reminderToDelete = ref<App.Models.Reminder | null>(null)
-const isNarrow = ref(false)
-const buttonContainerRef = ref<HTMLElement | null>(null)
+const headerRef = ref<HTMLElement | null>(null)
+const headerStage = ref<'normal' | 'compact' | 'titleCut' | 'iconOnly'>('normal')
 let resizeObserver: ResizeObserver | null = null
 
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
@@ -184,20 +184,20 @@ const confirmPermanentDelete = () => {
 }
 
 onMounted(() => {
-  if (buttonContainerRef.value) {
-    const checkWidth = () => {
-      if (buttonContainerRef.value) {
-        const width = buttonContainerRef.value.offsetWidth
-        isNarrow.value = width < 220
+  if (headerRef.value) {
+    resizeObserver = new ResizeObserver(entries => {
+      const width = entries[0].contentRect.width
+      if (width < 350) {
+        headerStage.value = 'iconOnly'
+      } else if (width < 500) {
+        headerStage.value = 'titleCut'
+      } else if (width < 650) {
+        headerStage.value = 'compact'
+      } else {
+        headerStage.value = 'normal'
       }
-    }
-    
-    checkWidth()
-    
-    resizeObserver = new ResizeObserver(() => {
-      checkWidth()
     })
-    resizeObserver.observe(buttonContainerRef.value)
+    resizeObserver.observe(headerRef.value)
   }
   
   // ハイライト機能
@@ -232,43 +232,110 @@ onUnmounted(() => {
 <template>
   <Card class="h-full flex flex-col relative">
     <CardHeader>
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
-          <Bell class="h-6 w-6 text-green-700" />
-          <CardTitle>個人リマインダー</CardTitle>
+      <div ref="headerRef" class="flex items-center gap-2">
+        <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
+          <Bell class="h-6 w-6 text-green-700 flex-shrink-0" />
+          <Transition
+            enter-active-class="transition-all duration-300 ease-in-out"
+            leave-active-class="transition-all duration-300 ease-in-out"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
+              :class="[headerStage !== 'normal' && 'truncate',
+              {
+                'max-w-full': headerStage === 'normal',
+                'max-w-[220px]': headerStage === 'titleCut',
+                'max-w-[140px]': headerStage === 'iconOnly',
+              },
+              ]"
+            >
+              個人リマインダー
+            </CardTitle>
+          </Transition>
         </div>
-        <div class="flex items-center gap-3 flex-wrap">
-          <div ref="buttonContainerRef" :class="['flex gap-2 p-1 bg-gray-100 rounded-lg flex-wrap', isNarrow ? 'flex-col' : 'flex-row items-center']">
+        <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
+          <div class="flex gap-1 p-1 bg-gray-100 rounded-lg">
             <button
               @click="showCompleted = false"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="[
+                'flex items-center justify-center rounded text-xs transition-all duration-300 ease-in-out',
+                headerStage === 'iconOnly' ? 'w-8 h-8 p-0' : 'gap-1 py-1 px-2',
+                !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500'
+              ]"
+              :title="headerStage !== 'normal' ? '未完了' : undefined"
             >
               <Clock :class="['h-3.5 w-3.5 flex-shrink-0', !showCompleted ? 'text-orange-500' : 'text-gray-400']" />
-              <span>未完了</span>
+              <Transition
+                enter-active-class="transition-all duration-300 ease-in-out"
+                leave-active-class="transition-all duration-300 ease-in-out"
+                enter-from-class="w-0 opacity-0"
+                enter-to-class="w-auto opacity-100"
+                leave-from-class="w-auto opacity-100"
+                leave-to-class="w-0 opacity-0"
+              >
+                <span v-if="headerStage === 'normal'" class="whitespace-nowrap">未完了</span>
+              </Transition>
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ activeCount }}
               </Badge>
             </button>
             <button
               @click="showCompleted = true"
-              :class="['flex items-center justify-center gap-1 py-1 px-2 rounded text-xs transition-all min-w-[100px] flex-shrink-0', showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="[
+                'flex items-center justify-center rounded text-xs transition-all duration-300 ease-in-out',
+                headerStage === 'iconOnly' ? 'w-8 h-8 p-0' : 'gap-1 py-1 px-2',
+                showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500'
+              ]"
+              :title="headerStage !== 'normal' ? '完了済' : undefined"
             >
               <CheckCircle :class="['h-3.5 w-3.5 flex-shrink-0', showCompleted ? 'text-green-500' : 'text-gray-400']" />
-              <span>完了済</span>
+              <Transition
+                enter-active-class="transition-all duration-300 ease-in-out"
+                leave-active-class="transition-all duration-300 ease-in-out"
+                enter-from-class="w-0 opacity-0"
+                enter-to-class="w-auto opacity-100"
+                leave-from-class="w-auto opacity-100"
+                leave-to-class="w-0 opacity-0"
+              >
+                <span v-if="headerStage === 'normal'" class="whitespace-nowrap">完了済</span>
+              </Transition>
               <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
                 {{ completedCount }}
               </Badge>
             </button>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            class="h-8 gap-1 flex-shrink-0"
-            @click="isCreateDialogOpen = true"
+          <Transition
+            enter-active-class="transition-all duration-300 ease-in-out"
+            leave-active-class="transition-all duration-300 ease-in-out"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
           >
-            <Plus class="h-3 w-3" />
-            新規作成
-          </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              class="transition-all duration-300 ease-in-out flex-shrink-0"
+              :class="headerStage === 'normal' ? 'gap-1' : ''"
+              @click="isCreateDialogOpen = true"
+              :title="headerStage !== 'normal' ? '新規作成' : undefined"
+            >
+              <Plus class="h-3 w-3" />
+              <Transition
+                enter-active-class="transition-all duration-300 ease-in-out"
+                leave-active-class="transition-all duration-300 ease-in-out"
+                enter-from-class="w-0 opacity-0"
+                enter-to-class="w-auto opacity-100"
+                leave-from-class="w-auto opacity-100"
+                leave-to-class="w-0 opacity-0"
+              >
+                <span v-if="headerStage === 'normal'" class="whitespace-nowrap">新規作成</span>
+              </Transition>
+            </Button>
+          </Transition>
         </div>
       </div>
     </CardHeader>

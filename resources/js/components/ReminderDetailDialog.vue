@@ -24,6 +24,11 @@ import {
 import { useForm } from '@inertiajs/vue3'
 import { router } from '@inertiajs/vue3'
 
+interface Tag {
+  tag_id: number;
+  tag_name: string;
+}
+
 interface Reminder {
   id?: number;
   reminder_id: number;
@@ -41,6 +46,7 @@ interface Reminder {
   updated_at: string | null;
   deleted_at: string | null;
   completedAt?: string;
+  tags?: Tag[];
 }
 
 const props = defineProps<{ 
@@ -132,7 +138,7 @@ watch(() => props.open, (isOpen) => {
       form.title = props.reminder.title
       form.description = props.reminder.description || ''
       form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
-      form.tags = props.reminder.tags?.map((t: any) => t.tag_name) || []
+      form.tags = props.reminder.tags?.map(t => t.tag_name) || []
       clearDraft()
     } else {
       // 新規作成モード
@@ -173,7 +179,7 @@ watch(() => props.reminder, (newReminder) => {
     form.title = newReminder.title
     form.description = newReminder.description || ''
     form.deadline = formatDateTimeForInput(newReminder.deadline_date, newReminder.deadline_time)
-    form.tags = newReminder.tags?.map((t: any) => t.tag_name) || []
+    form.tags = newReminder.tags?.map(t => t.tag_name) || []
   } else if (props.open) {
     // 新規作成モード
     editedReminder.value = createDefaultReminder()
@@ -209,7 +215,7 @@ const handleEdit = () => {
     form.title = props.reminder.title
     form.description = props.reminder.description || ''
     form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
-    form.tags = props.reminder.tags?.map((t: any) => t.tag_name) || []
+    form.tags = props.reminder.tags?.map(t => t.tag_name) || []
   }
 }
 
@@ -313,7 +319,7 @@ const handleCancel = () => {
     form.title = props.reminder.title
     form.description = props.reminder.description || ''
     form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
-    form.tags = props.reminder.tags?.map((t: any) => t.tag_name) || []
+    form.tags = props.reminder.tags?.map(t => t.tag_name) || []
   } else {
     editedReminder.value = createDefaultReminder()
   }
