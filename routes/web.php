@@ -1,13 +1,19 @@
 <?php
 
-use App\Http\Controllers\SurveyController;
-use App\Http\Controllers\ReminderController;
-use App\Http\Controllers\PersonalReminderController;
-use App\Http\Controllers\NoteController;
+use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\Api\ActivityController;
+use App\Http\Controllers\Api\UserController as ApiUserController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PersonalReminderController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReminderController;
+use App\Http\Controllers\SurveyController;
+use App\Http\Controllers\TrashAutoDeleteController;
+use App\Http\Controllers\TrashController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -41,85 +47,96 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
 
-    Route::get('/notes', [NoteController::class, 'index'])->name('notes');
-    Route::post('/shared-notes', [NoteController::class, 'store'])->name('shared-notes.store');
-    Route::put('/shared-notes/{note}', [NoteController::class, 'update'])->name('shared-notes.update');
-    Route::delete('/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
-    Route::post('/notes/{note}/restore', [NoteController::class, 'restore'])->name('notes.restore');
-    Route::post('/notes/{note}/pin', [NoteController::class, 'pin'])->name('notes.pin');
-    Route::delete('/notes/{note}/unpin', [NoteController::class, 'unpin'])->name('notes.unpin');
+    // Notes
+    Route::controller(NoteController::class)->group(function () {
+        Route::get('/notes', 'index')->name('notes');
+        Route::post('/shared-notes', 'store')->name('shared-notes.store');
+        Route::put('/shared-notes/{note}', 'update')->name('shared-notes.update');
+        Route::delete('/notes/{note}', 'destroy')->name('notes.destroy');
+        Route::post('/notes/{note}/restore', 'restore')->name('notes.restore');
+        Route::post('/notes/{note}/pin', 'pin')->name('notes.pin');
+        Route::delete('/notes/{note}/unpin', 'unpin')->name('notes.unpin');
+    });
 
-    Route::get('/surveys', [SurveyController::class, 'index'])->name('surveys');
-    Route::post('/surveys', [SurveyController::class, 'store'])->name('surveys.store');
-    Route::get('/surveys/{survey}/edit', [SurveyController::class, 'edit'])->name('surveys.edit');
-    Route::put('/surveys/{survey}', [SurveyController::class, 'update'])->name('surveys.update');
-    Route::delete('/surveys/{survey}', [SurveyController::class, 'destroy'])->name('surveys.destroy');
-    Route::post('/surveys/{survey}/restore', [SurveyController::class, 'restore'])->name('surveys.restore');
-    Route::get('/surveys/{survey}/answer', [SurveyController::class, 'answer'])->name('surveys.answer');
-    Route::post('/surveys/{survey}/submit', [SurveyController::class, 'submitAnswer'])->name('surveys.submit');
-    //Survey Results and Export
-    Route::get('/surveys/{survey}/results', [SurveyController::class, 'results'])->name('surveys.results');
-    Route::get('/surveys/{survey}/export', [SurveyController::class, 'export'])->name('surveys.export');
+    // Surveys
+    Route::controller(SurveyController::class)->group(function () {
+        Route::get('/surveys', 'index')->name('surveys');
+        Route::post('/surveys', 'store')->name('surveys.store');
+        Route::get('/surveys/{survey}/edit', 'edit')->name('surveys.edit');
+        Route::put('/surveys/{survey}', 'update')->name('surveys.update');
+        Route::delete('/surveys/{survey}', 'destroy')->name('surveys.destroy');
+        Route::post('/surveys/{survey}/restore', 'restore')->name('surveys.restore');
+        Route::get('/surveys/{survey}/answer', 'answer')->name('surveys.answer');
+        Route::post('/surveys/{survey}/submit', 'submitAnswer')->name('surveys.submit');
+        Route::get('/surveys/{survey}/results', 'results')->name('surveys.results');
+        Route::get('/surveys/{survey}/export', 'export')->name('surveys.export');
+    });
 
+    // Reminders
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders');
-    Route::post('/reminders', [PersonalReminderController::class, 'store'])->name('reminders.store');
-    Route::put('/reminders/{reminder}', [PersonalReminderController::class, 'update'])->name('reminders.update');
-    Route::patch('/reminders/{reminder}/complete', [PersonalReminderController::class, 'completeReminder'])->name('reminders.complete');
-    Route::post('/reminders/restore', [PersonalReminderController::class, 'restoreReminder'])->name('reminders.restore');
-    Route::post('/reminders/bulk-complete', [PersonalReminderController::class, 'bulkComplete'])->name('reminders.bulkComplete');
-    Route::post('/reminders/bulk-restore', [PersonalReminderController::class, 'bulkRestore'])->name('reminders.bulkRestore');
-    Route::post('/reminders/bulk-delete', [PersonalReminderController::class, 'bulkDelete'])->name('reminders.bulkDelete');
-    Route::delete('/reminders/{reminder}', [PersonalReminderController::class, 'destroy'])->name('reminders.destroy');
+    Route::controller(PersonalReminderController::class)->prefix('reminders')->name('reminders.')->group(function () {
+        Route::post('/', 'store')->name('store');
+        Route::put('/{reminder}', 'update')->name('update');
+        Route::patch('/{reminder}/complete', 'completeReminder')->name('complete');
+        Route::post('/restore', 'restoreReminder')->name('restore');
+        Route::post('/bulk-complete', 'bulkComplete')->name('bulkComplete');
+        Route::post('/bulk-restore', 'bulkRestore')->name('bulkRestore');
+        Route::post('/bulk-delete', 'bulkDelete')->name('bulkDelete');
+        Route::delete('/{reminder}', 'destroy')->name('destroy');
+    });
 
     // Trash
-    Route::get('/trash', [\App\Http\Controllers\TrashController::class, 'index'])->name('trash');
-    Route::post('/trash/{id}/restore', [\App\Http\Controllers\TrashController::class, 'restore'])->name('trash.restore');
-    Route::post('/trash/restore-multiple', [\App\Http\Controllers\TrashController::class, 'restoreMultiple'])->name('trash.restoreMultiple');
-    Route::delete('/trash/{id}', [\App\Http\Controllers\TrashController::class, 'destroy'])->name('trash.destroy');
-    Route::post('/trash/destroy-multiple', [\App\Http\Controllers\TrashController::class, 'destroyMultiple'])->name('trash.destroyMultiple');
-    Route::delete('/trash', [\App\Http\Controllers\TrashController::class, 'emptyTrash'])->name('trash.empty');
+    Route::get('/trash', [TrashController::class, 'index'])->name('trash');
+    Route::controller(TrashController::class)->prefix('trash')->name('trash.')->group(function () {
+        Route::post('/{id}/restore', 'restore')->name('restore');
+        Route::post('/restore-multiple', 'restoreMultiple')->name('restoreMultiple');
+        Route::delete('/{id}', 'destroy')->name('destroy');
+        Route::post('/destroy-multiple', 'destroyMultiple')->name('destroyMultiple');
+        Route::delete('/', 'emptyTrash')->name('empty');
+    });
     
     // Trash Auto Delete Settings (総務部のみ)
-    Route::get('/trash/auto-delete', [\App\Http\Controllers\TrashAutoDeleteController::class, 'index'])->name('trash.auto-delete');
-    Route::post('/trash/auto-delete', [\App\Http\Controllers\TrashAutoDeleteController::class, 'update'])->name('trash.auto-delete.update');
+    Route::controller(TrashAutoDeleteController::class)->prefix('trash/auto-delete')->name('trash.auto-delete')->group(function () {
+         Route::get('/', 'index')->name('');
+         Route::post('/', 'update')->name('.update');
+    });
 
     // Member Calendar Route Removed
 
-    Route::post('/events', [CalendarController::class, 'store'])->name('events.store');
-    Route::put('/events/{event}', [CalendarController::class, 'update'])->name('events.update');
-    Route::delete('/events/{event}', [CalendarController::class, 'destroy'])->name('events.destroy');
-    Route::post('/events/{event}/restore', [CalendarController::class, 'restore'])->name('events.restore');
-
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // Notifications API
-    Route::get('/api/notifications', [NotificationController::class, 'getNotifications']);
-    
-    // Global Search API
-    Route::get('/api/search', [\App\Http\Controllers\GlobalSearchController::class, 'search']);
-    Route::get('/api/users', function() {
-        return response()->json(\App\Models\User::where('is_active', true)->select('id', 'name')->orderBy('name')->get());
-    });
-    Route::get('/api/events', [CalendarController::class, 'getEventsApi'])->name('api.events.index');
-    Route::get('/api/events/{id}', [CalendarController::class, 'show']);
-    Route::get('/api/notes/{id}', [NoteController::class, 'show']);
-    Route::get('/api/reminders/{id}', [PersonalReminderController::class, 'show']);
-    Route::get('/api/surveys/{id}', [SurveyController::class, 'show']);
-    Route::post('/api/track-activity', function(Request $request) {
-        \App\Models\RecentActivity::track(
-            auth()->id(),
-            $request->input('type'),
-            $request->input('id')
-        );
-        return response()->json(['success' => true]);
+    // Events
+    Route::controller(CalendarController::class)->prefix('events')->name('events.')->group(function () {
+        Route::post('/', 'store')->name('store');
+        Route::put('/{event}', 'update')->name('update');
+        Route::delete('/{event}', 'destroy')->name('destroy');
+        Route::post('/{event}/restore', 'restore')->name('restore');
     });
 
-    Route::middleware(['auth', 'verified', 'admin'])->group(function () {
-        Route::get('/admin/users', [\App\Http\Controllers\AdminUserController::class, 'index'])->name('admin.users.index');
-        Route::delete('/admin/users/{user}', [\App\Http\Controllers\AdminUserController::class, 'destroy'])->name('admin.users.destroy');
-        Route::patch('/admin/users/{user}/restore', [\App\Http\Controllers\AdminUserController::class, 'restore'])->name('admin.users.restore');
+    Route::controller(ProfileController::class)->prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', 'edit')->name('edit');
+        Route::patch('/', 'update')->name('update');
+        Route::delete('/', 'destroy')->name('destroy');
+    });
+
+    // API Routes
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/notifications', [NotificationController::class, 'getNotifications']);
+        Route::get('/search', [GlobalSearchController::class, 'search']);
+        Route::get('/users', [ApiUserController::class, 'index']);
+        
+        Route::get('/events', [CalendarController::class, 'getEventsApi'])->name('events.index');
+        Route::get('/events/{id}', [CalendarController::class, 'show']);
+        Route::get('/notes/{id}', [NoteController::class, 'show']);
+        Route::get('/reminders/{id}', [PersonalReminderController::class, 'show']);
+        Route::get('/surveys/{id}', [SurveyController::class, 'show']);
+        Route::post('/track-activity', [ActivityController::class, 'track']);
+    });
+
+    Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::controller(AdminUserController::class)->prefix('users')->name('users.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::delete('/{user}', 'destroy')->name('destroy');
+            Route::patch('/{user}/restore', 'restore')->name('restore');
+        });
     });
 });
 
