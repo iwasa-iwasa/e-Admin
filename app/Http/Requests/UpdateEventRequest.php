@@ -3,6 +3,9 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use App\Enums\EventCategory;
+use App\Enums\EventImportance;
 
 class UpdateEventRequest extends FormRequest
 {
@@ -34,8 +37,8 @@ class UpdateEventRequest extends FormRequest
             'location' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'url' => 'nullable|url|max:500',
-            'category' => 'required|string|in:会議,休暇,業務,重要,来客,出張,その他',
-            'importance' => 'required|string|in:重要,中,低',
+            'category' => ['required', Rule::enum(EventCategory::class)],
+            'importance' => ['required', Rule::enum(EventImportance::class)],
             'progress' => 'nullable|integer|min:0|max:100',
             'attachments' => 'nullable|array',
             'attachments.new_files' => 'nullable|array',
