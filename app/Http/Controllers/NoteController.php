@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreSharedNoteRequest;
+use App\Http\Requests\UpdateSharedNoteRequest;
 use App\Models\SharedNote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -85,21 +87,9 @@ class NoteController extends Controller
     /**
      * 新しい共有メモをデータベースに保存する。
      */
-    public function store(Request $request)
+    public function store(StoreSharedNoteRequest $request)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'content' => ['nullable', 'string'],
-            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple,gray'],
-            'priority' => ['nullable', 'string', 'in:low,medium,high'],
-            'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
-            'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'participants' => ['nullable', 'array'],
-            'participants.*' => ['exists:users,id'],
-            'tags' => ['nullable', 'array'],
-            'tags.*' => ['string', 'max:50'],
-            'pinned' => ['nullable', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         // deadlineをdeadline_dateとdeadline_timeに分割
         $deadlineDate = null;
@@ -167,20 +157,9 @@ class NoteController extends Controller
     /**
      * 共有メモを更新します。
      */
-    public function update(Request $request, SharedNote $note)
+    public function update(UpdateSharedNoteRequest $request, SharedNote $note)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'content' => ['nullable', 'string'],
-            'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple,gray'],
-            'priority' => ['nullable', 'string', 'in:low,medium,high'],
-            'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
-            'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'participants' => ['nullable', 'array'],
-            'participants.*' => ['exists:users,id'],
-            'tags' => ['nullable', 'array'],
-            'tags.*' => ['string', 'max:50'],
-        ]);
+        $validated = $request->validated();
 
         // deadlineをdeadline_dateとdeadline_timeに分割
         $deadlineDate = null;
