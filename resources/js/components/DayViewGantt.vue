@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, watch, ref, onMounted, onUnmounted, nextTick} from 'vue'
+import { computed, watch, ref, onMounted, onUnmounted, nextTick, toRef} from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
+import { useGanttCalculator } from '@/composables/calendar/useGanttCalculator'
+import { getEventColor } from '@/constants/calendar'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -16,177 +18,29 @@ const emit = defineEmits<{
 
 const page = usePage()
 const teamMembers = computed(() => (page.props as any).teamMembers || [])
-const localEvents = ref<App.Models.Event[]>([...props.events])
+const ganttContainerRef = ref<HTMLElement | null>(null)
 
-// propsの変更を監視してリアルタイム更新
-watch(() => props.events, (newEvents) => {
-    localEvents.value = [...newEvents]
-}, { deep: true })
+// Gantt Calculator Composable
+const {
+    updateViewportWidth,
+    scopeRanges,
+    visibleHours,
+    timeGridWidth,
+    hourWidth,
+    memberEvents,
+    getEventStyle,
+    currentTimePosition,
+    summaryByMember,
+    totalSummary,
+    workStartHour,
+    workEndHour
+} = useGanttCalculator(props, teamMembers, ganttContainerRef)
 
+// Inertia訪問後の自動更新対応 (Props監視はComposable内ではなくここでやるか、ComposableにReactiveなPropsを渡す)
+// useGanttCalculator receives "props" object. If "props" is reactive (it is in setup), accessing props.events inside computed in setup works.
 
-
-// ========== 時間軸設定 ==========
-const DAY_START_HOUR = 7
-const DAY_END_HOUR = 19
-const DAY_START_MIN = DAY_START_HOUR * 60
-const DAY_END_MIN = DAY_END_HOUR * 60
-const workStartHour = 8
-const workEndHour = 17
-
-const snapTo15 = (min: number) => Math.floor(min / 15) * 15
-
-
-// タブの定義
-const scopeRanges = computed(() => {
-    const now = new Date()
-    const nowMin = now.getHours() * 60 + now.getMinutes()
-
-    switch (props.timeScope) {
-        case 'current':
-            const currentHour = now.getHours()
-            const start = Math.max(DAY_START_MIN, (currentHour - 2) * 60)
-            const end = Math.min(DAY_END_MIN, start + 240)
-            return { start, end }
-        case 'before':
-            return { start: 7 * 60, end: 11 * 60 }
-        case 'middle':
-            return { start: 11 * 60, end: 15 * 60 }
-        case 'after':
-            return { start: 15 * 60, end: 19 * 60 }
-        default:
-            return { start: 7 * 60, end: 19 * 60 }
-    }
-})
-
-const visibleHours = computed(() => {
-  const { start, end } = scopeRanges.value
-  const startHour = Math.floor(start / 60)
-  const endHour = Math.ceil(end / 60)
-
-  return Array.from(
-    { length: endHour - startHour },
-    (_, i) => startHour + i
-  )
-})
-
-const timeGridWidth = computed(() => {
-  const { start, end } = scopeRanges.value
-  return (end - start) * pxPerMin.value
-})
-
-const hourWidth = computed(() => 60 * pxPerMin.value)
-
-
-// ========== ユーティリティ関数 ==========
-const parseTime = (timeStr: string | null, fallback = 0): number => {
-  if (!timeStr) return fallback
-  const [hours, minutes] = timeStr.split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-
-// ========== 予定データ処理 ==========
-const todayEvents = computed(() => {
-    const dateStr = props.currentDate.toISOString().split('T')[0]
-    return localEvents.value.filter(event => {
-        const eventStart = event.start_date.split('T')[0]
-        const eventEnd = event.end_date.split('T')[0]
-        return eventStart <= dateStr && dateStr <= eventEnd
-    })
-})
-
-const memberEvents = computed(() => {
-    const scope = scopeRanges.value
-    
-    return teamMembers.value.map(member => {
-        const events = todayEvents.value.filter(event => 
-            event.participants?.some(p => p.id === member.id)
-        )
-        
-        // 現在のスコープに一切かからない予定を除外
-        const scopedEvents = events.filter(event => {
-            const eventStart = parseTime(event.start_time || '00:00:00')
-            const eventEnd = parseTime(event.end_time || '23:59:59')
-            return eventEnd > scope.start && eventStart < scope.end
-        })
-        
-        const sortedEvents = scopedEvents.sort((a, b) => {
-            const aTime = a.start_time || '00:00:00'
-            const bTime = b.start_time || '00:00:00'
-            return aTime.localeCompare(bTime)
-        })
-        
-        // レーン分け
-        const lanes: App.Models.Event[][] = []
-        sortedEvents.forEach(event => {
-            const eventStart = parseTime(event.start_time || '00:00:00')
-            const eventEnd = parseTime(event.end_time || '23:59:59')
-            
-            let placed = false
-            for (let i = 0; i < lanes.length; i++) {
-                const lane = lanes[i]
-                const canPlace = lane.every(existing => {
-                    const existingStart = parseTime(existing.start_time || '00:00:00')
-                    const existingEnd = parseTime(existing.end_time || '23:59:59')
-                    return eventEnd <= existingStart || eventStart >= existingEnd
-                })
-                
-                if (canPlace) {
-                    lane.push(event)
-                    placed = true
-                    break
-                }
-            }
-            
-            if (!placed) {
-                lanes.push([event])
-            }
-        })
-        
-        return { member, lanes }
-    })
-})
-
-// ========== スタイル計算（pxベース/分基準） ==========
-const getEventStyle = (event: App.Models.Event) => {
-    const start = parseTime(event.start_time, DAY_START_MIN)
-    const end = parseTime(event.end_time, DAY_END_MIN)
-    const scope = scopeRanges.value
-
-    const visibleStart = Math.max(start, scope.start)
-    const visibleEnd = Math.min(end, scope.end)
-
-    if (visibleEnd <= visibleStart) {
-        return { display: 'none' }
-    }
-    
-    const leftPx = (visibleStart - scope.start) * pxPerMin.value
-    const widthPx = (visibleEnd - visibleStart) * pxPerMin.value
-
-
-    return {
-        left: `${leftPx}px`,
-        width: `${widthPx}px`
-    }
-}
-
-const viewportWidth = ref(760)
-
-const updateViewportWidth = () => {
-  if (props.timeScope !== 'all' && ganttContainerRef.value) {
-    viewportWidth.value = ganttContainerRef.value.clientWidth
-  }
-}
-
-// Inertia訪問後の自動更新
-let removeListener: (() => void) | null = null
-
+// We need to force update viewport on resize
 onMounted(() => {
-    removeListener = router.on('success', () => {
-        localEvents.value = [...props.events]
-    })
-    
-    //viewport幅初期設定＆リサイズ監視
     updateViewportWidth()
     window.addEventListener('resize', updateViewportWidth)
 
@@ -194,96 +48,13 @@ onMounted(() => {
         nextTick(focusToCurrentTime)
     }
 })
-    
+
 onUnmounted(() => {
-    removeListener?.()
     window.removeEventListener('resize', updateViewportWidth)
 })
 
-
-const MEMBER_COLUMN_WIDTH = 150
-const CURRENT_SCALE = 0.934
-
-const pxPerMin = computed(() => {
-  const { start, end } = scopeRanges.value
-  const duration = end - start
-
-  // current は「見やすさ優先」
-  if (props.timeScope === 'current') {
-    return (
-        (viewportWidth.value - MEMBER_COLUMN_WIDTH) / duration
-    )* CURRENT_SCALE
-  }
-  if (props.timeScope !== 'all') {
-    return (
-        (viewportWidth.value - MEMBER_COLUMN_WIDTH) / duration
-    )* CURRENT_SCALE
-  }
-
-  // all は従来どおり（疎）
-  return 190 / 60
-})
-
-
-const getEventColor = (category: string) => {
-    const categoryColorMap: { [key: string]: string } = {
-        '会議': '#42A5F5',
-        '業務': '#66BB6A',
-        '来客': '#FFA726',
-        '出張': '#9575CD',
-        '休暇': '#F06292',
-    }
-    return categoryColorMap[category] || '#6b7280'
-}
-
-// ========== 現在時刻表示 ==========
-const currentTimePosition = computed(() => {
-    const now = new Date()
-    const min = now.getHours() * 60 + now.getMinutes()
-    const { start, end } = scopeRanges.value
-    
-    if (min < start || min > end) return null
-    
-    return (min - start) * pxPerMin.value
-})
-
-const currentTimeText = computed(() => {
-    const now = new Date()
-    return now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
-})
-
-const isToday = computed(() => {
-    const today = new Date()
-    return props.currentDate.toDateString() === today.toDateString()
-})
-
-// ========== イベントハンドラ ==========
-const handleEventClick = (event: App.Models.Event) => {
-    emit('eventClick', event)
-}
-
-const handleEventHover = (event: App.Models.Event | null, mouseEvent: MouseEvent) => {
-    if (event) {
-        emit('eventHover', event, { x: mouseEvent.clientX, y: mouseEvent.clientY })
-    } else {
-        emit('eventHover', null, { x: 0, y: 0 })
-    }
-}
-
-watch(
-  () => props.timeScope,
-  (scope) => {
-    if (scope === 'current') {
-      nextTick(() => {
-        focusToCurrentTime()
-      })
-    }
-  }
-)
-
-const ganttContainerRef = ref<HTMLElement | null>(null)
-
-    const focusToCurrentTime = () => {
+// Focus Logic
+const focusToCurrentTime = () => {
   if (!ganttContainerRef.value || currentTimePosition.value === null) return
 
   const container = ganttContainerRef.value
@@ -298,37 +69,39 @@ const ganttContainerRef = ref<HTMLElement | null>(null)
   })
 }
 
-const summaryByMember = computed(() => {
-  return teamMembers.value.map(member => {
-    const events = todayEvents.value.filter(event =>
-      event.participants?.some(p => p.id === member.id)
-    )
-
-    const countInRange = (start: number, end: number) => {
-      return events.filter(e => {
-        const s = parseTime(e.start_time)
-        const eTime = parseTime(e.end_time)
-        return eTime > start && s < end
+watch(
+  () => props.timeScope,
+  (scope) => {
+    if (scope === 'current') {
+      nextTick(() => {
+        focusToCurrentTime()
       })
     }
-
-    return {
-      member,
-      before: countInRange(7 * 60, 11 * 60),
-      middle: countInRange(11 * 60, 15 * 60),
-      after: countInRange(15 * 60, 19 * 60),
-    }
-  })
-})
-
-const totalSummary = computed(() => {
-  return {
-    beforeEvents: summaryByMember.value.flatMap(r => r.before),
-    middleEvents: summaryByMember.value.flatMap(r => r.middle),
-    afterEvents: summaryByMember.value.flatMap(r => r.after),
   }
+)
+
+// Helper for template
+const currentTimeText = computed(() => {
+    const now = new Date()
+    return now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 })
 
+const isToday = computed(() => {
+    const today = new Date()
+    return props.currentDate.toDateString() === today.toDateString()
+})
+
+const handleEventClick = (event: App.Models.Event) => {
+    emit('eventClick', event)
+}
+
+const handleEventHover = (event: App.Models.Event | null, mouseEvent: MouseEvent) => {
+    if (event) {
+        emit('eventHover', event, { x: mouseEvent.clientX, y: mouseEvent.clientY })
+    } else {
+        emit('eventHover', null, { x: 0, y: 0 })
+    }
+}
 
 const formatCount = (events: App.Models.Event[]) => {
   const total = events.length
