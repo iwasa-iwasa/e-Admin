@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\EventCategory;
+use App\Enums\EventImportance;
 use App\Models\User;
 use App\Models\Event;
 use App\Models\Calendar;
@@ -48,8 +50,8 @@ class CalendarTest extends TestCase
             'end_time' => '11:00',
             'description' => 'Test Description',
             'location' => 'Meeting Room A',
-            'category' => Event::CATEGORY_MEETING, // Use constant
-            'importance' => Event::IMPORTANCE_HIGH, // Use constant
+            'category' => EventCategory::MEETING->value,
+            'importance' => EventImportance::HIGH->value,
         ];
 
         $response = $this->actingAs($user)->post('/events', $eventData);
@@ -87,8 +89,8 @@ class CalendarTest extends TestCase
             'start_date' => now()->format('Y-m-d'),
             'end_date' => now()->format('Y-m-d'),
             'is_all_day' => true,
-            'category' => Event::CATEGORY_OTHER,
-            'importance' => Event::IMPORTANCE_LOW,
+            'category' => EventCategory::OTHER->value,
+            'importance' => EventImportance::LOW->value,
             'created_by' => $user->id,
         ]);
 
@@ -99,8 +101,8 @@ class CalendarTest extends TestCase
                 now()->format('Y-m-d'),
             ],
             'is_all_day' => true,
-            'category' => Event::CATEGORY_WORK,
-            'importance' => Event::IMPORTANCE_MEDIUM,
+            'category' => EventCategory::WORK->value,
+            'importance' => EventImportance::MEDIUM->value,
             'location' => 'New Location',
             'description' => 'New Description',
             'progress' => 50,
@@ -129,8 +131,8 @@ class CalendarTest extends TestCase
             'start_date' => now()->format('Y-m-d'),
             'end_date' => now()->format('Y-m-d'),
             'is_all_day' => true,
-            'category' => Event::CATEGORY_OTHER,
-            'importance' => Event::IMPORTANCE_LOW,
+            'category' => EventCategory::OTHER->value,
+            'importance' => EventImportance::LOW->value,
             'created_by' => $user->id,
         ]);
 

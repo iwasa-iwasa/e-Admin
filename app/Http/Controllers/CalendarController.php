@@ -12,6 +12,8 @@ use App\Models\SharedNote;
 use App\Models\TrashItem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Enums\EventCategory;
+use App\Enums\EventColor;
 use App\Services\EventService;
 use Carbon\Carbon;
 
@@ -79,18 +81,26 @@ class CalendarController extends Controller
 
         // Genre Filtering
         if ($genreFilter && $genreFilter !== 'all') {
-            $categoryMap = [
-                'blue' => '会議',
-                'green' => '業務',
-                'yellow' => '来客',
-                'purple' => '出張',
-                'pink' => '休暇',
-            ];
-
             if ($genreFilter === 'other') {
-                $query->whereNotIn('category', array_values($categoryMap));
-            } elseif (isset($categoryMap[$genreFilter])) {
-                $query->where('category', $categoryMap[$genreFilter]);
+                // 'other' excludes standard known categories that have specific colors
+                $excludedCategories = [
+                    EventCategory::MEETING,
+                    EventCategory::WORK,
+                    EventCategory::VISITOR,
+                    EventCategory::BUSINESS_TRIP,
+                    EventCategory::VACATION,
+                ];
+                
+                $query->whereNotIn('category', array_map(fn($c) => $c->value, $excludedCategories));
+            } else {
+                 // specific color filter
+                 // find the category that has this color
+                 $targetCategory = collect(EventCategory::cases())
+                    ->first(fn($c) => $c->color()->value === $genreFilter);
+                 
+                 if ($targetCategory) {
+                     $query->where('category', $targetCategory->value);
+                 }
             }
         }
 

@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\EventCategory;
+use App\Enums\EventColor;
+use App\Enums\EventImportance;
 use App\Models\Event;
 use App\Models\Calendar;
 use App\Models\SharedNote;
@@ -181,14 +184,15 @@ class EventService
         $deadlineTime = $data['is_all_day'] ? '23:59:00' : $data['end_time'];
         
         // Priority mapping
-        $priority = match ($data['importance']) {
-            Event::IMPORTANCE_HIGH => 'high',
-            Event::IMPORTANCE_MEDIUM => 'medium',
+        $priority = match (EventImportance::tryFrom($data['importance'])) {
+            EventImportance::HIGH => 'high',
+            EventImportance::MEDIUM => 'medium',
             default => 'low',
         };
 
         // Color mapping using Event constants
-        $color = Event::CATEGORY_COLORS[$data['category']] ?? Event::COLOR_BLUE;
+        $category = EventCategory::tryFrom($data['category']);
+        $color = $category ? $category->color()->value : EventColor::BLUE->value;
 
         if ($sharedNote) {
             // Update existing note
