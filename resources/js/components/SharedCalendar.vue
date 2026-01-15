@@ -192,25 +192,6 @@ const handleEventHoverFromGantt = (event: App.Models.Event | null, position: { x
     hoverPosition.value = position
 }
 
-// Resize Handler
-let resizeHandler: (() => void) | null = null
-
-onMounted(() => {
-    resizeHandler = () => {
-        const api = fullCalendar.value?.getApi()
-        if (api) {
-            api.updateSize()
-        }
-    }
-    window.addEventListener('resize', resizeHandler)
-})
-
-onUnmounted(() => {
-    if (resizeHandler) {
-        window.removeEventListener('resize', resizeHandler)
-    }
-})
-
 // Highlight Logic
 const page = usePage()
 const highlightId = computed(() => (page.props as any).highlight)
@@ -218,7 +199,6 @@ const highlightId = computed(() => (page.props as any).highlight)
 watch(highlightId, (id) => {
     if (id) {
         nextTick(() => {
-            // Logic to handle highlight: might need to fetch event if not loaded
             const event = currentEvents.value.find(e => e.event_id === id)
             if (event) {
                 selectedEvent.value = event
@@ -227,25 +207,22 @@ watch(highlightId, (id) => {
     }
 }, { immediate: true })
 
-// 🔽 検索アイコン展開用（minimal時）
+// 検索アイコン展開用
 const isSearchOpen = ref(false)
 const headerRef = ref<HTMLElement | null>(null)
 const layoutMode = ref<'default'|'filter-small'|'search-icon'|'title-hide'|'compact'|'minimal'|'ultra-minimal'>('default')
 
-// 縮小時の日付表示用
 const compactCalendarTitle = computed(() => {
     if (layoutMode.value === 'default' || layoutMode.value === 'filter-small') {
         return calendarTitle.value
     }
     
     if (viewMode.value === 'timeGridDay') {
-        // 日表示: 「3月16日」のみ
         return currentDayViewDate.value.toLocaleDateString('ja-JP', {
             month: 'long',
             day: 'numeric'
         })
     } else if (viewMode.value === 'timeGridWeek') {
-        // 週表示: 「3月16日〜22日」
         const start = new Date(currentWeekStart.value)
         const end = new Date(start)
         end.setDate(end.getDate() + 6)
@@ -255,34 +232,61 @@ const compactCalendarTitle = computed(() => {
             return `${start.getMonth() + 1}月${start.getDate()}日〜${end.getMonth() + 1}月${end.getDate()}日`
         }
     } else {
-        // 月表示や年表示は既存のタイトルを使用
         return calendarTitle.value
     }
 })
 
+let resizeHandler: (() => void) | null = null
 let resizeObserver: ResizeObserver | null = null
+let removeInertiaListener: (() => void) | null = null
 
 onMounted(() => {
-    if(!headerRef.value) return
-
-    resizeObserver = new ResizeObserver(entries => {
-        const width = entries[0].contentRect.width
-
-        layoutMode.value = 
-            width < 480 ? 'ultra-minimal' // 新規作成アイコン化
-            : width < 540 ? 'minimal'     // 新規作成アイコン化
-            : width < 600 ? 'compact'     // フィルターアイコン化
-            : width < 650 ? 'title-hide'  // タイトル消える
-            : width < 700 ? 'search-icon' // 検索バー縮小
-            : width < 750 ? 'filter-small'// フィルター縮小
-            : 'default'                   // 通常表示
+    // Resize handler
+    resizeHandler = () => {
+        const api = fullCalendar.value?.getApi()
+        if (api) {
+            api.updateSize()
+        }
+    }
+    window.addEventListener('resize', resizeHandler)
+    
+    // Inertia success listener
+    removeInertiaListener = router.on('success', () => {
+        const api = fullCalendar.value?.getApi()
+        if (api && (viewMode.value === 'dayGridMonth' || viewMode.value === 'multiMonthYear')) {
+            api.refetchEvents()
+        } else {
+            fetchEventsForCustomView()
+        }
     })
-
-    resizeObserver.observe(headerRef.value)
+    
+    // ResizeObserver for header
+    if (headerRef.value) {
+        resizeObserver = new ResizeObserver(entries => {
+            const width = entries[0].contentRect.width
+            layoutMode.value = 
+                width < 480 ? 'ultra-minimal'
+                : width < 540 ? 'minimal'
+                : width < 600 ? 'compact'
+                : width < 650 ? 'title-hide'
+                : width < 700 ? 'search-icon'
+                : width < 750 ? 'filter-small'
+                : 'default'
+        })
+        resizeObserver.observe(headerRef.value)
+    }
 })
 
 onUnmounted(() => {
-    resizeObserver?.disconnect()
+    if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler)
+    }
+    if (removeInertiaListener) {
+        removeInertiaListener()
+    }
+    if (resizeObserver) {
+        resizeObserver.disconnect()
+    }
 })
 
 // 検索バー閉じる処理
@@ -304,10 +308,24 @@ const toggleSearch = () => {
 //         })
 //     }
 // })
+
+const activeScope = ref<'all'|'current'|'before'|'middle'|'after'>('current')
+
+function handleSelectScope(scope: 'before' | 'middle' | 'after') {
+  activeScope.value = scope
+}
+
+function handleScopeButtonClick(
+  scope: 'all' | 'current' | 'before' | 'middle' | 'after'
+) {
+  activeScope.value = scope
+}
+
+
 </script>
 
 <template>
-    <Card class="flex flex-col h-full overflow-hidden">
+    <Card class="flex flex-col h-full overflow-hidden min-w-0">
         <div ref="headerRef" class="p-4">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2 min-w-0 flex-shrink-0" 
@@ -528,8 +546,8 @@ const toggleSearch = () => {
             </div>
         </div>
 
-        <CardContent class="flex flex-1 overflow-y-auto">
-            <ScrollArea class="h-full w-full">
+        <CardContent class="flex flex-1 overflow-y-auto min-w-0">
+            <ScrollArea class="h-full w-full min-w-0">
             <div class="w-full h-full flex-1">
                 <DayViewGantt
                     v-if="viewMode === 'timeGridDay'"
@@ -537,6 +555,9 @@ const toggleSearch = () => {
                     :current-date="currentDayViewDate"
                     @event-click="handleEventClickFromGantt"
                     @event-hover="handleEventHoverFromGantt"
+                    :time-scope="activeScope"
+                    @select-scope="handleSelectScope"
+                    :class="{'is-current-scope': activeScope === 'current'}"
                 />
                 <WeekSummaryView
                     v-else-if="viewMode === 'timeGridWeek'"
@@ -555,24 +576,48 @@ const toggleSearch = () => {
             </ScrollArea>
         </CardContent>
 
-        <CardContent>
-        <div class="flex flex-wrap gap-x-3 gap-y-2 text-xs mt-1">
-            <div v-for="item in CATEGORY_ITEMS" :key="item.label" class="flex items-center gap-1.5 transition-all duration-200"
-                :class="{
-                    'ring-2 ring-blue-500 ring-offset-1 rounded px-1 py-0.5': 
-                        (genreFilter as string) === GENRE_FILTERS.BLUE && item.label === '会議' ||
-                        (genreFilter as string) === GENRE_FILTERS.GREEN && item.label === '業務' ||
-                        (genreFilter as string) === GENRE_FILTERS.YELLOW && item.label === '来客' ||
-                        (genreFilter as string) === GENRE_FILTERS.PURPLE && item.label === '出張' ||
-                        (genreFilter as string) === GENRE_FILTERS.PINK && item.label === '休暇' ||
-                        (genreFilter as string) === GENRE_FILTERS.OTHER && item.label === 'その他'
-                }"
-            >
-                <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
-                <span>{{ item.label }}</span>
+        <div class="px-4 pb-4">
+            <div class="flex items-start justify-between gap-3 min-w-0">
+                <div class="flex flex-wrap gap-x-3 gap-y-2 text-xs mt-1 flex-1 min-w-0">
+                    <div v-for="item in CATEGORY_ITEMS" :key="item.label" class="flex items-center gap-1.5 transition-all duration-200"
+                        :class="{
+                            'ring-2 ring-blue-500 ring-offset-1 rounded px-1 py-0.5': 
+                                (genreFilter as string) === GENRE_FILTERS.BLUE && item.label === '会議' ||
+                                (genreFilter as string) === GENRE_FILTERS.GREEN && item.label === '業務' ||
+                                (genreFilter as string) === GENRE_FILTERS.YELLOW && item.label === '来客' ||
+                                (genreFilter as string) === GENRE_FILTERS.PURPLE && item.label === '出張' ||
+                                (genreFilter as string) === GENRE_FILTERS.PINK && item.label === '休暇' ||
+                                (genreFilter as string) === GENRE_FILTERS.OTHER && item.label === 'その他'
+                        }"
+                    >
+                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
+                        <span class="whitespace-nowrap">{{ item.label }}</span>
+                    </div>
+                </div>
+                <!-- 右：日表示専用タブ -->
+                <div 
+                    v-if="viewMode === 'timeGridDay'"
+                    class="flex gap-1 text-xs flex-shrink-0 overflow-hidden"
+                >
+                    <Button v-for="s in [
+                        ['all','全体'],
+                        ['current','現在'],
+                        ['before','前'],
+                        ['middle','中'],
+                        ['after','後']
+                        ]"
+                        :key="s[0]"
+                        @click="handleScopeButtonClick(s[0])"
+                        class="px-2 py-1 rounded transition whitespace-nowrap"
+                        :class="activeScope === s[0]
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                    >
+                        {{ s[1] }}
+                    </Button>
+                </div>
             </div>
         </div>
-        </CardContent>
 
         <EventDetailDialog
             :event="selectedEvent"
@@ -733,4 +778,10 @@ const toggleSearch = () => {
 .fc-scroller::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+@media (max-width: 480px) {
+  .time-scope-tabs button:not(.active) {
+    display: none;
+  }
+}
+
 </style>
