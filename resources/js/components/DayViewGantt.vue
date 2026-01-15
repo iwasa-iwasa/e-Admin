@@ -1,3 +1,4 @@
+<script setup lang="ts">
 import { computed, watch, ref, onMounted, onUnmounted, nextTick, toRef} from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import { useGanttCalculator } from '@/composables/calendar/useGanttCalculator'
