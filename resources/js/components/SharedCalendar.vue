@@ -163,6 +163,7 @@ watch([viewMode, currentDayViewDate, currentWeekStart], () => {
 // Helper Methods
 const openCreateDialog = () => {
     editingEvent.value = null
+    selectedEvent.value = null
     isEventFormOpen.value = true
 }
 
@@ -175,6 +176,13 @@ const openEditDialog = (eventId: number) => {
         selectedEvent.value = null
         editingEvent.value = event
         isEventFormOpen.value = true
+    }
+}
+
+const handleDialogClose = (value: boolean) => {
+    isEventFormOpen.value = value
+    if (!value) {
+        editingEvent.value = null
     }
 }
 
@@ -362,7 +370,7 @@ function handleScopeButtonClick(
         <CreateEventDialog
             :key="editingEvent ? editingEvent.event_id : 'create'"
             :open="isEventFormOpen"
-            @update:open="isEventFormOpen = $event"
+            @update:open="handleDialogClose"
             :event="editingEvent"
             :readonly="editingEvent ? !canEditEvent(editingEvent) : false"
         />

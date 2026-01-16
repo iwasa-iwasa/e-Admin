@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
 import {
     Calendar as CalendarIcon,
@@ -211,6 +211,13 @@ watch(() => props.open, (isOpen) => {
         is_all_day.value = false;
       }
     }
+  } else {
+    // Dialog is closing - cleanup
+    nextTick(() => {
+      showDraftDialog.value = false
+      pendingDraft.value = null
+      showDraftBanner.value = false
+    })
   }
 }, { immediate: true });
 
@@ -433,7 +440,16 @@ const handleConfirm = () => {
 const handleClose = () => {
     form.reset()
     date.value = [new Date(), new Date()];
+    showDraftDialog.value = false
+    pendingDraft.value = null
+    showDraftBanner.value = false
     emit("update:open", false);
+    
+    // Ensure body overflow is restored
+    nextTick(() => {
+        document.body.style.removeProperty('overflow')
+        document.body.style.removeProperty('pointer-events')
+    })
 };
 
 const getImportanceColor = (imp: string) => {
@@ -471,6 +487,20 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
 </script>
 
 <template>
+    <!-- ドラフト復元確認ダイアログ（メインダイアログの外に配置） -->
+    <Dialog :open="showDraftDialog" @update:open="(val) => !val && discardDraft()">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>下書きが見つかりました</DialogTitle>
+          <DialogDescription>前回保存に失敗した内容が残っています。復元しますか？</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="discardDraft">破棄</Button>
+          <Button @click="restoreDraft">復元</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
     <Dialog :open="open" @update:open="handleClose">
         <DialogContent class="max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] md:w-[66vw] max-h-[90vh]">
             <DialogHeader>
@@ -833,7 +863,9 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                 <CheckCircle class="h-4 w-4" />
                                 確認完了
                             </Button>
-                        </DialogFooter>        </DialogContent>
+                        </DialogFooter>
+        </DialogContent>
+    </Dialog>
     
     <!-- メッセージ表示 -->
     <Transition
@@ -855,20 +887,5 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
         </div>
       </div>
     </Transition>
-
-    <!-- ドラフト復元確認ダイアログ -->
-    <Dialog :open="showDraftDialog" @update:open="(val) => !val && discardDraft()">
-      <DialogContent class="max-w-md">
-        <DialogHeader>
-          <DialogTitle>下書きが見つかりました</DialogTitle>
-          <DialogDescription>前回保存に失敗した内容が残っています。復元しますか？</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" @click="discardDraft">破棄</Button>
-          <Button @click="restoreDraft">復元</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    </Dialog>
 </template>
 
