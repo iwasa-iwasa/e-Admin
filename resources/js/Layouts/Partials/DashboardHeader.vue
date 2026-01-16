@@ -571,7 +571,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2 mb-2">
                   <Calendar class="h-4 w-4 text-blue-600" />
                   <h4 class="text-sm">共有カレンダー</h4>
-                  <Badge class="ml-auto text-xs bg-blue-500">{{ notifications.events.length }}件</Badge>
+                  <Badge class="ml-auto text-xs bg-blue-500 text-white">{{ notifications.events.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
                   <div v-for="event in notifications.events" :key="event.event_id"
@@ -608,7 +608,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2 mb-2">
                   <StickyNote class="h-4 w-4 text-orange-600" />
                   <h4 class="text-sm">共有メモ</h4>
-                  <Badge class="ml-auto text-xs bg-orange-500">{{ notifications.notes.length }}件</Badge>
+                  <Badge class="ml-auto text-xs bg-orange-500 text-white">{{ notifications.notes.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
                   <div v-for="note in notifications.notes" :key="note.note_id"
@@ -645,7 +645,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2 mb-2">
                   <Clock class="h-4 w-4 text-green-600" />
                   <h4 class="text-sm">個人リマインダー</h4>
-                  <Badge class="ml-auto text-xs bg-green-500">{{ notifications.reminders.length }}件</Badge>
+                  <Badge class="ml-auto text-xs bg-green-500 text-white">{{ notifications.reminders.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
                   <div v-for="reminder in notifications.reminders" :key="reminder.reminder_id"
@@ -676,7 +676,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2 mb-2">
                   <BarChart3 class="h-4 w-4 text-purple-600" />
                   <h4 class="text-sm">未回答アンケート</h4>
-                  <Badge class="ml-auto text-xs bg-purple-500">{{ notifications.surveys.length }}件</Badge>
+                  <Badge class="ml-auto text-xs bg-purple-500 text-white">{{ notifications.surveys.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
                   <div v-for="survey in notifications.surveys" :key="survey.survey_id"
