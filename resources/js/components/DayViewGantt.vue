@@ -28,8 +28,8 @@ watch(() => props.events, (newEvents) => {
 // ========== 時間軸設定 ==========
 const DAY_START_HOUR = 7
 const DAY_END_HOUR = 19
-const DAY_START_MIN = DAY_START_HOUR * 60
-const DAY_END_MIN = DAY_END_HOUR * 60
+const DAY_START_MIN: number = DAY_START_HOUR * 60
+const DAY_END_MIN: number = DAY_END_HOUR * 60
 const workStartHour = 8
 const workEndHour = 17
 
@@ -102,77 +102,74 @@ const todayEvents = computed(() => {
     })
 })
 
-// 性能最適化：メンバー別にdisplayEventsを事前分解
-const displayEventsByMember = computed(() => {
-    const eventsByMember = new Map<number, DisplayEvent[]>()
-    
-    displayEvents.value.forEach(event => {
-        // 参加者が設定されている場合は参加者に割り当て
-        if (event.original.participants && event.original.participants.length > 0) {
-            event.original.participants.forEach(participant => {
-                if (!eventsByMember.has(participant.id)) {
-                    eventsByMember.set(participant.id, [])
-                }
-                eventsByMember.get(participant.id)!.push(event)
-            })
-        } else {
-            // 参加者未設定の場合は作成者のレーンに表示
-            const creatorId = event.original.created_by
-            if (creatorId) {
-                if (!eventsByMember.has(creatorId)) {
-                    eventsByMember.set(creatorId, [])
-                }
-                eventsByMember.get(creatorId)!.push(event)
-            }
-        }
+// ========== 正規化イベント（日付補正のみ） ==========
+const normalizedEvents = computed<DisplayEvent[]>(() => {
+  return todayEvents.value.map(event => {
+    const { start, end } = getEventTimeForDate(event, props.currentDate)
+
+    const priorityMap = { '重要': 2, '中': 1, '低': 0 }
+    const priority = priorityMap[event.importance as keyof typeof priorityMap] ?? 0
+
+    return {
+      id: event.event_id,
+      original: event,
+      start,
+      end,
+      priority,
+    }
+  })
+})
+
+// ========== メンバー別分解（Map一本化・軽量） ==========
+const memberEventMap = computed<Map<number, DisplayEvent[]>>(() => {
+  const map = new Map<number, DisplayEvent[]>()
+
+  for (const event of normalizedEvents.value) {
+    event.original.participants?.forEach(p => {
+      if (!map.has(p.id)) map.set(p.id, [])
+      map.get(p.id)!.push(event)
     })
-    
-    return eventsByMember
+  }
+
+  return map
 })
 
 const memberEvents = computed(() => {
-    const scope = scopeRanges.value
-    
-    return teamMembers.value.map(member => {
-        // 最適化：事前分解されたメンバー別イベントを取得
-        const memberDisplayEvents = displayEventsByMember.value.get(member.id) || []
-        
-        // 現在のスコープに一切かからない予定を除外
-        const scopedEvents = memberDisplayEvents.filter(event => {
-            return event.end > scope.start && event.start < scope.end
-        })
-        
-        // メンバーごとにスタック計算
-        const sorted = [...scopedEvents].sort((a, b) => {
-            if (a.priority !== b.priority) {
-                return b.priority - a.priority // 高い方が先
-            }
-            return a.start - b.start
-        })
+  const scope = scopeRanges.value
 
-        const lanes: number[] = []
-        const stackedEvents: StackedEvent[] = []
+  return teamMembers.value.map(member => {
+    const events =
+      memberEventMap.value.get(member.id)?.filter(e =>
+        e.end > scope.start && e.start < scope.end
+      ) ?? []
 
-        for (const event of sorted) {
-            let lane = 0
-            while (lanes[lane] !== undefined && lanes[lane] > event.start) {
-                lane++
-            }
+    const sorted = [...events].sort((a, b) =>
+      a.priority !== b.priority
+        ? b.priority - a.priority
+        : a.start - b.start
+    )
 
-            lanes[lane] = event.end
-            stackedEvents.push({ ...event, lane })
-        }
-        
-        // laneごとにグループ化
-        const maxLane = Math.max(-1, ...stackedEvents.map(e => e.lane))
-        const laneGroups: StackedEvent[][] = Array.from({ length: maxLane + 1 }, () => [])
-        
-        stackedEvents.forEach(event => {
-            laneGroups[event.lane].push(event)
-        })
-        
-        return { member, lanes: laneGroups, maxLaneIndex: stackedEvents.length === 0 ? -1 : maxLane }
-    })
+    const lanesEnd: number[] = []
+    const stacked: StackedEvent[] = []
+
+    for (const e of sorted) {
+      let lane = 0
+      while (lanesEnd[lane] !== undefined && lanesEnd[lane] > e.start) {
+        lane++
+    }
+      lanesEnd[lane] = e.end
+      stacked.push({ ...e, lane })
+    }
+
+    const maxLane = Math.max(-1, ...stacked.map(e => e.lane))
+    const laneGroups: StackedEvent[][] =
+        Array.from({ length: maxLane + 1 }, () => [])
+
+
+    stacked.forEach(e => laneGroups[e.lane].push(e))
+
+    return { member, lanes: laneGroups, maxLaneIndex: maxLane }
+  })
 })
 
 // ========== スタイル計算（laneベース描画） ==========
@@ -218,8 +215,8 @@ onMounted(() => {
         localEvents.value = [...props.events]
     })
     
-    // current 時のみ「1時間単位」で更新（二重実行防止ガード追加）
-    if (props.timeScope === 'current' && !currentScopeTimer) {
+    // current 時のみ「1時間単位」で更新
+    if (props.timeScope === 'current') {
         currentScopeTimer = window.setInterval(() => {
             const now = new Date()
             if (now.getMinutes() === 0) {
@@ -235,15 +232,10 @@ onMounted(() => {
     
     // ResizeObserverでコンテナ幅を監視
     if (ganttContainerRef.value) {
-        resizeObserver = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                if (props.timeScope !== 'all') {
-                    viewportWidth.value = entry.contentRect.width
-                }
-            }
+        resizeObserver = new ResizeObserver(entries => {
+        viewportWidth.value = entries[0].contentRect.width
         })
         resizeObserver.observe(ganttContainerRef.value)
-        updateViewportWidth()
     }
 
     if (props.timeScope === 'current') {
@@ -251,7 +243,7 @@ onMounted(() => {
     }
 })
 
-// timeScope変更時のタイマー管理とviewportWidth更新
+// timeScope変更時のタイマー管理
 watch(() => props.timeScope, (scope) => {
     if (scope === 'current' && !currentScopeTimer) {
         currentScopeTimer = window.setInterval(() => {
@@ -264,9 +256,6 @@ watch(() => props.timeScope, (scope) => {
         clearInterval(currentScopeTimer)
         currentScopeTimer = null
     }
-    
-    // ResizeObserver幅更新問題の対策
-    updateViewportWidth()
 })
     
 onUnmounted(() => {
@@ -281,12 +270,14 @@ const MEMBER_COLUMN_WIDTH = 150
 const CURRENT_SCALE = 0.934
 
 const pxPerMin = computed(() => {
-  const usableWidth = Math.max(0, viewportWidth.value - MEMBER_COLUMN_WIDTH)
-  
+  const rawWidth: number = viewportWidth.value - MEMBER_COLUMN_WIDTH
+  const usableWidth = Math.max(rawWidth, 0)
+
   // current は「見やすさ優先」
   if (props.timeScope === 'current') {
     return (usableWidth / 240) * CURRENT_SCALE
   }
+
   if (props.timeScope !== 'all') {
     return (usableWidth / scopeDuration.value) * CURRENT_SCALE
   }
@@ -294,6 +285,7 @@ const pxPerMin = computed(() => {
   // all は従来どおり（疎）
   return 190 / 60
 })
+
 
 
 const getEventColor = (category: string) => {
@@ -371,28 +363,16 @@ const ganttContainerRef = ref<HTMLElement | null>(null)
 
 const summaryByMember = computed(() => {
   return teamMembers.value.map(member => {
-    const events = todayEvents.value.filter(event => {
-      // 参加者が設定されている場合は参加者でフィルタリング
-      if (event.participants && event.participants.length > 0) {
-        return event.participants.some(p => p.id === member.id)
-      }
-      // 参加者未設定の場合は作成者でフィルタリング
-      return event.created_by === member.id
-    })
+    const events = memberEventMap.value.get(member.id) ?? []
 
-    const countInRange = (start: number, end: number) => {
-      // 最適化：事前分解されたメンバー別イベントを使用
-      const memberEvents = displayEventsByMember.value.get(member.id) || []
-      return memberEvents.filter(e => {
-        return e.end > start && e.start < end
-      })
-    }
+    const count = (s: number, e: number) =>
+      events.filter(ev => ev.end > s && ev.start < e)
 
     return {
       member,
-      before: countInRange(DAY_START_MIN, 11 * 60),
-      middle: countInRange(11 * 60, 15 * 60),
-      after: countInRange(15 * 60, DAY_END_MIN),
+      before: count(DAY_START_MIN, 11 * 60),
+      middle: count(11 * 60, 15 * 60),
+      after: count(15 * 60, DAY_END_MIN),
     }
   })
 })
@@ -406,29 +386,35 @@ const totalSummary = computed(() => {
 })
 
 
-const formatCount = (events: App.Models.Event[]) => {
+const formatCount = (events: { original: App.Models.Event }[]) => {
   const total = events.length
-  const important = events.filter(e => e.importance === '重要').length
+  const important = events.filter(e => e.original.importance === '重要').length
   return important > 0 ? `${total}件 (重要：${important}件)` : `${total}件`
 }
 
 // ========== ③ 日集計（本日全体サマリー）の正しい集計ロジック ==========
 const dailySummary = computed(() => {
-  // Map化でO(n²)をO(n)に最適化
-  const eventMap = new Map<number, App.Models.Event>()
+  // event_id でユニーク化して重複カウントを防ぐ
+  const uniqueEvents = todayEvents.value.reduce((acc, event) => {
+    if (!acc.some(e => e.event_id === event.event_id)) {
+      acc.push(event)
+    }
+    return acc
+  }, [] as App.Models.Event[])
   
-  todayEvents.value.forEach(event => {
-    eventMap.set(event.event_id, event)
-  })
-  
-  return Array.from(eventMap.values())
+  return uniqueEvents
 })
 
 // ========== 共通関数：複数日イベントの表示用時間正規化 ==========
+type NormalizedTimeRange = {
+  start: number
+  end: number
+}
+
 const getEventTimeForDate = (
   event: App.Models.Event,
   date: Date
-) => {
+): NormalizedTimeRange => {
   const d = date
   const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const startDate = event.start_date.split('T')[0]
@@ -467,24 +453,6 @@ type DisplayEvent = {
   end: number     // 分
   priority: number
 }
-
-const displayEvents = computed<DisplayEvent[]>(() => {
-  return todayEvents.value.map(event => {
-    const { start, end } = getEventTimeForDate(event, props.currentDate)
-
-    // importance を priority に変換（重要=2, 中=1, 低=0）
-    const priorityMap = { '重要': 2, '中': 1, '低': 0 }
-    const priority = priorityMap[event.importance as keyof typeof priorityMap] ?? 0
-
-    return {
-      id: event.event_id,
-      original: event,
-      start,
-      end,
-      priority,
-    }
-  })
-})
 
 type StackedEvent = DisplayEvent & {
   lane: number
