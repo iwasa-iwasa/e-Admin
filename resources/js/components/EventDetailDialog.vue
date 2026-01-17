@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref } from 'vue'
 import { formatDate } from '@/lib/utils'
 import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2, Clock } from 'lucide-vue-next'
 import {
@@ -65,18 +65,7 @@ const handleEditOrView = () => {
 }
 
 const closeDialog = () => {
-  if (messageTimer.value) {
-    clearTimeout(messageTimer.value)
-  }
-  saveMessage.value = ''
-  lastDeletedEvent.value = null
   emit('update:open', false)
-  
-  // Ensure body overflow is restored
-  nextTick(() => {
-    document.body.style.removeProperty('overflow')
-    document.body.style.removeProperty('pointer-events')
-  })
 }
 
 const handleDelete = () => {

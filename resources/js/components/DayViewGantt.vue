@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { computed, watch, ref, onMounted, onUnmounted, nextTick, toRef} from 'vue'
+import { computed, watch, ref, onMounted, onUnmounted, nextTick} from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
-import { useGanttCalculator } from '@/composables/calendar/useGanttCalculator'
-import { getEventColor } from '@/constants/calendar'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -18,43 +16,337 @@ const emit = defineEmits<{
 
 const page = usePage()
 const teamMembers = computed(() => (page.props as any).teamMembers || [])
-const ganttContainerRef = ref<HTMLElement | null>(null)
+const localEvents = ref<App.Models.Event[]>([...props.events])
 
-// Gantt Calculator Composable
-const {
-    updateViewportWidth,
-    scopeRanges,
-    visibleHours,
-    timeGridWidth,
-    hourWidth,
-    memberEvents,
-    getEventStyle,
-    currentTimePosition,
-    summaryByMember,
-    totalSummary,
-    workStartHour,
-    workEndHour
-} = useGanttCalculator(props, teamMembers, ganttContainerRef)
+// propsの変更を監視してリアルタイム更新
+watch(() => props.events, (newEvents) => {
+    localEvents.value = [...newEvents]
+}, { deep: true })
 
-// Inertia訪問後の自動更新対応 (Props監視はComposable内ではなくここでやるか、ComposableにReactiveなPropsを渡す)
-// useGanttCalculator receives "props" object. If "props" is reactive (it is in setup), accessing props.events inside computed in setup works.
 
-// We need to force update viewport on resize
+
+// ========== 時間軸設定 ==========
+const DAY_START_HOUR = 7
+const DAY_END_HOUR = 19
+const DAY_START_MIN: number = DAY_START_HOUR * 60
+const DAY_END_MIN: number = DAY_END_HOUR * 60
+const workStartHour = 8
+const workEndHour = 17
+
+// ⑤ current スコープの時間更新修正
+const nowRef = ref(new Date())
+let currentScopeTimer: number | null = null
+let minuteTimer: number | null = null
+
+
+// タブの定義
+const scopeRanges = computed(() => {
+    switch (props.timeScope) {
+        case 'current': {
+            const currentHour = nowRef.value.getHours()
+            const start = Math.max(DAY_START_MIN, currentHour * 60)
+            const end = Math.min(DAY_END_MIN, start + 240)
+            return { start, end }
+        }
+        case 'before':
+            return { start: DAY_START_MIN, end: 11 * 60 }
+        case 'middle':
+            return { start: 11 * 60, end: 15 * 60 }
+        case 'after':
+            return { start: 15 * 60, end: DAY_END_MIN }
+        default:
+            return { start: DAY_START_MIN, end: DAY_END_MIN }
+    }
+})
+
+const visibleHours = computed(() => {
+  const { start, end } = scopeRanges.value
+  const startHour = Math.floor(start / 60)
+  const endHour = Math.ceil(end / 60)
+
+  return Array.from(
+    { length: endHour - startHour },
+    (_, i) => startHour + i
+  )
+})
+
+// ② 表示時間長を表す computed を追加
+const scopeDuration = computed(() => {
+  const { start, end } = scopeRanges.value
+  return end - start
+})
+
+const timeGridWidth = computed(() => {
+  return scopeDuration.value * pxPerMin.value
+})
+
+const hourWidth = computed(() => 60 * pxPerMin.value)
+
+
+// ========== ユーティリティ関数 ==========
+const parseTime = (timeStr: string | null, fallback: number): number => {
+  if (!timeStr) return fallback
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+
+// ========== 予定データ処理 ==========
+const todayEvents = computed(() => {
+    const d = props.currentDate
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    return localEvents.value.filter(event => {
+        const eventStart = event.start_date.split('T')[0]
+        const eventEnd = event.end_date.split('T')[0]
+        return eventStart <= dateStr && dateStr <= eventEnd
+    })
+})
+
+// ========== 正規化イベント（日付補正のみ） ==========
+const normalizedEvents = computed<DisplayEvent[]>(() => {
+  return todayEvents.value.map(event => {
+    const { start, end } = getEventTimeForDate(event, props.currentDate)
+
+    const priorityMap = { '重要': 2, '中': 1, '低': 0 }
+    const priority = priorityMap[event.importance as keyof typeof priorityMap] ?? 0
+
+    return {
+      id: event.event_id,
+      original: event,
+      start,
+      end,
+      priority,
+    }
+  })
+})
+
+// ========== メンバー別分解（Map一本化・軽量） ==========
+const memberEventMap = computed<Map<number, DisplayEvent[]>>(() => {
+  const map = new Map<number, DisplayEvent[]>()
+
+  for (const event of normalizedEvents.value) {
+    event.original.participants?.forEach(p => {
+      if (!map.has(p.id)) map.set(p.id, [])
+      map.get(p.id)!.push(event)
+    })
+  }
+
+  return map
+})
+
+const memberEvents = computed(() => {
+  const scope = scopeRanges.value
+
+  return teamMembers.value.map(member => {
+    const events =
+      memberEventMap.value.get(member.id)?.filter(e =>
+        e.end > scope.start && e.start < scope.end
+      ) ?? []
+
+    const sorted = [...events].sort((a, b) =>
+      a.priority !== b.priority
+        ? b.priority - a.priority
+        : a.start - b.start
+    )
+
+    const lanesEnd: number[] = []
+    const stacked: StackedEvent[] = []
+
+    for (const e of sorted) {
+      let lane = 0
+      while (lanesEnd[lane] !== undefined && lanesEnd[lane] > e.start) {
+        lane++
+    }
+      lanesEnd[lane] = e.end
+      stacked.push({ ...e, lane })
+    }
+
+    const maxLane = Math.max(-1, ...stacked.map(e => e.lane))
+    const laneGroups: StackedEvent[][] =
+        Array.from({ length: maxLane + 1 }, () => [])
+
+
+    stacked.forEach(e => laneGroups[e.lane].push(e))
+
+    return { member, lanes: laneGroups, maxLaneIndex: maxLane }
+  })
+})
+
+// ========== スタイル計算（laneベース描画） ==========
+const EVENT_HEIGHT = 3.25
+const ROW_GAP = 0.75
+const ROW_HEIGHT = EVENT_HEIGHT + ROW_GAP
+
+const getEventStyle = (event: StackedEvent) => {
+    const scope = scopeRanges.value
+
+    const visibleStart = Math.max(event.start, scope.start)
+    const visibleEnd = Math.min(event.end, scope.end)
+
+    if (visibleEnd <= visibleStart) {
+        return { display: 'none' }
+    }
+    
+    const leftPx = (visibleStart - scope.start) * pxPerMin.value
+    const widthPx = (visibleEnd - visibleStart) * pxPerMin.value
+    const topPx = event.lane * ROW_HEIGHT
+
+    return {
+        left: `${leftPx}px`,
+        width: `${widthPx}px`,
+        top: `${topPx}rem`
+    }
+}
+
+const viewportWidth = ref(760)
+let resizeObserver: ResizeObserver | null = null
+
+const updateViewportWidth = () => {
+  if (props.timeScope !== 'all' && ganttContainerRef.value) {
+    viewportWidth.value = ganttContainerRef.value.clientWidth
+  }
+}
+
+// Inertia訪問後の自動更新
+let removeListener: (() => void) | null = null
+
 onMounted(() => {
-    updateViewportWidth()
-    window.addEventListener('resize', updateViewportWidth)
+    removeListener = router.on('success', () => {
+        localEvents.value = [...props.events]
+    })
+    
+    // current 時のみ「1時間単位」で更新
+    if (props.timeScope === 'current') {
+        currentScopeTimer = window.setInterval(() => {
+            const now = new Date()
+            if (now.getMinutes() === 0) {
+                nowRef.value = now
+            }
+        }, 60 * 1000)
+    }
+    
+    // 現在時刻表示用に毎分更新（全スコープで必要）
+    minuteTimer = window.setInterval(() => {
+        nowRef.value = new Date()
+    }, 60 * 1000)
+    
+    // ResizeObserverでコンテナ幅を監視
+    if (ganttContainerRef.value) {
+        resizeObserver = new ResizeObserver(entries => {
+        viewportWidth.value = entries[0].contentRect.width
+        })
+        resizeObserver.observe(ganttContainerRef.value)
+    }
 
     if (props.timeScope === 'current') {
         nextTick(focusToCurrentTime)
     }
 })
 
+// timeScope変更時のタイマー管理
+watch(() => props.timeScope, (scope) => {
+    if (scope === 'current' && !currentScopeTimer) {
+        currentScopeTimer = window.setInterval(() => {
+            const now = new Date()
+            if (now.getMinutes() === 0) {
+                nowRef.value = now
+            }
+        }, 60 * 1000)
+    } else if (scope !== 'current' && currentScopeTimer) {
+        clearInterval(currentScopeTimer)
+        currentScopeTimer = null
+    }
+})
+    
 onUnmounted(() => {
-    window.removeEventListener('resize', updateViewportWidth)
+    removeListener?.()
+    resizeObserver?.disconnect()
+    if (currentScopeTimer) clearInterval(currentScopeTimer)
+    if (minuteTimer) clearInterval(minuteTimer)
 })
 
-// Focus Logic
-const focusToCurrentTime = () => {
+
+const MEMBER_COLUMN_WIDTH = 150
+const CURRENT_SCALE = 0.934
+
+const pxPerMin = computed(() => {
+  const rawWidth: number = viewportWidth.value - MEMBER_COLUMN_WIDTH
+  const usableWidth = Math.max(rawWidth, 0)
+
+  // current は「見やすさ優先」
+  if (props.timeScope === 'current') {
+    return (usableWidth / 240) * CURRENT_SCALE
+  }
+
+  if (props.timeScope !== 'all') {
+    return (usableWidth / scopeDuration.value) * CURRENT_SCALE
+  }
+
+  // all は従来どおり（疎）
+  return 190 / 60
+})
+
+
+
+const getEventColor = (category: string) => {
+    const categoryColorMap: { [key: string]: string } = {
+        '会議': '#42A5F5',
+        '業務': '#66BB6A',
+        '来客': '#FFA726',
+        '出張': '#9575CD',
+        '休暇': '#F06292',
+    }
+    return categoryColorMap[category] || '#6b7280'
+}
+
+// ========== 現在時刻表示 ==========
+const currentTimePosition = computed(() => {
+    const now = nowRef.value
+    const min = now.getHours() * 60 + now.getMinutes()
+    const { start, end } = scopeRanges.value
+    
+    if (min < start || min > end) return null
+    
+    return (min - start) * pxPerMin.value
+})
+
+const currentTimeText = computed(() => {
+    const now = nowRef.value
+    return now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+})
+
+const isToday = computed(() => {
+    const today = new Date()
+    return props.currentDate.toDateString() === today.toDateString()
+})
+
+// ========== イベントハンドラ ==========
+const handleEventClick = (event: App.Models.Event) => {
+    emit('eventClick', event)
+}
+
+const handleEventHover = (event: App.Models.Event | null, mouseEvent: MouseEvent) => {
+    if (event) {
+        emit('eventHover', event, { x: mouseEvent.clientX, y: mouseEvent.clientY })
+    } else {
+        emit('eventHover', null, { x: 0, y: 0 })
+    }
+}
+
+watch(
+  () => props.timeScope,
+  (scope) => {
+    if (scope === 'current') {
+      nextTick(() => {
+        focusToCurrentTime()
+      })
+    }
+  }
+)
+
+const ganttContainerRef = ref<HTMLElement | null>(null)
+
+    const focusToCurrentTime = () => {
   if (!ganttContainerRef.value || currentTimePosition.value === null) return
 
   const container = ganttContainerRef.value
@@ -69,45 +361,104 @@ const focusToCurrentTime = () => {
   })
 }
 
-watch(
-  () => props.timeScope,
-  (scope) => {
-    if (scope === 'current') {
-      nextTick(() => {
-        focusToCurrentTime()
-      })
+const summaryByMember = computed(() => {
+  return teamMembers.value.map(member => {
+    const events = memberEventMap.value.get(member.id) ?? []
+
+    const count = (s: number, e: number) =>
+      events.filter(ev => ev.end > s && ev.start < e)
+
+    return {
+      member,
+      before: count(DAY_START_MIN, 11 * 60),
+      middle: count(11 * 60, 15 * 60),
+      after: count(15 * 60, DAY_END_MIN),
     }
+  })
+})
+
+const totalSummary = computed(() => {
+  return {
+    beforeEvents: summaryByMember.value.flatMap(r => r.before),
+    middleEvents: summaryByMember.value.flatMap(r => r.middle),
+    afterEvents: summaryByMember.value.flatMap(r => r.after),
   }
-)
-
-// Helper for template
-const currentTimeText = computed(() => {
-    const now = new Date()
-    return now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
 })
 
-const isToday = computed(() => {
-    const today = new Date()
-    return props.currentDate.toDateString() === today.toDateString()
-})
 
-const handleEventClick = (event: App.Models.Event) => {
-    emit('eventClick', event)
-}
-
-const handleEventHover = (event: App.Models.Event | null, mouseEvent: MouseEvent) => {
-    if (event) {
-        emit('eventHover', event, { x: mouseEvent.clientX, y: mouseEvent.clientY })
-    } else {
-        emit('eventHover', null, { x: 0, y: 0 })
-    }
-}
-
-const formatCount = (events: App.Models.Event[]) => {
+const formatCount = (events: { original: App.Models.Event }[]) => {
   const total = events.length
-  const important = events.filter(e => e.importance === '重要').length
+  const important = events.filter(e => e.original.importance === '重要').length
   return important > 0 ? `${total}件 (重要：${important}件)` : `${total}件`
 }
+
+// ========== ③ 日集計（本日全体サマリー）の正しい集計ロジック ==========
+const dailySummary = computed(() => {
+  // event_id でユニーク化して重複カウントを防ぐ
+  const uniqueEvents = todayEvents.value.reduce((acc, event) => {
+    if (!acc.some(e => e.event_id === event.event_id)) {
+      acc.push(event)
+    }
+    return acc
+  }, [] as App.Models.Event[])
+  
+  return uniqueEvents
+})
+
+// ========== 共通関数：複数日イベントの表示用時間正規化 ==========
+type NormalizedTimeRange = {
+  start: number
+  end: number
+}
+
+const getEventTimeForDate = (
+  event: App.Models.Event,
+  date: Date
+): NormalizedTimeRange => {
+  const d = date
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const startDate = event.start_date.split('T')[0]
+  const endDate = event.end_date.split('T')[0]
+
+  // 初日
+  if (dateStr === startDate) {
+    return {
+      start: parseTime(event.start_time, DAY_START_MIN),
+      end: dateStr === endDate
+        ? parseTime(event.end_time, DAY_END_MIN)
+        : DAY_END_MIN,
+    }
+  }
+
+  // 最終日
+  if (dateStr === endDate) {
+    return {
+      start: DAY_START_MIN,
+      end: parseTime(event.end_time, DAY_END_MIN),
+    }
+  }
+
+  // 中日
+  return {
+    start: DAY_START_MIN,
+    end: DAY_END_MIN,
+  }
+}
+
+// 表示用イベント
+type DisplayEvent = {
+  id: number
+  original: App.Models.Event
+  start: number   // 分
+  end: number     // 分
+  priority: number
+}
+
+type StackedEvent = DisplayEvent & {
+  lane: number
+}
+
+// 削除：全体でのstackedEventsは不要
 
 
 </script>
@@ -132,37 +483,39 @@ const formatCount = (events: App.Models.Event[]) => {
                 <div class="summary-cell clickable" @click="emit('select-scope','middle')">{{ formatCount(middle) }}</div>
                 <div class="summary-cell clickable" @click="emit('select-scope','after')">{{ formatCount(after) }}</div>
             </div>
-        </div>
-        <!-- 俯瞰用（クリックでスコープ遷移） -->
-        <div class="summary-total-card">
-            <div class="summary-total-title">本日のサマリー</div>
-
-            <div class="summary-total-grid">
-                <button
-                    class="summary-total-item"
-                    @click="emit('select-scope','before')"
-                >
-                    <div class="label">前</div>
-                    <div class="count">{{ formatCount(totalSummary.beforeEvents) }}</div>
-                </button>
-
-                <button
-                    class="summary-total-item"
-                    @click="emit('select-scope','middle')"
-                >
-                    <div class="label">中</div>
-                    <div class="count">{{ formatCount(totalSummary.middleEvents) }}</div>
-                </button>
-
-                <button
-                    class="summary-total-item"
-                    @click="emit('select-scope','after')"
-                >
-                    <div class="label">後</div>
-                    <div class="count">{{ formatCount(totalSummary.afterEvents) }}</div>
-                </button>
+            <div class="summary-row summary-total-row">
+                <div class="summary-cell total">合計</div>
+                <div class="summary-cell total">
+                    {{ formatCount(totalSummary.beforeEvents) }}
+                </div>
+                <div class="summary-cell total">
+                    {{ formatCount(totalSummary.middleEvents) }}
+                </div>
+                <div class="summary-cell total">
+                    {{ formatCount(totalSummary.afterEvents) }}
+                </div>
             </div>
         </div>
+
+        <div class="summary-table"></div>
+
+        <!-- ④ 本日全体サマリーのUI（横幅いっぱい） -->
+        <div class="daily-summary-section">
+            <div class="daily-summary-title">本日全体のサマリー</div>
+            <div class="daily-summary-content">
+                <div class="summary-stat">
+                    <span class="stat-label">全予定数</span>
+                    <span class="stat-value">{{ dailySummary.length }}件</span>
+                </div>
+                <div class="summary-stat">
+                    <span class="stat-label">重要予定数</span>
+                    <span class="stat-value">{{ dailySummary.filter(e => e.importance === '重要').length }}件</span>
+                </div>
+            </div>
+        </div>
+
+
+        
     </template>
 
 
@@ -187,10 +540,14 @@ const formatCount = (events: App.Models.Event[]) => {
         <!-- ボディ：メンバー × 予定 -->
         <div class="gantt-body">
             <div
-                v-for="{ member, lanes } in memberEvents"
+                v-for="{ member, lanes, maxLaneIndex } in memberEvents"
                 :key="member.id"
                 class="member-row"
-                :style="{ minHeight: `${Math.max(4.375, lanes.length * 4)}rem` }"
+                :style="{ 
+                    minHeight: maxLaneIndex >= 0 
+                        ? `${Math.max(4.375, (maxLaneIndex + 1) * ROW_HEIGHT)}rem` 
+                        : '4.375rem'
+                }"
             >
                 <div class="member-column">
                     <div class="member-info">
@@ -214,28 +571,29 @@ const formatCount = (events: App.Models.Event[]) => {
                     
                     <!-- 予定バー -->
                     <div class="events-container">
-                        <div
-                            v-for="(lane, laneIndex) in lanes"
-                            :key="laneIndex"
-                            class="event-lane"
-                        >
+                        <template v-for="(lane, laneIndex) in lanes" :key="laneIndex">
                             <div
                                 v-for="event in lane"
-                                :key="event.event_id"
+                                :key="event.id"
                                 class="event-bar"
-                                :class="{ 'important': event.importance === '重要' }"
+                                :class="{ 'important': event.original.importance === '重要' }"
                                 :style="{
                                     ...getEventStyle(event),
-                                    backgroundColor: getEventColor(event.category),
-                                    borderColor: event.importance === '重要' ? '#dc2626' : getEventColor(event.category)
+                                    backgroundColor: getEventColor(event.original.category),
+                                    borderColor: event.original.importance === '重要' ? '#dc2626' : getEventColor(event.original.category)
                                 }"
-                                @click="handleEventClick(event)"
-                                @mouseenter="handleEventHover(event, $event)"
+                                @click="handleEventClick(event.original)"
+                                @mouseenter="handleEventHover(event.original, $event)"
                                 @mouseleave="handleEventHover(null, $event)"
                             >
-                                <span class="event-title">{{ event.title }}</span>
+                                <div class="event-content">
+                                    <div class="event-title">{{ event.original.title }}</div>
+                                    <div class="event-participants" v-if="event.original.participants && event.original.participants.length > 0">
+                                        {{ event.original.participants.map(p => p.name).join(', ') }}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        </template>
                     </div>
                     
                     <!-- 現在時刻ライン -->
@@ -315,25 +673,28 @@ const formatCount = (events: App.Models.Event[]) => {
 
 .summary-total-title {
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
 }
 
 .summary-total-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
 }
+
 
 .summary-total-item {
   all: unset;
-  cursor: pointer;
+  display: block;
+  width: 100%;
   padding: 0.75rem;
   border-radius: 0.5rem;
   background: white;
   border: 1px solid #e5e7eb;
-  text-align: center;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  cursor: default;
 }
+
 
 .summary-total-item:hover {
   background: #f3f4f6;
@@ -350,6 +711,12 @@ const formatCount = (events: App.Models.Event[]) => {
   font-size: 0.875rem;
   font-weight: 600;
 }
+
+.summary-total-row .summary-cell {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
 
 /* ========== CSS変数：固定幅方式（B案） ========== */
 .day-view-gantt {
@@ -479,28 +846,9 @@ const formatCount = (events: App.Models.Event[]) => {
     padding: 0.25rem 0;
 }
 
-.event-lane {
-    position: relative;
-    height: 3.75rem;
-    margin: 0.25rem 0;
-}
-
-.is-current-scope .event-bar {
-  transition: transform 0.12s;
-}
-
-.is-current-scope .current-time-line {
-  width: 3px;
-}
-
-.is-current-scope .event-title {
-  max-width: 100%;
-}
-
-
 .event-bar {
     position: absolute;
-    height: 3.25rem;
+    height: 3.25rem; /* EVENT_HEIGHT と同値 */
     border-radius: 0.25rem;
     border: 2px solid;
     padding: 0 0.75rem;
@@ -509,6 +857,33 @@ const formatCount = (events: App.Models.Event[]) => {
     cursor: pointer;
     transition: all 0.2s;
     overflow: hidden;
+}
+
+.event-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.event-title {
+    font-size: 0.875rem;
+    color: white;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.2);
+}
+
+.event-participants {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.2);
 }
 
 .event-bar:hover {
@@ -520,15 +895,6 @@ const formatCount = (events: App.Models.Event[]) => {
 .event-bar.important {
     border-width: 3px;
     font-weight: 600;
-}
-
-.event-title {
-    font-size: 0.875rem;
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.2);
 }
 
 /* ========== 現在時刻表示 ========== */
@@ -588,4 +954,47 @@ const formatCount = (events: App.Models.Event[]) => {
     white-space: nowrap;
     box-shadow: 0 0.125rem 0.375rem rgba(239, 68, 68, 0.3);
 }
+
+/* ========== ④ 本日全体サマリーのUI ========== */
+.daily-summary-section {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+}
+
+.daily-summary-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #374151;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.daily-summary-content {
+  display: flex;
+  justify-content: space-around;
+  gap: 2rem;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #374151;
+}
+
 </style>
