@@ -389,16 +389,16 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                     v-if="activeFilterCount > 0"
                                     variant="ghost"
                                     size="sm"
-                                    class="h-auto p-1 text-xs"
+                                    class="h-auto p-1 text-xs hover:bg-gray-100"
                                     @click="clearFilters"
                                 >
-                                    <X class="h-3 w-3 mr-1" />
+                                    <X class="h-3 w-3" />
                                     クリア
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    class="h-auto p-1 text-xs"
+                                    class="h-auto p-1 text-xs hover:bg-gray-100"
                                     @click="isFilterOpen = false"
                                 >
                                     閉じる

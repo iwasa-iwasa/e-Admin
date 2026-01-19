@@ -382,7 +382,7 @@ onUnmounted(() => {
                   <Button
                     variant="outline"
                     size="sm"
-                    class="gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700"
+                    class="gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600"
                     @click.stop="handlePermanentDelete(reminder)"
                   >
                     <Trash2 class="h-4 w-4" />
