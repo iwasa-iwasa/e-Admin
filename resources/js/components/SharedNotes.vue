@@ -255,6 +255,23 @@ const sortedNotes = computed(() => {
   })
 })
 
+export interface SharedNote {
+  note_id: number
+  title: string
+  author: { name: string }
+  participants?: { id: number; name: string }[]
+  deadline_date?: string | null
+  deadline_time?: string | null
+  color: string
+  priority: 'high' | 'medium' | 'low'
+  is_pinned?: boolean
+}
+
+export interface Note extends SharedNote {
+  content: string
+}
+
+
 </script>
 
 <template>

@@ -64,8 +64,8 @@ interface Note {
   content: string
   author: { name: string }
   participants?: { id: number; name: string }[]
-  deadline_date?: string
-  deadline_time?: string
+  deadline_date?: string | null
+  deadline_time?: string | null
   color: string
   priority: 'high' | 'medium' | 'low'
 }
@@ -96,6 +96,7 @@ const isNotificationOpen = ref(false)
 const selectedEvent = ref<Event | null>(null)
 const selectedNote = ref<Note | null>(null)
 const selectedReminder = ref<Reminder | null>(null)
+
 const isEventDetailOpen = ref(false)
 const isEventEditOpen = ref(false)
 
@@ -109,7 +110,7 @@ const showNotesFilter = ref<'mine' | 'all'>(
 
 interface NotificationsData {
   events: Event[]
-  notes: Note[]
+  notes: SharedNote[]
   surveys: Survey[]
   reminders: Reminder[]
 }
@@ -127,32 +128,6 @@ const insertSearchOption = (option: string) => {
 }
 
 const isLoadingNotifications = ref(false)
-
-const fetchNotifications = async () => {
-  if (isLoadingNotifications.value || !page.props.auth?.user) return
-  
-  isLoadingNotifications.value = true
-  try {
-    const params = new URLSearchParams({
-      events_filter: showEventsFilter.value,
-      notes_filter: showNotesFilter.value,
-      _t: Date.now().toString()
-    })
-    const response = await fetch(`/api/notifications?${params}`, {
-      cache: 'no-store'
-    })
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    const data = await response.json()
-
-    notifications.value = data
-  } catch (error) {
-    console.error('Failed to fetch notifications:', error)
-  } finally {
-    isLoadingNotifications.value = false
-  }
-}
 
 const toggleEventsFilter = async () => {
   showEventsFilter.value = showEventsFilter.value === 'mine' ? 'all' : 'mine'
@@ -326,24 +301,6 @@ const handleEventEdit = () => {
   isEventEditOpen.value = true
 }
 
-const handleNoteSave = (note: any) => {
-  router.put(`/shared-notes/${note.note_id}`, {
-    title: note.title,
-    content: note.content,
-    color: note.color,
-    priority: note.priority,
-    deadline: note.deadline,
-    progress: note.progress,
-    participants: note.participants?.map((p: any) => p.id) || []
-  }, {
-    preserveScroll: true,
-    onSuccess: () => {
-      selectedNote.value = null
-      fetchNotifications()
-    }
-  })
-}
-
 const handleNoteDelete = (note: any) => {
   router.delete(`/notes/${note.note_id}`, {
     onSuccess: () => {
@@ -440,14 +397,117 @@ const handleUndoDelete = async () => {
     showMessage('元に戻す処理に失敗しました。', 'success')
   }
 }
+// 以下該当アイテムのみ差分更新
+function updateNotificationItem<T extends { [key: string]: any }>(
+  type: 'events' | 'notes' | 'reminders' | 'surveys',
+  updatedItem: T,
+  idKey: string
+) {
+  const list = notifications.value[type] as T[]
+  const idx = list.findIndex(item => item[idKey] === updatedItem[idKey])
+  if (idx !== -1) {
+    // 差分更新: スプレッドコピー
+    list[idx] = { ...list[idx], ...updatedItem }
+  }
+}
+
+const handleNoteSave = (note: SharedNote) => {
+  const editable: Note = {
+    ...note,
+    content: note.content ?? ''
+  }
+  router.put(`/shared-notes/${note.note_id}`, {
+    title: note.title,
+    content: note.content ?? '',
+    color: note.color,
+    priority: note.priority,
+    deadline_date: note.deadline_date,
+    deadline_time: note.deadline_time,
+    progress: (note as any).progress,
+    participants: note.participants?.map(p => p.id) || []
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      // ダイアログ閉じ
+      selectedNote.value = null
+
+      const updated = (page.props as any)?.updatedNote
+        if (!updated) return
+      // 差分更新
+      updateNotificationItem('notes', note, 'note_id')
+    }
+  })
+}
+
+const handleEventSave = (event: Event) => {
+  router.put(`/events/${event.event_id}`, {
+    title: event.title,
+    start_date: event.start_date,
+    start_time: event.start_time,
+    end_date: event.end_date,
+    end_time: event.end_time,
+    participants: event.participants?.map(p => p.id) || []
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      selectedEvent.value = null
+      updateNotificationItem('events', event, 'event_id')
+    }
+  })
+}
+
+const handleReminderSave = (reminder: Reminder) => {
+  router.put(`/reminders/${reminder.reminder_id}`, {
+    title: reminder.title,
+    description: reminder.description,
+    deadline_date: reminder.deadline_date,
+    deadline_time: reminder.deadline_time,
+    category: reminder.category,
+    completed: reminder.completed
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      selectedReminder.value = null
+      updateNotificationItem('reminders', reminder, 'reminder_id')
+    }
+  })
+}
+
+const handleSurveySave = (survey: Survey) => {
+  router.put(`/surveys/${survey.survey_id}`, {
+    title: survey.title,
+    deadline_date: survey.deadline_date,
+    deadline_time: survey.deadline_time
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      updateNotificationItem('surveys', survey, 'survey_id')
+    }
+  })
+}
+
+// ----- Fetch Notifications (全件フェッチ用: 必要に応じ) -----
+const fetchNotifications = async () => {
+  if (isLoadingNotifications.value || !page.props.auth?.user) return
+
+  isLoadingNotifications.value = true
+  try {
+    const params = new URLSearchParams({
+      events_filter: showEventsFilter.value,
+      notes_filter: showNotesFilter.value,
+      _t: Date.now().toString(),
+    })
+
+    const res = await fetch(`/api/notifications?${params}`, { cache: 'no-store' })
+    notifications.value = await res.json()
+  } finally {
+    isLoadingNotifications.value = false
+  }
+}
+
 
 onMounted(() => {
   fetchNotifications()
-  
-  // Inertiaのページ更新イベントをリッスン
-  router.on('success', () => {
-    fetchNotifications()
-  })
 })
 </script>
 
@@ -571,7 +631,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2 mb-2">
                   <Calendar class="h-4 w-4 text-blue-600" />
                   <h4 class="text-sm">共有カレンダー</h4>
-                  <Badge class="ml-auto text-xs bg-blue-500">{{ notifications.events.length }}件</Badge>
+                  <Badge class="ml-auto text-white text-xs bg-blue-500">{{ notifications.events.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
                   <div v-for="event in notifications.events" :key="event.event_id"
@@ -608,30 +668,30 @@ onMounted(() => {
                 <div class="flex items-center gap-2 mb-2">
                   <StickyNote class="h-4 w-4 text-orange-600" />
                   <h4 class="text-sm">共有メモ</h4>
-                  <Badge class="ml-auto text-xs bg-orange-500">{{ notifications.notes.length }}件</Badge>
+                  <Badge class="ml-auto text-white text-xs bg-orange-500">{{ notifications.notes.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
                   <div v-for="note in notifications.notes" :key="note.note_id"
-                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('note', note.priority, note.deadline_date, note.deadline_time)}`"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('note', note.priority, note.deadline_date ?? undefined, note.deadline_time ?? undefined)}`"
                     @click="handleClick('note', note)">
                     <div class="flex items-start justify-between gap-2">
                       <div class="flex-1">
                         <div class="text-sm mb-1">{{ note.title }}</div>
                         <div class="text-xs text-gray-600 mb-1">
-                          <span>期限: {{ formatDateTime(note.deadline_date, note.deadline_time) }}</span>
+                          <span>期限: {{ formatDateTime(note.deadline_date ?? undefined, note.deadline_time ?? undefined) }}</span>
                         </div>
                         <div v-if="note.participants && note.participants.length > 0" class="flex items-center gap-1 flex-wrap">
                           <Badge v-for="participant in note.participants" :key="participant.id" variant="outline" class="text-xs cursor-help" :title="participant.name" style="font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;">{{ getInitial(participant.name) }}</Badge>
                         </div>
                       </div>
                       <div class="flex flex-col items-end gap-1">
-                        <Badge v-if="note.deadline_date && isOverdue(note.deadline_date, note.deadline_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
-                        <Badge v-else-if="note.deadline_date && isUpcoming(note.deadline_date, note.deadline_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
-                        <Badge v-if="note.deadline_date && (isOverdue(note.deadline_date, note.deadline_time) || isUpcoming(note.deadline_date, note.deadline_time))" 
-                          :class="isOverdue(note.deadline_date, note.deadline_time) ? 'text-xs bg-red-500 text-white' : 'text-xs bg-yellow-500 text-white'">
-                          {{ getDaysText(note.deadline_date, note.deadline_time) }}
+                        <Badge v-if="note.deadline_date && isOverdue(note.deadline_date, note.deadline_time ?? undefined)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
+                        <Badge v-else-if="note.deadline_date && isUpcoming(note.deadline_date, note.deadline_time ?? undefined)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
+                        <Badge v-if="note.deadline_date && (isOverdue(note.deadline_date, note.deadline_time ?? undefined) || isUpcoming(note.deadline_date ?? undefined, note.deadline_time ?? undefined))" 
+                          :class="isOverdue(note.deadline_date, note.deadline_time ?? undefined) ? 'text-xs bg-red-500 text-white' : 'text-xs bg-yellow-500 text-white'">
+                          {{ getDaysText(note.deadline_date, note.deadline_time ?? undefined) }}
                         </Badge>
-                        <div v-if="!(note.deadline_date && (isOverdue(note.deadline_date, note.deadline_time) || isUpcoming(note.deadline_date, note.deadline_time)))" class="flex-1 flex items-end justify-end">
+                        <div v-if="!(note.deadline_date && (isOverdue(note.deadline_date, note.deadline_time ?? undefined) || isUpcoming(note.deadline_date ?? undefined, note.deadline_time ?? undefined)))" class="flex-1 flex items-end justify-end">
                           <Badge class="text-xs bg-orange-500 text-white">{{ note.author.name }}</Badge>
                         </div>
                         <Badge v-else class="text-xs bg-orange-500 text-white">{{ note.author.name }}</Badge>
@@ -645,7 +705,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2 mb-2">
                   <Clock class="h-4 w-4 text-green-600" />
                   <h4 class="text-sm">個人リマインダー</h4>
-                  <Badge class="ml-auto text-xs bg-green-500">{{ notifications.reminders.length }}件</Badge>
+                  <Badge class="ml-auto text-white text-xs bg-green-500">{{ notifications.reminders.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
                   <div v-for="reminder in notifications.reminders" :key="reminder.reminder_id"
@@ -676,7 +736,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2 mb-2">
                   <BarChart3 class="h-4 w-4 text-purple-600" />
                   <h4 class="text-sm">未回答アンケート</h4>
-                  <Badge class="ml-auto text-xs bg-purple-500">{{ notifications.surveys.length }}件</Badge>
+                  <Badge class="ml-auto text-white text-xs bg-purple-500">{{ notifications.surveys.length }}件</Badge>
                 </div>
                 <div class="space-y-2">
                   <div v-for="survey in notifications.surveys" :key="survey.survey_id"
