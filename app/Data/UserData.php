@@ -17,6 +17,8 @@ class UserData extends Data
         public bool $is_active,
         public ?Carbon $created_at,
         public ?Carbon $updated_at,
+        public ?string $reason = null,
+        public ?Carbon $deactivated_at = null,
     ) {
     }
 }
