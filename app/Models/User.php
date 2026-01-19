@@ -9,7 +9,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
-
+/**
+ * @property string|null $reason
+ * @property string|null $deactivated_at
+ */
+#[TypeScript]
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -112,6 +116,13 @@ class User extends Authenticatable
     public function surveyResponses()
     {
         return $this->hasMany(SurveyResponse::class, 'respondent_id', 'id');
+    }
+    /**
+     * Get the logs for the user.
+     */
+    public function logs()
+    {
+        return $this->hasMany(UserLog::class)->orderBy('created_at', 'desc')->with('changer');
     }
 }
 

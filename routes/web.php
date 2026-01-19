@@ -136,6 +136,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', 'index')->name('index');
             Route::delete('/{user}', 'destroy')->name('destroy');
             Route::patch('/{user}/restore', 'restore')->name('restore');
+            Route::patch('/{user}/role', 'updateRole')->name('update-role');
+            Route::get('/{user}/logs', 'logs')->name('logs');
         });
     });
 });
