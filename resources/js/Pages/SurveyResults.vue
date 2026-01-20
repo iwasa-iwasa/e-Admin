@@ -11,8 +11,8 @@ import {
     Clock,
     CheckCircle2,
     AlertCircle,
-    Filter,
 } from "lucide-vue-next";
+import { mapQuestionTypeFromDb } from '@/features/survey/domain/factory';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -313,7 +313,7 @@ const surveyData = computed(() => {
                     return {
                         id: String(q.question_id),
                         question: q.question_text,
-                        type: mapQuestionTypeToFrontend(q.question_type),
+                        type: mapQuestionTypeFromDb(q.question_type),
                         required: q.is_required,
                         scaleMax: q.scale_max,
                         scaleMin: q.scale_min,
@@ -377,19 +377,6 @@ const getDeadlineInfo = (survey: any) => {
     }
     
     return { date: null, time: null };
-};
-const mapQuestionTypeToFrontend = (dbType: string): string => {
-    const mapping: Record<string, string> = {
-        single_choice: "single",
-        multiple_choice: "multiple",
-        text: "text",
-        textarea: "textarea",
-        rating: "rating",
-        scale: "scale",
-        dropdown: "dropdown",
-        date: "date",
-    };
-    return mapping[dbType] || "text";
 };
 
 // 複数選択の値を適切に処理する関数

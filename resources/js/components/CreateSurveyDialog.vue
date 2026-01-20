@@ -1,38 +1,7 @@
 <script setup lang="ts">
-import { ref, h, onMounted, watch, computed } from "vue";
+import { ref, watch, computed } from "vue";
 import { useForm } from "@inertiajs/vue3";
-import {
-    Plus,
-    Save,
-    Trash2,
-    GripVertical,
-    CheckSquare,
-    Circle,
-    Type,
-    Star,
-    List,
-    Clock,
-    BarChart2,
-    X,
-    CheckCircle,
-    Undo2,
-    Info,
-} from "lucide-vue-next";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast/use-toast";
 import {
     Dialog,
     DialogContent,
@@ -41,1529 +10,294 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/toast/use-toast";
+import { Button } from "@/components/ui/button";
+import { Save, X, Info, Clock, CheckCircle } from "lucide-vue-next";
+import SurveyForm from "../features/survey/components/SurveyEditor/SurveyForm.vue";
+import { convertFromBackend } from "../features/survey/domain/factory";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-type QuestionType =
-    | "single"
-    | "multiple"
-    | "text"
-    | "textarea"
-    | "rating"
-    | "scale"
-    | "dropdown"
-    | "date";
-
-interface Question {
-    id: string;
-    type: QuestionType;
-    question: string;
-    options: string[];
-    required: boolean;
-    scaleMin?: number;
-    scaleMax?: number;
-    scaleMinLabel?: string;
-    scaleMaxLabel?: string;
-}
-
-interface QuestionTemplate {
-    type: QuestionType;
-    name: string;
-    description: string;
-    icon: any;
-    defaultOptions?: string[];
-    scaleMin?: number;
-    scaleMax?: number;
-}
+// State for confirmation dialog
+const confirmReset = ref<{
+    isOpen: boolean;
+    message: string;
+    onConfirm: () => void;
+}>({
+    isOpen: false,
+    message: '',
+    onConfirm: () => {},
+});
 
 const props = defineProps<{
     open: boolean;
-    survey?: App.Models.Survey | null;
+    survey?: any;
     teamMembers?: Array<{id: number, name: string}> | null;
 }>();
-const emit = defineEmits(["update:open", "open-dialog"]);
 
-const title = ref("");
-const description = ref("");
-const deadline = ref("");
-const questions = ref<Question[]>([]);
-const selectedRespondents = ref<number[]>([]);
-const showTemplateDialog = ref(false);
-const draftSavedAt = ref<Date | null>(null);
+const emit = defineEmits(["update:open", "open-dialog"]);
+const { toast } = useToast();
+
+const formRef = ref();
+const formKey = ref(0);
+const initialFormData = ref<any>(null);
 const showDraftBanner = ref(false);
+const draftSavedAt = ref<Date | null>(null);
 const saveMessage = ref('');
 const messageType = ref<'success' | 'delete' | 'error'>('success');
 const messageTimer = ref<number | null>(null);
-const deletedDraft = ref<DraftData | null>(null);
-const undoTimer = ref<number | null>(null);
-const showFailureDraftBanner = ref(false);
-const showFailureDraftDialog = ref(false);
-const pendingFailureDraft = ref<any>(null);
 
-const { toast } = useToast();
-
+// Constants
 const DRAFT_KEY = "survey_draft";
 const FAILURE_DRAFT_KEY = "survey_failure_draft";
-const AUTO_SAVE_DELAY = 30000; // 30秒
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+const isEditMode = computed(() => !!props.survey);
+
+// Message Helper
 const showMessage = (message: string, type: 'success' | 'delete' | 'error' = 'success') => {
-  if (messageTimer.value) {
-    clearTimeout(messageTimer.value)
-  }
-  
-  saveMessage.value = message
-  messageType.value = type
-  
-  messageTimer.value = setTimeout(() => {
-    saveMessage.value = ''
-  }, 4000)
-}
-
-const originalData = ref<any>(null)
-const hasNonDeadlineChanges = computed(() => {
-    if (!isEditMode.value || !originalData.value) return false
-    
-    // 質問の変更をチェック
-    const questionsChanged = JSON.stringify(questions.value.map(q => ({
-        question: q.question,
-        type: q.type,
-        required: q.required,
-        options: q.options,
-        scaleMin: q.scaleMin,
-        scaleMax: q.scaleMax,
-        scaleMinLabel: q.scaleMinLabel,
-        scaleMaxLabel: q.scaleMaxLabel
-    }))) !== JSON.stringify(originalData.value.questions || [])
-    
-    // 回答者の削除をチェック（追加は問題なし）
-    const originalRespondents = originalData.value.respondents || []
-    const removedRespondents = originalRespondents.filter(id => !selectedRespondents.value.includes(id))
-    const hasRemovedRespondents = removedRespondents.length > 0
-    
-    return questionsChanged || hasRemovedRespondents
-})
-
-const showConfirmDialog = ref(false)
-const confirmData = ref<any>(null)
-const pendingSave = ref(false)
-const form = useForm({
-    title: "",
-    description: "",
-    deadline: "",
-    questions: [] as Array<{
-        question: string;
-        type: QuestionType;
-        required: boolean;
-        options: string[];
-    }>,
-    respondents: [] as number[],
-    isDraft: false,
-});
-
-const questionTemplates: QuestionTemplate[] = [
-    {
-        type: "single",
-        name: "単一選択（ラジオボタン）",
-        description: "複数の選択肢から1つを選ぶ形式",
-        icon: Circle,
-        defaultOptions: ["", "", ""],
-    },
-    {
-        type: "multiple",
-        name: "複数選択（チェックボックス）",
-        description: "複数の選択肢から複数選べる形式",
-        icon: CheckSquare,
-        defaultOptions: ["", "", ""],
-    },
-    {
-        type: "text",
-        name: "自由記述（短文）",
-        description: "短いテキストを入力する形式",
-        icon: Type,
-        defaultOptions: [],
-    },
-    {
-        type: "textarea",
-        name: "自由記述（長文）",
-        description: "長いテキストを入力する形式",
-        icon: Type,
-        defaultOptions: [],
-    },
-    {
-        type: "rating",
-        name: "評価スケール（星評価）",
-        description: "星で満足度などを評価する形式",
-        icon: Star,
-        defaultOptions: [],
-        scaleMin: 1,
-        scaleMax: 5,
-    },
-    {
-        type: "scale",
-        name: "評価スケール（リッカート）",
-        description: "段階的に評価する形式（1〜10段階）",
-        icon: BarChart2,
-        defaultOptions: [],
-        scaleMin: 1,
-        scaleMax: 5,
-    },
-    {
-        type: "dropdown",
-        name: "ドロップダウン",
-        description: "リストから1つを選ぶ形式",
-        icon: List,
-        defaultOptions: ["", "", ""],
-    },
-    {
-        type: "date",
-        name: "日付/時刻",
-        description: "特定の日時を入力する形式",
-        icon: Clock,
-        defaultOptions: [],
-    },
-];
-
-const createQuestionFromTemplate = (template: QuestionTemplate) => {
-    const newQuestion: Question = {
-        id: String(Date.now()),
-        type: template.type,
-        question: "",
-        options: template.defaultOptions || [],
-        required: false,
-        scaleMin: template.scaleMin,
-        scaleMax: template.scaleMax,
-        scaleMinLabel: template.scaleMin === 1 ? "とても悪い" : "",
-        scaleMaxLabel: template.scaleMax === 5 ? "とても良い" : "",
-    };
-    questions.value.push(newQuestion);
-    showTemplateDialog.value = false;
+    if (messageTimer.value) clearTimeout(messageTimer.value);
+    saveMessage.value = message;
+    messageType.value = type;
+    messageTimer.value = setTimeout(() => {
+        saveMessage.value = '';
+    }, 4000);
 };
 
-const removeQuestion = (id: string) => {
-    if (questions.value.length > 0) {
-        questions.value = questions.value.filter((q) => q.id !== id);
+const handleClose = () => {
+    emit("update:open", false);
+};
+
+// Draft Logic
+const loadDraft = () => {
+    try {
+        const saved = localStorage.getItem(DRAFT_KEY);
+        if (!saved) return;
+        const draftData = JSON.parse(saved);
+        initialFormData.value = draftData;
+        draftSavedAt.value = new Date(draftData.saved_at);
+        showDraftBanner.value = true;
+        formKey.value++; // Force remount
+    } catch (e) {
+        console.error("Failed to load draft");
     }
 };
 
-const updateQuestion = (id: string, field: keyof Question, value: any) => {
-    questions.value = questions.value.map((q) =>
-        q.id === id ? { ...q, [field]: value } : q
-    );
+const saveDraft = () => {
+    try {
+        const data = formRef.value.getData();
+        const draftData = {
+            ...data,
+            saved_at: new Date().toISOString()
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+        draftSavedAt.value = new Date();
+        showDraftBanner.value = true;
+        showMessage('アンケートが一時保存されました', 'success');
+    } catch (e) {
+        showMessage('一時保存に失敗しました', 'error');
+    }
 };
 
-const addOption = (questionId: string) => {
-    questions.value = questions.value.map((q) => {
-        if (q.id === questionId) {
-            return { ...q, options: [...q.options, ""] };
-        }
-        return q;
-    });
+const clearDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    showDraftBanner.value = false;
+    draftSavedAt.value = null;
+    showMessage('下書きを削除しました', 'delete');
 };
 
-const updateOption = (
-    questionId: string,
-    optionIndex: number,
-    value: string
-) => {
-    questions.value = questions.value.map((q) => {
-        if (q.id === questionId) {
-            const newOptions = [...q.options];
-            newOptions[optionIndex] = value;
-            return { ...q, options: newOptions };
-        }
-        return q;
-    });
-};
+// Save (Publish/Draft) Logic
+const handleSave = (isDraft: boolean, force = false) => {
+    if (!formRef.value) return;
 
-const removeOption = (questionId: string, optionIndex: number) => {
-    questions.value = questions.value.map((q) => {
-        if (q.id === questionId && q.options.length > 2) {
-            const newOptions = q.options.filter((_, i) => i !== optionIndex);
-            return { ...q, options: newOptions };
-        }
-        return q;
-    });
-};
-
-const handleSave = (isDraft: boolean = false) => {
-    // 編集モードで期限以外が変更された場合、確認ダイアログを表示
-    if (isEditMode.value && hasNonDeadlineChanges.value && !pendingSave.value) {
-        // 回答数をチェック（実際の回答数はサーバーで確認）
-        const responseCount = props.survey?.responses?.length || 0
-        if (responseCount > 0) {
-            confirmData.value = {
-                response_count: responseCount,
-                message: `このアンケートには${responseCount}件の回答があります。質問や回答者を変更するとすでに回答された方からの回答が失われる可能性があります。それでも変更しますか？`
-            }
-            showConfirmDialog.value = true
-            return
-        }
-    }
-    // 未入力の選択肢を自動削除
-    questions.value = questions.value.map((q) => {
-        if (["single", "multiple", "dropdown"].includes(q.type)) {
-            return { ...q, options: q.options.filter((opt) => opt.trim()) };
-        }
-        return q;
-    });
-
-    // クライアント側のバリデーション
-    const errors: string[] = [];
-    
-    if (!title.value.trim()) {
-        errors.push('アンケートのタイトルを入力してください');
-    }
-    if (!deadline.value) {
-        errors.push('回答期限を設定してください');
-    }
-    if (questions.value.length === 0) {
-        errors.push('最低1つの質問を追加してください');
-    }
-
-    for (const question of questions.value) {
-        if (!question.question.trim()) {
-            errors.push('すべての質問を入力してください');
-            break;
-        }
-        if (["single", "multiple", "dropdown"].includes(question.type)) {
-            if (question.options.length < 2) {
-                errors.push('選択肢形式の質問には最低2つの選択肢が必要です');
-                break;
-            }
-        }
-    }
-    
+    const errors = formRef.value.validate();
     if (errors.length > 0) {
         showMessage(errors.join('\n'), 'error');
         return;
     }
 
-    saveFailureDraft()
-
-    // フォームデータを準備
-    form.title = title.value;
-    form.description = description.value;
-    form.deadline = deadline.value;
-    form.isDraft = isDraft;
-    form.respondents = selectedRespondents.value;
-    form.questions = questions.value.map((q) => ({
-        question: q.question,
-        type: q.type,
-        required: q.required,
-        options: q.options,
-        scaleMin: q.scaleMin,
-        scaleMax: q.scaleMax,
-        scaleMinLabel: q.scaleMinLabel,
-        scaleMaxLabel: q.scaleMaxLabel,
+    const data = formRef.value.getData();
+    // Transform data for backend if needed
+    // Assuming backend accepts what useSurveyEditor produces (which matches UpdateSurveyRequest requirements mostly)
+    
+    // Convert Question Structure slightly if backend expects specific structure?
+    // Backend expects options as: string[] in questions.*.options
+    // My useSurveyEditor uses Question model which has options as string[] or object[].
+    // If objects, I map to string? Wait, existing backend handles Objects Update?
+    // UpdateSurveyRequest says `questions.*.options.* => string`.
+    // So I must ensure options are strings.
+    
+    const preparedQuestions = data.questions.map((q: any) => ({
+        ...q,
+        options: q.options.map((o: any) => typeof o === 'string' ? o : (o.text || o.option_text))
     }));
 
-    // リクエストを送信
-    if (isEditMode.value && props.survey) {
-        // 編集モード: PUTリクエスト
-        const requestData = pendingSave.value ? { ...form.data(), confirm_reset: true } : form.data()
-        
-        form.put(`/surveys/${props.survey.survey_id}`, {
-            data: requestData,
-            preserveScroll: true,
-            onSuccess: () => {
-                clearFailureDraft()
-                pendingSave.value = false
-                const message = pendingSave.value ? 'アンケートを更新しました。既存の回答は削除されました。' : 'アンケートを更新しました。'
-                showMessage(message, 'success');
-                handleClose();
-            },
-            onError: (errors) => {
-                pendingSave.value = false
-                
-                // 確認が必要なエラーをチェック
-                if (errors.requires_confirmation) {
-                    confirmData.value = {
-                        response_count: errors.response_count,
-                        message: errors.message
-                    }
-                    showConfirmDialog.value = true
-                    return
-                }
-                
-                const errorMessages: any[] = [];
-                for (const [field, messages] of Object.entries(errors)) {
-                    if (Array.isArray(messages)) {
-                        errorMessages.push(...messages);
-                    } else {
-                        errorMessages.push(String(messages));
-                    }
-                }
-                if (errorMessages.length > 0) {
-                    showMessage(errorMessages.join('\n'), 'error');
-                }
-            },
-        });
-    } else {
-        // 新規作成モード: POSTリクエスト
-        form.post("/surveys", {
-            preserveScroll: true,
-            onSuccess: () => {
-                clearFailureDraft()
-                // 本保存成功時は一時保存データを削除
-                if (!isDraft) {
-                    clearDraft();
-                }
-                if (isDraft) {
-                    showMessage('アンケートが保存されました。', 'success')
-                } else {
-                    showMessage('アンケートを公開しました。', 'success')
-                }
-                handleClose();
-            },
-            onError: (errors) => {
-                const errorMessages: any[] = [];
-                for (const [field, messages] of Object.entries(errors)) {
-                    if (Array.isArray(messages)) {
-                        errorMessages.push(...messages);
-                    } else {
-                        errorMessages.push(String(messages));
-                    }
-                }
-                if (errorMessages.length > 0) {
-                    showMessage(errorMessages.join('\n'), 'error');
-                }
-            },
-        });
-    }
-};
+    const formData = {
+        ...data,
+        questions: preparedQuestions,
+        is_draft: isDraft, // Note: backend might expect is_draft
+        isDraft: isDraft, // Just in case
+        confirm_reset: force // 強制更新フラグ
+    };
 
-const handleClose = () => {
-    // 自動保存タイマーをクリア
-    if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer);
-        autoSaveTimer = null;
-    }
+    const form = useForm(formData);
 
-    title.value = "";
-    description.value = "";
-    deadline.value = "";
-    questions.value = [];
-    selectedRespondents.value = [];
-    showTemplateDialog.value = false;
-    draftSavedAt.value = null;
-    showDraftBanner.value = false;
-    form.reset();
-    form.clearErrors();
-    emit("update:open", false);
-};
-
-const handleCancel = () => {
-    if (
-        title.value ||
-        description.value ||
-        questions.value.some((q) => q.question || q.options.some((o) => o))
-    ) {
-        if (window.confirm("入力内容が失われますが、よろしいですか？")) {
-            handleClose();
-        }
-    } else {
-        handleClose();
-    }
-};
-
-const getQuestionTypeLabel = (type: QuestionType) => {
-    const template = questionTemplates.find((t) => t.type === type);
-    return template?.name || type;
-};
-
-// 一時保存データの型定義
-interface DraftData {
-    title: string;
-    description: string;
-    deadline: string;
-    questions: Question[];
-    saved_at: string;
-}
-
-// 一時保存処理
-const saveDraft = () => {
-    try {
-        // 入力内容が空の場合は保存しない
-        if (
-            !title.value.trim() &&
-            !description.value.trim() &&
-            questions.value.length === 0
-        ) {
-            showMessage('保存する内容がありません', 'error');
+    const handleError = (err: any) => {
+        // 確認が必要なエラーかチェック
+        if (err.requires_confirmation) {
+            confirmReset.value = {
+                isOpen: true,
+                message: err.message || 'この操作には確認が必要です。',
+                onConfirm: () => handleSave(isDraft, true) // force=trueで再実行
+            };
             return;
         }
+        showMessage(Object.values(err).flat().join('\n'), 'error');
+    };
 
-        const draftData: DraftData = {
-            title: title.value,
-            description: description.value,
-            deadline: deadline.value,
-            questions: questions.value,
-            saved_at: new Date().toISOString(),
-        };
-
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
-        draftSavedAt.value = new Date();
-        showDraftBanner.value = true;
-
-        showMessage('アンケートが保存されました。', 'success');
-    } catch (error) {
-        console.error("一時保存に失敗:", error);
-        showMessage('一時保存に失敗しました。', 'error');
-    }
-};
-
-// 一時保存データの復元
-const loadDraft = () => {
-    try {
-        const saved = localStorage.getItem(DRAFT_KEY);
-        if (!saved) return null;
-
-        const draftData: DraftData = JSON.parse(saved);
-
-        title.value = draftData.title || "";
-        description.value = draftData.description || "";
-        deadline.value = draftData.deadline || "";
-        questions.value = draftData.questions || [];
-        draftSavedAt.value = new Date(draftData.saved_at);
-        showDraftBanner.value = true;
-
-        return draftData;
-    } catch (error) {
-        console.error("復元に失敗:", error);
-        toast({
-            title: "Error",
-            description: "下書きの復元に失敗しました",
-            variant: "destructive",
+    if (isEditMode.value) {
+        form.put(`/surveys/${props.survey.survey_id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showMessage('更新しました', 'success');
+                handleClose();
+            },
+            onError: handleError
         });
-        return null;
+    } else {
+        form.post('/surveys', {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (!isDraft) clearDraft();
+                showMessage('作成しました', 'success');
+                handleClose();
+            },
+            onError: handleError
+        });
     }
 };
 
-// 一時保存データの削除
-const clearDraft = () => {
-    try {
-        const saved = localStorage.getItem(DRAFT_KEY);
-        if (saved) {
-            deletedDraft.value = JSON.parse(saved);
-        }
-        
-        localStorage.removeItem(DRAFT_KEY);
-        draftSavedAt.value = null;
-        showDraftBanner.value = false;
-        showMessage('下書きを削除しました。', 'delete');
-        
-        // 10秒後に削除されたデータをクリア
-        if (undoTimer.value) {
-            clearTimeout(undoTimer.value);
-        }
-        undoTimer.value = setTimeout(() => {
-            deletedDraft.value = null;
-        }, 10000);
-    } catch (error) {
-        console.error("下書き削除に失敗:", error);
-    }
-};
-
-// 保存失敗時のドラフト保存
-const saveFailureDraft = () => {
-    const draft = {
-        title: title.value,
-        description: description.value,
-        deadline: deadline.value,
-        questions: questions.value,
-        selectedRespondents: selectedRespondents.value,
-    }
-    sessionStorage.setItem(FAILURE_DRAFT_KEY, JSON.stringify(draft))
-}
-
-const loadFailureDraft = () => {
-    const draft = sessionStorage.getItem(FAILURE_DRAFT_KEY)
-    return draft ? JSON.parse(draft) : null
-}
-
-const clearFailureDraft = () => {
-    sessionStorage.removeItem(FAILURE_DRAFT_KEY)
-    showFailureDraftBanner.value = false
-}
-
-const restoreFailureDraft = () => {
-    if (pendingFailureDraft.value) {
-        title.value = pendingFailureDraft.value.title
-        description.value = pendingFailureDraft.value.description
-        deadline.value = pendingFailureDraft.value.deadline
-        questions.value = pendingFailureDraft.value.questions
-        selectedRespondents.value = pendingFailureDraft.value.selectedRespondents
-        showFailureDraftBanner.value = true
-    }
-    showFailureDraftDialog.value = false
-    pendingFailureDraft.value = null
-}
-
-const discardFailureDraft = () => {
-    clearFailureDraft()
-    showFailureDraftDialog.value = false
-    pendingFailureDraft.value = null
-}
-
-const handleConfirmSave = () => {
-    showConfirmDialog.value = false
-    pendingSave.value = true
-    
-    // 確認後の保存処理
-    handleSave(false)
-}
-
-// 下書き削除の取り消し
-const undoDeleteDraft = () => {
-    if (deletedDraft.value) {
-        try {
-            localStorage.setItem(DRAFT_KEY, JSON.stringify(deletedDraft.value));
-            draftSavedAt.value = new Date(deletedDraft.value.saved_at);
-            showDraftBanner.value = true;
-            
-            title.value = deletedDraft.value.title || "";
-            description.value = deletedDraft.value.description || "";
-            deadline.value = deletedDraft.value.deadline || "";
-            questions.value = deletedDraft.value.questions || [];
-            
-            deletedDraft.value = null;
-            if (undoTimer.value) {
-                clearTimeout(undoTimer.value);
-                undoTimer.value = null;
+// Watch Open
+watch(() => props.open, (isOpen) => {
+    if (isOpen) {
+        if (props.survey) {
+            initialFormData.value = convertFromBackend(props.survey);
+        } else {
+            initialFormData.value = null;
+            // check draft
+            const saved = localStorage.getItem(DRAFT_KEY);
+            if (saved) {
+                // Ask user? Or just show banner?
+                // Legacy showed confirm.
+                if (window.confirm("前回の下書きが見つかりました。復元しますか？")) {
+                    loadDraft();
+                } else {
+                    clearDraft();
+                    formKey.value++;
+                }
+            } else {
+                formKey.value++;
             }
-            
-            showMessage('下書きを復元しました。', 'success');
-            
-            // ダイアログを開く
-            emit("open-dialog");
-        } catch (error) {
-            console.error("下書き復元に失敗:", error);
-            showMessage('下書きの復元に失敗しました。', 'error');
         }
-    }
-};
-
-// 保存時刻の表示用フォーマット
-const formatSavedTime = (date: Date | null): string => {
-    if (!date) return "";
-
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (minutes < 1) return "たった今";
-    if (minutes < 60) return `${minutes}分前`;
-    if (hours < 24) return `${hours}時間前`;
-    if (days < 7) return `${days}日前`;
-
-    return date.toLocaleDateString("ja-JP", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-};
-
-// 自動保存のスケジュール
-const scheduleAutoSave = () => {
-    if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer);
-    }
-
-    autoSaveTimer = setTimeout(() => {
-        // 入力内容がある場合のみ自動保存
-        if (
-            title.value.trim() ||
-            description.value.trim() ||
-            questions.value.length > 0
-        ) {
-            saveDraft();
-        }
-    }, AUTO_SAVE_DELAY);
-};
-
-// 編集モードの判定
-const isEditMode = computed(() => !!props.survey);
-
-// 回答者選択の処理
-const toggleRespondent = (memberId: number) => {
-    const index = selectedRespondents.value.indexOf(memberId);
-    if (index > -1) {
-        selectedRespondents.value.splice(index, 1);
     } else {
-        selectedRespondents.value.push(memberId);
+        initialFormData.value = null;
+        saveMessage.value = '';
     }
-};
-
-const toggleAllRespondents = () => {
-    if (!props.teamMembers) return;
-    
-    if (selectedRespondents.value.length === props.teamMembers.length) {
-        selectedRespondents.value = [];
-    } else {
-        selectedRespondents.value = props.teamMembers.map(m => m.id);
-    }
-};
-
-const isAllSelected = computed(() => {
-    return props.teamMembers && selectedRespondents.value.length === props.teamMembers.length;
 });
 
-// 入力内容の変更を監視して自動保存をスケジュール（新規作成時のみ）
-watch(
-    [title, description, deadline, questions, selectedRespondents],
-    () => {
-        if (props.open && !isEditMode.value) {
-            scheduleAutoSave();
-        }
-    },
-    { deep: true }
-);
-
-// データベースの質問タイプをフロントエンドのタイプに変換
-const mapQuestionTypeFromDb = (dbType: string): QuestionType => {
-    const mapping: Record<string, QuestionType> = {
-        single_choice: "single",
-        multiple_choice: "multiple",
-        text: "text",
-        textarea: "textarea",
-        rating: "rating",
-        scale: "scale",
-        dropdown: "dropdown",
-        date: "date",
-    };
-    return mapping[dbType] || "text";
-};
-
-
-
-// 編集データの読み込み
-const loadEditData = () => {
-    if (!props.survey) return;
-
-    title.value = props.survey.title || "";
-    description.value = props.survey.description || "";
-    
-    // deadline_dateとdeadline_timeから結合
-    if (props.survey.deadline_date) {
-        const time = props.survey.deadline_time || '23:59:00';
-        const deadlineStr = `${props.survey.deadline_date}T${time.slice(0, 5)}`;
-        deadline.value = deadlineStr;
-    } else {
-        deadline.value = "";
-    }
-
-    // 質問データを変換
-    questions.value =
-        props.survey.questions?.map((q: any, index: number) => {
-            const question: Question = {
-                id: String(q.question_id || Date.now() + index),
-                type: mapQuestionTypeFromDb(q.question_type),
-                question: q.question_text || "",
-                options:
-                    q.options?.map((opt: any) => opt.option_text || "") || [],
-                required: q.is_required || false,
-                scaleMin: q.scaleMin,
-                scaleMax: q.scaleMax,
-                scaleMinLabel: q.scaleMinLabel,
-                scaleMaxLabel: q.scaleMaxLabel,
-            };
-            return question;
-        }) || [];
-        
-    // 元データを保存
-    originalData.value = {
-        title: title.value,
-        description: description.value,
-        respondents: selectedRespondents.value.slice(),
-        questions: questions.value.map(q => ({
-            question: q.question,
-            type: q.type,
-            required: q.required,
-            options: q.options,
-            scaleMin: q.scaleMin,
-            scaleMax: q.scaleMax,
-            scaleMinLabel: q.scaleMinLabel,
-            scaleMaxLabel: q.scaleMaxLabel
-        }))
-    }
-};
-
-// ダイアログが開いた時の処理
-watch(
-    () => props.open,
-    (isOpen) => {
-        if (isOpen) {
-            // デフォルトで全員を選択
-            if (props.teamMembers && selectedRespondents.value.length === 0) {
-                selectedRespondents.value = props.teamMembers.map(m => m.id);
-            }
-            
-            if (isEditMode.value) {
-                // 編集モード: 既存データを読み込む
-                loadEditData();
-            } else {
-                // 新規作成モード: 保存失敗ドラフトを優先チェック
-                const failureDraft = loadFailureDraft()
-                if (failureDraft) {
-                    pendingFailureDraft.value = failureDraft
-                    showFailureDraftDialog.value = true
-                } else {
-                    // 一時保存データをチェック
-                    const saved = localStorage.getItem(DRAFT_KEY);
-                    if (saved && !draftSavedAt.value) {
-                        // 確認ダイアログを表示
-                        const shouldRestore = window.confirm(
-                            "前回の下書きが見つかりました。復元しますか？"
-                        );
-
-                        if (shouldRestore) {
-                            loadDraft();
-                        } else {
-                            clearDraft();
-                        }
-                    }
-                }
-            }
-        }
-    }
-);
+const formatSavedTime = (date: Date | null) => {
+    if(!date) return '';
+    return date.toLocaleString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+}
 </script>
 
 <template>
-    <Dialog :open="props.open" @update:open="handleClose">
-        <DialogContent class="max-w-4xl md:max-w-5xl lg:max-w-6xl w-[95vw] md:w-[66vw] max-h-[90vh]">
-            <DialogHeader>
-                <DialogTitle>{{
-                    isEditMode ? "アンケートを編集" : "新しいアンケートを作成"
-                }}</DialogTitle>
-                <DialogDescription>{{
-                    isEditMode
-                        ? "アンケートの内容を編集します"
-                        : "総務部 共同管理のアンケートを作成します"
-                }}</DialogDescription>
+    <Dialog :open="open" @update:open="handleClose">
+        <DialogContent class="max-w-4xl md:max-w-5xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl">
+             <DialogHeader class="p-6 pb-2 shrink-0">
+                <DialogTitle>{{ isEditMode ? "アンケートを編集" : "新しいアンケートを作成" }}</DialogTitle>
+                <DialogDescription>{{ isEditMode ? "アンケートの内容を編集します" : "総務部 共同管理のアンケートを作成します" }}</DialogDescription>
             </DialogHeader>
-            
-            <div v-if="showFailureDraftBanner" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div class="flex-1">
-                <p class="text-sm text-blue-800">前回の下書きを復元しました</p>
-              </div>
-              <button @click="showFailureDraftBanner = false" class="text-blue-600 hover:text-blue-800">
-                <X class="h-4 w-4" />
-              </button>
-            </div>
 
-            <!-- 一時保存バナー（新規作成時のみ） -->
-            <div
-                v-if="!isEditMode && showDraftBanner && draftSavedAt"
-                class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between"
-            >
+            <!-- Draft Banner -->
+            <div v-if="showDraftBanner && draftSavedAt && !isEditMode" class="mx-6 mb-2 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2 text-sm text-blue-700">
                     <Clock class="h-4 w-4" />
                     <span>最終保存: {{ formatSavedTime(draftSavedAt) }}</span>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    @click="clearDraft"
-                    class="h-6 px-2 text-blue-700 hover:text-blue-900"
-                >
+                <Button variant="ghost" size="sm" @click="clearDraft" class="h-6 px-2 text-blue-700 hover:text-blue-900">
                     <X class="h-3 w-3" />
                 </Button>
             </div>
 
-            <ScrollArea class="max-h-[60vh] mt-4">
-                <div class="space-y-6 pr-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>基本情報</CardTitle>
-                        </CardHeader>
-                        <CardContent class="space-y-4">
-                            <div class="space-y-2">
-                                <Label for="title">アンケートタイトル *</Label>
-                                <Input
-                                    id="title"
-                                    placeholder="例：2025年度 忘年会の候補日アンケート"
-                                    v-model="title"
-                                    :class="{
-                                        'border-red-500': form.errors.title,
-                                    }"
-                                />
-                                <p
-                                    v-if="form.errors.title"
-                                    class="text-sm text-red-500"
-                                >
-                                    {{ form.errors.title }}
-                                </p>
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="description">説明</Label>
-                                <Textarea
-                                    id="description"
-                                    placeholder="アンケートの目的や注意事項を入力..."
-                                    v-model="description"
-                                    class="min-h-[80px]"
-                                />
-                            </div>
-                            <div class="space-y-2">
-                                <Label for="deadline">回答期限 *</Label>
-                                <Input
-                                    id="deadline"
-                                    type="datetime-local"
-                                    v-model="deadline"
-                                    :class="{
-                                        'border-red-500': form.errors.deadline,
-                                    }"
-                                />
-                                <p
-                                    v-if="form.errors.deadline"
-                                    class="text-sm text-red-500"
-                                >
-                                    {{ form.errors.deadline }}
-                                </p>
-                            </div>
-                            <div v-if="teamMembers" class="space-y-2">
-                                <Label>回答者選択</Label>
-                                <div class="border border-gray-300 rounded-md p-3 space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm font-medium">選択された回答者: {{ selectedRespondents.length }}/{{ teamMembers.length }}名</span>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            @click="toggleAllRespondents"
-                                            class="text-xs"
-                                        >
-                                            {{ isAllSelected ? '全員解除' : '全員選択' }}
-                                        </Button>
-                                    </div>
-                                    <div class="flex flex-wrap gap-1">
-                                        <Button
-                                            v-for="member in teamMembers"
-                                            :key="member.id"
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            @click="toggleRespondent(member.id)"
-                                            :class="[
-                                                'text-xs',
-                                                selectedRespondents.includes(member.id)
-                                                    ? 'bg-blue-100 text-blue-700 border-blue-300'
-                                                    : 'hover:bg-gray-50'
-                                            ]"
-                                        >
-                                            {{ member.name }}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+            <div class="flex-1 overflow-y-auto px-6">
+                <SurveyForm
+                    ref="formRef"
+                    :key="formKey"
+                    :initialData="initialFormData"
+                    :teamMembers="teamMembers || undefined"
+                />
+                <div class="h-6"></div> <!-- Spacer -->
+            </div>
 
-                    <div class="space-y-4">
-                        <Card
-                            v-if="questions.length === 0"
-                            class="border-dashed border-2"
-                        >
-                            <CardContent class="py-12 text-center">
-                                <div
-                                    class="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 cursor-pointer hover:bg-blue-100 transition-colors"
-                                    @click="showTemplateDialog = true"
-                                >
-                                    <Plus class="h-8 w-8 text-blue-600" />
-                                </div>
-                                <h3 class="mb-2">質問を追加しましょう</h3>
-                                <p class="text-sm text-gray-500 mb-6">
-                                    下のボタンから質問形式を選択して追加できます
-                                </p>
-                                <Button
-                                    @click="showTemplateDialog = true"
-                                    class="gap-2"
-                                >
-                                    <Plus class="h-4 w-4" />
-                                    新しい質問を追加
-                                </Button>
-                            </CardContent>
-                        </Card>
-                        <template v-else>
-                            <Card
-                                v-for="(question, index) in questions"
-                                :key="question.id"
-                            >
-                                <CardHeader>
-                                    <div
-                                        class="flex items-center justify-between"
-                                    >
-                                        <CardTitle
-                                            class="text-base flex items-center gap-2"
-                                        >
-                                            <GripVertical
-                                                class="h-4 w-4 text-gray-400"
-                                            />
-                                            質問 {{ index + 1 }}
-                                        </CardTitle>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            @click="removeQuestion(question.id)"
-                                        >
-                                            <Trash2 class="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent class="space-y-4">
-                                    <div class="space-y-2">
-                                        <Label>質問文 *</Label>
-                                        <Input
-                                            placeholder="質問を入力してください"
-                                            :model-value="question.question"
-                                            @update:model-value="
-                                                updateQuestion(
-                                                    question.id,
-                                                    'question',
-                                                    $event
-                                                )
-                                            "
-                                        />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <Label>回答形式</Label>
-                                        <div
-                                            class="p-3 bg-gray-50 rounded-md border border-gray-300 "
-                                        >
-                                            <p class="text-sm">
-                                                {{
-                                                    getQuestionTypeLabel(
-                                                        question.type
-                                                    )
-                                                }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div
-                                        v-if="question.type === 'single'"
-                                        class="space-y-2"
-                                    >
-                                        <Label>選択肢</Label>
-                                        <div class="space-y-2">
-                                            <div
-                                                v-for="(
-                                                    option, optionIndex
-                                                ) in question.options"
-                                                :key="optionIndex"
-                                                class="flex items-center gap-2"
-                                            >
-                                                <div
-                                                    class="w-4 h-4 rounded-full border-2 border-gray-400 flex-shrink-0"
-                                                />
-                                                <Input
-                                                    :placeholder="`選択肢 ${
-                                                        optionIndex + 1
-                                                    }`"
-                                                    :model-value="option"
-                                                    @update:model-value="
-                                                        updateOption(
-                                                            question.id,
-                                                            optionIndex,
-                                                            String($event)
-                                                        )
-                                                    "
-                                                    class="flex-1"
-                                                />
-                                                <Button
-                                                    v-if="
-                                                        question.options
-                                                            .length > 2
-                                                    "
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    @click="
-                                                        removeOption(
-                                                            question.id,
-                                                            optionIndex
-                                                        )
-                                                    "
-                                                >
-                                                    <Trash2 class="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            @click="addOption(question.id)"
-                                            class="gap-2"
-                                        >
-                                            <Plus class="h-4 w-4" />
-                                            選択肢を追加
-                                        </Button>
-                                    </div>
-                                    <div
-                                        v-if="question.type === 'multiple'"
-                                        class="space-y-2"
-                                    >
-                                        <Label>選択肢</Label>
-                                        <div class="space-y-2">
-                                            <div
-                                                v-for="(
-                                                    option, optionIndex
-                                                ) in question.options"
-                                                :key="optionIndex"
-                                                class="flex items-center gap-2"
-                                            >
-                                                <div
-                                                    class="w-4 h-4 rounded border-2 border-gray-400 flex-shrink-0"
-                                                ></div>
-                                                <Input
-                                                    :placeholder="`選択肢 ${
-                                                        optionIndex + 1
-                                                    }`"
-                                                    :model-value="option"
-                                                    @update:model-value="
-                                                        updateOption(
-                                                            question.id,
-                                                            optionIndex,
-                                                            String($event)
-                                                        )
-                                                    "
-                                                    class="flex-1"
-                                                />
-                                                <Button
-                                                    v-if="
-                                                        question.options
-                                                            .length > 2
-                                                    "
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    @click="
-                                                        removeOption(
-                                                            question.id,
-                                                            optionIndex
-                                                        )
-                                                    "
-                                                >
-                                                    <Trash2 class="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            @click="addOption(question.id)"
-                                            class="gap-2"
-                                        >
-                                            <Plus class="h-4 w-4" />
-                                            選択肢を追加
-                                        </Button>
-                                    </div>
-                                    <div
-                                        v-if="question.type === 'dropdown'"
-                                        class="space-y-2"
-                                    >
-                                        <Label>選択肢</Label>
-                                        <div class="space-y-2">
-                                            <div
-                                                v-for="(
-                                                    option, optionIndex
-                                                ) in question.options"
-                                                :key="optionIndex"
-                                                class="flex items-center gap-2"
-                                            >
-                                                <span
-                                                    class="text-sm text-gray-500 w-6"
-                                                    >{{
-                                                        optionIndex + 1
-                                                    }}.</span
-                                                >
-                                                <Input
-                                                    :placeholder="`選択肢 ${
-                                                        optionIndex + 1
-                                                    }`"
-                                                    :model-value="option"
-                                                    @update:model-value="
-                                                        updateOption(
-                                                            question.id,
-                                                            optionIndex,
-                                                            String($event)
-                                                        )
-                                                    "
-                                                    class="flex-1"
-                                                />
-                                                <Button
-                                                    v-if="
-                                                        question.options
-                                                            .length > 2
-                                                    "
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    @click="
-                                                        removeOption(
-                                                            question.id,
-                                                            optionIndex
-                                                        )
-                                                    "
-                                                >
-                                                    <Trash2 class="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            @click="addOption(question.id)"
-                                            class="gap-2"
-                                        >
-                                            <Plus class="h-4 w-4" />
-                                            選択肢を追加
-                                        </Button>
-                                    </div>
-                                    <div
-                                        v-if="question.type === 'text'"
-                                        class="p-4 bg-gray-50 rounded-md border border-gray-300 "
-                                    >
-                                        <Input
-                                            placeholder="回答者がここに短文を入力します"
-                                            disabled
-                                        />
-                                    </div>
-                                    <div
-                                        v-if="question.type === 'textarea'"
-                                        class="p-4 bg-gray-50 rounded-md border border-gray-300 "
-                                    >
-                                        <Textarea
-                                            placeholder="回答者がここに長文を入力します"
-                                            disabled
-                                            class="min-h-[100px]"
-                                        />
-                                    </div>
-                                    <div
-                                        v-if="question.type === 'rating'"
-                                        class="space-y-3"
-                                    >
-                                        <div
-                                            class="p-4 bg-gray-50 rounded-md border border-gray-300 "
-                                        >
-                                            <div
-                                                class="flex items-center justify-center gap-2"
-                                            >
-                                                <Star
-                                                    v-for="star in Array.from(
-                                                        {
-                                                            length:
-                                                                question.scaleMax ||
-                                                                5,
-                                                        },
-                                                        (_, i) => i + 1
-                                                    )"
-                                                    :key="star"
-                                                    class="h-8 w-8 text-gray-300 fill-gray-200"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div class="grid grid-cols-1 gap-3">
-                                            <div class="space-y-2">
-                                                <Label>星の数（3〜15）</Label>
-                                                <Input
-                                                    type="number"
-                                                    min="3"
-                                                    max="15"
-                                                    :model-value="
-                                                        question.scaleMax || 5
-                                                    "
-                                                    @update:model-value="
-                                                        updateQuestion(
-                                                            question.id,
-                                                            'scaleMax',
-                                                            Math.min(
-                                                                15,
-                                                                Math.max(
-                                                                    3,
-                                                                    parseInt(
-                                                                        String(
-                                                                            $event
-                                                                        )
-                                                                    ) || 5
-                                                                )
-                                                            )
-                                                        );
-                                                        updateQuestion(
-                                                            question.id,
-                                                            'scaleMin',
-                                                            1
-                                                        )
-                                                    "
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        v-if="question.type === 'scale'"
-                                        class="space-y-3"
-                                    >
-                                        <div
-                                            class="p-4 bg-gray-50 rounded-md border border-gray-300 "
-                                        >
-                                            <div
-                                                class="flex items-center justify-between"
-                                            >
-                                                <span class="text-sm text-gray-600">{{ question.scaleMinLabel || '1' }}</span>
-                                                <div class="flex gap-2">
-                                                    <div
-                                                        v-for="value in Array.from(
-                                                            {
-                                                                length:
-                                                                    question.scaleMax ||
-                                                                    5,
-                                                            },
-                                                            (_, i) => i + 1
-                                                        )"
-                                                        :key="value"
-                                                        class="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center text-sm"
-                                                    >
-                                                        {{ value }}
-                                                    </div>
-                                                </div>
-                                                <span class="text-sm text-gray-600">{{ question.scaleMaxLabel || (question.scaleMax || 5) }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="space-y-2">
-                                            <Label>段階数（2〜10）</Label>
-                                            <Input
-                                                type="number"
-                                                min="2"
-                                                max="10"
-                                                :model-value="
-                                                    question.scaleMax ||
-                                                    5
-                                                "
-                                                @update:model-value="
-                                                    updateQuestion(
-                                                        question.id,
-                                                        'scaleMax',
-                                                        Math.min(10, Math.max(2, parseInt(String($event)) || 5))
-                                                    );
-                                                    updateQuestion(
-                                                        question.id,
-                                                        'scaleMin',
-                                                        1
-                                                    )
-                                                "
-                                            />
-                                        </div>
-                                        <div class="grid grid-cols-2 gap-3">
-                                            <div class="space-y-2">
-                                                <Label
-                                                    >最小値ラベル（任意）</Label
-                                                >
-                                                <Input
-                                                    placeholder="例：とても悪い"
-                                                    :model-value="
-                                                        question.scaleMinLabel ||
-                                                        ''
-                                                    "
-                                                    @update:model-value="
-                                                        updateQuestion(
-                                                            question.id,
-                                                            'scaleMinLabel',
-                                                            $event
-                                                        )
-                                                    "
-                                                />
-                                            </div>
-                                            <div class="space-y-2">
-                                                <Label
-                                                    >最大値ラベル（任意）</Label
-                                                >
-                                                <Input
-                                                    placeholder="例：とても良い"
-                                                    :model-value="
-                                                        question.scaleMaxLabel ||
-                                                        ''
-                                                    "
-                                                    @update:model-value="
-                                                        updateQuestion(
-                                                            question.id,
-                                                            'scaleMaxLabel',
-                                                            $event
-                                                        )
-                                                    "
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        v-if="question.type === 'date'"
-                                        class="p-4 bg-gray-50 rounded-md border border-gray-300 "
-                                    >
-                                        <Input type="datetime-local" disabled />
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <Checkbox
-                                            :id="`required-${question.id}`"
-                                            :checked="question.required"
-                                            @update:checked="
-                                                updateQuestion(
-                                                    question.id,
-                                                    'required',
-                                                    $event
-                                                )
-                                            "
-                                        />
-                                        <Label
-                                            :for="`required-${question.id}`"
-                                            class="text-sm cursor-pointer"
-                                            >必須項目にする</Label
-                                        >
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <Button
-                                variant="outline"
-                                @click="showTemplateDialog = true"
-                                class="w-full gap-2"
-                            >
-                                <Plus class="h-4 w-4" />
-                                新しい質問を追加
-                            </Button>
-                        </template>
-                    </div>
-                </div>
-            </ScrollArea>
-
-            <DialogFooter class="flex-col sm:flex-row gap-2">
-                <Button
-                    variant="outline"
-                    @click="handleCancel"
-                    :disabled="form.processing"
-                    >キャンセル</Button
-                >
+            <DialogFooter class="p-6 border-t mt-auto shrink-0 bg-white">
+                <Button variant="outline" @click="handleClose">キャンセル</Button>
                 <div class="flex gap-2">
-                    <Button
-                        v-if="!isEditMode"
-                        variant="outline"
-                        @click="saveDraft"
-                        :disabled="form.processing"
-                        >一時保存</Button
-                    >
-                    <Button
-                        @click="handleSave(false)"
-                        variant="outline"
-                        class="gap-2"
-                        :disabled="form.processing"
-                    >
+                    <Button v-if="!isEditMode" variant="outline" @click="saveDraft">一時保存</Button>
+                    <Button @click="handleSave(false)" class="gap-2">
                         <Save class="h-4 w-4" />
-                        {{
-                            form.processing
-                                ? "保存中..."
-                                : isEditMode
-                                ? "更新"
-                                : "作成"
-                        }}
+                        {{ isEditMode ? "更新" : "作成" }}
                     </Button>
                 </div>
             </DialogFooter>
-        </DialogContent>
-    </Dialog>
 
-    <Dialog v-model:open="showTemplateDialog">
-        <DialogContent class="max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] md:w-[66vw] max-h-[80vh] overflow-y-auto z-[60]">
-            <DialogHeader>
-                <DialogTitle>質問形式を選択</DialogTitle>
-                <DialogDescription
-                    >作成したい質問の形式を選択してください</DialogDescription
+            <!-- Message Toast (Inline) -->
+            <Transition
+                enter-active-class="transition ease-out duration-300"
+                enter-from-class="transform opacity-0 translate-y-full"
+                enter-to-class="transform opacity-100 translate-y-0"
+                leave-active-class="transition ease-in duration-200"
+                leave-from-class="transform opacity-100 translate-y-0"
+                leave-to-class="transform opacity-0 translate-y-full"
+            >
+                <div v-if="saveMessage" 
+                     class="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-50 p-3 text-white rounded-lg shadow-lg flex items-center gap-2"
+                     :class="messageType === 'success' ? 'bg-green-500' : 'bg-red-500'"
                 >
-            </DialogHeader>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <Card
-                    v-for="template in questionTemplates"
-                    :key="template.type"
-                    class="cursor-pointer hover:shadow-md hover:border-blue-500 transition-all"
-                    @click="createQuestionFromTemplate(template)"
-                >
-                    <CardContent class="p-6">
-                        <div class="flex items-start gap-4">
-                            <div
-                                class="p-3 bg-blue-50 rounded-lg text-blue-600"
-                            >
-                                <component
-                                    :is="template.icon"
-                                    class="h-6 w-6"
-                                />
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="mb-2">{{ template.name }}</h3>
-                                <p class="text-sm text-gray-600">
-                                    {{ template.description }}
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                    <CheckCircle class="h-5 w-5" />
+                    <span>{{ saveMessage }}</span>
+                </div>
+            </Transition>
         </DialogContent>
-    </Dialog>
 
-    <!-- メッセージ表示 -->
-    <Transition
-      enter-active-class="transition ease-out duration-300"
-      enter-from-class="transform opacity-0 translate-y-full"
-      enter-to-class="transform opacity-100 translate-y-0"
-      leave-active-class="transition ease-in duration-200"
-      leave-from-class="transform opacity-100 translate-y-0"
-      leave-to-class="transform opacity-0 translate-y-full"
-    >
-      <div 
-        v-if="saveMessage"
-        :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[70] p-3 text-white rounded-lg shadow-lg pointer-events-auto',
-          messageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
-      >
-        <div class="flex items-center gap-2">
-          <CheckCircle class="h-5 w-5" />
-          <span class="font-medium whitespace-pre-line">{{ saveMessage }}</span>
-          <Button 
-            v-if="messageType === 'delete' && deletedDraft"
-            variant="ghost"
-            size="sm"
-            @click="undoDeleteDraft"
-            class="ml-2 text-white hover:bg-white/20"
-          >
-            元に戻す
-          </Button>
-        </div>
-      </div>
-    </Transition>
-    
-    <!-- 保存失敗ドラフト復元確認ダイアログ -->
-    <Dialog :open="showFailureDraftDialog" @update:open="(val) => !val && discardFailureDraft()">
-      <DialogContent class="max-w-md z-[70]">
-        <DialogHeader>
-          <DialogTitle>下書きが見つかりました</DialogTitle>
-          <DialogDescription>前回保存に失敗した内容が残っています。復元しますか？</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" @click="discardFailureDraft">破棄</Button>
-          <Button @click="restoreFailureDraft">復元</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    
-    <!-- 既存回答削除確認ダイアログ -->
-    <Dialog :open="showConfirmDialog" @update:open="(val) => showConfirmDialog = val">
-      <DialogContent class="max-w-md z-[70]">
-        <DialogHeader>
-          <DialogTitle>既存回答の削除確認</DialogTitle>
-          <DialogDescription v-if="confirmData">
-            {{ confirmData.message }}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" @click="showConfirmDialog = false">キャンセル</Button>
-          <Button @click="handleConfirmSave" class="bg-red-600 hover:bg-red-700">続行する</Button>
-        </DialogFooter>
-      </DialogContent>
+        <!-- Confirmation Dialog -->
+        <AlertDialog :open="confirmReset.isOpen">
+            <AlertDialogContent class="bg-white">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>確認が必要です</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {{ confirmReset.message }}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel @click="confirmReset.isOpen = false">キャンセル</AlertDialogCancel>
+                    <AlertDialogAction 
+                        @click="() => { 
+                            confirmReset.isOpen = false; 
+                            confirmReset.onConfirm(); 
+                        }" 
+                        class="bg-red-600 hover:bg-red-700"
+                    >
+                        続行する
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </Dialog>
 </template>
-

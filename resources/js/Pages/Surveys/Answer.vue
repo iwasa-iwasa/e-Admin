@@ -1,5 +1,5 @@
-<script setup lang="ts">
-  import { ref, nextTick } from 'vue'
+  <script setup lang="ts">
+  import { ref, nextTick, computed } from 'vue'
   import { Head, useForm, router } from '@inertiajs/vue3'
   import { route } from 'ziggy-js'
   import { Button } from '@/components/ui/button'
@@ -9,6 +9,8 @@
   import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
   import { ArrowLeft, Star, AlertCircle } from 'lucide-vue-next'
   import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+  import QuestionViewer from '@/features/survey/components/SurveyRespondent/QuestionViewer.vue'
+  import { convertQuestionFromBackend } from '@/features/survey/domain/factory'
   
   defineOptions({
       layout: AuthenticatedLayout
@@ -43,7 +45,7 @@
   const props = defineProps<{
       survey: Survey
       questions: Question[]
-      existingAnswers?: Record<number, any>
+      existingAnswers?: any
       isEditing?: boolean
       errors?: any
       auth?: any
@@ -67,8 +69,10 @@
   // コンポーネントマウント時に初期化
   initializeDropdownAnswers()
   
-  const multipleChoiceAnswers = ref<Record<number, number[]>>({})
-  
+  const displayQuestions = computed(() => {
+      return props.questions.map((q, index) => convertQuestionFromBackend(q, index));
+  });
+
   // 既存回答を初期化
   if (props.existingAnswers) {
       console.log('existingAnswers:', props.existingAnswers)
@@ -77,16 +81,10 @@
           const answer = props.existingAnswers![questionId]
           const question = props.questions.find(q => q.question_id === questionId)
           
-          console.log(`Question ${questionId}:`, { answer, questionType: question?.question_type })
-          
           if (question?.question_type === 'multiple_choice') {
               if (Array.isArray(answer)) {
-                  // 配列の場合（option_idの配列）
-                  multipleChoiceAnswers.value[questionId] = [...answer]
                   form.answers[questionId] = [...answer]
-                  console.log(`Multiple choice (array) for ${questionId}:`, multipleChoiceAnswers.value[questionId])
               } else if (typeof answer === 'string') {
-                  // 文字列の場合、option_idに変換
                   const optionTexts = answer.includes(',') ? answer.split(', ') : [answer]
                   const optionIds: number[] = []
                   for (const text of optionTexts) {
@@ -95,12 +93,9 @@
                           optionIds.push(option.option_id)
                       }
                   }
-                  multipleChoiceAnswers.value[questionId] = optionIds
                   form.answers[questionId] = optionIds
-                  console.log(`Multiple choice (string) for ${questionId}:`, { optionTexts, optionIds })
               }
           } else if (question?.question_type === 'single_choice') {
-              // 単一選択の場合
               if (answer && typeof answer === 'object') {
                   if (answer.option_id) {
                       form.answers[questionId] = answer.option_id
@@ -119,29 +114,11 @@
           } else if (question?.question_type === 'scale' && answer) {
               form.answers[questionId] = Number(answer)
           } else {
-              // その他の場合（text, textarea, date, dropdownなど）
               form.answers[questionId] = answer
           }
       })
-      console.log('Final multipleChoiceAnswers:', multipleChoiceAnswers.value)
-      console.log('Final form.answers:', form.answers)
   }
   const clientValidationErrors = ref<Record<number, string>>({})
-  
-  const handleMultipleChoiceChange = (questionId: number, optionId: number, checked: boolean) => {
-      if (!multipleChoiceAnswers.value[questionId]) {
-          multipleChoiceAnswers.value[questionId] = []
-      }
-      
-      if (checked) {
-          multipleChoiceAnswers.value[questionId].push(optionId)
-      } else {
-          multipleChoiceAnswers.value[questionId] = 
-              multipleChoiceAnswers.value[questionId].filter(id => id !== optionId)
-      }
-      
-      form.answers[questionId] = multipleChoiceAnswers.value[questionId]
-  }
   
   const validateAnswers = () => {
       clientValidationErrors.value = {}
@@ -150,10 +127,8 @@
           if (!question.is_required) continue
           
           const answer = form.answers[question.question_id]
-          const multipleAnswer = multipleChoiceAnswers.value[question.question_id]
-          
           if (question.question_type === 'multiple_choice') {
-              if (!multipleAnswer || multipleAnswer.length === 0) {
+              if (!answer || (Array.isArray(answer) && answer.length === 0)) {
                   clientValidationErrors.value[question.question_id] = '少なくとも1つ選択してください'
               }
           } else if (!answer || (typeof answer === 'string' && answer.trim() === '')) {
@@ -213,110 +188,17 @@
           
           <!-- 質問リスト (スクロール可能) -->
           <div class="flex-1 overflow-y-auto p-6 space-y-6">
-          <div
-            v-for="q in questions"
-            :key="q.question_id"
-            :id="`question_${q.question_id}`"
-            class="pb-6 border-b last:border-b-0"
-          >
-            <Label class="block mb-2 font-medium">
-              {{ q.question_text }}
-              <span v-if="q.is_required" class="text-red-500">*</span>
-            </Label>
-            
-            <div
-              v-if="clientValidationErrors[q.question_id]"
-              class="flex items-center gap-2 text-red-600 text-sm mb-2"
-            >
-              <AlertCircle class="h-4 w-4" />
-              {{ clientValidationErrors[q.question_id] }}
-            </div>
-            
-            <!-- Single -->
-            <div v-if="q.question_type === 'single_choice'" class="space-y-2">
-              <label v-for="o in q.options" :key="o.option_id" class="flex gap-2">
-                <input type="radio" :value="o.option_id" v-model="form.answers[q.question_id]" />
-                {{ o.option_text }}
-              </label>
-            </div>
-            
-            <!-- Multiple -->
-            <div v-else-if="q.question_type === 'multiple_choice'" class="space-y-2">
-              <label v-for="o in q.options" :key="o.option_id" class="flex gap-2">
-                <input
-                  type="checkbox"
-                  :checked="multipleChoiceAnswers[q.question_id]?.includes(o.option_id)"
-                  @change="handleMultipleChoiceChange(
-                    q.question_id,
-                    o.option_id,
-                    ($event.target as HTMLInputElement).checked
-                  )"
-                />
-                {{ o.option_text }}
-              </label>
-            </div>
-            
-            <!-- Text -->
-            <Input
-              v-else-if="q.question_type === 'text'"
-              v-model="form.answers[q.question_id]"
-            />
-            
-            <!-- Textarea -->
-            <Textarea
-              v-else-if="q.question_type === 'textarea'"
-              v-model="form.answers[q.question_id]"
-            />
-            
-            <!-- Date -->
-            <Input
-              v-else-if="q.question_type === 'date'"
-              type="datetime-local"
-              step="60"
-              v-model="form.answers[q.question_id]"
-            />
-            
-            <!-- Rating -->
-            <div v-else-if="q.question_type === 'rating'" class="flex gap-1">
-              <label v-for="n in (q.scale_max || 5)" :key="n">
-                <input type="radio" class="sr-only" :value="n" v-model="form.answers[q.question_id]" />
-                <Star
-                  class="h-8 w-8 cursor-pointer"
-                  :class="n <= (form.answers[q.question_id] || 0)
-                    ? 'text-yellow-400 fill-yellow-400'
-                    : 'text-gray-300'"
-                />
-              </label>
-            </div>
-            
-            <!-- Scale -->
-            <div v-else-if="q.question_type === 'scale'" class="flex gap-2">
-              <label
-                v-for="n in (q.scale_max || 5)"
-                :key="n"
-                class="w-10 h-10 flex items-center justify-center rounded-full border cursor-pointer"
-                :class="n === form.answers[q.question_id]
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'border-gray-300'"
-              >
-                <input type="radio" class="sr-only" :value="n" v-model="form.answers[q.question_id]" />
-                {{ n }}
-              </label>
-            </div>
-            
-            <!-- Dropdown -->
-            <select
-              v-else-if="q.question_type === 'dropdown'"
-              v-model="form.answers[q.question_id]"
-              class="w-full border rounded px-3 py-2"
-              :class="!form.answers[q.question_id] ? 'text-gray-400' : 'text-gray-900'"
-            >
-              <option value="">選択してください</option>
-              <option v-for="o in q.options" :key="o.option_id" :value="o.option_id">
-                {{ o.option_text }}
-              </option>
-            </select>
-          </div>
+              <QuestionViewer
+                  v-for="(q, index) in displayQuestions"
+                  :key="q.id"
+                  :question="q"
+                  :model-value="form.answers[q.id]"
+                  @update:model-value="form.answers[q.id] = $event"
+                  mode="answer"
+                  :error="clientValidationErrors[Number(q.id)]"
+                  :question-number="index + 1"
+                  :id="`question_${q.id}`"
+              />
           </div>
           
           <!-- カードフッター (固定) -->
