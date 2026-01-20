@@ -390,7 +390,7 @@ export interface Note extends SharedNote {
                 ? 'bg-gray-100 border-gray-400 border-2' 
                 : getColorClass(note.color), 
               'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow',
-              selectedNote?.note_id === note.note_id ? 'ring-2 ring-blue-500' : ''
+              selectedNote?.note_id === note.note_id ? '' : ''
             ]"
             @click="selectedNote = note"
           >
