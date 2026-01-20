@@ -143,7 +143,7 @@ onUnmounted(() => {
                 <Card class="hover:shadow-md transition-shadow">
                     <CardContent class="p-0">
                       <div class="h-[80vh] min-h-0 overflow-hidden">
-                            <SharedCalendar :events="events" />
+                            <SharedCalendar :events="events" :filtered-member-id="filteredMemberId" />
                         </div>
                     </CardContent>
                 </Card>
@@ -169,7 +169,7 @@ onUnmounted(() => {
       <!-- PC：横並びレイアウト -->
       <div v-else ref="dashboardRef" class="flex h-full">
         <div :style="{ width: calendarWidth + '%' }" class="h-full pr-3">
-          <SharedCalendar :events="events" />
+          <SharedCalendar :events="events" :filtered-member-id="filteredMemberId" />
         </div>
 
         <!-- 横リサイズバー -->
