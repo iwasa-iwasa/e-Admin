@@ -209,6 +209,9 @@ watch(() => props.open, (isOpen) => {
         date.value = [now, now];
         form.date_range = [now, now];
         is_all_day.value = false;
+
+        const me = teamMembers.value.find(m => m.id === currentUserId.value)
+        form.participants = me ? [me] : []
       }
     }
   }
