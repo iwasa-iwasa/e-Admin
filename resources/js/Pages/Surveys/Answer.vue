@@ -53,22 +53,10 @@
       flash?: any
   }>()
   
-  const normalizeAnswers = (answers: any) => {
-    if (!answers) return {} as Record<number, any>;
-    if (Array.isArray(answers)) {
-        const obj: Record<number, any> = {};
-        answers.forEach((val, idx) => {
-             if (val !== null && val !== undefined) obj[idx] = val;
-        });
-        return obj;
-    }
-    return JSON.parse(JSON.stringify(answers));
-}
-
-const form = useForm({
-    answers: normalizeAnswers(props.existingAnswers),
-    status: 'submitted'
-})
+  const form = useForm({
+      answers: props.existingAnswers ? JSON.parse(JSON.stringify(props.existingAnswers)) : {} as Record<number, any>,
+      status: 'submitted'
+  })
   
   // 全ての回答を初期化
 const initializeAnswers = () => {

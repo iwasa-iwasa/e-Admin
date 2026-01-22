@@ -18,17 +18,19 @@ const options = computed({
 });
 
 const addOption = () => {
-    // Add empty string for simplicity in draft mode
-    // (If using objects later, we'd add {text: ''})
-    const newOptions = [...options.value, ""];
+    // Add object structure to preserve uniformity, though ID is missing for new ones
+    const newOptions = [...options.value, { text: "" }];
     emit('update:modelValue', newOptions);
 };
 
 const updateOptionText = (index: number, text: string) => {
     const newOptions = [...options.value];
     if (typeof newOptions[index] === 'string') {
-        newOptions[index] = text;
+        newOptions[index] = text; // Retro-compatibility or converting string to new structure? Better keep consistency.
+        // If we want to upgrade strings to objects:
+        // newOptions[index] = { text: text };
     } else {
+        // Preserve existing properties (like option_id)
         newOptions[index] = { ...newOptions[index], text: text, option_text: text };
     }
     emit('update:modelValue', newOptions);

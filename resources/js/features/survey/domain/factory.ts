@@ -118,7 +118,7 @@ export const convertQuestionFromBackend = (q: any, index: number = 0): Question 
         question: q.question_text || "",
         options: q.options?.map((opt: any) => ({
             option_id: opt.option_id,
-            text: opt.option_text || ""
+            text: opt.option_text || opt.text || ""
         })) || [],
         required: !!q.is_required,
         scaleMin: q.scale_min,

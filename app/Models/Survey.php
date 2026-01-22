@@ -39,6 +39,7 @@ class Survey extends Model
         'is_active',
         'is_deleted',
         'deleted_at',
+        'version',
     ];
 
     /**

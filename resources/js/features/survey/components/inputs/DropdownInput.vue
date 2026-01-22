@@ -22,7 +22,7 @@ const normalizedOptions = computed(() => {
             value: String(opt.option_id ?? opt.text), // Select value must be string usually
             label: opt.option_text ?? opt.text ?? ''
         };
-    });
+    }).filter(opt => opt.value !== ''); // Filter out empty values to prevent SelectItem error
 });
 </script>
 

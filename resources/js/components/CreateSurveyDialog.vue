@@ -112,8 +112,104 @@ const clearDraft = () => {
     showMessage('下書きを削除しました', 'delete');
 };
 
+// Check for destructive changes
+const checkDestructiveChanges = (original: any, current: any): { isDestructive: boolean; reasons: string[] } => {
+    const reasons: string[] = [];
+
+    if (!original) return { isDestructive: false, reasons: [] };
+
+    // 1. Check Respondents (Impact Range) - Deletion is destructive
+    const originalRespondents = new Set(original.respondents || []);
+    const currentRespondents = new Set(current.respondents || []);
+    for (const id of originalRespondents) {
+        if (!currentRespondents.has(id)) {
+            reasons.push("回答対象者が削除されました（権限変更）");
+            break;
+        }
+    }
+
+    // 2. Check Questions
+    const originalQuestionsMap = new Map();
+    original.questions.forEach((q: any) => originalQuestionsMap.set(q.id, q));
+    const currentQuestionIds = new Set();
+
+    for (const q of current.questions) {
+        currentQuestionIds.add(q.id);
+        const originalQ = originalQuestionsMap.get(q.id);
+
+        if (originalQ) {
+            // Existing Question Check
+            // 2.1 Type Change
+            if (originalQ.type !== q.type) {
+                reasons.push(`質問「${originalQ.question}」の形式が変更されました`);
+            }
+
+            // 2.2 Option Changes
+            const originalOptions = originalQ.options || [];
+            const currentOptions = q.options || [];
+
+            const getOptionId = (opt: any) => typeof opt === 'object' ? opt.option_id : null;
+            const getOptionText = (opt: any) => typeof opt === 'string' ? opt : (opt.text || opt.option_text || '');
+
+            const originalOptIds = new Set(originalOptions.map(getOptionId).filter((id: any) => id != null));
+
+            if (originalOptIds.size > 0) {
+                // Tracking by ID
+                const currentOptIds = new Set(currentOptions.map(getOptionId).filter((id: any) => id != null));
+                
+                // Check Deletions
+                let optionDeleted = false;
+                for (const id of originalOptIds) {
+                    if (!currentOptIds.has(id)) {
+                        optionDeleted = true;
+                        break;
+                    }
+                }
+                if (optionDeleted) {
+                    reasons.push(`質問「${originalQ.question}」の選択肢が削除されました`);
+                } else {
+                    // Check Text Changes (Meaning Change)
+                    for (const curOpt of currentOptions) {
+                        const id = getOptionId(curOpt);
+                        if (id && originalOptIds.has(id)) {
+                            const orgOpt = originalOptions.find((o: any) => getOptionId(o) === id);
+                            if (orgOpt && getOptionText(orgOpt) !== getOptionText(curOpt)) {
+                                reasons.push(`質問「${originalQ.question}」の選択肢の内容が変更されました`);
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Fallback: Tracking by Text (Strings)
+                // If any original text is missing -> Deleted
+                const curTexts = new Set(currentOptions.map(getOptionText));
+                for (const opt of originalOptions) {
+                    const text = getOptionText(opt);
+                    if (!curTexts.has(text)) {
+                         reasons.push(`質問「${originalQ.question}」の選択肢「${text}」が削除されました`);
+                         break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Check Question Deletion
+    for (const [id, q] of originalQuestionsMap) {
+        if (!currentQuestionIds.has(id)) {
+            reasons.push(`質問「${q.question}」が削除されました`);
+        }
+    }
+
+    return {
+        isDestructive: reasons.length > 0,
+        reasons
+    };
+};
+
 // Save (Publish/Draft) Logic
-const handleSave = (isDraft: boolean, force = false) => {
+const handleSave = (isDraft: boolean, force = false, resetResponses = false) => {
     if (!formRef.value) return;
 
     const errors = formRef.value.validate();
@@ -123,33 +219,53 @@ const handleSave = (isDraft: boolean, force = false) => {
     }
 
     const data = formRef.value.getData();
+
+    // Check for destructive changes if editing (and not forcing)
+    if (isEditMode.value && !force && !isDraft) {
+        const { isDestructive, reasons } = checkDestructiveChanges(initialFormData.value, data);
+        if (isDestructive) {
+             confirmReset.value = {
+                isOpen: true,
+                message: '以下の変更により、既存の回答データに影響が出る可能性があります：\n\n' + reasons.map(r => '・' + r).join('\n') + '\n\n変更を保存しますか？',
+                onConfirm: () => handleSave(isDraft, true, true)
+            };
+            return;
+        }
+        // If not destructive, auto-confirm (set force=true) to bypass strict backend checks if necessary,
+        // but explicit resetResponses=false ensures no deletion.
+        force = true;
+        resetResponses = false;
+    }
+
     // Transform data for backend if needed
-    // Assuming backend accepts what useSurveyEditor produces (which matches UpdateSurveyRequest requirements mostly)
     
     // Convert Question Structure slightly if backend expects specific structure?
-    // Backend expects options as: string[] in questions.*.options
-    // My useSurveyEditor uses Question model which has options as string[] or object[].
-    // If objects, I map to string? Wait, existing backend handles Objects Update?
-    // UpdateSurveyRequest says `questions.*.options.* => string`.
-    // So I must ensure options are strings.
-    
     const preparedQuestions = data.questions.map((q: any) => ({
         ...q,
-        options: q.options.map((o: any) => typeof o === 'string' ? o : (o.text || o.option_text))
+        question_id: q.id, // Map frontend 'id' to backend 'question_id'
+        options: q.options.map((o: any) => {
+            if (typeof o === 'string') return o;
+            // Return object with option_id if available, otherwise just text structure
+            return {
+                option_id: o.option_id,
+                text: o.text || o.option_text
+            };
+        })
     }));
 
     const formData = {
         ...data,
         questions: preparedQuestions,
-        is_draft: isDraft, // Note: backend might expect is_draft
-        isDraft: isDraft, // Just in case
-        confirm_reset: force // 強制更新フラグ
+        is_draft: isDraft, 
+        isDraft: isDraft, 
+        confirm_reset: force, // 強制更新フラグ (Allow Update)
+        reset_responses: resetResponses // 回答削除フラグ (Delete Data)
     };
 
     const form = useForm(formData);
 
     const handleError = (err: any) => {
-        // 確認が必要なエラーかチェック
+        // Backend might still throw require_confirmation for things we missed or other rules
         if (err.requires_confirmation) {
             confirmReset.value = {
                 isOpen: true,

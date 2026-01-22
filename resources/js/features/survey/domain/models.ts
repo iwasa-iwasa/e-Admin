@@ -10,6 +10,7 @@ export type QuestionType =
 
 export interface Question {
     id: string | number
+    uuid?: string
     type: QuestionType
     question: string
     options: (string | any)[] // string for simple strings, object for Answer view with IDs
@@ -22,9 +23,12 @@ export interface Question {
 
 export interface Survey {
     id?: string | number
+    uuid?: string
     title: string
     description: string
     deadline: string
+    is_active?: boolean
+    version?: number
     questions: Question[]
     respondents: number[] // user ids
 }
