@@ -74,7 +74,8 @@ content: string | null;
 author_id: number;
 color: string;
 priority: string;
-deadline: string | null;
+deadline_date: string | null;
+deadline_time: string | null;
 is_deleted: boolean;
 created_at: string | null;
 updated_at: string | null;
@@ -151,11 +152,39 @@ export type EventImportance = '重要' | '中' | '低';
 }
 declare namespace App.Models {
 export type User = {
+id: number;
+name: string;
+email: string;
+email_verified_at: string | null;
+department: string;
+role: string;
+is_active: boolean;
+created_at: string | null;
+updated_at: string | null;
+reason: string | null;
+deactivated_at: string | null;
 incrementing: boolean;
 preventsLazyLoading: boolean;
 exists: boolean;
 wasRecentlyCreated: boolean;
 timestamps: boolean;
 usesUniqueIds: boolean;
+};
+export type SharedNote = {
+note_id: number;
+title: string;
+content: string | null;
+author_id: number;
+color: string;
+priority: string;
+deadline_date: string | null;
+deadline_time: string | null;
+is_deleted: boolean;
+created_at: string | null;
+updated_at: string | null;
+deleted_at: string | null;
+author?: User;
+participants?: User[];
+tags: { tag_id: number; tag_name: string }[];
 };
 }

@@ -256,7 +256,15 @@ watch(searchQuery, () => {
   }
 })
 
-const authors = computed(() => Array.from(new Set(props.notes.map((note) => note.author?.name).filter(Boolean))))
+const authors = computed<string[]>(() =>
+  Array.from(
+    new Set(
+      props.notes
+        .map(note => note.author?.name)
+        .filter((name): name is string => typeof name === 'string')
+    )
+  )
+)
 
 const handleSelectNote = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
   selectedNote.value = note
@@ -699,22 +707,20 @@ const handleRemoveParticipant = (participantId: number) => {
                   <User class="h-3 w-3" />
                   <span>{{ selectedNote.author?.name }}</span>
                 </div>
-                <div class="flex items-center gap-1">
+                <!-- 作成日 -->
+                <div v-if="selectedNote.created_at" class="flex items-center gap-1">
                   <Calendar class="h-3 w-3" />
-                  <span>{{ (selectedNote as any).linked_event_id && (selectedNote as any).linked_event ? 
-                    new Date((selectedNote as any).linked_event.end_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : 
-                    (selectedNote.deadline_date ? 
-                      new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : 
-                      (selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') : '')) }}</span>
+                  <span>作成日：{{ new Date(selectedNote.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') }}</span>
                 </div>
-                <div class="flex items-center gap-1">
+                <!-- 編集日（作成日と異なる場合のみ） -->
+                <div v-if="selectedNote.updated_at && selectedNote.created_at && new Date(selectedNote.updated_at).toDateString() !== new Date(selectedNote.created_at).toDateString()" class="flex items-center gap-1">
                   <Clock class="h-3 w-3" />
-                  <span>{{ (selectedNote as any).linked_event_id && (selectedNote as any).linked_event ? 
-                    ((selectedNote as any).linked_event.end_time || '23:59:00').substring(0, 5) : 
-                    (selectedNote.deadline_date ? 
-                      (selectedNote.deadline_time || '23:59:00').substring(0, 5) : 
-                      (selectedNote.created_at ? new Date(selectedNote.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '')) }}</span>
+                  <span>編集日：{{ new Date(selectedNote.updated_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}</span>
                 </div>
+                <!-- 期限（設定されている場合のみBadgeで表示） -->
+                <Badge v-if="selectedNote.deadline_date" variant="outline" class="text-xs">
+                  期限：{{ new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' }).replace(/\//g, '/') }} {{ (selectedNote.deadline_time || '23:59').substring(0, 5) }}
+                </Badge>
               </div>
             </div>
             <div class="flex items-center gap-2 ml-4">
