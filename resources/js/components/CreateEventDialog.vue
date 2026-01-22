@@ -74,6 +74,11 @@ const DRAFT_KEY = 'event_draft'
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
 
+const loadDraft = () => {
+  const draft = sessionStorage.getItem(DRAFT_KEY)
+  return draft ? JSON.parse(draft) : null
+}
+
 // 参加者リストに含まれていないメンバー（選択肢用）
 const availableMembers = computed(() => {
   return teamMembers.value.filter(member => 
@@ -316,11 +321,6 @@ const saveDraft = () => {
     recurrence: form.recurrence,
   }
   sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
-}
-
-const loadDraft = () => {
-  const draft = sessionStorage.getItem(DRAFT_KEY)
-  return draft ? JSON.parse(draft) : null
 }
 
 const clearDraft = () => {
