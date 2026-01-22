@@ -147,6 +147,53 @@ class SurveySeeder extends Seeder
                     }
                 }
             }
+
+            // Create responses
+            // User 2 answers Survey 1 (User 1's survey)
+            if ($survey->created_by === $user1->id) {
+                $respondent = $user2;
+            } else {
+                $respondent = $user1;
+            }
+
+            $answers = [];
+            foreach ($survey->questions as $question) {
+                $val = null;
+                switch ($question->question_type) {
+                    case 'single_choice':
+                    case 'dropdown':
+                        $opt = $question->options->random();
+                        $val = $opt ? $opt->option_id : null;
+                        break;
+                    case 'multiple_choice':
+                        // Pick 1-2 random options
+                        $opts = $question->options->random(min(2, $question->options->count()));
+                        $val = $opts->pluck('option_id')->toArray();
+                        break;
+                    case 'rating':
+                    case 'scale':
+                        $val = rand(1, 5);
+                        break;
+                    case 'date':
+                        $val = '2025-12-25';
+                        break;
+                    default:
+                        $val = 'Test Answer';
+                        break;
+                }
+                if ($val) {
+                    $answers[$question->question_id] = $val;
+                }
+            }
+
+            \App\Models\SurveyResponse::create([
+                'survey_id' => $survey->survey_id,
+                'respondent_id' => $respondent->id,
+                'answers' => $answers,
+                'status' => 'submitted',
+                'survey_version' => 1,
+                'submitted_at' => now(),
+            ]);
         }
     }
     

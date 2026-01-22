@@ -85,25 +85,14 @@ class SurveyService
                 'deadline_time' => $deadlineTime,
             ]);
 
-            // 期限のみの変更の場合は質問と回答を保持
-            if (!$onlyDeadlineChanged) {
-                // 既存回答があり質問が変更された場合は回答を削除
-                if ($hasResponses && $questionsChanged) {
-                    $survey->responses()->each(function ($response) {
-                        $response->answers()->delete();
-                    });
-                    $survey->responses()->delete();
-                }
-                
-                // 質問を再作成
-                $survey->questions()->each(fn($question) => $question->options()->delete());
-                $survey->questions()->delete();
+            // 質問が変更された場合、バージョンをインクリメント
+            if ($questionsChanged && !$onlyDeadlineChanged) {
+                 $survey->increment('version');
+            }
 
-                $this->saveQuestions($survey, $data['questions']);
-                
-                // Note: Respondents update logic was separated in controller, 
-                // but if needed we can add logic here to update respondents too.
-                // Assuming respondents are not updated in this request based on existing controller.
+            // 質問の更新（Reconciliation）
+            if (!$onlyDeadlineChanged) {
+                 $this->reconcileQuestions($survey, $data['questions']);
             }
             
             return $survey;
@@ -139,73 +128,30 @@ class SurveyService
     /**
      * Save survey answer.
      */
-    public function saveAnswer(Survey $survey, array $answers, int $userId)
+    public function saveAnswer(Survey $survey, array $answers, int $userId, string $status = 'submitted')
     {
-        return DB::transaction(function () use ($survey, $answers, $userId) {
-            // 既存の回答を確認
-            $existingResponse = $survey->responses()
-                ->where('respondent_id', $userId)
-                ->first();
-            
-            if ($existingResponse) {
-                // 既存の回答を削除
-                $existingResponse->answers()->delete();
-                $response = $existingResponse;
-                $response->update(['submitted_at' => now()]);
-            } else {
-                // 新規回答を作成
-                $response = SurveyResponse::create([
+        return DB::transaction(function () use ($survey, $answers, $userId, $status) {
+             // 回答データを整形 (question_id => value)
+             // 必要であれば質問テキストなどのメタデータもここで付与できるが、
+             // シンプルにIDと値を保存し、参照時に解決する方針とする。
+             // ただし、snapshot的に質問内容を残す場合はここでloadして構造化する。
+             
+             // JSONとしての構造: { question_id: value, ... }
+             // フロントエンドからくる $answers は { question_id: value } の形式を想定
+             
+            $response = SurveyResponse::updateOrCreate(
+                [
                     'survey_id' => $survey->survey_id,
                     'respondent_id' => $userId,
-                    'submitted_at' => now(),
-                ]);
-            }
-            
-            foreach ($answers as $questionId => $answerData) {
-                if ($answerData !== null && $answerData !== '') {
-                    $question = SurveyQuestion::find($questionId);
-                    
-                    if (!$question) continue;
+                ],
+                [
+                    'answers' => $answers,
+                    'status' => $status,
+                    'survey_version' => $survey->version,
+                    'submitted_at' => ($status === 'submitted') ? now() : null,
+                ]
+            );
 
-                    // multiple_choiceの場合、配列をカンマ区切りのテキストに変換
-                    if ($question->question_type === 'multiple_choice' && is_array($answerData)) {
-                        $optionTexts = [];
-                        foreach ($answerData as $optionId) {
-                            $option = SurveyQuestionOption::find($optionId);
-                            if ($option) {
-                                $optionTexts[] = $option->option_text;
-                            }
-                        }
-                        
-                        \App\Models\SurveyAnswer::create([
-                            'response_id' => $response->response_id,
-                            'question_id' => $questionId,
-                            'answer_text' => implode(', ', $optionTexts),
-                            'selected_option_id' => null,
-                        ]);
-                    } else {
-                        $selectedOptionId = null;
-                        $answerText = $answerData;
-                        
-                        // single_choiceとdropdownの場合
-                        if (in_array($question->question_type, ['single_choice', 'dropdown']) && is_numeric($answerData)) {
-                            $selectedOptionId = $answerData;
-                            $option = SurveyQuestionOption::find($answerData);
-                            $answerText = $option ? $option->option_text : $answerData;
-                        } elseif (is_array($answerData)) {
-                            $answerText = json_encode($answerData);
-                        }
-                        
-                        \App\Models\SurveyAnswer::create([
-                            'response_id' => $response->response_id,
-                            'question_id' => $questionId,
-                            'answer_text' => $answerText,
-                            'selected_option_id' => $selectedOptionId,
-                        ]);
-                    }
-                }
-            }
-            
             return $response;
         });
     }
@@ -218,34 +164,151 @@ class SurveyService
         $stats = [];
 
         foreach ($survey->questions()->orderBy('display_order')->get() as $question) {
-            $answers = $responses->flatMap->answers
-                ->where('question_id', $question->question_id);
-
-            $stats[$question->question_id] = [
+            $questionId = $question->question_id;
+            
+            // JSON回答から該当する質問の回答を抽出
+            $answersValues = $responses->map(function ($response) use ($questionId) {
+                $answers = $response->answers; // Array casted
+                return $answers[$questionId] ?? null;
+            })->filter(fn($val) => !is_null($val) && $val !== '');
+            
+            $stats[$questionId] = [
                 'question' => $question->question_text,
                 'question_type' => $question->question_type,
-                'total_responses' => $answers->count(),
-                'answers' => $answers->pluck('answer_text')->toArray(),
+                'total_responses' => $answersValues->count(),
+                'answers' => $answersValues->values()->toArray(),
             ];
 
-            // 選択式の場合は集計
+            // 選択式の場合は分布を集計
             if (in_array($question->question_type, ['single_choice', 'multiple_choice', 'dropdown'])) {
                 $distribution = [];
-                foreach ($answers as $answer) {
-                    $answerText = $answer->answer_text;
-                    if ($answer->selected_option_id) {
-                        $option = $question->options->firstWhere('option_id', $answer->selected_option_id);
-                        $answerText = $option ? $option->option_text : $answer->answer_text;
-                    }
-                    if (!empty($answerText)) {
-                        $distribution[$answerText] = ($distribution[$answerText] ?? 0) + 1;
+                foreach ($answersValues as $val) {
+                    // multiple_choiceは配列またはカンマ区切りで来る可能性
+                    // JSON保存時に array ([option_id, option_id]) としている前提
+                    
+                    $selectedOptionIds = is_array($val) ? $val : [$val];
+                    
+                    foreach ($selectedOptionIds as $optionId) {
+                         // Optionテキストの解決
+                         // $question->options は load済み前提
+                         $option = $question->options->firstWhere('option_id', $optionId);
+                         $label = $option ? $option->option_text : (string)$optionId;
+                         
+                         $distribution[$label] = ($distribution[$label] ?? 0) + 1;
                     }
                 }
-                $stats[$question->question_id]['distribution'] = $distribution;
+                $stats[$questionId]['distribution'] = $distribution;
             }
         }
 
         return $stats;
+    }
+
+    /**
+     * Smart update of questions (Create/Update/Delete).
+     */
+    private function reconcileQuestions(Survey $survey, array $questionsData)
+    {
+        $existingQuestions = $survey->questions()->get()->keyBy('question_id');
+        $processedIds = [];
+
+        foreach ($questionsData as $index => $qData) {
+            $qId = $qData['question_id'] ?? null;
+            $questionType = $this->mapQuestionType($qData['type']);
+            
+            $attributes = [
+                'question_text' => $qData['question'],
+                'question_type' => $questionType,
+                'is_required' => $qData['required'] ?? false,
+                'display_order' => $index + 1,
+                'scale_min' => $qData['scaleMin'] ?? null,
+                'scale_max' => $qData['scaleMax'] ?? null,
+                'scale_min_label' => $qData['scaleMinLabel'] ?? null,
+                'scale_max_label' => $qData['scaleMaxLabel'] ?? null,
+            ];
+
+            if ($qId && $existingQuestions->has($qId)) {
+                // Update
+                $question = $existingQuestions->get($qId);
+                $question->update($attributes);
+                $processedIds[] = $qId;
+            } else {
+                // Create
+                $question = $survey->questions()->create($attributes);
+            }
+            
+            // Options Reconciliation
+            if (in_array($qData['type'], ['single', 'multiple', 'dropdown']) && !empty($qData['options'])) {
+                // 既存オプションを取得
+                $existingQuestionsCollection = $question->options()->get()->keyBy('option_id');
+                $processedOptionIds = [];
+                
+                foreach ($qData['options'] as $oIndex => $optionData) {
+                    $optionText = is_array($optionData) ? ($optionData['text'] ?? $optionData['option_text'] ?? '') : $optionData;
+                    $optionId = is_array($optionData) ? ($optionData['option_id'] ?? null) : null;
+                    
+                    $trimmed = trim($optionText);
+                    if (!empty($trimmed)) {
+                        if ($optionId && $existingQuestionsCollection->has($optionId)) {
+                            // Update existing option
+                            $existingQuestionsCollection->get($optionId)->update([
+                                'option_text' => $trimmed,
+                                'display_order' => $oIndex + 1
+                            ]);
+                            $processedOptionIds[] = $optionId;
+                        } else {
+                            // Create new option
+                            $newOption = $question->options()->create([
+                                'option_text' => $trimmed,
+                                'display_order' => $oIndex + 1
+                            ]);
+                            // If we want to track this new ID immediately, we can, but not strictly required here
+                        }
+                    }
+                }
+                
+                // Delete removed options
+                // Note: Only delete options that were NOT in the processed list.
+                // If the frontend sends string arrays (legacy or new creation), $processedOptionIds will be empty,
+                // causing ALL existing options to be deleted.
+                // To support mixed mode (strings = recreate, objects = update), we check execution mode.
+                
+                // If $qData['options'] contains objects with IDs, we assume we are in "Update Mode".
+                // If it contains only strings, we are in "Recreate Mode".
+                $hasObjects = !empty($qData['options']) && is_array($qData['options'][0]);
+                
+                if ($hasObjects) {
+                     $idsToDelete = $existingQuestionsCollection->keys()->diff($processedOptionIds);
+                     SurveyQuestionOption::destroy($idsToDelete);
+                } else {
+                    // Fallback to old behavior: if we received strings, we can't map to IDs, 
+                    // so we must delete all previous options to avoid duplicates/inconsistency.
+                    // Ideally frontend should ALWAYS send objects for edit.
+                    
+                    // However, we just processed them above. 
+                    // If we processed strings above, we created NEW options.
+                    // So we should delete OLD options.
+                    // BUT, if we do this, we lose the IDs.
+                    
+                    // For the bug fix, we rely on Frontend sending IDs.
+                    // If Frontend sends strings (e.g. from previously created draft?), we lose IDs.
+                    // But for "Edit Survey", we will ensure Frontend sends objects.
+                    
+                    if (!$hasObjects) {
+                         // We created new options above because $optionId was null.
+                         // So we should remove all OLD options.
+                         // But we should confirm we don't delete the ones we JUST created?
+                         // The $existingQuestionsCollection only contains ID-based previous options.
+                         // So it is safe to delete all of them if we are replacing them.
+                         $question->options()->whereIn('option_id', $existingQuestionsCollection->keys())->delete();
+                    }
+                }
+            }
+        }
+        
+        // Delete removed questions
+        $idsToDelete = $existingQuestions->keys()->diff($processedIds);
+        SurveyQuestion::destroy($idsToDelete);
     }
 
     /**
@@ -269,7 +332,8 @@ class SurveyService
             ]);
 
             if (in_array($questionData['type'], ['single', 'multiple', 'dropdown']) && !empty($questionData['options'])) {
-                foreach ($questionData['options'] as $optionIndex => $optionText) {
+                foreach ($questionData['options'] as $optionIndex => $optionData) {
+                    $optionText = is_array($optionData) ? ($optionData['text'] ?? $optionData['option_text'] ?? '') : $optionData;
                     $trimmedOption = trim($optionText);
                     if (!empty($trimmedOption)) {
                         SurveyQuestionOption::create([
@@ -324,10 +388,65 @@ class SurveyService
     }
 
     /**
-     * Check if questions have changed.
+     * Check if there are destructive changes (deletions or type changes).
+     */
+    public function hasDestructiveChanges(Survey $survey, array $newQuestions): bool
+    {
+        $currentQuestions = $survey->questions()->with('options')->get()->keyBy('question_id');
+        
+        // 1. Check for Deleted Questions
+        $newQuestionIds = array_filter(array_column($newQuestions, 'question_id'));
+        foreach ($currentQuestions->keys() as $currentId) {
+            if (!in_array($currentId, $newQuestionIds)) {
+                return true; // Question deleted
+            }
+        }
+
+        // 2. Check for Modifications to Existing Questions
+        foreach ($newQuestions as $newQ) {
+            $qId = $newQ['question_id'] ?? null;
+            if ($qId && $currentQuestions->has($qId)) {
+                $currentQ = $currentQuestions->get($qId);
+                
+                // Type Change
+                if ($currentQ->question_type !== $this->mapQuestionType($newQ['type'])) {
+                    return true;
+                }
+
+                // Option Changes
+                // If an existing option text is NOT present in the new options, it's a deletion.
+                if (in_array($newQ['type'], ['single', 'multiple', 'dropdown'])) {
+                    $currentOptionTexts = $currentQ->options->pluck('option_text')->map(fn($t) => trim($t))->toArray();
+                    // If any current option text is missing from new options, it's destructive (data loss for that option)
+                    $newOptionTextsPlain = array_map(function($t) {
+                        return trim(is_array($t) ? ($t['text'] ?? $t['option_text'] ?? '') : $t);
+                    }, $newQ['options'] ?? []);
+
+                    foreach ($currentOptionTexts as $currentText) {
+                        if (!in_array($currentText, $newOptionTextsPlain)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if questions have changed (for versioning).
      */
     public function questionsChanged(Survey $survey, array $newQuestions): bool
     {
+        // ... (Keep existing implementation or simplify? Keep as is if it works for ANY change detection)
+        // Re-implementing strictly to ensure context matches. 
+        // Or I can just overwrite the whole block.
+        // Let's reuse the existing simple logic or better, relying on checking diffs.
+        // For brevity and to minimize diff context issues, I will LEAVE questionsChanged alone in this chunk if it's outside.
+        // Wait, I am targeted `questionsChanged` to be REPLACED/MOVED?
+        // No, I'll insert `hasDestructiveChanges` before it.
+        
         $currentQuestions = $survey->questions()->with('options')->orderBy('display_order')->get();
         
         if ($currentQuestions->count() !== count($newQuestions)) {
@@ -360,14 +479,23 @@ class SurveyService
             // 選択肢の比較
             if (in_array($newQuestion['type'], ['single', 'multiple', 'dropdown'])) {
                 $currentOptions = $currentQuestion->options->pluck('option_text')->toArray();
-                $newOptions = array_filter($newQuestion['options'] ?? [], fn($opt) => !empty(trim($opt)));
+                
+                // Extract text from new options (could be strings or objects)
+                $newOptionsRaw = $newQuestion['options'] ?? [];
+                $newOptions = [];
+                foreach ($newOptionsRaw as $opt) {
+                    $txt = trim(is_array($opt) ? ($opt['text'] ?? $opt['option_text'] ?? '') : $opt);
+                    if (!empty($txt)) {
+                        $newOptions[] = $txt;
+                    }
+                }
                 
                 if (count($currentOptions) !== count($newOptions)) {
                     return true;
                 }
                 
                 foreach ($currentOptions as $i => $currentOption) {
-                    if (!isset($newOptions[$i]) || $currentOption !== trim($newOptions[$i])) {
+                    if ($currentOption !== $newOptions[$i]) {
                         return true;
                     }
                 }
@@ -376,6 +504,7 @@ class SurveyService
         
         return false;
     }
+
 
     /**
      * Check if only deadline has changed.

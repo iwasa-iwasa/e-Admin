@@ -24,7 +24,6 @@ class DatabaseSeeder extends Seeder
             EventSeeder::class,
             ReminderSeeder::class,
             SurveySeeder::class,
-            SurveyResponseSeeder::class,
         ]);
     }
 }

@@ -407,62 +407,53 @@ const getQuestionResponses = (
     const questionResponses: any[] = [];
 
     responses.forEach((response) => {
-        const answers = response.answers?.filter(
-            (a: any) => a.question_id === question.question_id
-        ) || [];
-        
-        if (answers.length > 0) {
-            // 複数選択の場合、複数の回答がある可能性
+        // 新しい構造: response.answers は { question_id: value } のオブジェクト
+        const answersMap = response.answers || {};
+        const rawValue = answersMap[question.question_id];
+
+        if (rawValue !== undefined && rawValue !== null && rawValue !== '') {
+            // 複数選択の場合
             if (question.question_type === 'multiple_choice') {
                 const selectedValues: string[] = [];
-                
-                answers.forEach((answer: any) => {
-                    if (answer.selected_option_id && question.options) {
-                        const option = question.options.find(
-                            (opt: any) => opt.option_id === answer.selected_option_id
-                        );
-                        if (option) {
-                            selectedValues.push(option.option_text);
-                        }
-                    } else if (answer.answer_text) {
-                        // answer_textがJSON配列の場合
-                        try {
-                            const parsed = JSON.parse(answer.answer_text);
-                            if (Array.isArray(parsed)) {
-                                selectedValues.push(...parsed);
-                            } else {
-                                selectedValues.push(answer.answer_text);
-                            }
-                        } catch (e) {
-                            selectedValues.push(answer.answer_text);
-                        }
-                    }
+                // rawValue は option_id の配列、または文字列の配列（稀）
+                const valArray = Array.isArray(rawValue) ? rawValue : [rawValue];
+
+                valArray.forEach((val: any) => {
+                     // option_id と一致するか確認
+                     // option_id と一致するか確認
+                     const option = question.options?.find((opt: any) => String(opt.option_id) === String(val));
+                     if (option) {
+                         selectedValues.push(option.option_text);
+                     } else {
+                         // IDでなければそのまま（テキストなど）
+                         selectedValues.push(String(val));
+                     }
                 });
-                
-                questionResponses.push({
-                    value: selectedValues,
-                    respondent: response.respondent?.name || "匿名",
-                    timestamp: response.submitted_at,
-                });
+
+                if (selectedValues.length > 0) {
+                    questionResponses.push({
+                        value: selectedValues,
+                        respondent: response.respondent?.name || "匿名",
+                        timestamp: response.submitted_at,
+                    });
+                }
             } else {
                 // 単一選択やその他の場合
-                const answer = answers[0];
-                let value: any = answer.answer_text;
+                let value: any = rawValue;
 
-                // scale の場合、JSONをパース
+                // scale の場合、JSONパースが必要な場合もあるが、保存側で生の値を入れているならそのまま
                 if (question.question_type === 'scale' && typeof value === 'string') {
                     try {
-                        value = JSON.parse(value);
+                        const parsed = JSON.parse(value);
+                        value = parsed;
                     } catch (e) {
-                        // パースできない場合はそのまま使用
+                         // ignore
                     }
                 }
 
-                // 選択肢がある場合は選択肢テキストを使用
-                if (answer.selected_option_id && question.options) {
-                    const option = question.options.find(
-                        (opt: any) => opt.option_id === answer.selected_option_id
-                    );
+                // 選択肢がある場合 (single_choice, dropdown) はIDからテキスト変換
+                if ((question.question_type === 'single_choice' || question.question_type === 'dropdown') && question.options) {
+                    const option = question.options.find((opt: any) => String(opt.option_id) === String(value));
                     if (option) {
                         value = option.option_text;
                     }

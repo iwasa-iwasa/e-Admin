@@ -7,9 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 
+use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+
 class SurveyQuestionOption extends Model
 {
     use HasFactory;
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function ($model) {
+            $model->uuid = (string) Str::uuid();
+        });
+    }
 
     /**
      * The table associated with the model.
@@ -32,6 +45,7 @@ class SurveyQuestionOption extends Model
      */
     protected $fillable = [
         'question_id',
+        'uuid',
         'option_text',
         'display_order',
     ];

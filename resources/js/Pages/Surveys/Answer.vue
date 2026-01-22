@@ -7,7 +7,7 @@
   import { Textarea } from '@/components/ui/textarea'
   import { Label } from '@/components/ui/label'
   import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-  import { ArrowLeft, Star, AlertCircle } from 'lucide-vue-next'
+  import { ArrowLeft, Star, AlertCircle, Save } from 'lucide-vue-next'
   import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
   import QuestionViewer from '@/features/survey/components/SurveyRespondent/QuestionViewer.vue'
   import { convertQuestionFromBackend } from '@/features/survey/domain/factory'
@@ -54,20 +54,31 @@
   }>()
   
   const form = useForm({
-      answers: props.existingAnswers ? JSON.parse(JSON.stringify(props.existingAnswers)) : {} as Record<number, any>
+      answers: props.existingAnswers ? JSON.parse(JSON.stringify(props.existingAnswers)) : {} as Record<number, any>,
+      status: 'submitted'
   })
   
-  // ドロップダウンの初期値を空文字列に設定
-  const initializeDropdownAnswers = () => {
-      props.questions.forEach(question => {
-          if (question.question_type === 'dropdown' && !form.answers[question.question_id]) {
-              form.answers[question.question_id] = ''
-          }
-      })
-  }
-  
-  // コンポーネントマウント時に初期化
-  initializeDropdownAnswers()
+  // 全ての回答を初期化
+const initializeAnswers = () => {
+    props.questions.forEach(question => {
+        // 既に値がある場合はスキップ
+        if (form.answers[question.question_id] !== undefined) return
+
+        switch (question.question_type) {
+            case 'multiple_choice':
+                form.answers[question.question_id] = []
+                break
+            case 'dropdown':
+                form.answers[question.question_id] = ''
+                break
+            default:
+                form.answers[question.question_id] = null
+        }
+    })
+}
+
+// コンポーネントマウント時に初期化
+initializeAnswers()
   
   const displayQuestions = computed(() => {
       return props.questions.map((q, index) => convertQuestionFromBackend(q, index));
@@ -147,10 +158,13 @@
       return true
   }
   
-  const submitAnswer = () => {
-      if (!validateAnswers()) {
+  const submitAnswer = (status: 'draft' | 'submitted' = 'submitted') => {
+      // 一時保存の場合はバリデーションをスキップ
+      if (status === 'submitted' && !validateAnswers()) {
           return
       }
+
+      form.status = status
       
       form.post(route('surveys.submit', props.survey.survey_id), {
           preserveScroll: true,
@@ -205,7 +219,10 @@
           <div class="p-4 border-t shrink-0 bg-white">
             <div class="flex justify-end gap-4">
               <Button variant="outline" @click="cancel">キャンセル</Button>
-              <Button variant="outline" :disabled="form.processing" @click="submitAnswer">
+              <Button variant="outline" :disabled="form.processing" @click="submitAnswer('draft')">
+                  一時保存
+              </Button>
+              <Button :disabled="form.processing" @click="submitAnswer('submitted')">
                 {{ isEditing ? '回答を更新' : '回答を送信' }}
               </Button>
             </div>
