@@ -97,6 +97,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
       preserveScroll: true,
       onSuccess: () => {
         showMessage('リマインダーを完了しました。', 'delete')
+        window.dispatchEvent(new CustomEvent('reminder-updated'))
       },
       onError: (errors) => {
         console.error('完了エラー:', errors)
@@ -111,6 +112,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
       preserveScroll: true,
       onSuccess: () => {
         showMessage('リマインダーが元に戻されました。', 'success')
+        window.dispatchEvent(new CustomEvent('reminder-updated'))
       },
       onError: (errors) => {
         console.error('復元エラー:', errors)
@@ -137,6 +139,7 @@ const handleUndoDelete = () => {
     preserveScroll: true,
     onSuccess: () => {
       showMessage('リマインダーが元に戻されました。', 'success')
+      window.dispatchEvent(new CustomEvent('reminder-updated'))
     },
     onError: () => {
       showMessage('元に戻す処理に失敗しました。', 'success')
@@ -151,6 +154,7 @@ const handleCloseDetailDialog = (isOpen: boolean, completed?: boolean) => {
     if (completed && selectedReminder.value) {
       lastDeletedReminder.value = selectedReminder.value
       showMessage('リマインダーを完了しました。', 'delete')
+      window.dispatchEvent(new CustomEvent('reminder-updated'))
     }
     selectedReminder.value = null
   }
@@ -173,6 +177,7 @@ const confirmPermanentDelete = () => {
   router.delete(route('reminders.destroy', deleteId), {
     onSuccess: () => {
       showMessage(`「${reminder.title}」を完全に削除しました`, 'success')
+      window.dispatchEvent(new CustomEvent('reminder-updated'))
     },
     onError: (errors) => {
       console.error('Delete error:', errors)

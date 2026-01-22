@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2, Menu } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -508,6 +508,11 @@ const fetchNotifications = async () => {
 
 onMounted(() => {
   fetchNotifications()
+  window.addEventListener('reminder-updated', fetchNotifications)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('reminder-updated', fetchNotifications)
 })
 </script>
 
