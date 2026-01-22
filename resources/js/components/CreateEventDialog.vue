@@ -214,6 +214,9 @@ watch(() => props.open, (isOpen) => {
         date.value = [now, now];
         form.date_range = [now, now];
         is_all_day.value = false;
+
+        const me = teamMembers.value.find(m => m.id === currentUserId.value)
+        form.participants = me ? [me] : []
       }
     }
   }
@@ -468,6 +471,32 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
     saveMessage.value = ''
   }, 4000)
 }
+
+// 繰り返し予定自動スクロール
+const recurrenceSection = ref<HTMLElement | null>(null)
+
+const scrollViewport = ref<HTMLElement | null>(null)
+
+import { nextTick } from 'vue'
+
+watch(
+  () => form.recurrence.is_recurring,
+  async (enabled) => {
+    if (!enabled) return
+
+    await nextTick()
+
+    if (recurrenceSection.value && scrollViewport.value) {
+      recurrenceSection.value.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }
+  }
+)
+
+
+
 </script>
 
 <template>
@@ -496,7 +525,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                             </TabsList>
             
                             <ScrollArea class="max-h-[60vh] mt-4">
-                                <div class="px-4">
+                                <div ref="scrollViewport" class="px-4">
                                     <TabsContent value="basic" class="space-y-4 min-h-[400px]">
                                         <div class="space-y-2">
                                             <Label for="title">タイトル / 件名 *</Label>
@@ -616,13 +645,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 />
                                                 <Label for="allDay" class="text-sm cursor-pointer">終日</Label>
                                             </div>
-                                            <div class="flex items-center space-x-2">
-                                                <Switch id="recurring" v-model="form.recurrence.is_recurring" :disabled="!canEdit" />
-                                                <Label for="recurring" class="text-sm cursor-pointer flex items-center gap-2">
-                                                    <Repeat class="h-4 w-4" />
-                                                    繰り返し
-                                                </Label>
-                                            </div>
+                                            
                                         </div>
                                         <div class="flex flex-col lg:flex-row gap-4 lg:items-end">
                                             <div class="flex-1">
@@ -717,8 +740,15 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                                                 </template>
                                             </div>
                                         </div>
+                                        <div class="flex items-center space-x-2">
+                                                <Switch id="recurring" v-model="form.recurrence.is_recurring" :disabled="!canEdit" />
+                                                <Label for="recurring" class="text-sm cursor-pointer flex items-center gap-2">
+                                                    <Repeat class="h-4 w-4" />
+                                                    繰り返し
+                                                </Label>
+                                            </div>
 
-                                        <div v-if="form.recurrence.is_recurring" class="space-y-4 pt-4">
+                                        <div v-if="form.recurrence.is_recurring" ref="recurrenceSection" class="space-y-4 pt-4">
                                             <div class="space-y-4 pl-6 border-l-2 border-gray-300 ml-3">
                                                 <div class="space-y-2">
                                                     <Label for="recurrence_type">繰り返しパターン</Label>
