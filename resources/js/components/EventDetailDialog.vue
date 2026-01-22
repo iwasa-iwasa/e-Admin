@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { formatDate } from '@/lib/utils'
-import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2, Clock } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2, Clock, User } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -218,12 +218,24 @@ const recurrenceText = computed(() => {
           </div>
         </div>
 
+        <div v-if="event.creator" class="flex items-start gap-4">
+          <User class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+          <div>
+            <p class="text-sm text-gray-500 mb-2">作成者</p>
+            <div class="flex flex-wrap gap-2">
+              <Badge variant="outline" class="border-gray-400 text-gray-700">
+                  {{ event.creator.name }}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
         <div v-if="event.participants && event.participants.length > 0" class="flex items-start gap-4">
           <Users class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
             <p class="text-sm text-gray-500 mb-2">参加者</p>
             <div class="flex flex-wrap gap-2">
-                <Badge v-for="participant in event.participants" :key="participant.id" variant="secondary">
+                <Badge v-for="participant in event.participants" :key="participant.id" variant="outline" class="border-gray-400 text-gray-700">
                     {{ participant.name }}
                 </Badge>
             </div>
