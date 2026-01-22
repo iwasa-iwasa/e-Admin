@@ -26,7 +26,6 @@ const isSelected = (value: any) => {
 };
 
 const handleUpdate = (value: any, checked: boolean) => {
-    console.log(value, checked);
     const current = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
     if (checked) {
         const exists = current.some(v => String(v) === String(value));
