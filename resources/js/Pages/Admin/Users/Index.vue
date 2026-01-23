@@ -150,8 +150,8 @@ const formatDate = (dateString: string) => {
                        </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem @click="updateRole(user, 'member')">member</DropdownMenuItem>
-                      <DropdownMenuItem @click="updateRole(user, 'admin')">admin</DropdownMenuItem>
+                      <DropdownMenuItem @select="updateRole(user, 'member')">member</DropdownMenuItem>
+                      <DropdownMenuItem @select="updateRole(user, 'admin')">admin</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
