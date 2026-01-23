@@ -145,9 +145,9 @@ const formatDate = (dateString: string) => {
                   </div>
                   <DropdownMenu v-else>
                     <DropdownMenuTrigger as-child>
-                       <Badge variant="outline" class="cursor-pointer hover:bg-gray-100 transition-colors">
-                         {{ user.role }} <ChevronDown class="h-3 w-3 ml-1" />
-                       </Badge>
+                       <Button variant="outline" size="sm" class="h-6 gap-1 px-2.5 rounded-full font-normal border-slate-200 hover:bg-gray-100 hover:text-slate-900 data-[state=open]:bg-gray-100 text-xs text-foreground">
+                         {{ user.role }} <ChevronDown class="h-3 w-3 text-muted-foreground" />
+                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem @click="updateRole(user, 'member')">member</DropdownMenuItem>
