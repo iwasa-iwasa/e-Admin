@@ -47,6 +47,10 @@ const selectedUser = ref<App.Data.UserData | null>(null)
 const isDeactivateDialogOpen = ref(false)
 const deactivationReason = ref('')
 
+// Role Update
+const isRoleDialogOpen = ref(false)
+const pendingRoleUpdate = ref<{ user: App.Data.UserData, role: 'member' | 'admin' } | null>(null)
+
 // Logs
 const isLogDialogOpen = ref(false)
 const userLogs = ref<any[]>([])
@@ -79,10 +83,20 @@ const restoreUser = (user: App.Data.UserData) => {
 
 const updateRole = (user: App.Data.UserData, role: 'member' | 'admin') => {
   if (user.role === role) return
-  if (!confirm(`${user.name} さんの権限を ${role} に変更しますか？`)) return
+  pendingRoleUpdate.value = { user, role }
+  isRoleDialogOpen.value = true
+}
 
-  router.patch(route('admin.users.update-role', user.id), {
-    role: role
+const executeRoleUpdate = () => {
+  if (!pendingRoleUpdate.value) return
+
+  router.patch(route('admin.users.update-role', pendingRoleUpdate.value.user.id), {
+    role: pendingRoleUpdate.value.role
+  }, {
+    onSuccess: () => {
+        isRoleDialogOpen.value = false
+        pendingRoleUpdate.value = null
+    }
   })
 }
 
@@ -145,13 +159,13 @@ const formatDate = (dateString: string) => {
                   </div>
                   <DropdownMenu v-else>
                     <DropdownMenuTrigger as-child>
-                       <Button variant="outline" size="sm" class="h-6 gap-1 px-2.5 rounded-full font-normal border-slate-200 hover:bg-gray-100 hover:text-slate-900 data-[state=open]:bg-gray-100 text-xs text-foreground">
-                         {{ user.role }} <ChevronDown class="h-3 w-3 text-muted-foreground" />
-                       </Button>
+                       <Badge variant="outline" class="cursor-pointer hover:bg-gray-100 transition-colors">
+                         {{ user.role }} <ChevronDown class="h-3 w-3 ml-1" />
+                       </Badge>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem @select="updateRole(user, 'member')">member</DropdownMenuItem>
-                      <DropdownMenuItem @select="updateRole(user, 'admin')">admin</DropdownMenuItem>
+                      <DropdownMenuItem @click="updateRole(user, 'member')">member</DropdownMenuItem>
+                      <DropdownMenuItem @click="updateRole(user, 'admin')">admin</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -221,7 +235,22 @@ const formatDate = (dateString: string) => {
       </DialogContent>
     </Dialog>
 
-    <!-- Role Dialog removed -->
+    <!-- Role Update Dialog -->
+    <Dialog :open="isRoleDialogOpen" @update:open="isRoleDialogOpen = $event">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>権限の変更確認</DialogTitle>
+          <DialogDescription>
+            {{ pendingRoleUpdate?.user.name }} さんの権限を 
+            <span class="font-bold">{{ pendingRoleUpdate?.role }}</span> に変更しますか？
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="isRoleDialogOpen = false">キャンセル</Button>
+          <Button @click="executeRoleUpdate">変更する</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Logs Dialog -->
     <Dialog :open="isLogDialogOpen" @update:open="isLogDialogOpen = $event">
