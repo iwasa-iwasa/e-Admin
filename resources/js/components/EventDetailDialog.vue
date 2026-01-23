@@ -78,6 +78,7 @@ const handleDelete = () => {
         // ダイアログを閉じた後にメッセージを表示
         setTimeout(() => {
           showMessage('イベントを削除しました。', 'delete')
+          window.dispatchEvent(new CustomEvent('notification-updated'))
         }, 100)
       },
       onError: (errors) => {
@@ -119,6 +120,7 @@ const handleUndoDelete = () => {
   router.post(route('events.restore', eventToRestore.event_id), {}, {
     onSuccess: () => {
       showMessage('イベントが元に戻されました。', 'success')
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: () => {
       showMessage('元に戻す処理に失敗しました。', 'success')

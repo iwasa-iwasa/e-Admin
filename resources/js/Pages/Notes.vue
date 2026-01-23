@@ -303,6 +303,7 @@ const handleSaveNote = () => {
     preserveScroll: true,
     onSuccess: () => {
       showMessage('メモが保存されました。', 'success')
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: () => {
       showMessage('保存に失敗しました。', 'success')
@@ -328,6 +329,7 @@ const handleDeleteNote = () => {
     onSuccess: () => {
       showMessage('メモを削除しました。', 'delete')
       selectedNote.value = nextNote
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: () => {
       lastDeletedNote.value = null
@@ -355,6 +357,7 @@ const handleUndoDelete = () => {
     preserveState: true,
     onSuccess: () => {
       showMessage('メモが元に戻されました。', 'success')
+      window.dispatchEvent(new CustomEvent('notification-updated'))
       selectedNote.value = noteToRestore
       setTimeout(() => {
         scrollToNote(noteToRestore.note_id.toString())
@@ -405,12 +408,18 @@ const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
     if (note.is_pinned) {
         router.delete(route('notes.unpin', noteId), {
             preserveScroll: true,
-            onSuccess: () => scrollToNote(String(noteId))
+            onSuccess: () => {
+                scrollToNote(String(noteId))
+                window.dispatchEvent(new CustomEvent('notification-updated'))
+            }
         });
     } else {
         router.post(route('notes.pin', noteId), {}, {
             preserveScroll: true,
-            onSuccess: () => scrollToNote(String(noteId))
+            onSuccess: () => {
+                scrollToNote(String(noteId))
+                window.dispatchEvent(new CustomEvent('notification-updated'))
+            }
         });
     }
 };

@@ -409,6 +409,7 @@ const handleSave = () => {
       handleClose()
       setTimeout(() => {
         showMessage(`予定を${isEditMode.value ? '更新' : '作成'}しました`, 'success')
+        window.dispatchEvent(new CustomEvent('notification-updated'))
       }, 100)
     },
     onError: (errors: any) => {

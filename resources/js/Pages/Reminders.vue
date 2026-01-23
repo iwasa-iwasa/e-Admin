@@ -73,7 +73,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
       preserveScroll: true,
       onSuccess: () => {
         showMessage('リマインダーを完了しました。', 'delete')
-        window.dispatchEvent(new CustomEvent('reminder-updated'))
+        window.dispatchEvent(new CustomEvent('notification-updated'))
       },
       onError: (errors) => {
         console.error('完了エラー:', errors)
@@ -88,7 +88,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
       preserveScroll: true,
       onSuccess: () => {
         showMessage('リマインダーが元に戻されました。', 'success')
-        window.dispatchEvent(new CustomEvent('reminder-updated'))
+        window.dispatchEvent(new CustomEvent('notification-updated'))
       },
       onError: (errors) => {
         console.error('復元エラー:', errors)
@@ -115,7 +115,7 @@ const handleUndoDelete = () => {
     preserveScroll: true,
     onSuccess: () => {
       showMessage('リマインダーが元に戻されました。', 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: () => {
       showMessage('元に戻す処理に失敗しました。', 'success')
@@ -136,7 +136,7 @@ const confirmPermanentDelete = () => {
   router.delete(route('reminders.destroy', deleteId), {
     onSuccess: () => {
       showMessage(`「${reminder.title}」を完全に削除しました`, 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: (errors) => {
       console.error('Delete error:', errors)
@@ -151,7 +151,7 @@ const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {
   if (isCreatingNew.value) {
     isCreatingNew.value = false
   }
-  window.dispatchEvent(new CustomEvent('reminder-updated'))
+  window.dispatchEvent(new CustomEvent('notification-updated'))
 }
 
 
@@ -277,7 +277,7 @@ const handleBulkComplete = () => {
     onSuccess: () => {
       selectedActiveItems.value.clear()
       showMessage(`${ids.length}件のリマインダーを完了しました。`, 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     }
   })
 }
@@ -291,7 +291,7 @@ const handleBulkRestore = () => {
     onSuccess: () => {
       selectedCompletedItems.value.clear()
       showMessage(`${ids.length}件のリマインダーを未完了に戻しました。`, 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     }
   })
 }
@@ -311,7 +311,7 @@ const confirmBulkDelete = () => {
     onSuccess: () => {
       selectedCompletedItems.value.clear()
       showMessage(`${ids.length}件のリマインダーを完全に削除しました。`, 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     }
   })
   showBulkDeleteDialog.value = false

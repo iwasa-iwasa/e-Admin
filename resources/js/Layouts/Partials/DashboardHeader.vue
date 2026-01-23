@@ -319,6 +319,7 @@ const handleNoteDelete = (note: any) => {
     onSuccess: () => {
       fetchNotifications()
       selectedNote.value = null
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     }
   })
 }
@@ -326,11 +327,17 @@ const handleNoteDelete = (note: any) => {
 const handleNoteTogglePin = (note: any) => {
   if (note.is_pinned) {
     router.delete(`/notes/${note.note_id}/unpin`, {
-      onSuccess: () => fetchNotifications()
+      onSuccess: () => {
+        fetchNotifications()
+        window.dispatchEvent(new CustomEvent('notification-updated'))
+      }
     })
   } else {
     router.post(`/notes/${note.note_id}/pin`, {}, {
-      onSuccess: () => fetchNotifications()
+      onSuccess: () => {
+        fetchNotifications()
+        window.dispatchEvent(new CustomEvent('notification-updated'))
+      }
     })
   }
 }
@@ -448,6 +455,7 @@ const handleNoteSave = (note: Note) => {
         if (!updated) return
       // 差分更新
       updateNotificationItem('notes', note, 'note_id')
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     }
   })
 }
@@ -521,11 +529,11 @@ const fetchNotifications = async () => {
 
 onMounted(() => {
   fetchNotifications()
-  window.addEventListener('reminder-updated', fetchNotifications)
+  window.addEventListener('notification-updated', fetchNotifications)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('reminder-updated', fetchNotifications)
+  window.removeEventListener('notification-updated', fetchNotifications)
 })
 </script>
 
