@@ -100,7 +100,7 @@
   <template>
     <aside 
       ref="sidebarRef" 
-      class="bg-white flex flex-col h-screen relative select-none"
+      class="bg-gray-100 dark:bg-gray-950 text-sidebar-foreground border-r border-sidebar-border flex flex-col h-screen relative select-none"
       :style="{
         width: sidebarWidth + 'px',
         minWidth: '220px',
@@ -127,12 +127,12 @@
   
           <!-- 共通ナビボタン用クラス -->
           <!-- max-w + w-fit がキモ -->
-          <Button
+            <Button
             :class="[
               'w-full justify-start gap-3 px-3',
               isActive('/dashboard')
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'hover:bg-accent hover:text-accent-foreground'
+                ? 'bg-gray-900 text-white shadow-sm hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 dark:bg-black dark:text-gray-400 dark:border-gray-800 dark:hover:bg-gray-900'
             ]"
             as-child
           >
@@ -146,13 +146,13 @@
             :class="[
               'w-full justify-start gap-3 px-3',
               isActive('/calendar')
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'hover:bg-accent hover:text-accent-foreground'
+                ? 'bg-gray-900 text-white shadow-sm hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 dark:bg-black dark:text-gray-400 dark:border-gray-800 dark:hover:bg-gray-900'
             ]"
             as-child
           >
             <Link href="/calendar">
-              <Calendar class="h-5 w-5 text-blue-700" />
+              <Calendar class="h-5 w-5 text-blue-700 dark:text-blue-400" />
               共有カレンダー
             </Link>
           </Button>
@@ -161,13 +161,13 @@
             :class="[
               'w-full justify-start gap-3 px-3',
               isActive('/notes')
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'hover:bg-accent hover:text-accent-foreground'
+                ? 'bg-gray-900 text-white shadow-sm hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 dark:bg-black dark:text-gray-400 dark:border-gray-800 dark:hover:bg-gray-900'
             ]"
             as-child
           >
             <Link href="/notes">
-              <StickyNote class="h-5 w-5 text-orange-600" />
+              <StickyNote class="h-5 w-5 text-orange-600 dark:text-orange-400" />
               共有メモ
             </Link>
           </Button>
@@ -176,13 +176,13 @@
             :class="[
               'w-full justify-start gap-3 px-3',
               isActive('/reminders')
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'hover:bg-accent hover:text-accent-foreground'
+                ? 'bg-gray-900 text-white shadow-sm hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 dark:bg-black dark:text-gray-400 dark:border-gray-800 dark:hover:bg-gray-900'
             ]"
             as-child
           >
             <Link href="/reminders">
-              <Bell class="h-5 w-5 text-green-700" />
+              <Bell class="h-5 w-5 text-green-700 dark:text-green-400" />
               個人リマインダー
             </Link>
           </Button>
@@ -191,13 +191,13 @@
             :class="[
               'w-full justify-start gap-3 px-3 overflow-hidden',
               isActive('/surveys')
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'hover:bg-accent hover:text-accent-foreground'
+                ? 'bg-gray-900 text-white shadow-sm hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 dark:bg-black dark:text-gray-400 dark:border-gray-800 dark:hover:bg-gray-900'
             ]"
             as-child
           >
             <Link href="/surveys" class="flex items-center gap-3 w-full">
-              <BarChart3 class="h-5 w-5 text-purple-700 flex-shrink-0" />
+              <BarChart3 class="h-5 w-5 text-purple-700 dark:text-purple-400 flex-shrink-0" />
               <span class="flex-shrink-0">アンケート管理</span>
               <Badge v-if="unansweredSurveysCount > 0" variant="secondary" class="ml-auto flex-shrink-0">
                 {{ unansweredSurveysCount }}件
@@ -210,13 +210,13 @@
             :class="[
               'w-full justify-start gap-3 px-3',
               isActive('/admin/users')
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'hover:bg-accent hover:text-accent-foreground'
+                ? 'bg-gray-900 text-white shadow-sm hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 dark:bg-black dark:text-gray-400 dark:border-gray-800 dark:hover:bg-gray-900'
             ]"
             as-child
           >
             <Link href="/admin/users">
-              <Users class="h-5 w-5 text-indigo-700" />
+              <Users class="h-5 w-5 text-indigo-700 dark:text-indigo-400" />
               ユーザー管理
             </Link>
           </Button>
@@ -225,8 +225,8 @@
             :class="[
               'w-full justify-start gap-3 px-3',
               isActive('/trash')
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'hover:bg-accent hover:text-accent-foreground'
+                ? 'bg-gray-900 text-white shadow-sm hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 dark:bg-black dark:text-gray-400 dark:border-gray-800 dark:hover:bg-gray-900'
             ]"
             as-child
           >
@@ -236,9 +236,9 @@
             </Link>
           </Button>
   
-          <Separator class="my-4" />
+          <Separator class="my-4 dark:bg-gray-700" />
   
-          <div class="px-3 py-2 text-xs text-gray-500">連携機能</div>
+          <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">連携機能</div>
   
           <a href="https://outlook.office.com" target="_blank" class="block">
             <Button variant="ghost" class="w-full justify-start gap-3 px-3">
@@ -247,19 +247,19 @@
             </Button>
           </a>
   
-          <Separator class="my-4" />
+          <Separator class="my-4 dark:bg-gray-700" />
   
-          <div class="px-3 py-2 text-xs text-gray-500">部署メンバー</div>
+          <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">部署メンバー</div>
   
           <ScrollArea>
             <div class="flex flex-col gap-1">
               <template v-for="member in teamMembers" :key="member.id">
                 <div 
                   v-if="selectedMember === member.id" 
-                  class="px-2 py-1 mb-1 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100"
+                  class="px-2 py-1 mb-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40"
                   @click="handleMemberClick(member.id, currentURL)"
                 >
-                  <div class="text-xs text-blue-700 font-medium">{{ member.name }} フィルター中</div>
+                  <div class="text-xs text-blue-700 dark:text-blue-300 font-medium">{{ member.name }} フィルター中</div>
                 </div>
                 <Button
                   v-else
@@ -282,7 +282,7 @@
       
       <!-- リサイズバー -->
       <div 
-        class="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-gray-200 hover:bg-gray-300 transition-colors"
+        class="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
         @mousedown="startResize"
       ></div>
     </aside>

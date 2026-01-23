@@ -280,7 +280,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                     ref="searchInputRef"
                     type="text"
                     placeholder="タイトルまたは詳細で横断検索"
-                    class="pl-10 pr-10 py-2 w-full flex h-9 rounded-md border border-input bg-background px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    class="pl-10 pr-10 py-2 w-full flex h-9 rounded-md border border-gray-300 dark:border-input bg-background px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     v-model="searchQuery"
                     @focus="handleFocus"
                     @blur="handleBlur"
@@ -373,7 +373,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
             
             <Popover v-model:open="isFilterOpen">
                 <PopoverTrigger as-child>
-                    <Button variant="outline" size="icon" class="relative">
+                    <Button variant="outline" size="icon" class="relative border-gray-300 dark:border-input">
                         <Filter class="h-5 w-5" />
                         <Badge v-if="activeFilterCount > 0" class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-blue-500 text-white text-xs">
                             {{ activeFilterCount }}

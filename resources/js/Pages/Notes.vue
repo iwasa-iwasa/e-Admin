@@ -368,14 +368,14 @@ const handleUndoDelete = () => {
 
 const getColorClass = (color: string) => {
   const colorMap: Record<string, string> = {
-    yellow: 'bg-yellow-50 border-yellow-300 hover:bg-yellow-100',
-    blue: 'bg-blue-50 border-blue-300 hover:bg-blue-100',
-    green: 'bg-green-50 border-green-300 hover:bg-green-100',
-    pink: 'bg-pink-50 border-pink-300 hover:bg-pink-100',
-    purple: 'bg-purple-50 border-purple-300 hover:bg-purple-100',
-    gray: 'bg-gray-50 border-gray-300 hover:bg-gray-100',
+    yellow: 'bg-yellow-50 border-yellow-300 hover:bg-yellow-100 dark:bg-card dark:border-yellow-600',
+    blue: 'bg-blue-50 border-blue-300 hover:bg-blue-100 dark:bg-card dark:border-blue-600',
+    green: 'bg-green-50 border-green-300 hover:bg-green-100 dark:bg-card dark:border-green-600',
+    pink: 'bg-pink-50 border-pink-300 hover:bg-pink-100 dark:bg-card dark:border-pink-600',
+    purple: 'bg-purple-50 border-purple-300 hover:bg-purple-100 dark:bg-card dark:border-purple-600',
+    gray: 'bg-gray-50 border-gray-300 hover:bg-gray-100 dark:bg-card dark:border-gray-600',
   }
-  return colorMap[color] || 'bg-gray-50 border-gray-300 hover:bg-gray-100'
+  return colorMap[color] || 'bg-gray-50 border-gray-300 hover:bg-gray-100 dark:bg-card dark:border-gray-600'
 }
 
 const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
@@ -498,8 +498,8 @@ const handleRemoveParticipant = (participantId: number) => {
   <Head title="共有メモ" />
   <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-6">
     <Card class="flex-1 flex h-full overflow-hidden">
-      <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-gray-300">
-      <div class="p-4 border-b border-gray-300">
+      <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-border bg-background">
+      <div class="p-4 border-b border-border">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))" class="mr-1">
@@ -521,22 +521,22 @@ const handleRemoveParticipant = (participantId: number) => {
               ref="searchInputRef"
               placeholder="タイトルなどで検索"
               v-model="searchQuery"
-              class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              class="pl-9 pr-9 flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
             <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               <X class="h-4 w-4" />
             </button>
           </div>
-          <Button variant="outline" size="icon" @click="showFilters = !showFilters" :class="showFilters ? 'bg-gray-100' : ''">
+          <Button variant="outline" size="icon" @click="showFilters = !showFilters" :class="showFilters ? 'bg-muted' : ''">
             <Filter class="h-4 w-4" />
           </Button>
         </div>
 
-        <div v-if="showFilters" class="space-y-2 mb-2 p-3 bg-gray-50 rounded-lg border">
+        <div v-if="showFilters" class="space-y-2 mb-2 p-3 bg-muted/50 rounded-lg border border-border">
           <div>
             <label class="text-xs font-medium text-gray-700 mb-1 block">作成者</label>
             <Select v-model="filterAuthor">
-              <SelectTrigger class="h-8 border-gray-300">
+              <SelectTrigger class="h-8 border-gray-300 dark:border-input">
                 <SelectValue placeholder="すべての作成者" />
               </SelectTrigger>
               <SelectContent>
@@ -550,7 +550,7 @@ const handleRemoveParticipant = (participantId: number) => {
           <div>
             <label class="text-xs font-medium text-gray-700 mb-1 block">メモの種類</label>
             <Select v-model="filterPinned">
-              <SelectTrigger class="h-8 border-gray-300">
+              <SelectTrigger class="h-8 border-gray-300 dark:border-input">
                 <SelectValue placeholder="すべてのメモ" />
               </SelectTrigger>
               <SelectContent>
@@ -563,7 +563,7 @@ const handleRemoveParticipant = (participantId: number) => {
           <div>
             <label class="text-xs font-medium text-gray-700 mb-1 block">タグ</label>
             <Select v-model="filterTag">
-              <SelectTrigger class="h-8 border-gray-300">
+              <SelectTrigger class="h-8 border-gray-300 dark:border-input">
                 <SelectValue placeholder="すべてのタグ" />
               </SelectTrigger>
               <SelectContent>
@@ -577,14 +577,14 @@ const handleRemoveParticipant = (participantId: number) => {
         </div>
 
         <div class="space-y-2">
-          <div class="flex gap-2 p-1 bg-gray-100 rounded-lg">
+          <div class="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <button
-              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortKey === 'updated_at' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all duration-300 ease-in-out whitespace-nowrap', sortKey === 'updated_at' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400']"
               @click="sortKey === 'updated_at' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'updated_at', sortOrder = 'desc')"
-              class="flex-1 h-8 text-xs font-medium transition-all"
+              class="flex-1 h-8 font-medium"
             >
               <Clock :class="['h-3.5 w-3.5', sortKey === 'updated_at' ? 'text-yellow-500' : 'text-gray-400']" />
-              更新日時順
+              <span v-if="sortKey === 'updated_at' || filteredNotes.length > 0">更新日時順</span>
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'updated_at'" 
@@ -592,12 +592,12 @@ const handleRemoveParticipant = (participantId: number) => {
               />
             </button>
             <button
-              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all duration-300 ease-in-out whitespace-nowrap', sortKey === 'priority' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400']"
               @click="sortKey === 'priority' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'priority', sortOrder = 'desc')"
-              class="flex-1 h-8 text-xs font-medium transition-all"
+              class="flex-1 h-8 font-medium"
             >
               <AlertCircle :class="['h-3.5 w-3.5', sortKey === 'priority' ? 'text-red-500' : 'text-gray-400']" />
-              重要度順
+              <span v-if="sortKey === 'priority' || filteredNotes.length > 0">重要度順</span>
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'priority'" 
@@ -605,12 +605,12 @@ const handleRemoveParticipant = (participantId: number) => {
               />
             </button>
             <button
-              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all w-24 whitespace-nowrap', sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500']"
+              :class="['flex items-center justify-center gap-1.5 py-1 px-3 rounded text-xs transition-all duration-300 ease-in-out whitespace-nowrap', sortKey === 'deadline' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400']"
               @click="sortKey === 'deadline' ? (sortOrder = sortOrder === 'desc' ? 'asc' : 'desc') : (sortKey = 'deadline', sortOrder = 'desc')"
-              class="flex-1 h-8 text-xs font-medium transition-all"
+              class="flex-1 h-8 font-medium"
             >
               <Calendar :class="['h-3.5 w-3.5', sortKey === 'deadline' ? 'text-blue-500' : 'text-gray-400']" />
-              期限順
+              <span v-if="sortKey === 'deadline' || filteredNotes.length > 0">期限順</span>
               <component 
                 :is="sortOrder === 'desc' ? ArrowDown : ArrowUp" 
                 v-if="sortKey === 'deadline'" 
@@ -636,7 +636,7 @@ const handleRemoveParticipant = (participantId: number) => {
               'cursor-pointer transition-all border-l-4', 
               selectedNote?.note_id === note.note_id ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md', 
               isOverdue(note.deadline_date, note.deadline_time) 
-                ? 'bg-gray-100 border-gray-400 hover:bg-gray-200' 
+                ? 'bg-muted border-muted-foreground/50 hover:bg-muted/80 dark:bg-card dark:border-gray-500' 
                 : getColorClass(note.color)
             ]"
           >
@@ -694,7 +694,7 @@ const handleRemoveParticipant = (participantId: number) => {
 
       <div class="flex-1 flex flex-col relative h-full overflow-hidden">
       <template v-if="selectedNote">
-        <div class="flex-shrink-0 p-3 border-b border-gray-300">
+        <div class="flex-shrink-0 p-3 border-b border-border bg-background">
           <div class="flex items-start justify-between mb-3">
             <div class="flex-1">
               <Input
@@ -745,7 +745,7 @@ const handleRemoveParticipant = (participantId: number) => {
               <div>
                 <label class="text-xs font-medium text-gray-700 mb-1 block">重要度</label>
                 <Select v-model="editedPriority">
-                  <SelectTrigger class="h-8 text-xs border-gray-300">
+                  <SelectTrigger class="h-8 text-xs border-gray-300 dark:border-input">
                     <div class="flex items-center gap-2">
                       <Badge :class="getPriorityInfo(editedPriority).className" class="text-xs px-1 py-0">
                         {{ getPriorityInfo(editedPriority).label }}
@@ -768,7 +768,7 @@ const handleRemoveParticipant = (participantId: number) => {
               <div>
                 <label class="text-xs font-medium text-gray-700 mb-1 block">ジャンル</label>
                 <Select v-model="editedColor">
-                  <SelectTrigger class="h-8 text-xs border-gray-300">
+                  <SelectTrigger class="h-8 text-xs border-gray-300 dark:border-input">
                     <div class="flex items-center gap-2">
                       <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getColorInfo(editedColor).color }"></div>
                       <span>{{ getColorInfo(editedColor).label }}</span>
@@ -833,26 +833,26 @@ const handleRemoveParticipant = (participantId: number) => {
           <div class="space-y-2">
             <label class="text-xs font-medium text-gray-700 block">共有メンバー</label>
             <template v-if="!canEditParticipants">
-              <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+              <div class="text-xs text-muted-foreground p-2 bg-muted/50 rounded border border-border">
                 共有メンバーの変更は作成者または参加者のみ可能です
               </div>
             </template>
             <template v-else-if="isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId">
-              <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+              <div class="text-xs text-muted-foreground p-2 bg-muted/50 rounded border border-border">
                 全員共有のメモは作成者のみが共有設定を変更できます
               </div>
             </template>
             <template v-else>
-              <div v-if="editedParticipants.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+              <div v-if="editedParticipants.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-200 rounded border border-blue-200 dark:border-blue-800">
                 全員が選択されています。変更するにはメンバーを削除してください。
               </div>
-              <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
-                <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+              <div v-else class="max-h-[200px] overflow-y-auto border border-input rounded p-2 space-y-1">
+                <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
                   <input 
                     type="checkbox" 
                     :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
                     @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
-                    class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                    class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
                   />
                   <span class="text-xs">{{ member.name }}</span>
                 </label>
@@ -861,7 +861,7 @@ const handleRemoveParticipant = (participantId: number) => {
             <div v-if="editedParticipants.length > 0" class="flex flex-wrap gap-1 mt-2">
               <Badge v-for="participant in editedParticipants" :key="participant.id" variant="secondary" class="text-xs gap-1">
                 {{ participant.name }}
-                <button v-if="canEditParticipants && !(isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                <button v-if="canEditParticipants && !(isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-muted-foreground/20 rounded-full p-0.5">
                   <X class="h-2 w-2" />
                 </button>
               </Badge>
@@ -876,7 +876,7 @@ const handleRemoveParticipant = (participantId: number) => {
           />
         </div>
         <!-- 固定ボタンエリア -->
-        <div class="flex-shrink-0 px-5 py-4 border-t border-gray-300 bg-white">
+        <div class="flex-shrink-0 px-5 py-4 border-t border-border bg-background">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <Button variant="outline" class="gap-2" @click="handleDeleteNote">

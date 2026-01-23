@@ -386,12 +386,24 @@ const startResize = (e: MouseEvent) => {
     flex-direction: column;
 }
 
+.dark .summary-area {
+    background: #09090b;
+    border-color: #374151;
+}
+
 .summary-header {
     padding: 12px 16px;
     background: #f3f4f6;
     font-weight: 600;
     font-size: 14px;
+    font-size: 14px;
     border-bottom: 1px solid #e5e7eb;
+}
+
+.dark .summary-header {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
 }
 
 .summary-timeline {
@@ -409,7 +421,12 @@ const startResize = (e: MouseEvent) => {
 .day-column {
     border-right: 1px solid #e5e7eb;
     padding: 8px;
+    padding: 8px;
     text-align: center;
+}
+
+.dark .day-column {
+    border-color: #374151;
 }
 
 .day-column:last-child {
@@ -419,7 +436,12 @@ const startResize = (e: MouseEvent) => {
 .day-column-header {
     font-size: 12px;
     font-weight: 600;
+    font-weight: 600;
     color: #6b7280;
+}
+
+.dark .day-column-header {
+    color: #9ca3af;
 }
 
 .timeline-events {
@@ -528,7 +550,13 @@ const startResize = (e: MouseEvent) => {
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     overflow: hidden;
+    overflow: hidden;
     background: white;
+}
+
+.dark .day-lane {
+    border-color: #374151;
+    background: #09090b; /* bg-background */
 }
 
 .day-lane.today {
@@ -544,12 +572,33 @@ const startResize = (e: MouseEvent) => {
     transition: background 0.2s;
 }
 
+.dark .day-header {
+    background: #1f2937;
+    border-color: #374151;
+}
+
 .day-header:hover {
     background: #f3f4f6;
 }
 
+.dark .day-header:hover {
+    background: #374151;
+}
+
 .day-lane.today .day-header {
     background: #eff6ff;
+}
+
+.dark .day-lane.today .day-header {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+.day-lane.today .day-label {
+    color: #2563eb;
+}
+
+.dark .day-lane.today .day-label {
+    color: #60a5fa;
 }
 
 .day-label {
@@ -560,7 +609,12 @@ const startResize = (e: MouseEvent) => {
 
 .event-count {
     font-size: 12px;
+    font-weight: 600;
     color: #6b7280;
+}
+
+.dark .day-column-header {
+    color: #9ca3af;
 }
 
 .day-events {

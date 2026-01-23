@@ -2,7 +2,8 @@
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import { ref, onMounted, computed, onUnmounted } from 'vue'
-import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2, Menu } from 'lucide-vue-next'
+import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2, Menu, Sun, Moon } from 'lucide-vue-next'
+import { isDark, toggleDark } from '@/composables/useAppDark'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -110,7 +111,7 @@ const showNotesFilter = ref<'mine' | 'all'>(
 
 interface NotificationsData {
   events: Event[]
-  notes: SharedNote[]
+  notes: Note[]
   surveys: Survey[]
   reminders: Reminder[]
 }
@@ -170,43 +171,55 @@ const isUpcoming = (deadlineDate: string, deadlineTime?: string) => {
   return deadline >= now && deadline <= threeDaysLater
 }
 
-const getItemColor = (type: string, priority?: string, deadlineDate?: string, deadlineTime?: string) => {
+const getItemColor = (type: string, priority?: string, deadlineDate?: string, deadlineTime?: string, color?: string) => {
   if (type === 'event') {
     if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
-      return 'bg-blue-50 border-red-500 border-2'
+      return 'bg-blue-50 border-red-500 border-2 dark:bg-card dark:border-red-500'
     }
     if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
-      return 'bg-blue-50 border-yellow-400 border-2'
+      return 'bg-blue-50 border-yellow-400 border-2 dark:bg-card dark:border-yellow-400'
     }
-    return 'bg-blue-50 border-blue-200'
+    return 'bg-blue-50 border-blue-200 dark:bg-card dark:border-blue-800'
   }
   if (type === 'note') {
+    const baseBorder = color ? `border-${color}-200 dark:border-${color}-700` : 'border-orange-200 dark:border-orange-700'
+    
+    // Map color names to semantic colors if needed, or rely on Tailwind utility classes if they exist.
+    // Assuming color is one of: yellow, blue, green, pink, purple.
+    // We need to handle the dynamic class properly or map it.
+    let darkBorder = 'dark:border-orange-800';
+    if (color === 'yellow') darkBorder = 'dark:border-yellow-600';
+    else if (color === 'blue') darkBorder = 'dark:border-blue-600';
+    else if (color === 'green') darkBorder = 'dark:border-green-600';
+    else if (color === 'pink') darkBorder = 'dark:border-pink-600';
+    else if (color === 'purple') darkBorder = 'dark:border-purple-600';
+
     if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
-      return 'bg-orange-50 border-red-500 border-2'
+      return 'bg-orange-50 border-red-500 border-2 dark:bg-card dark:border-red-500'
     }
     if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
-      return 'bg-orange-50 border-yellow-400 border-2'
+      return 'bg-orange-50 border-yellow-400 border-2 dark:bg-card dark:border-yellow-400'
     }
-    return 'bg-orange-50 border-orange-200'
+    return `bg-orange-50 border-orange-200 ${darkBorder} dark:bg-card`
   }
   if (type === 'reminder') {
     if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
-      return 'bg-green-50 border-red-500 border-2'
+      return 'bg-green-50 border-red-500 border-2 dark:bg-card dark:border-red-500'
     }
     if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
-      return 'bg-green-50 border-yellow-400 border-2'
+      return 'bg-green-50 border-yellow-400 border-2 dark:bg-card dark:border-yellow-400'
     }
-    return 'bg-green-50 border-green-200'
+    return 'bg-green-50 border-green-200 dark:bg-card dark:border-green-800'
   }
   if (type === 'survey') {
     if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
-      return 'bg-purple-50 border-red-500 border-2'
+      return 'bg-purple-50 border-red-500 border-2 dark:bg-card dark:border-red-500'
     }
     if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
-      return 'bg-purple-50 border-yellow-400 border-2'
+      return 'bg-purple-50 border-yellow-400 border-2 dark:bg-card dark:border-yellow-400'
     }
   }
-  return 'bg-purple-50 border-purple-200'
+  return 'bg-purple-50 border-purple-200 dark:bg-card dark:border-purple-800'
 }
 
 const formatDate = (date: string) => {
@@ -411,7 +424,7 @@ function updateNotificationItem<T extends { [key: string]: any }>(
   }
 }
 
-const handleNoteSave = (note: SharedNote) => {
+const handleNoteSave = (note: Note) => {
   const editable: Note = {
     ...note,
     content: note.content ?? ''
@@ -517,7 +530,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header class="bg-white border-b border-gray-300 px-6 py-4">
+  <header class="bg-background border-b border-border px-6 py-4">
     <div class="flex items-center justify-between gap-4">
       <!-- ハンバーガーメニュー (iPad Air/Proのみ) -->
       <Button 
@@ -537,15 +550,15 @@ onUnmounted(() => {
         <!-- 通知 -->
         <Popover v-model:open="isNotificationOpen">
           <PopoverTrigger as-child>
-            <Button variant="outline" size="icon" class="relative">
+            <Button variant="outline" size="icon" class="relative border-gray-300 dark:border-input">
               <Bell class="h-5 w-5" />
               <Badge class="absolute -top-1 -right-1 h-5 w-5 flex items-center text-white justify-center p-0 bg-red-500">
                 {{ totalNotifications }}
               </Badge>
             </Button>
           </PopoverTrigger>
-          <PopoverContent class="w-[420px] p-0 max-h-[80vh] flex flex-col" align="end">
-            <div class="p-4 border-b border-gray-300">
+          <PopoverContent class="w-[420px] p-0 max-h-[80vh] flex flex-col bg-background border-border" align="end">
+            <div class="p-4 border-b border-border">
               <div class="flex items-center justify-between">
                 <div>
                   <h3 class="flex items-center gap-2">
@@ -570,12 +583,12 @@ onUnmounted(() => {
                       <div class="space-y-4">
                         <div>
                           <label class="text-xs font-medium text-gray-700 block mb-2">共有カレンダー</label>
-                          <div class="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                          <div class="flex gap-1 p-1 bg-muted rounded-lg">
                             <Button 
                               variant="ghost" 
                               size="sm" 
                               class="flex-1 h-7 text-xs"
-                              :class="showEventsFilter === 'mine' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'"
+                              :class="showEventsFilter === 'mine' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
                               :disabled="isLoadingNotifications"
                               @click="toggleEventsFilter"
                             >
@@ -585,7 +598,7 @@ onUnmounted(() => {
                               variant="ghost" 
                               size="sm" 
                               class="flex-1 h-7 text-xs"
-                              :class="showEventsFilter === 'all' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'"
+                              :class="showEventsFilter === 'all' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
                               :disabled="isLoadingNotifications"
                               @click="toggleEventsFilter"
                             >
@@ -677,7 +690,7 @@ onUnmounted(() => {
                 </div>
                 <div class="space-y-2">
                   <div v-for="note in notifications.notes" :key="note.note_id"
-                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('note', note.priority, note.deadline_date ?? undefined, note.deadline_time ?? undefined)}`"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('note', note.priority, note.deadline_date ?? undefined, note.deadline_time ?? undefined, note.color)}`"
                     @click="handleClick('note', note)">
                     <div class="flex items-start justify-between gap-2">
                       <div class="flex-1">
@@ -806,7 +819,7 @@ onUnmounted(() => {
         <!-- ユーザーメニュー -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" class="border-gray-300 dark:border-input">
               <User class="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
@@ -818,6 +831,12 @@ onUnmounted(() => {
             </DropdownMenuItem>
             <DropdownMenuItem as-child>
               <Link :href="route('trash.auto-delete')">ゴミ箱自動削除設定</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="toggleDark()">
+              <div class="flex items-center justify-between w-full">
+                <span>ダークモード</span>
+                <component :is="isDark ? Moon : Sun" class="h-4 w-4 ml-2" />
+              </div>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem @click="showConfirmLogoutModal = true">
