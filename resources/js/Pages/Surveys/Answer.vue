@@ -190,14 +190,14 @@ initializeAnswers()
       <!-- カードを画面高さいっぱいに -->
       <Card class="h-full flex flex-col overflow-hidden">
           <!-- カードヘッダー (固定) -->
-          <div class="p-4 border-b shrink-0">
+          <div class="p-4 border-b border-border shrink-0">
             <div class="flex items-center gap-3 mb-2">
               <Button variant="ghost" size="icon" @click="cancel">
                 <ArrowLeft class="h-5 w-5" />
               </Button>
               <CardTitle>{{ survey.title }}</CardTitle>
             </div>
-            <p class="text-sm text-gray-500">{{ survey.description }}</p>
+            <p class="text-sm text-muted-foreground">{{ survey.description }}</p>
           </div>
           
           <!-- 質問リスト (スクロール可能) -->
@@ -216,7 +216,7 @@ initializeAnswers()
           </div>
           
           <!-- カードフッター (固定) -->
-          <div class="p-4 border-t shrink-0 bg-white">
+          <div class="p-4 border-t border-border shrink-0 bg-background">
             <div class="flex justify-end gap-4">
               <Button variant="outline" @click="cancel">キャンセル</Button>
               <Button variant="outline" :disabled="form.processing" @click="submitAnswer('draft')">

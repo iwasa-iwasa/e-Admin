@@ -123,7 +123,7 @@ const formatDate = (dateString: string) => {
       <CardContent class="flex-1 overflow-auto p-0">
         <div class="h-full overflow-y-auto relative">
           <Table>
-            <TableHeader class="sticky top-0 bg-white z-10 shadow-sm">
+            <TableHeader class="sticky top-0 bg-white dark:bg-card z-10 shadow-sm">
               <TableRow>
                 <TableHead>名前</TableHead>
                 <TableHead>メールアドレス</TableHead>

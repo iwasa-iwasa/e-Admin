@@ -171,14 +171,14 @@ const getPriorityValue = (priority: Priority) => {
 
 const getColorClass = (color: string) => {
   const colorMap: { [key: string]: string } = {
-    yellow: 'bg-yellow-100 border-yellow-300',
-    blue: 'bg-blue-100 border-blue-300',
-    green: 'bg-green-100 border-green-300',
-    pink: 'bg-pink-100 border-pink-300',
-    purple: 'bg-purple-100 border-purple-300',
-    gray: 'bg-gray-100 border-gray-300',
+    yellow: 'bg-yellow-100 border-yellow-300 dark:bg-card dark:border-yellow-600',
+    blue: 'bg-blue-100 border-blue-300 dark:bg-card dark:border-blue-600',
+    green: 'bg-green-100 border-green-300 dark:bg-card dark:border-green-600',
+    pink: 'bg-pink-100 border-pink-300 dark:bg-card dark:border-pink-600',
+    purple: 'bg-purple-100 border-purple-300 dark:bg-card dark:border-purple-600',
+    gray: 'bg-gray-100 border-gray-300 dark:bg-card dark:border-gray-600',
   };
-  return colorMap[color] || 'bg-gray-100 border-gray-300';
+  return colorMap[color] || 'bg-gray-100 border-gray-300 dark:bg-card dark:border-gray-600';
 }
 
 const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
@@ -292,13 +292,13 @@ export interface Note extends SharedNote {
           </Transition>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
-          <div class="flex gap-1 p-1 bg-gray-100 rounded-lg">
+          <div class="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <button
               @click="handleSortClick('priority')"
               :class="[
                 'flex items-center justify-center rounded text-xs transition-all duration-300 ease-in-out',
                 headerStage === 'iconOnly' ? 'w-8 h-8 p-0' : 'gap-1 py-1 px-2',
-                sortKey === 'priority' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500'
+                sortKey === 'priority' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
               ]"
               :title="headerStage !== 'normal' ? '重要度順' : undefined"
             >
@@ -324,7 +324,7 @@ export interface Note extends SharedNote {
               :class="[
                 'flex items-center justify-center rounded text-xs transition-all duration-300 ease-in-out',
                 headerStage === 'iconOnly' ? 'w-8 h-8 p-0' : 'gap-1 py-1 px-2',
-                sortKey === 'deadline' ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500'
+                sortKey === 'deadline' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
               ]"
               :title="headerStage !== 'normal' ? '期限順' : undefined"
             >
@@ -387,7 +387,7 @@ export interface Note extends SharedNote {
             :data-note-id="note.note_id"
             :class="[
               isOverdue(note.deadline_date, note.deadline_time) 
-                ? 'bg-gray-100 border-gray-400 border-2' 
+                ? 'bg-gray-100 border-gray-400 border-2 dark:bg-card dark:border-gray-500' 
                 : getColorClass(note.color), 
               'border-2 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow',
               selectedNote?.note_id === note.note_id ? '' : ''
@@ -411,7 +411,7 @@ export interface Note extends SharedNote {
                 {{ getPriorityInfo(note.priority as Priority).label }}
               </Badge>
             </div>
-            <p class="text-sm text-gray-700 whitespace-pre-line mb-2">
+            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line mb-2">
               {{ note.content }}
             </p>
             <div v-if="note.tags && note.tags.length > 0" class="flex flex-wrap gap-1 mb-2">
@@ -419,7 +419,7 @@ export interface Note extends SharedNote {
                 {{ tag.tag_name }}
               </Badge>
             </div>
-            <div class="flex items-center justify-between text-xs text-gray-600 flex-wrap gap-2">
+            <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 flex-wrap gap-2">
               <div class="flex items-center gap-2 flex-wrap">
                 <div class="flex items-center gap-1">
                   <User class="h-3 w-3" />

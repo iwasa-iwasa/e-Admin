@@ -262,13 +262,13 @@ onUnmounted(() => {
           </Transition>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
-          <div class="flex gap-1 p-1 bg-gray-100 rounded-lg">
+          <div class="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <button
               @click="showCompleted = false"
               :class="[
                 'flex items-center justify-center rounded text-xs transition-all duration-300 ease-in-out',
                 headerStage === 'iconOnly' ? 'w-8 h-8 p-0' : 'gap-1 py-1 px-2',
-                !showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500'
+                !showCompleted ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
               ]"
               :title="headerStage !== 'normal' ? '未完了' : undefined"
             >
@@ -283,7 +283,7 @@ onUnmounted(() => {
               >
                 <span v-if="headerStage === 'normal'" class="whitespace-nowrap">未完了</span>
               </Transition>
-              <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
+              <Badge variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
                 {{ activeCount }}
               </Badge>
             </button>
@@ -292,7 +292,7 @@ onUnmounted(() => {
               :class="[
                 'flex items-center justify-center rounded text-xs transition-all duration-300 ease-in-out',
                 headerStage === 'iconOnly' ? 'w-8 h-8 p-0' : 'gap-1 py-1 px-2',
-                showCompleted ? 'bg-white shadow-sm text-gray-900' : 'hover:bg-gray-200 text-gray-500'
+                showCompleted ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
               ]"
               :title="headerStage !== 'normal' ? '完了済' : undefined"
             >
@@ -307,7 +307,7 @@ onUnmounted(() => {
               >
                 <span v-if="headerStage === 'normal'" class="whitespace-nowrap">完了済</span>
               </Transition>
-              <Badge variant="secondary" class="text-xs h-4 px-1 ml-1">
+              <Badge variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
                 {{ completedCount }}
               </Badge>
             </button>

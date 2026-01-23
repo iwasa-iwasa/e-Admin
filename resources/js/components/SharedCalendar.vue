@@ -423,7 +423,7 @@ function handleScopeButtonClick(
                                     variant="outline"
                                     size="icon"
                                     @click="toggleSearch"
-                                    class="transition-all duration-300 ease-in-out"
+                                    class="transition-all duration-300 ease-in-out border-gray-300 dark:border-input"
                                     :class="isSearchOpen ? 'rounded-r-none border-r-0' : ''"
                                     tabindex="-1"
                                 >
@@ -465,7 +465,7 @@ function handleScopeButtonClick(
                             <Button
                                 :key="`create-${layoutMode}`"
                                 variant="outline"
-                                class="transition-all duration-300 ease-in-out flex-shrink-0"
+                                class="transition-all duration-300 ease-in-out flex-shrink-0 border-gray-300 dark:border-input"
                                 :class="layoutMode === 'default' || layoutMode === 'filter-small' ? 'gap-2' : ''"
                                 @click="openCreateDialog"
                                 :title="layoutMode === 'search-icon' || layoutMode === 'title-hide' || layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal' ? '新規作成' : undefined"
@@ -499,14 +499,28 @@ function handleScopeButtonClick(
                     leave-to-class="opacity-0 scale-95"
                 >
                     <div v-if="layoutMode === 'default'" class="flex-1">
-                        <Tabs :model-value="viewMode" @update:model-value="changeView" class="flex-1">
-                            <TabsList class="grid w-full max-w-[400px] grid-cols-4 bg-gray-100">
-                                <TabsTrigger value="multiMonthYear">年</TabsTrigger>
-                                <TabsTrigger value="dayGridMonth">月</TabsTrigger>
-                                <TabsTrigger value="timeGridWeek">週</TabsTrigger>
-                                <TabsTrigger value="timeGridDay">日</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                        <div class="flex-1">
+                        <div class="grid w-full max-w-[400px] grid-cols-4 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                            <button
+                                v-for="view in [
+                                    { value: 'multiMonthYear', label: '年' },
+                                    { value: 'dayGridMonth', label: '月' },
+                                    { value: 'timeGridWeek', label: '週' },
+                                    { value: 'timeGridDay', label: '日' },
+                                ]"
+                                :key="view.value"
+                                @click="changeView(view.value)"
+                                :class="[
+                                    'flex items-center justify-center py-1 text-sm font-medium rounded-md transition-all duration-200',
+                                    viewMode === view.value
+                                        ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
+                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                ]"
+                            >
+                                {{ view.label }}
+                            </button>
+                        </div>
+                    </div>
                     </div>
                 </Transition>
 
@@ -516,7 +530,7 @@ function handleScopeButtonClick(
                         variant="outline" 
                         size="sm" 
                         @click="goBackOneLevel"
-                        class="gap-1 transition-all duration-300 ease-in-out flex-shrink-0"
+                        class="gap-1 transition-all duration-300 ease-in-out flex-shrink-0 border-gray-300 dark:border-input"
                     >
                         <ChevronUp class="h-4 w-4" />
                         <Transition
@@ -530,7 +544,7 @@ function handleScopeButtonClick(
                             <span v-if="layoutMode === 'default' || layoutMode === 'filter-small'" class="whitespace-nowrap">戻る</span>
                         </Transition>
                     </Button>
-                    <Button variant="outline" size="sm" @click="previousPeriod" class="flex-shrink-0">
+                    <Button variant="outline" size="sm" @click="previousPeriod" class="flex-shrink-0 border-gray-300 dark:border-input">
                         <ChevronLeft class="h-4 w-4" />
                     </Button>
                     <div 
@@ -538,10 +552,10 @@ function handleScopeButtonClick(
                     >
                         {{ compactCalendarTitle }}
                     </div>
-                    <Button variant="outline" size="sm" @click="nextPeriod" class="flex-shrink-0">
+                    <Button variant="outline" size="sm" @click="nextPeriod" class="flex-shrink-0 border-gray-300 dark:border-input">
                         <ChevronRight class="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" @click="handleTodayClick" class="flex-shrink-0">{{ todayButtonText }}</Button>
+                    <Button variant="outline" size="sm" @click="handleTodayClick" class="flex-shrink-0 border-gray-300 dark:border-input">{{ todayButtonText }}</Button>
                 </div>
             </div>
         </div>
@@ -784,4 +798,116 @@ function handleScopeButtonClick(
   }
 }
 
+
+/* Dark Mode Overrides for FullCalendar */
+.dark .fc {
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: theme('colors.gray.800');
+    --fc-list-event-hover-bg-color: theme('colors.gray.700');
+    --fc-today-bg-color: rgba(59, 130, 246, 0.15);
+    --fc-border-color: theme('colors.gray.700');
+    --fc-neutral-text-color: theme('colors.white');
+    --fc-now-indicator-color: theme('colors.red.500');
+}
+
+.dark .fc-theme-standard td, 
+.dark .fc-theme-standard th {
+    border-color: theme('colors.gray.700');
+}
+
+/* Specific overrides for Week/Day view in Dark Mode */
+.dark .fc-timegrid-slot {
+    border-bottom-color: theme('colors.gray.800');
+}
+
+.dark .fc-timegrid-axis-cushion,
+.dark .fc-col-header-cell-cushion,
+.dark .fc-timegrid-slot-label-cushion {
+    color: theme('colors.gray.100');
+}
+
+.dark .fc-timegrid-body tr:hover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .fc-timegrid-slot:hover {
+    background-color: rgba(59, 130, 246, 0.12) !important;
+}
+
+.dark .fc-col-header-cell {
+    background-color: theme('colors.background');
+}
+
+.dark .fc-scrollgrid-section-header > * {
+    background-color: theme('colors.background');
+}
+
+.dark .fc-daygrid-day-number {
+    color: theme('colors.gray.100');
+}
+
+/* Hover popup dark mode */
+.dark .bg-white.border-gray-200 {
+    @apply bg-card border-border text-card-foreground;
+}
+
+.dark .text-gray-600 {
+    @apply text-muted-foreground;
+}
+
+.dark .text-gray-500 {
+    @apply text-muted-foreground opacity-80;
+}
+
+
+.dark .fc-col-header-cell-cushion,
+.dark .fc-daygrid-day-number {
+    color: theme('colors.gray.300');
+}
+
+.dark .fc-toolbar-title {
+    color: theme('colors.gray.100');
+}
+
+.dark .fc-daygrid-day:hover,
+.dark .fc-timegrid-slot:hover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .fc-scroller::-webkit-scrollbar-track {
+    background: theme('colors.gray.800');
+}
+.dark .fc-scroller::-webkit-scrollbar-thumb {
+    background: theme('colors.gray.600');
+}
+.dark .fc-scroller::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.gray.500');
+}
+
+/* Week/Day View Specifics */
+.dark .fc-theme-standard .fc-scrollgrid {
+    border-color: theme('colors.gray.700');
+}
+
+.dark .fc-timegrid-slot {
+    background-color: transparent;
+    border-color: theme('colors.gray.800');
+}
+
+.dark .fc-timegrid-axis {
+    background-color: transparent;
+    color: theme('colors.gray.300');
+}
+
+.dark .fc-col-header {
+    background-color: transparent;
+}
+
+.dark .fc-timegrid-now-indicator-line {
+    border-color: theme('colors.blue.400');
+}
+.dark .fc-timegrid-now-indicator-arrow {
+    border-color: theme('colors.blue.400');
+    border-bottom-color: theme('colors.blue.400');
+}
 </style>

@@ -112,13 +112,13 @@ const getPriorityInfo = (priority: Priority) => {
 
 const getColorClass = (color: string) => {
   const colorMap: Record<string, string> = {
-    yellow: 'bg-yellow-50 border-yellow-300',
-    blue: 'bg-blue-50 border-blue-300',
-    green: 'bg-green-50 border-green-300',
-    pink: 'bg-pink-50 border-pink-300',
-    purple: 'bg-purple-50 border-purple-300',
+    yellow: 'bg-yellow-50 border-yellow-300 dark:bg-card dark:border-yellow-600',
+    blue: 'bg-blue-50 border-blue-300 dark:bg-card dark:border-blue-600',
+    green: 'bg-green-50 border-green-300 dark:bg-card dark:border-green-600',
+    pink: 'bg-pink-50 border-pink-300 dark:bg-card dark:border-pink-600',
+    purple: 'bg-purple-50 border-purple-300 dark:bg-card dark:border-purple-600',
   }
-  return colorMap[color] || 'bg-gray-50 border-gray-300'
+  return colorMap[color] || 'bg-gray-50 border-gray-300 dark:bg-card dark:border-gray-600'
 }
 
 const getColorInfo = (c: string) => {
@@ -390,7 +390,7 @@ const editedContent = computed({
         <div class="flex items-center gap-4 text-sm text-gray-600 pt-2">
           <div class="flex items-center gap-1">
             <User class="h-4 w-4" />
-            <span>{{ currentNote.author?.name || 'N/A' }}</span>
+            <span class="dark:text-gray-300">{{ currentNote.author?.name || 'N/A' }}</span>
           </div>
           <div v-if="currentNote.participants && currentNote.participants.length > 0" class="flex items-center gap-1">
             <Badge v-if="isAllUsers(currentNote.participants)" variant="secondary" class="text-xs px-1 py-0">
@@ -407,7 +407,7 @@ const editedContent = computed({
           </div>
           <div class="flex items-center gap-1">
             <Clock class="h-4 w-4" />
-            <span>{{ new Date(currentNote.updated_at || currentNote.created_at).toLocaleDateString() }}</span>
+            <span class="dark:text-gray-300">{{ new Date(currentNote.updated_at || currentNote.created_at).toLocaleDateString() }}</span>
           </div>
           <div v-if="isEditing && editedNote" class="flex items-center gap-2">
             <span class="text-xs">期限:</span>
@@ -572,7 +572,7 @@ const editedContent = computed({
             class="min-h-[200px] whitespace-pre-line bg-white"
             aria-label="メモ内容"
           />
-          <p v-else class="whitespace-pre-line text-gray-800">
+          <p v-else class="whitespace-pre-line text-gray-800 dark:text-gray-200">
             {{ currentNote.content }}
           </p>
         </div>
