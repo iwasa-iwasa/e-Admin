@@ -354,7 +354,7 @@ const editedContent = computed({
 
 <template>
   <Dialog :open="open" @update:open="closeDialog" :modal="true">
-    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] max-h-[90vh]" @pointerDownOutside.prevent @interactOutside.prevent>
+    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] max-h-[90vh]">
       <DialogHeader>
         <div class="flex flex-col items-startgap-4">
           <div class="flex items-center  justify-between ">
@@ -368,7 +368,7 @@ const editedContent = computed({
               />
               <template v-else>{{ currentNote.title }}</template>
             </DialogTitle>
-            <div class="flex items-center gap-2 ">
+            <div class="flex items-center gap-2 mr-8">
               <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
                 {{ getPriorityInfo(currentNote.priority as Priority).label }}
               </Badge>

@@ -26,11 +26,12 @@ class UpdateSurveyRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'deadline' => ['required'],
             'questions' => ['required', 'array'],
+            'questions.*.question_id' => ['nullable', 'integer'],
             'questions.*.question' => ['required', 'string'],
             'questions.*.type' => ['required', 'string', 'in:single,multiple,text,textarea,rating,scale,dropdown,date'],
             'questions.*.required' => ['boolean'],
             'questions.*.options' => ['array'],
-            'questions.*.options.*' => ['string'],
+            'questions.*.options.*' => ['nullable'], // string or array
             'questions.*.scaleMin' => ['nullable', 'integer'],
             'questions.*.scaleMax' => ['nullable', 'integer'],
             'questions.*.scaleMinLabel' => ['nullable', 'string'],
@@ -69,7 +70,8 @@ class UpdateSurveyRequest extends FormRequest
             foreach ($questions as $index => $question) {
                 if (in_array($question['type'] ?? '', ['single', 'multiple', 'dropdown'])) {
                     $validOptions = array_filter($question['options'] ?? [], function ($opt) {
-                        return !empty(trim($opt));
+                        $text = is_array($opt) ? ($opt['text'] ?? $opt['option_text'] ?? '') : $opt;
+                        return !empty(trim($text));
                     });
                     if (count($validOptions) < 2) {
                         $validator->errors()->add(

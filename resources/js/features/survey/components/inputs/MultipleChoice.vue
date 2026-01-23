@@ -21,15 +21,17 @@ const normalizedOptions = computed(() => {
 
 const isSelected = (value: any) => {
     if (!Array.isArray(props.modelValue)) return false;
-    return props.modelValue.includes(value);
+    // Loose comparison for ID/Value match
+    return props.modelValue.some(v => String(v) === String(value));
 };
 
 const handleUpdate = (value: any, checked: boolean) => {
     const current = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
     if (checked) {
-        if (!current.includes(value)) current.push(value);
+        const exists = current.some(v => String(v) === String(value));
+        if (!exists) current.push(value);
     } else {
-        const index = current.indexOf(value);
+        const index = current.findIndex(v => String(v) === String(value));
         if (index > -1) current.splice(index, 1);
     }
     emit('update:modelValue', current);
@@ -39,7 +41,7 @@ const handleUpdate = (value: any, checked: boolean) => {
 <template>
     <div class="space-y-2">
         <template v-for="opt in normalizedOptions" :key="opt.id">
-            <div 
+            <label 
                 class="flex items-center gap-2 p-2 rounded transition-colors"
                 :class="{
                     'cursor-pointer hover:bg-gray-50': mode !== 'read' && mode !== 'preview',
@@ -47,18 +49,16 @@ const handleUpdate = (value: any, checked: boolean) => {
                 }"
             >
                 <Checkbox
-                    :checked="isSelected(opt.value)"
-                    @update:checked="(checked) => handleUpdate(opt.value, !!checked)"
+                    :default-value="isSelected(opt.value)"
+                    @update:modelValue="handleUpdate(opt.value, Boolean($event))"
                     :disabled="mode === 'preview' || mode === 'read'"
                 />
                 <span 
                     class="text-sm cursor-pointer select-none"
-                    :class="{'font-medium text-gray-900': isSelected(opt.value), 'text-gray-700': !isSelected(opt.value)}"
-                    @click="mode !== 'read' && mode !== 'preview' ? handleUpdate(opt.value, !isSelected(opt.value)) : null"
-                >
+                    :class="{'font-medium text-gray-900': isSelected(opt.value), 'text-gray-700': !isSelected(opt.value)}"                >
                     {{ opt.label }}
                 </span>
-            </div>
+            </label>
         </template>
         <div v-if="normalizedOptions.length === 0" class="text-gray-400 text-sm italic p-2">
             (選択肢を追加してください)

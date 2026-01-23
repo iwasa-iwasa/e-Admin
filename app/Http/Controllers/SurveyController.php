@@ -121,7 +121,11 @@ class SurveyController extends Controller
                 'scaleMax' => $question->scale_max,
                 'scaleMinLabel' => $question->scale_min_label,
                 'scaleMaxLabel' => $question->scale_max_label,
-                'options' => $question->options->pluck('option_text')->toArray(),
+                'options' => $question->options->map(fn($option) => [
+                    'option_id' => $option->option_id,
+                    'text' => $option->option_text,
+                    'option_text' => $option->option_text, // For compatibility
+                ])->toArray(),
             ])->toArray(),
         ];
 
@@ -160,12 +164,18 @@ class SurveyController extends Controller
             $responseCount = $survey->responses()->count();
             
             // 既存回答があり、質問が変更され、確認が取れていない場合
-            if ($hasResponses && $questionsChanged && !$onlyDeadlineChanged && !$request->confirm_reset) {
+            if ($hasResponses && $questionsChanged && !$onlyDeadlineChanged && !$request->boolean('confirm_reset')) {
                 return back()->withErrors([
                     'requires_confirmation' => true,
                     'response_count' => $responseCount,
                     'message' => "このアンケートには{$responseCount}件の回答があります。質問を変更すると既存の回答が削除されます。続行しますか？"
                 ]);
+            }
+
+            // 確認済みでリセットが要求された場合、既存の回答を全て削除
+            if ($request->boolean('reset_responses') && $hasResponses) {
+                Log::info("Survey {$survey->survey_id} responses reset by user " . Auth::id());
+                $survey->responses()->delete();
             }
 
             $this->surveyService->updateSurvey($survey, $request->validated());
@@ -181,7 +191,6 @@ class SurveyController extends Controller
     {
         // 既存の回答を取得
         $existingResponse = $survey->responses()
-            ->with('answers')
             ->where('respondent_id', Auth::id())
             ->first();
         
@@ -191,31 +200,14 @@ class SurveyController extends Controller
         ]);
         
         // 既存の回答をマップ化
-        $existingAnswers = [];
-        if ($existingResponse) {
-            // 質問ごとに回答をグループ化
-            $answersByQuestion = $existingResponse->answers->groupBy('question_id');
-            
-            foreach ($answersByQuestion as $questionId => $answers) {
-                $question = $survey->questions->firstWhere('question_id', $questionId);
-                
-                if ($question && $question->question_type === 'multiple_choice') {
-                    // 複数選択の場合、全てのoption_idを配列で収集
-                    $optionIds = $answers->pluck('selected_option_id')->filter()->values()->toArray();
-                    $existingAnswers[$questionId] = $optionIds;
-                } else {
-                    // その他の場合は最初の回答を使用
-                    $answer = $answers->first();
-                    
-                    if ($answer->selected_option_id) {
-                        $existingAnswers[$questionId] = $answer->selected_option_id;
-                    } else {
-                        $decoded = json_decode($answer->answer_text, true);
-                        $existingAnswers[$questionId] = is_array($decoded) ? $decoded : $answer->answer_text;
-                    }
-                }
-            }
-        }
+        //$existingAnswers = $existingResponse ? $existingResponse->answers : [];
+        // Note: SurveyResponse model casts 'answers' to array, so we can use it directly.
+        // However, we need to ensure it's an array.
+        $existingAnswers = ($existingResponse && $existingResponse->answers) ? $existingResponse->answers : [];
+        
+        // If status is draft, we should probably let frontend know?
+        // But the frontend mainly needs the answers to fill the form.
+        // We can pass status to frontend if needed.
         
         return Inertia::render('Surveys/Answer', [
             'survey' => [
@@ -248,13 +240,18 @@ class SurveyController extends Controller
     {
         $validated = $request->validate([
             'answers' => 'required|array',
+            'status' => 'nullable|in:draft,submitted',
         ]);
         
+        $status = $validated['status'] ?? 'submitted';
+        
         try {
-            $this->surveyService->saveAnswer($survey, $validated['answers'], Auth::id());
+            $this->surveyService->saveAnswer($survey, $validated['answers'], Auth::id(), $status);
+            
+            $message = ($status === 'draft') ? '回答を一時保存しました' : '回答を送信しました';
             
             return redirect()->route('surveys')
-                ->with('success', '回答を送信しました');
+                ->with('success', $message);
         } catch (\Exception $e) {
             Log::error('Survey answer submission failed', [
                 'survey_id' => $survey->survey_id,
@@ -306,7 +303,7 @@ class SurveyController extends Controller
 
         // このアンケートの回答データを取得
         $responses = $survey->responses()
-            ->with(['answers.question', 'respondent'])
+            ->with(['respondent'])
             ->latest('submitted_at')
             ->get();
 
@@ -332,9 +329,9 @@ class SurveyController extends Controller
      */
     public function export(Survey $survey)
     {
-        // アンケートの回答データを取得
+        // このアンケートの回答データを取得
         $responses = $survey->responses()
-            ->with(['answers.question', 'respondent'])
+            ->with(['respondent']) // answers relation removed
             ->latest('submitted_at')
             ->get();
 
@@ -355,14 +352,26 @@ class SurveyController extends Controller
                 $response->submitted_at ? $response->submitted_at->format('Y-m-d H:i:s') : '',
             ];
 
+            $answers = $response->answers ?? [];
+
             foreach ($survey->questions()->orderBy('display_order')->get() as $question) {
-                $answer = $response->answers->firstWhere('question_id', $question->question_id);
-                if ($answer) {
-                    if ($answer->selected_option_id) {
-                        $option = $question->options->firstWhere('option_id', $answer->selected_option_id);
-                        $row[] = $option ? $option->option_text : $answer->answer_text;
+                $val = $answers[$question->question_id] ?? null;
+                
+                if ($val !== null && $val !== '') {
+                    if (in_array($question->question_type, ['single_choice', 'dropdown']) && is_numeric($val)) {
+                         $option = $question->options->firstWhere('option_id', $val);
+                         $row[] = $option ? $option->option_text : $val;
+                    } elseif ($question->question_type === 'multiple_choice') {
+                         // Resolve options
+                         $vals = is_array($val) ? $val : [$val];
+                         $texts = [];
+                         foreach($vals as $vid) {
+                             $opt = $question->options->firstWhere('option_id', $vid);
+                             if($opt) $texts[] = $opt->option_text;
+                         }
+                         $row[] = implode(', ', $texts);
                     } else {
-                        $row[] = $answer->answer_text ?? '';
+                         $row[] = is_string($val) ? $val : json_encode($val, JSON_UNESCAPED_UNICODE);
                     }
                 } else {
                     $row[] = '';

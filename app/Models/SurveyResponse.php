@@ -33,6 +33,9 @@ class SurveyResponse extends Model
     protected $fillable = [
         'survey_id',
         'respondent_id',
+        'answers',
+        'status',
+        'survey_version',
         'submitted_at',
     ];
 
@@ -41,7 +44,7 @@ class SurveyResponse extends Model
      *
      * @var bool
      */
-    public $timestamps = false;
+    public $timestamps = true;
 
     /**
      * The attributes that should be cast.
@@ -53,6 +56,7 @@ class SurveyResponse extends Model
         'survey_id' => 'integer',
         'respondent_id' => 'integer',
         'submitted_at' => 'datetime',
+        'answers' => 'array',
     ];
 
     /**
@@ -71,11 +75,5 @@ class SurveyResponse extends Model
         return $this->belongsTo(User::class, 'respondent_id', 'id');
     }
 
-    /**
-     * Get the answers for the response.
-     */
-    public function answers()
-    {
-        return $this->hasMany(SurveyAnswer::class, 'response_id', 'response_id');
-    }
+
 }

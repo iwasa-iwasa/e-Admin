@@ -71,11 +71,25 @@
     isResizing.value = false
     document.removeEventListener('mousemove', handleResize)
     document.removeEventListener('mouseup', stopResize)
+    
+    // 幅を保存
+    localStorage.setItem('dashboard_sidebar_width', sidebarWidth.value.toString())
+    
     // リサイズ終了時にカレンダーに通知
     setTimeout(() => {
       window.dispatchEvent(new Event('resize'))
     }, 0)
   }
+  
+  onMounted(() => {
+    const savedWidth = localStorage.getItem('dashboard_sidebar_width')
+    if (savedWidth) {
+      const parsed = parseInt(savedWidth, 10)
+      if (!isNaN(parsed)) {
+        sidebarWidth.value = Math.max(220, Math.min(270, parsed))
+      }
+    }
+  })
   
   onUnmounted(() => {
     document.removeEventListener('mousemove', handleResize)
@@ -94,7 +108,7 @@
       }"
     >
       <ScrollArea>
-        <nav class="flex-1 p-4 space-y-2">
+        <nav class="flex-1 p-4 flex flex-col gap-2">
   
           <!-- タブレット用 -->
           <div v-if="props.isTablet" class="flex items-center justify-between mb-4">
@@ -115,7 +129,7 @@
           <!-- max-w + w-fit がキモ -->
           <Button
             :class="[
-              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              'w-full justify-start gap-3 px-3',
               isActive('/dashboard')
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'hover:bg-accent hover:text-accent-foreground'
@@ -130,7 +144,7 @@
   
           <Button
             :class="[
-              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              'w-full justify-start gap-3 px-3',
               isActive('/calendar')
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'hover:bg-accent hover:text-accent-foreground'
@@ -145,7 +159,7 @@
   
           <Button
             :class="[
-              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              'w-full justify-start gap-3 px-3',
               isActive('/notes')
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'hover:bg-accent hover:text-accent-foreground'
@@ -160,7 +174,7 @@
   
           <Button
             :class="[
-              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              'w-full justify-start gap-3 px-3',
               isActive('/reminders')
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'hover:bg-accent hover:text-accent-foreground'
@@ -175,7 +189,7 @@
   
           <Button
             :class="[
-              'max-w-[240px] w-fit justify-start gap-3 px-3 overflow-hidden',
+              'w-full justify-start gap-3 px-3 overflow-hidden',
               isActive('/surveys')
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'hover:bg-accent hover:text-accent-foreground'
@@ -194,7 +208,7 @@
           <Button
             v-if="$page.props.auth.user.role === 'admin'"
             :class="[
-              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              'w-full justify-start gap-3 px-3',
               isActive('/admin/users')
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'hover:bg-accent hover:text-accent-foreground'
@@ -209,7 +223,7 @@
   
           <Button
             :class="[
-              'max-w-[240px] w-fit justify-start gap-3 px-3',
+              'w-full justify-start gap-3 px-3',
               isActive('/trash')
                 ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'hover:bg-accent hover:text-accent-foreground'
@@ -227,7 +241,7 @@
           <div class="px-3 py-2 text-xs text-gray-500">連携機能</div>
   
           <a href="https://outlook.office.com" target="_blank" class="block">
-            <Button variant="ghost" class="max-w-[240px] w-fit justify-start gap-3 px-3">
+            <Button variant="ghost" class="w-full justify-start gap-3 px-3">
               <Mail class="h-5 w-5" />
               Outlookを開く
             </Button>
@@ -238,7 +252,7 @@
           <div class="px-3 py-2 text-xs text-gray-500">部署メンバー</div>
   
           <ScrollArea>
-            <div class="space-y-1">
+            <div class="flex flex-col gap-1">
               <template v-for="member in teamMembers" :key="member.id">
                 <div 
                   v-if="selectedMember === member.id" 
@@ -250,7 +264,7 @@
                 <Button
                   v-else
                   variant="ghost"
-                  class="max-w-[240px] w-fit justify-start gap-3 px-3"
+                  class="w-full justify-start gap-3 px-3"
                   @click="handleMemberClick(member.id, currentURL)"
                 >
                   <Avatar class="h-6 w-6">
