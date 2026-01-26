@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch, ref, onMounted, onUnmounted, nextTick} from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
+import { getEventColor } from '@/constants/calendar'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -288,16 +289,7 @@ const pxPerMin = computed(() => {
 
 
 
-const getEventColor = (category: string) => {
-    const categoryColorMap: { [key: string]: string } = {
-        '会議': '#42A5F5',
-        '業務': '#66BB6A',
-        '来客': '#FFA726',
-        '出張': '#9575CD',
-        '休暇': '#F06292',
-    }
-    return categoryColorMap[category] || '#6b7280'
-}
+// getEventColor replaced by import
 
 // ========== 現在時刻表示 ==========
 const currentTimePosition = computed(() => {

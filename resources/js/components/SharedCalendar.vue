@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
+import { isDark } from '@/composables/useAppDark'
 import FullCalendar from '@fullcalendar/vue3'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp, ChevronDown, Filter } from 'lucide-vue-next'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
@@ -162,6 +163,23 @@ watch([searchQuery, genreFilter, () => props.filteredMemberId], () => {
 watch([viewMode, currentDayViewDate, currentWeekStart], () => {
     fetchEventsForCustomView()
 }, { immediate: true })
+
+// Watch dark mode for theme changes
+watch(isDark, () => {
+    const api = fullCalendar.value?.getApi()
+    if (api && (viewMode.value === 'dayGridMonth' || viewMode.value === 'multiMonthYear')) {
+        api.refetchEvents()
+    } else {
+        fetchEventsForCustomView()
+    }
+})
+
+const displayCategoryItems = computed(() => {
+    return CATEGORY_ITEMS.map(item => ({
+        ...item,
+        color: getEventColor(item.label)
+    }))
+})
 
 // Helper Methods
 const openCreateDialog = () => {
@@ -367,37 +385,37 @@ function handleScopeButtonClick(
                             <SelectItem :value="GENRE_FILTERS.ALL">すべて</SelectItem>
                             <SelectItem :value="GENRE_FILTERS.BLUE">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['会議'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('会議') }"></div>
                                     {{ CATEGORY_LABELS['会議'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.GREEN">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['業務'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('業務') }"></div>
                                     {{ CATEGORY_LABELS['業務'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.YELLOW">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['来客'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('来客') }"></div>
                                     {{ CATEGORY_LABELS['来客'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.PURPLE">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['出張'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('出張') }"></div>
                                     {{ CATEGORY_LABELS['出張'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.PINK">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['休暇'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('休暇') }"></div>
                                     {{ CATEGORY_LABELS['休暇'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.OTHER">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['その他'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('その他') }"></div>
                                     {{ CATEGORY_LABELS['その他'] }}
                                 </div>
                             </SelectItem>
@@ -593,7 +611,7 @@ function handleScopeButtonClick(
         <div class="px-4 pb-4">
             <div class="flex items-start justify-between gap-3 min-w-0">
                 <div class="flex flex-wrap gap-x-3 gap-y-2 text-xs mt-1 flex-1 min-w-0">
-                    <div v-for="item in CATEGORY_ITEMS" :key="item.label" class="flex items-center gap-1.5 transition-all duration-200"
+                    <div v-for="item in displayCategoryItems" :key="item.label" class="flex items-center gap-1.5 transition-all duration-200"
                         :class="{
                             'ring-2 ring-blue-500 ring-offset-1 rounded px-1 py-0.5': 
                                 (genreFilter as string) === GENRE_FILTERS.BLUE && item.label === '会議' ||
