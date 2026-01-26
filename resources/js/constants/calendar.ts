@@ -91,7 +91,15 @@ export const GENRE_COLORS = {
 export type GenreColorKey = keyof typeof GENRE_COLORS;
 
 export const getGenreColor = (color: string) => {
-    return GENRE_COLORS[color as GenreColorKey] || GENRE_COLORS['gray'];
+    // Try to match by key (blue, green)
+    if (GENRE_COLORS[color as GenreColorKey]) {
+        return GENRE_COLORS[color as GenreColorKey];
+    }
+    // Try to match by label (会議, etc)
+    const found = Object.values(GENRE_COLORS).find(c => c.label === color);
+    if (found) return found;
+
+    return GENRE_COLORS['gray'];
 };
 
 export const GENRE_ITEMS = Object.values(GENRE_COLORS);

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch, ref, onMounted, onUnmounted, nextTick} from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
+import { getGenreColor } from '@/constants/calendar'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -288,16 +289,6 @@ const pxPerMin = computed(() => {
 
 
 
-const getEventColor = (category: string) => {
-    const categoryColorMap: { [key: string]: string } = {
-        '会議': '#42A5F5',
-        '業務': '#66BB6A',
-        '来客': '#FFA726',
-        '出張': '#9575CD',
-        '休暇': '#F06292',
-    }
-    return categoryColorMap[category] || '#6b7280'
-}
 
 // ========== 現在時刻表示 ==========
 const currentTimePosition = computed(() => {
@@ -551,7 +542,7 @@ type StackedEvent = DisplayEvent & {
             >
                 <div class="member-column">
                     <div class="member-info">
-                        <div class="member-avatar" :style="{ backgroundColor: getEventColor('会議') }">
+                        <div class="member-avatar" :style="{ backgroundColor: getGenreColor('会議').hex }">
                             {{ member.name.charAt(0) }}
                         </div>
                         <span class="member-name">{{ member.name }}</span>
@@ -576,11 +567,13 @@ type StackedEvent = DisplayEvent & {
                                 v-for="event in lane"
                                 :key="event.id"
                                 class="event-bar"
-                                :class="{ 'important': event.original.importance === '重要' }"
+                                :class="[
+                                    { 'important': event.original.importance === '重要' },
+                                    getGenreColor(event.original.category).noteClass
+                                ]"
                                 :style="{
                                     ...getEventStyle(event),
-                                    backgroundColor: getEventColor(event.original.category),
-                                    borderColor: event.original.importance === '重要' ? '#dc2626' : getEventColor(event.original.category)
+                                    borderColor: event.original.importance === '重要' ? '#dc2626' : undefined
                                 }"
                                 @click="handleEventClick(event.original)"
                                 @mouseenter="handleEventHover(event.original, $event)"
