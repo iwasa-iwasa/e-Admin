@@ -9,6 +9,8 @@ export function useCalendarDom(
     const hoveredEvent = ref<any>(null)
     const hoveredEvents = ref<any[]>([])
     const hoverPosition = ref({ x: 0, y: 0 })
+    const skipTodayScroll = ref(false)
+    const scrollToDate = ref<string | null>(null)
 
     const handleEventMouseEnter = (info: any) => {
         hoveredEvent.value = info.event.extendedProps
@@ -80,14 +82,31 @@ export function useCalendarDom(
         todayMidnight.setHours(0, 0, 0, 0)
         isTodayInViewForFullCalendar.value = info.view.currentStart <= todayMidnight && todayMidnight < info.view.currentEnd
 
-        // 月表示に切り替わった時に今日の週にスクロール
+        // 月表示に切り替わった時に今日の週にスクロール（年表示からの遷移時は除外）
         if (info.view.type === 'dayGridMonth') {
-            setTimeout(() => {
-                const todayCell = document.querySelector('.fc-day-today')
-                if (todayCell) {
-                    todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                }
-            }, 200)
+            if (scrollToDate.value) {
+                // 年表示から指定日付へスクロール
+                setTimeout(() => {
+                    const dayEl = document.querySelector(`[data-date="${scrollToDate.value}"]`)
+                    if (dayEl) {
+                        dayEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }
+                    scrollToDate.value = null
+                }, 200)
+            } else if (!skipTodayScroll.value) {
+                // 通常の今日の週へスクロール
+                setTimeout(() => {
+                    const todayCell = document.querySelector('.fc-day-today')
+                    if (todayCell) {
+                        todayCell.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }
+                }, 200)
+            }
+        }
+        
+        // フラグをリセット
+        if (skipTodayScroll.value) {
+            skipTodayScroll.value = false
         }
 
         // 年表示：月セル全体をクリック可能にする（軽量化）
@@ -133,6 +152,8 @@ export function useCalendarDom(
         hoveredEvent,
         hoveredEvents,
         hoverPosition,
+        skipTodayScroll,
+        scrollToDate,
         handleDatesSet,
         handleEventMouseEnter,
         handleEventMouseLeave,

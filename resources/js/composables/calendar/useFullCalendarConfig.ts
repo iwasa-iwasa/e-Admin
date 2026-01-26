@@ -1,4 +1,3 @@
-import axios from 'axios'
 import { computed, Ref } from 'vue'
 import { CalendarOptions } from '@fullcalendar/core'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -33,36 +32,9 @@ export function useFullCalendarConfig(
         contentHeight: 'auto',
         multiMonthMaxColumns: 2,
         multiMonthMinWidth: 220,
-        dayMaxEvents: viewMode.value === 'multiMonthYear' ? 2 : true,
+        dayMaxEvents: true,
         eventOrder: (a: any, b: any) => {
-            // 年表示での優先度制御
-            if (viewMode.value === 'multiMonthYear') {
-                const aStart = new Date(a.start).toDateString()
-                const aEnd = new Date(a.end || a.start).toDateString()
-                const bStart = new Date(b.start).toDateString()
-                const bEnd = new Date(b.end || b.start).toDateString()
-
-                const aIsMultiDay = aStart !== aEnd
-                const bIsMultiDay = bStart !== bEnd
-                const aIsImportant = a.extendedProps?.importance === '重要'
-                const bIsImportant = b.extendedProps?.importance === '重要'
-
-                // 優先度①：複数日かつ重要
-                const aScore1 = aIsMultiDay && aIsImportant ? 1 : 0
-                const bScore1 = bIsMultiDay && bIsImportant ? 1 : 0
-                if (aScore1 !== bScore1) return aScore1 - bScore1
-
-                // 優先度②：複数日
-                if (aIsMultiDay !== bIsMultiDay) return aIsMultiDay ? -1 : 1
-
-                // 優先度③：単日だが重要
-                if (aIsImportant !== bIsImportant) return aIsImportant ? -1 : 1
-
-                // 優先度④：その他（開始時刻順）
-                return 0
-            }
-
-            // 他の表示モード：重要度のみ
+            // 重要度のみ
             const aImportance = a.extendedProps?.importance || '低'
             const bImportance = b.extendedProps?.importance || '低'
             if (aImportance === '重要' && bImportance !== '重要') return -1

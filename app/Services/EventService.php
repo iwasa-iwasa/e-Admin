@@ -15,6 +15,148 @@ use Carbon\Carbon;
 class EventService
 {
     /**
+     * Get year busy summary for heatmap visualization.
+     */
+    public function getYearBusySummary(int $year, int $calendarId, ?int $memberId = null): array
+    {
+        $startDate = Carbon::create($year, 1, 1)->format('Y-m-d');
+        $endDate = Carbon::create($year, 12, 31)->format('Y-m-d');
+        
+        $query = Event::with(['participants'])
+            ->where('calendar_id', $calendarId)
+            ->where(function($q) use ($startDate, $endDate) {
+                $q->where('start_date', '<=', $endDate)
+                  ->where('end_date', '>=', $startDate);
+            });
+            
+        if ($memberId) {
+            $query->whereHas('participants', function($q) use ($memberId) {
+                $q->where('users.id', $memberId);
+            });
+        }
+        
+        $events = $query->get();
+        $days = [];
+        
+        foreach ($events as $event) {
+            $eventDays = $this->expandEventToDays($event, $startDate, $endDate);
+            
+            foreach ($eventDays as $dayData) {
+                $date = $dayData['date'];
+                $duration = $dayData['duration'];
+                
+                if (!isset($days[$date])) {
+                    $days[$date] = [
+                        'busyScore' => 0,
+                        'totalHours' => 0,
+                        'eventCount' => 0,
+                        'alldayCount' => 0,
+                        'importantCount' => 0,
+                    ];
+                }
+                
+                $category = $event->category;
+                $importance = $event->importance;
+                
+                if ($category && $importance) {
+                    $eventScore = $duration * $category->busyWeight() * $importance->busyWeight();
+                    $days[$date]['busyScore'] += $eventScore;
+                }
+                
+                // 休暇以外の予定のみ拘束時間に含める
+                if ($category !== EventCategory::VACATION) {
+                    $days[$date]['totalHours'] += $duration;
+                }
+                
+                // 休暇以外の予定のみカウント
+                if ($category !== EventCategory::VACATION) {
+                    $days[$date]['eventCount']++;
+                    // 終日予定のカウント
+                    if ($event->is_all_day) {
+                        $days[$date]['alldayCount']++;
+                    }
+                }
+                
+                if ($importance === EventImportance::HIGH) {
+                    $days[$date]['importantCount']++;
+                }
+            }
+        }
+        
+        return [
+            'year' => $year,
+            'calendar_id' => $calendarId,
+            'days' => $days,
+        ];
+    }
+    
+    /**
+     * Expand multi-day event to daily breakdown.
+     */
+    private function expandEventToDays(Event $event, string $yearStart, string $yearEnd): array
+    {
+        $eventStart = max($event->start_date, $yearStart);
+        $eventEnd = min($event->end_date, $yearEnd);
+        
+        $start = Carbon::parse($eventStart);
+        $end = Carbon::parse($eventEnd);
+        $days = [];
+        
+        while ($start <= $end) {
+            $date = $start->format('Y-m-d');
+            
+            if ($event->is_all_day) {
+                $duration = 8; // 終日 = 8時間
+            } else {
+                $duration = $this->calculateDayDuration($event, $date);
+            }
+            
+            $days[] = [
+                'date' => $date,
+                'duration' => $duration,
+            ];
+            
+            $start->addDay();
+        }
+        
+        return $days;
+    }
+    
+    /**
+     * Calculate duration for specific date.
+     */
+    private function calculateDayDuration(Event $event, string $date): float
+    {
+        $eventStartDate = $event->start_date;
+        $eventEndDate = $event->end_date;
+        
+        // 単日イベント
+        if ($eventStartDate === $eventEndDate && $eventStartDate === $date) {
+            if (!$event->start_time || !$event->end_time) return 0;
+            
+            $start = Carbon::parse($date . ' ' . $event->start_time);
+            $end = Carbon::parse($date . ' ' . $event->end_time);
+            return $start->diffInHours($end, true);
+        }
+        
+        // 複数日イベントの初日
+        if ($eventStartDate === $date && $event->start_time) {
+            $start = Carbon::parse($date . ' ' . $event->start_time);
+            $endOfDay = Carbon::parse($date . ' 23:59:59');
+            return $start->diffInHours($endOfDay, true);
+        }
+        
+        // 複数日イベントの最終日
+        if ($eventEndDate === $date && $event->end_time) {
+            $startOfDay = Carbon::parse($date . ' 00:00:00');
+            $end = Carbon::parse($date . ' ' . $event->end_time);
+            return $startOfDay->diffInHours($end, true);
+        }
+        
+        // 複数日イベントの中日
+        return 24;
+    }
+    /**
      * Create a new event.
      */
     public function createEvent(array $data)

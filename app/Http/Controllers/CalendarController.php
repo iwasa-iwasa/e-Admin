@@ -174,6 +174,20 @@ class CalendarController extends Controller
     }
 
     /**
+     * Get year busy summary API.
+     */
+    public function getYearSummary(Request $request)
+    {
+        $year = (int) $request->query('year', date('Y'));
+        $calendarId = (int) $request->query('calendar_id', 1);
+        $memberId = $request->query('member_id') ? (int) $request->query('member_id') : null;
+        
+        $summary = $this->eventService->getYearBusySummary($year, $calendarId, $memberId);
+        
+        return response()->json($summary);
+    }
+
+    /**
      * Restore the specified event.
      *
      * @param  int  $eventId

@@ -15,6 +15,7 @@ import { CATEGORY_COLORS, CATEGORY_LABELS, GENRE_FILTERS, getEventColor, CATEGOR
 
 const DayViewGantt = defineAsyncComponent(() => import('@/components/DayViewGantt.vue'))
 const WeekSummaryView = defineAsyncComponent(() => import('@/components/WeekSummaryView.vue'))
+const YearHeatmapView = defineAsyncComponent(() => import('@/components/YearHeatmapView.vue'))
 
 // Composables
 import { useCalendarEvents } from '@/composables/calendar/useCalendarEvents'
@@ -46,7 +47,8 @@ const {
 const { 
     viewMode, 
     currentDayViewDate, 
-    currentWeekStart, 
+    currentWeekStart,
+    currentYearViewYear,
     calendarTitle, 
     isTodayInViewForFullCalendar, 
     canGoBack, 
@@ -66,6 +68,8 @@ const {
     hoveredEvent,
     hoveredEvents,
     hoverPosition,
+    skipTodayScroll,
+    scrollToDate,
     handleDatesSet,
     handleEventMouseEnter,
     handleEventMouseLeave,
@@ -185,6 +189,20 @@ const openEditDialog = (eventId: number) => {
 
 const handleEventClickFromGantt = (event: App.Models.Event) => {
     selectedEvent.value = event
+}
+
+const handleDateClickFromYear = (date: Date) => {
+    skipTodayScroll.value = true
+    scrollToDate.value = date.toISOString().split('T')[0]
+    
+    viewMode.value = 'dayGridMonth'
+    nextTick(() => {
+        const api = fullCalendar.value?.getApi()
+        if (api) {
+            api.changeView('dayGridMonth')
+            api.gotoDate(date)
+        }
+    })
 }
 
 const handleEventHoverFromGantt = (event: App.Models.Event | null, position: { x: number, y: number }) => {
@@ -500,8 +518,8 @@ function handleScopeButtonClick(
                 >
                     <div v-if="layoutMode === 'default'" class="flex-1">
                         <Tabs :model-value="viewMode" @update:model-value="changeView" class="flex-1">
-                            <TabsList class="grid w-full max-w-[400px] grid-cols-4 bg-gray-100">
-                                <TabsTrigger value="multiMonthYear">年</TabsTrigger>
+                            <TabsList class="grid w-full max-w-[500px] grid-cols-4 bg-gray-100">
+                                <TabsTrigger value="yearView">年</TabsTrigger>
                                 <TabsTrigger value="dayGridMonth">月</TabsTrigger>
                                 <TabsTrigger value="timeGridWeek">週</TabsTrigger>
                                 <TabsTrigger value="timeGridDay">日</TabsTrigger>
@@ -549,8 +567,15 @@ function handleScopeButtonClick(
         <CardContent class="flex flex-1 overflow-y-auto min-w-0">
             <ScrollArea class="h-full w-full min-w-0">
             <div class="w-full h-full flex-1">
+                <YearHeatmapView
+                    v-if="viewMode === 'yearView'"
+                    :year="currentYearViewYear"
+                    :member-id="filteredMemberId"
+                    :calendar-id="1"
+                    @date-click="handleDateClickFromYear"
+                />
                 <DayViewGantt
-                    v-if="viewMode === 'timeGridDay'"
+                    v-else-if="viewMode === 'timeGridDay'"
                     :events="currentEvents"
                     :current-date="currentDayViewDate"
                     @event-click="handleEventClickFromGantt"

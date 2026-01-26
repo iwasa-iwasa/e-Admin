@@ -4,6 +4,7 @@ export function useCalendarView(fullCalendarRef: any) {
     const viewMode = ref('dayGridMonth')
     const currentDayViewDate = ref(new Date())
     const currentWeekStart = ref(new Date())
+    const currentYearViewYear = ref(new Date().getFullYear())
     const calendarTitle = ref('')
     const isTodayInViewForFullCalendar = ref(false)
 
@@ -42,13 +43,19 @@ export function useCalendarView(fullCalendarRef: any) {
         return isTodayInViewForFullCalendar.value
     })
 
-    const canGoBack = computed(() => viewMode.value !== 'multiMonthYear')
+    const canGoBack = computed(() => {
+        return viewMode.value !== 'yearView'
+    })
 
     const todayButtonText = computed(() => {
         const currentView = viewMode.value
         const isTodayInView = isTodayInCurrentView.value
+        const today = new Date()
+        const currentYear = today.getFullYear()
 
-        if (currentView === 'multiMonthYear') return isTodayInView ? '今月' : '今年'
+        if (currentView === 'yearView') {
+            return currentYearViewYear.value === currentYear ? '今月' : '今年'
+        }
         if (currentView === 'dayGridMonth') return isTodayInView ? '今週' : '今月'
         if (currentView === 'timeGridWeek') return isTodayInView ? '今日' : '今週'
 
@@ -57,7 +64,9 @@ export function useCalendarView(fullCalendarRef: any) {
 
     // Actions
     const updateCalendarTitle = () => {
-        if (viewMode.value === 'timeGridDay') {
+        if (viewMode.value === 'yearView') {
+            calendarTitle.value = `${currentYearViewYear.value}年`
+        } else if (viewMode.value === 'timeGridDay') {
             calendarTitle.value = currentDayViewDate.value.toLocaleDateString('ja-JP', {
                 year: 'numeric',
                 month: 'long',
@@ -75,7 +84,9 @@ export function useCalendarView(fullCalendarRef: any) {
         const viewStr = String(view)
         viewMode.value = viewStr
 
-        if (viewStr === 'timeGridWeek') {
+        if (viewStr === 'yearView') {
+            currentYearViewYear.value = new Date().getFullYear()
+        } else if (viewStr === 'timeGridWeek') {
             currentWeekStart.value = getWeekStart(new Date())
         } else if (viewStr === 'timeGridDay') {
             currentDayViewDate.value = new Date()
@@ -88,7 +99,9 @@ export function useCalendarView(fullCalendarRef: any) {
     }
 
     const previousPeriod = () => {
-        if (viewMode.value === 'timeGridDay') {
+        if (viewMode.value === 'yearView') {
+            currentYearViewYear.value -= 1
+        } else if (viewMode.value === 'timeGridDay') {
             const newDate = new Date(currentDayViewDate.value)
             newDate.setDate(newDate.getDate() - 1)
             currentDayViewDate.value = newDate
@@ -105,7 +118,9 @@ export function useCalendarView(fullCalendarRef: any) {
     }
 
     const nextPeriod = () => {
-        if (viewMode.value === 'timeGridDay') {
+        if (viewMode.value === 'yearView') {
+            currentYearViewYear.value += 1
+        } else if (viewMode.value === 'timeGridDay') {
             const newDate = new Date(currentDayViewDate.value)
             newDate.setDate(newDate.getDate() + 1)
             currentDayViewDate.value = newDate
@@ -135,15 +150,7 @@ export function useCalendarView(fullCalendarRef: any) {
                 }
             })
         } else if (viewMode.value === 'dayGridMonth') {
-            viewMode.value = 'multiMonthYear'
-            nextTick(() => {
-                const api = fullCalendarRef.value?.getApi()
-                if (api) {
-                    api.changeView('multiMonthYear')
-                    const currentDate = api.getDate()
-                    api.gotoDate(currentDate)
-                }
-            })
+            viewMode.value = 'yearView'
         }
     }
 
@@ -151,7 +158,23 @@ export function useCalendarView(fullCalendarRef: any) {
         const today = new Date()
         today.setHours(0, 0, 0, 0)
 
-        if (viewMode.value === 'timeGridWeek') {
+        if (viewMode.value === 'yearView') {
+            const currentYear = today.getFullYear()
+            if (currentYearViewYear.value === currentYear) {
+                // 今年表示中 → 今月へ遷移
+                viewMode.value = 'dayGridMonth'
+                nextTick(() => {
+                    const api = fullCalendarRef.value?.getApi()
+                    if (api) {
+                        api.changeView('dayGridMonth')
+                        api.gotoDate(today)
+                    }
+                })
+            } else {
+                // 別の年表示中 → 今年へ移動
+                currentYearViewYear.value = currentYear
+            }
+        } else if (viewMode.value === 'timeGridWeek') {
             if (isDateInWeek(today, currentWeekStart.value)) {
                 currentDayViewDate.value = today
                 viewMode.value = 'timeGridDay'
@@ -171,14 +194,6 @@ export function useCalendarView(fullCalendarRef: any) {
                 } else {
                     api.gotoDate(today)
                 }
-            } else if (viewMode.value === 'multiMonthYear') {
-                if (isTodayInCurrentView.value) {
-                    viewMode.value = 'dayGridMonth'
-                    api.changeView('dayGridMonth')
-                    api.gotoDate(today)
-                } else {
-                    api.gotoDate(today)
-                }
             }
         }
     }
@@ -191,21 +206,14 @@ export function useCalendarView(fullCalendarRef: any) {
     const handleDateClick = (info: any) => {
         const clickedDate = new Date(info.date)
 
-        if (viewMode.value === 'multiMonthYear') {
-            viewMode.value = 'dayGridMonth'
-            const api = fullCalendarRef.value?.getApi()
-            if (api) {
-                api.changeView('dayGridMonth')
-                api.gotoDate(clickedDate)
-            }
-        } else if (viewMode.value === 'dayGridMonth') {
+        if (viewMode.value === 'dayGridMonth') {
             currentWeekStart.value = getWeekStart(clickedDate)
             viewMode.value = 'timeGridWeek'
         }
     }
 
     // Watchers
-    watch([viewMode, currentDayViewDate, currentWeekStart], () => {
+    watch([viewMode, currentDayViewDate, currentWeekStart, currentYearViewYear], () => {
         updateCalendarTitle()
     }, { immediate: true })
 
@@ -213,6 +221,7 @@ export function useCalendarView(fullCalendarRef: any) {
         viewMode,
         currentDayViewDate,
         currentWeekStart,
+        currentYearViewYear,
         calendarTitle,
         isTodayInViewForFullCalendar,
         isTodayInCurrentView,
