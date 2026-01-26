@@ -42,3 +42,56 @@ export const GENRE_FILTERS = {
     PINK: 'pink',
     OTHER: 'other',
 } as const;
+
+export const GENRE_COLORS = {
+    blue: {
+        id: 'blue',
+        label: '会議',
+        hex: '#3b82f6', // Updated to match CreateNoteDialog/SharedNotes preference closer if needed, or stick to Calendar? NoteDialog used #3b82f6, Calendar used #42A5F5. #3b82f6 is tailwind blue-500. #42A5F5 is blue-400. I'll use blue-500 #3b82f6 for consistency with standard tailwind palette often used.
+        bg: 'bg-blue-100',
+        noteClass: 'bg-blue-100 border-blue-300 dark:bg-card dark:border-blue-600',
+    },
+    green: {
+        id: 'green',
+        label: '業務',
+        hex: '#66bb6a',
+        bg: 'bg-green-100',
+        noteClass: 'bg-green-100 border-green-300 dark:bg-card dark:border-green-600',
+    },
+    yellow: {
+        id: 'yellow',
+        label: '来客',
+        hex: '#ffa726',
+        bg: 'bg-yellow-100',
+        noteClass: 'bg-yellow-100 border-yellow-300 dark:bg-card dark:border-yellow-600',
+    },
+    purple: {
+        id: 'purple',
+        label: '出張',
+        hex: '#9575cd',
+        bg: 'bg-purple-100',
+        noteClass: 'bg-purple-100 border-purple-300 dark:bg-card dark:border-purple-600',
+    },
+    pink: {
+        id: 'pink',
+        label: '休暇',
+        hex: '#f06292',
+        bg: 'bg-pink-100',
+        noteClass: 'bg-pink-100 border-pink-300 dark:bg-card dark:border-pink-600',
+    },
+    gray: {
+        id: 'gray',
+        label: 'その他',
+        hex: '#9e9e9e', // CreateNoteDialog used #9e9e9e
+        bg: 'bg-gray-100',
+        noteClass: 'bg-gray-100 border-gray-300 dark:bg-card dark:border-gray-600',
+    },
+} as const;
+
+export type GenreColorKey = keyof typeof GENRE_COLORS;
+
+export const getGenreColor = (color: string) => {
+    return GENRE_COLORS[color as GenreColorKey] || GENRE_COLORS['gray'];
+};
+
+export const GENRE_ITEMS = Object.values(GENRE_COLORS);

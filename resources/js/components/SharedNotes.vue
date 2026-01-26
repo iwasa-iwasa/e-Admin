@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { getGenreColor } from '@/constants/calendar'
 import { StickyNote, Plus, User, AlertCircle, Calendar, CheckCircle, ArrowUp, ArrowDown } from 'lucide-vue-next'
 import { router } from '@inertiajs/vue3'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -170,15 +171,7 @@ const getPriorityValue = (priority: Priority) => {
 }
 
 const getColorClass = (color: string) => {
-  const colorMap: { [key: string]: string } = {
-    yellow: 'bg-yellow-100 border-yellow-300 dark:bg-card dark:border-yellow-600',
-    blue: 'bg-blue-100 border-blue-300 dark:bg-card dark:border-blue-600',
-    green: 'bg-green-100 border-green-300 dark:bg-card dark:border-green-600',
-    pink: 'bg-pink-100 border-pink-300 dark:bg-card dark:border-pink-600',
-    purple: 'bg-purple-100 border-purple-300 dark:bg-card dark:border-purple-600',
-    gray: 'bg-gray-100 border-gray-300 dark:bg-card dark:border-gray-600',
-  };
-  return colorMap[color] || 'bg-gray-100 border-gray-300 dark:bg-card dark:border-gray-600';
+  return getGenreColor(color).noteClass;
 }
 
 const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
