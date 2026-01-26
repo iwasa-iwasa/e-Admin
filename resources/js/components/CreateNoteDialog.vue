@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { getGenreColor, GENRE_ITEMS } from "@/constants/calendar";
 import { useForm, usePage } from "@inertiajs/vue3";
 import { Save, X, CheckCircle, Pin, Info } from "lucide-vue-next";
 import {
@@ -215,12 +214,15 @@ const getPriorityInfo = (p: Priority) => {
 };
 
 const getColorInfo = (c: string) => {
-    const genre = getGenreColor(c);
-    return {
-        bg: genre.bg,
-        label: genre.label,
-        color: genre.hex,
+    const colorMap: Record<string, { bg: string; label: string; color: string }> = {
+        blue: { bg: "bg-blue-100", label: "会議", color: "#3b82f6" },
+        green: { bg: "bg-green-100", label: "業務", color: "#66bb6a" },
+        yellow: { bg: "bg-yellow-100", label: "来客", color: "#ffa726" },
+        purple: { bg: "bg-purple-100", label: "出張", color: "#9575cd" },
+        pink: { bg: "bg-pink-100", label: "休暇", color: "#f06292" },
+        gray: { bg: "bg-gray-100", label: "その他", color: "#9e9e9e" },
     };
+    return colorMap[c] || colorMap.yellow;
 };
 
 watch(() => props.open, (isOpen) => {
@@ -330,13 +332,20 @@ watch(() => props.open, (isOpen) => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem
-                                        v-for="item in GENRE_ITEMS"
-                                        :key="item.id"
-                                        :value="item.id"
+                                        v-for="c in [
+                                            'blue',
+                                            'green',
+                                            'yellow',
+                                            'purple',
+                                            'pink',
+                                            'gray',
+                                        ]"
+                                        :key="c"
+                                        :value="c"
                                     >
                                         <div class="flex items-center gap-2">
-                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: item.hex }"></div>
-                                            <span>{{ item.label }}</span>
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
+                                            <span>{{ getColorInfo(c).label }}</span>
                                         </div>
                                     </SelectItem>
                                 </SelectContent>

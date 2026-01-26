@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { getGenreColor } from '@/constants/calendar'
+import { getEventColor } from '@/constants/calendar'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -201,6 +201,7 @@ const dailyEvents = computed(() => {
     })
 })
 
+// getEventColor replaced by import
 
 const formatTime = (time: string | null) => {
     if (!time) return ''
@@ -287,13 +288,11 @@ const startResize = (e: MouseEvent) => {
                         v-for="(bar, idx) in multiDayBars"
                         :key="idx"
                         class="timeline-event"
-                        :class="[
-                            { 'important': bar.event.importance === '重要' },
-                            getGenreColor(bar.event.category).noteClass
-                        ]"
+                        :class="{ 'important': bar.event.importance === '重要' }"
                         :style="{
                             ...getBarStyle(bar),
-                            borderColor: bar.event.importance === '重要' ? '#dc2626' : undefined
+                            backgroundColor: getEventColor(bar.event.category),
+                            borderColor: bar.event.importance === '重要' ? '#dc2626' : getEventColor(bar.event.category)
                         }"
                         @click="emit('eventClick', bar.event)"
                         @mouseenter="(e) => emit('eventHover', bar.event, { x: e.clientX, y: e.clientY })"
@@ -339,12 +338,10 @@ const startResize = (e: MouseEvent) => {
                         v-for="event in dailyEvents[index]"
                         :key="event.event_id"
                         class="day-event"
-                        :class="[
-                            { 'important': event.importance === '重要' },
-                            getGenreColor(event.category).noteClass
-                        ]"
+                        :class="{ 'important': event.importance === '重要' }"
                         :style="{
-                            borderColor: event.importance === '重要' ? '#dc2626' : undefined
+                            backgroundColor: getEventColor(event.category),
+                            borderColor: event.importance === '重要' ? '#dc2626' : getEventColor(event.category)
                         }"
                         @click="emit('eventClick', event)"
                         @mouseenter="(e) => emit('eventHover', event, { x: e.clientX, y: e.clientY })"

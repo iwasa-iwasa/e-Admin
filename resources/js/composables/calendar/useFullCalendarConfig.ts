@@ -6,13 +6,14 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import multiMonthPlugin from '@fullcalendar/multimonth'
 import rrulePlugin from '@fullcalendar/rrule'
-import { getEventColor, getGenreColor } from '@/constants/calendar'
+import { getEventColor } from '@/constants/calendar'
 
 export function useFullCalendarConfig(
     fetchEvents: (start: string, end: string, memberId?: number | null) => Promise<any[]>,
     memberId: Ref<number | null | undefined>,
     viewMode: Ref<string>,
     fullCalendarRef: Ref<any>,
+    categoryColorGetter: typeof getEventColor,
     handlers: {
         eventClick: (info: any) => void
         dateClick: (info: any) => void
@@ -77,21 +78,14 @@ export function useFullCalendarConfig(
                 )
 
                 const mappedEvents = events.map((event: any) => {
-                    // ジャンルに応じたクラスを取得
-                    const genreInfo = getGenreColor(event.category || 'その他');
-                    const genreClasses = genreInfo.noteClass.split(' ');
-
                     const commonProps = {
                         id: String(event.event_id),
                         title: event.title,
-                        // backgroundColor: categoryColorGetter(event.category), // Removed in favor of classNames
-                        // borderColor: event.importance === '重要' ? '#dc2626' : categoryColorGetter(event.category), // Removed, handled by classNames/CSS for importance
+                        backgroundColor: categoryColorGetter(event.category),
+                        borderColor: event.importance === '重要' ? '#dc2626' : categoryColorGetter(event.category),
                         extendedProps: event,
                         allDay: event.is_all_day,
-                        classNames: [
-                            ...genreClasses,
-                            ...(event.importance === '重要' ? ['important-event'] : [])
-                        ],
+                        classNames: event.importance === '重要' ? ['important-event'] : [],
                     };
 
                     if (event.rrule) {

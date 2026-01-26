@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { GENRE_ITEMS } from '@/constants/calendar'
 import { useForm, usePage } from '@inertiajs/vue3'
 import {
     Calendar as CalendarIcon,
@@ -450,9 +449,15 @@ const getImportanceColor = (imp: string) => {
     }
 };
 
-const getCategoryHex = (cat: string) => {
-    const item = GENRE_ITEMS.find(i => i.label === cat);
-    return item ? item.hex : (GENRE_ITEMS.find(i => i.id === 'gray')?.hex || '#9e9e9e');
+const getCategoryColor = (cat: string) => {
+    switch (cat) {
+        case "会議": return "bg-[#3b82f6]";
+        case "業務": return "bg-[#66bb6a]";
+        case "来客": return "bg-[#ffa726]";
+        case "出張": return "bg-[#9575cd]";
+        case "休暇": return "bg-[#f06292]";
+        default: return "bg-gray-500";
+    }
 };
 
 const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
@@ -532,15 +537,45 @@ watch(
                                             <Select v-model="form.category" :disabled="!canEdit">
                                                 <SelectTrigger id="category">
                                                     <div class="flex items-center gap-2">
-                                                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryHex(form.category) }"></div>
+                                                        <div :class="['w-3 h-3 rounded-full', getCategoryColor(form.category)]"></div>
                                                         <SelectValue />
                                                     </div>
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem v-for="item in GENRE_ITEMS" :key="item.id" :value="item.label">
+                                                    <SelectItem value="会議">
                                                         <div class="flex items-center gap-2">
-                                                            <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.hex }"></div>
-                                                            <span>{{ item.label }}</span>
+                                                            <div class="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
+                                                            <span>会議</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="業務">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#66bb6a]"></div>
+                                                            <span>業務</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="来客">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#ffa726]"></div>
+                                                            <span>来客</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="出張">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#9575cd]"></div>
+                                                            <span>出張</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="休暇">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-[#f06292]"></div>
+                                                            <span>休暇</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem value="その他">
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-3 h-3 rounded-full bg-gray-500"></div>
+                                                            <span>その他</span>
                                                         </div>
                                                     </SelectItem>
                                                 </SelectContent>

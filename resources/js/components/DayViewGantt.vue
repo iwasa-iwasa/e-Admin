@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch, ref, onMounted, onUnmounted, nextTick} from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
-import { getGenreColor } from '@/constants/calendar'
+import { getEventColor } from '@/constants/calendar'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -289,6 +289,7 @@ const pxPerMin = computed(() => {
 
 
 
+// getEventColor replaced by import
 
 // ========== 現在時刻表示 ==========
 const currentTimePosition = computed(() => {
@@ -542,7 +543,7 @@ type StackedEvent = DisplayEvent & {
             >
                 <div class="member-column">
                     <div class="member-info">
-                        <div class="member-avatar" :style="{ backgroundColor: getGenreColor('会議').hex }">
+                        <div class="member-avatar" :style="{ backgroundColor: getEventColor('会議') }">
                             {{ member.name.charAt(0) }}
                         </div>
                         <span class="member-name">{{ member.name }}</span>
@@ -567,13 +568,11 @@ type StackedEvent = DisplayEvent & {
                                 v-for="event in lane"
                                 :key="event.id"
                                 class="event-bar"
-                                :class="[
-                                    { 'important': event.original.importance === '重要' },
-                                    getGenreColor(event.original.category).noteClass
-                                ]"
+                                :class="{ 'important': event.original.importance === '重要' }"
                                 :style="{
                                     ...getEventStyle(event),
-                                    borderColor: event.original.importance === '重要' ? '#dc2626' : undefined
+                                    backgroundColor: getEventColor(event.original.category),
+                                    borderColor: event.original.importance === '重要' ? '#dc2626' : getEventColor(event.original.category)
                                 }"
                                 @click="handleEventClick(event.original)"
                                 @mouseenter="handleEventHover(event.original, $event)"
