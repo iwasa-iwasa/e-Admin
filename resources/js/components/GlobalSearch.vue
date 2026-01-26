@@ -292,27 +292,27 @@ const canEditNote = (note: App.Models.SharedNote) => {
                 >
                     <X class="h-4 w-4" />
                 </button>
-                <div v-if="isResultsOpen" class="search-results-container absolute top-full left-0 mt-2 w-[600px] p-0 max-h-[500px] overflow-hidden flex flex-col z-50 rounded-md border border-gray-300 bg-white shadow-md">
-                    <div v-if="isSearching" class="p-8 text-center text-gray-500">
+                <div v-if="isResultsOpen" class="search-results-container absolute top-full left-0 mt-2 w-[600px] p-0 max-h-[500px] overflow-hidden flex flex-col z-50 rounded-md border border-gray-300 dark:border-border bg-background shadow-md">
+                    <div v-if="isSearching" class="p-8 text-center text-muted-foreground">
                         <div class="animate-pulse">検索中...</div>
                     </div>
-                    <div v-else-if="searchResults.length === 0 && searchQuery.length >= 2" class="p-8 text-center text-gray-500">
+                    <div v-else-if="searchResults.length === 0 && searchQuery.length >= 2" class="p-8 text-center text-muted-foreground">
                         <div class="mb-2">🔍</div>
                         <div>「{{ searchQuery }}」に一致する結果が見つかりませんでした</div>
                     </div>
-                    <div v-else-if="searchQuery.length < 2 && recentItems.length === 0" class="p-8 text-center text-gray-500">
+                    <div v-else-if="searchQuery.length < 2 && recentItems.length === 0" class="p-8 text-center text-muted-foreground">
                         <div class="mb-2">📝</div>
                         <div>最近作成・編集したアイテムはありません</div>
                         <div class="text-xs mt-2">アイテムを作成するとここに表示されます</div>
                     </div>
                     <div v-else-if="searchQuery.length < 2 && recentItems.length > 0" class="overflow-y-auto">
-                        <div class="p-3 border-b bg-gray-50">
-                            <div class="text-xs font-medium text-gray-600">最近作成・編集したアイテム ({{ recentItems.length }}件)</div>
+                        <div class="p-3 border-b bg-muted/50">
+                            <div class="text-xs font-medium text-muted-foreground">最近作成・編集したアイテム ({{ recentItems.length }}件)</div>
                         </div>
                         <div
                             v-for="result in recentItems"
                             :key="`${result.type}-${result.id}`"
-                            class="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            class="p-3 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 dark:border-border"
                             @mousedown.prevent="handleItemClick(result)"
                         >
                             <div class="flex items-start gap-3">
@@ -327,10 +327,10 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                             {{ getTypeInfo(result.type).label }}
                                         </Badge>
                                     </div>
-                                    <div v-if="result.description" class="text-xs text-gray-600 line-clamp-2 mb-1">
+                                    <div v-if="result.description" class="text-xs text-muted-foreground line-clamp-2 mb-1">
                                         {{ result.description }}
                                     </div>
-                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                    <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                         <span>{{ result.creator }}</span>
                                         <span v-if="result.date">• {{ new Date(result.date).toLocaleDateString('ja-JP') }}</span>
                                     </div>
@@ -342,7 +342,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         <div
                             v-for="result in searchResults"
                             :key="`${result.type}-${result.id}`"
-                            class="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            class="p-3 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 dark:border-border"
                             @mousedown.prevent="handleItemClick(result)"
                         >
                             <div class="flex items-start gap-3">
@@ -357,10 +357,10 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                             {{ getTypeInfo(result.type).label }}
                                         </Badge>
                                     </div>
-                                    <div v-if="result.description" class="text-xs text-gray-600 line-clamp-2 mb-1">
+                                    <div v-if="result.description" class="text-xs text-muted-foreground line-clamp-2 mb-1">
                                         {{ result.description }}
                                     </div>
-                                    <div class="flex items-center gap-2 text-xs text-gray-500">
+                                    <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                         <span>{{ result.creator }}</span>
                                         <span v-if="result.date">• {{ new Date(result.date).toLocaleDateString('ja-JP') }}</span>
                                     </div>
@@ -407,7 +407,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         </div>
                         <div class="space-y-3">
                             <div class="space-y-2">
-                                <Label class="text-xs font-medium text-gray-700">種類</Label>
+                                <Label class="text-xs font-medium text-foreground">種類</Label>
                                 <Select v-model="selectedTypes[0]" @update:model-value="(val: any) => selectedTypes = val ? [val] : []">
                                     <SelectTrigger class="h-8">
                                         <SelectValue placeholder="種類を選択" />
@@ -425,7 +425,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                             </div>
                             
                             <div class="space-y-2">
-                                <Label class="text-xs font-medium text-gray-700">検索範囲</Label>
+                                <Label class="text-xs font-medium text-foreground">検索範囲</Label>
                                 <div class="space-y-2">
                                     <div class="flex items-center space-x-2">
                                         <input type="radio" id="field-all" value="all" v-model="searchField" class="cursor-pointer" />
@@ -443,7 +443,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                             </div>
                             
                             <div class="space-y-2">
-                                <Label class="text-xs font-medium text-gray-700">作成者</Label>
+                                <Label class="text-xs font-medium text-foreground">作成者</Label>
                                 <Select v-model="creatorName">
                                     <SelectTrigger class="h-8">
                                         <SelectValue placeholder="作成者を選択" />
@@ -458,7 +458,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                             </div>
                             
                             <div class="space-y-2">
-                                <Label class="text-xs font-medium text-gray-700">参加者</Label>
+                                <Label class="text-xs font-medium text-foreground">参加者</Label>
                                 <Select v-model="participantName">
                                     <SelectTrigger class="h-8">
                                         <SelectValue placeholder="参加者を選択" />
@@ -473,7 +473,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                             </div>
                             
                             <div class="space-y-2">
-                                <Label class="text-xs font-medium text-gray-700">日付種類</Label>
+                                <Label class="text-xs font-medium text-foreground">日付種類</Label>
                                 <div class="space-y-2">
                                     <div class="flex items-center space-x-2">
                                         <input type="radio" id="date-updated" value="updated" v-model="dateType" class="cursor-pointer" />
@@ -491,10 +491,10 @@ const canEditNote = (note: App.Models.SharedNote) => {
                             </div>
                             
                             <div class="space-y-2">
-                                <Label class="text-xs font-medium text-gray-700">日付範囲</Label>
+                                <Label class="text-xs font-medium text-foreground">日付範囲</Label>
                                 <div class="space-y-2">
                                     <div @click="dateFromInput?.showPicker?.()" class="cursor-pointer">
-                                        <Label for="date-from" class="text-xs text-gray-600 cursor-pointer">開始日（この日以降）</Label>
+                                        <Label for="date-from" class="text-xs text-muted-foreground cursor-pointer">開始日（この日以降）</Label>
                                         <Input
                                             ref="dateFromInput"
                                             id="date-from"
@@ -505,7 +505,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         />
                                     </div>
                                     <div @click="dateToInput?.showPicker?.()" class="cursor-pointer">
-                                        <Label for="date-to" class="text-xs text-gray-600 cursor-pointer">終了日（この日まで）</Label>
+                                        <Label for="date-to" class="text-xs text-muted-foreground cursor-pointer">終了日（この日まで）</Label>
                                         <Input
                                             ref="dateToInput"
                                             id="date-to"
