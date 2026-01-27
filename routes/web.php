@@ -125,6 +125,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         Route::get('/events', [CalendarController::class, 'getEventsApi'])->name('events.index');
         Route::get('/events/{id}', [CalendarController::class, 'show']);
+        Route::get('/calendar/year-summary', [CalendarController::class, 'getYearSummary'])->name('calendar.year-summary');
         Route::get('/notes/{id}', [NoteController::class, 'show']);
         Route::get('/reminders/{id}', [PersonalReminderController::class, 'show']);
         Route::get('/surveys/{id}', [SurveyController::class, 'show']);

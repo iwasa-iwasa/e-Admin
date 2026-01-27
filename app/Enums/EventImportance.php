@@ -16,4 +16,13 @@ enum EventImportance: string
             self::LOW => '低',
         };
     }
+
+    public function busyWeight(): int
+    {
+        return match($this) {
+            self::HIGH => 3,
+            self::MEDIUM => 2,
+            self::LOW => 1,
+        };
+    }
 }

@@ -34,4 +34,13 @@ enum EventCategory: string
             self::OTHER => EventColor::GRAY,
         };
     }
+
+    public function busyWeight(): int
+    {
+        return match($this) {
+            self::MEETING, self::WORK, self::VISITOR, self::BUSINESS_TRIP => 3,
+            self::OTHER => 2,
+            self::VACATION => 0,
+        };
+    }
 }
