@@ -31,16 +31,16 @@ const InputComponent = computed(() => {
 </script>
 
 <template>
-    <div class="space-y-3 p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
+    <div class="space-y-3 p-4 bg-card rounded-lg border border-border shadow-sm text-card-foreground">
         <div class="flex items-start justify-between gap-4">
              <div class="space-y-1 flex-1">
-                 <Label class="text-base font-medium leading-relaxed text-gray-900 block" :class="{'text-gray-600': mode === 'read'}">
-                     <span v-if="questionNumber" class="text-gray-500 mr-2 font-bold">{{ questionNumber }}.</span>
+                 <Label class="text-base font-medium leading-relaxed text-foreground block" :class="{'text-muted-foreground': mode === 'read'}">
+                     <span v-if="questionNumber" class="text-muted-foreground mr-2 font-bold">{{ questionNumber }}.</span>
                      {{ question.question }}
                  </Label>
                  <p v-if="question.required && mode === 'answer'" class="text-red-500 text-xs font-semibold mt-1 sm:hidden">※必須</p>
              </div>
-             <Badge v-if="question.required && mode === 'answer'" variant="outline" class="hidden sm:inline-flex shrink-0 text-red-600 border-red-200 bg-red-50">必須</Badge>
+             <Badge v-if="question.required && mode === 'answer'" variant="outline" class="hidden sm:inline-flex shrink-0 text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">必須</Badge>
         </div>
 
         <div class="pt-2">

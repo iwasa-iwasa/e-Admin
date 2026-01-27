@@ -1,10 +1,21 @@
+import { isDark } from '@/composables/useAppDark';
+
 export const CATEGORY_COLORS = {
-    '会議': '#42A5F5', // blue-500 equivalent for consistency
-    '業務': '#66BB6A', // green-500
-    '来客': '#FFA726', // yellow-500
-    '出張': '#9575CD', // purple-500
-    '休暇': '#F06292', // pink-500
-    'その他': '#7F8C8D', // gray-500
+    '会議': '#42A5F5', // 2563eb blue-500 equivalent for consistency
+    '業務': '#66BB6A', // 16a34a green-500
+    '来客': '#FFA726', // ca8a04 yellow-500
+    '出張': '#9575CD', // 9333ea purple-500
+    '休暇': '#F06292', // db2777 pink-500
+    'その他': '#7F8C8D', // 686f7d gray-500
+} as const;
+
+export const DARK_CATEGORY_COLORS = {
+    '会議': '#2563eb',
+    '業務': '#16a34a',
+    '来客': '#ca8a04',
+    '出張': '#9333ea',
+    '休暇': '#db2777',
+    'その他': '#686f7d',
 } as const;
 
 export type Category = keyof typeof CATEGORY_COLORS;
@@ -19,7 +30,8 @@ export const CATEGORY_LABELS = {
 } as const;
 
 export const getEventColor = (category: string): string => {
-    return CATEGORY_COLORS[category as Category] || CATEGORY_COLORS['その他'];
+    const colors = isDark.value ? DARK_CATEGORY_COLORS : CATEGORY_COLORS;
+    return colors[category as Category] || colors['その他'];
 };
 
 export const CATEGORY_ITEMS = Object.entries(CATEGORY_LABELS).map(([key, label]) => ({

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
+import { isDark } from '@/composables/useAppDark'
 import FullCalendar from '@fullcalendar/vue3'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp, ChevronDown, Filter } from 'lucide-vue-next'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
@@ -166,6 +167,23 @@ watch([searchQuery, genreFilter, () => props.filteredMemberId], () => {
 watch([viewMode, currentDayViewDate, currentWeekStart], () => {
     fetchEventsForCustomView()
 }, { immediate: true })
+
+// Watch dark mode for theme changes
+watch(isDark, () => {
+    const api = fullCalendar.value?.getApi()
+    if (api && (viewMode.value === 'dayGridMonth' || viewMode.value === 'multiMonthYear')) {
+        api.refetchEvents()
+    } else {
+        fetchEventsForCustomView()
+    }
+})
+
+const displayCategoryItems = computed(() => {
+    return CATEGORY_ITEMS.map(item => ({
+        ...item,
+        color: getEventColor(item.label)
+    }))
+})
 
 // Helper Methods
 const openCreateDialog = () => {
@@ -385,37 +403,37 @@ function handleScopeButtonClick(
                             <SelectItem :value="GENRE_FILTERS.ALL">すべて</SelectItem>
                             <SelectItem :value="GENRE_FILTERS.BLUE">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['会議'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('会議') }"></div>
                                     {{ CATEGORY_LABELS['会議'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.GREEN">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['業務'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('業務') }"></div>
                                     {{ CATEGORY_LABELS['業務'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.YELLOW">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['来客'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('来客') }"></div>
                                     {{ CATEGORY_LABELS['来客'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.PURPLE">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['出張'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('出張') }"></div>
                                     {{ CATEGORY_LABELS['出張'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.PINK">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['休暇'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('休暇') }"></div>
                                     {{ CATEGORY_LABELS['休暇'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.OTHER">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: CATEGORY_COLORS['その他'] }"></div>
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getEventColor('その他') }"></div>
                                     {{ CATEGORY_LABELS['その他'] }}
                                 </div>
                             </SelectItem>
@@ -441,7 +459,7 @@ function handleScopeButtonClick(
                                     variant="outline"
                                     size="icon"
                                     @click="toggleSearch"
-                                    class="transition-all duration-300 ease-in-out"
+                                    class="transition-all duration-300 ease-in-out border-gray-300 dark:border-input"
                                     :class="isSearchOpen ? 'rounded-r-none border-r-0' : ''"
                                     tabindex="-1"
                                 >
@@ -483,7 +501,7 @@ function handleScopeButtonClick(
                             <Button
                                 :key="`create-${layoutMode}`"
                                 variant="outline"
-                                class="transition-all duration-300 ease-in-out flex-shrink-0"
+                                class="transition-all duration-300 ease-in-out flex-shrink-0 border-gray-300 dark:border-input"
                                 :class="layoutMode === 'default' || layoutMode === 'filter-small' ? 'gap-2' : ''"
                                 @click="openCreateDialog"
                                 :title="layoutMode === 'search-icon' || layoutMode === 'title-hide' || layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal' ? '新規作成' : undefined"
@@ -525,6 +543,28 @@ function handleScopeButtonClick(
                                 <TabsTrigger value="timeGridDay">日</TabsTrigger>
                             </TabsList>
                         </Tabs>
+                        <div class="flex-1">
+                        <div class="grid w-full max-w-[400px] grid-cols-4 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                            <button
+                                v-for="view in [
+                                    { value: 'multiMonthYear', label: '年' },
+                                    { value: 'dayGridMonth', label: '月' },
+                                    { value: 'timeGridWeek', label: '週' },
+                                    { value: 'timeGridDay', label: '日' },
+                                ]"
+                                :key="view.value"
+                                @click="changeView(view.value)"
+                                :class="[
+                                    'flex items-center justify-center py-1 text-sm font-medium rounded-md transition-all duration-200',
+                                    viewMode === view.value
+                                        ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
+                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                ]"
+                            >
+                                {{ view.label }}
+                            </button>
+                        </div>
+                    </div>
                     </div>
                 </Transition>
 
@@ -534,7 +574,7 @@ function handleScopeButtonClick(
                         variant="outline" 
                         size="sm" 
                         @click="goBackOneLevel"
-                        class="gap-1 transition-all duration-300 ease-in-out flex-shrink-0"
+                        class="gap-1 transition-all duration-300 ease-in-out flex-shrink-0 border-gray-300 dark:border-input"
                     >
                         <ChevronUp class="h-4 w-4" />
                         <Transition
@@ -548,7 +588,7 @@ function handleScopeButtonClick(
                             <span v-if="layoutMode === 'default' || layoutMode === 'filter-small'" class="whitespace-nowrap">戻る</span>
                         </Transition>
                     </Button>
-                    <Button variant="outline" size="sm" @click="previousPeriod" class="flex-shrink-0">
+                    <Button variant="outline" size="sm" @click="previousPeriod" class="flex-shrink-0 border-gray-300 dark:border-input">
                         <ChevronLeft class="h-4 w-4" />
                     </Button>
                     <div 
@@ -556,10 +596,10 @@ function handleScopeButtonClick(
                     >
                         {{ compactCalendarTitle }}
                     </div>
-                    <Button variant="outline" size="sm" @click="nextPeriod" class="flex-shrink-0">
+                    <Button variant="outline" size="sm" @click="nextPeriod" class="flex-shrink-0 border-gray-300 dark:border-input">
                         <ChevronRight class="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" @click="handleTodayClick" class="flex-shrink-0">{{ todayButtonText }}</Button>
+                    <Button variant="outline" size="sm" @click="handleTodayClick" class="flex-shrink-0 border-gray-300 dark:border-input">{{ todayButtonText }}</Button>
                 </div>
             </div>
         </div>
@@ -604,7 +644,7 @@ function handleScopeButtonClick(
         <div class="px-4 pb-4">
             <div class="flex items-start justify-between gap-3 min-w-0">
                 <div class="flex flex-wrap gap-x-3 gap-y-2 text-xs mt-1 flex-1 min-w-0">
-                    <div v-for="item in CATEGORY_ITEMS" :key="item.label" class="flex items-center gap-1.5 transition-all duration-200"
+                    <div v-for="item in displayCategoryItems" :key="item.label" class="flex items-center gap-1.5 transition-all duration-200"
                         :class="{
                             'ring-2 ring-blue-500 ring-offset-1 rounded px-1 py-0.5': 
                                 (genreFilter as string) === GENRE_FILTERS.BLUE && item.label === '会議' ||
@@ -809,4 +849,116 @@ function handleScopeButtonClick(
   }
 }
 
+
+/* Dark Mode Overrides for FullCalendar */
+.dark .fc {
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: theme('colors.gray.800');
+    --fc-list-event-hover-bg-color: theme('colors.gray.700');
+    --fc-today-bg-color: rgba(59, 130, 246, 0.15);
+    --fc-border-color: theme('colors.gray.700');
+    --fc-neutral-text-color: theme('colors.white');
+    --fc-now-indicator-color: theme('colors.red.500');
+}
+
+.dark .fc-theme-standard td, 
+.dark .fc-theme-standard th {
+    border-color: theme('colors.gray.700');
+}
+
+/* Specific overrides for Week/Day view in Dark Mode */
+.dark .fc-timegrid-slot {
+    border-bottom-color: theme('colors.gray.800');
+}
+
+.dark .fc-timegrid-axis-cushion,
+.dark .fc-col-header-cell-cushion,
+.dark .fc-timegrid-slot-label-cushion {
+    color: theme('colors.gray.100');
+}
+
+.dark .fc-timegrid-body tr:hover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .fc-timegrid-slot:hover {
+    background-color: rgba(59, 130, 246, 0.12) !important;
+}
+
+.dark .fc-col-header-cell {
+    background-color: theme('colors.background');
+}
+
+.dark .fc-scrollgrid-section-header > * {
+    background-color: theme('colors.background');
+}
+
+.dark .fc-daygrid-day-number {
+    color: theme('colors.gray.100');
+}
+
+/* Hover popup dark mode */
+.dark .bg-white.border-gray-200 {
+    @apply bg-card border-border text-card-foreground;
+}
+
+.dark .text-gray-600 {
+    @apply text-muted-foreground;
+}
+
+.dark .text-gray-500 {
+    @apply text-muted-foreground opacity-80;
+}
+
+
+.dark .fc-col-header-cell-cushion,
+.dark .fc-daygrid-day-number {
+    color: theme('colors.gray.300');
+}
+
+.dark .fc-toolbar-title {
+    color: theme('colors.gray.100');
+}
+
+.dark .fc-daygrid-day:hover,
+.dark .fc-timegrid-slot:hover {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .fc-scroller::-webkit-scrollbar-track {
+    background: theme('colors.gray.800');
+}
+.dark .fc-scroller::-webkit-scrollbar-thumb {
+    background: theme('colors.gray.600');
+}
+.dark .fc-scroller::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.gray.500');
+}
+
+/* Week/Day View Specifics */
+.dark .fc-theme-standard .fc-scrollgrid {
+    border-color: theme('colors.gray.700');
+}
+
+.dark .fc-timegrid-slot {
+    background-color: transparent;
+    border-color: theme('colors.gray.800');
+}
+
+.dark .fc-timegrid-axis {
+    background-color: transparent;
+    color: theme('colors.gray.300');
+}
+
+.dark .fc-col-header {
+    background-color: transparent;
+}
+
+.dark .fc-timegrid-now-indicator-line {
+    border-color: theme('colors.blue.400');
+}
+.dark .fc-timegrid-now-indicator-arrow {
+    border-color: theme('colors.blue.400');
+    border-bottom-color: theme('colors.blue.400');
+}
 </style>

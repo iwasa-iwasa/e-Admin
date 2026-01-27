@@ -16,14 +16,14 @@ defineProps<{
         <div class="flex-1 h-full flex flex-col">
             
             <div class="flex-1 overflow-y-auto space-y-6 scrollbar-hide">
-                <div class="bg-white p-6 shadow rounded-lg">
+                <div class="bg-white dark:bg-card p-6 shadow rounded-lg">
                     <UpdateProfileInformationForm
                         :must-verify-email="mustVerifyEmail"
                         :status="status"
                     />
                 </div>
 
-                <div class="bg-white p-6 shadow rounded-lg">
+                <div class="bg-white dark:bg-card p-6 shadow rounded-lg">
                     <UpdatePasswordForm />
                 </div>
             </div>

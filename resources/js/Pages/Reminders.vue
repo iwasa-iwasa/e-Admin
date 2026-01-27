@@ -73,7 +73,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
       preserveScroll: true,
       onSuccess: () => {
         showMessage('リマインダーを完了しました。', 'delete')
-        window.dispatchEvent(new CustomEvent('reminder-updated'))
+        window.dispatchEvent(new CustomEvent('notification-updated'))
       },
       onError: (errors) => {
         console.error('完了エラー:', errors)
@@ -88,7 +88,7 @@ const handleToggleComplete = (id: number, checked: boolean) => {
       preserveScroll: true,
       onSuccess: () => {
         showMessage('リマインダーが元に戻されました。', 'success')
-        window.dispatchEvent(new CustomEvent('reminder-updated'))
+        window.dispatchEvent(new CustomEvent('notification-updated'))
       },
       onError: (errors) => {
         console.error('復元エラー:', errors)
@@ -115,7 +115,7 @@ const handleUndoDelete = () => {
     preserveScroll: true,
     onSuccess: () => {
       showMessage('リマインダーが元に戻されました。', 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: () => {
       showMessage('元に戻す処理に失敗しました。', 'success')
@@ -136,7 +136,7 @@ const confirmPermanentDelete = () => {
   router.delete(route('reminders.destroy', deleteId), {
     onSuccess: () => {
       showMessage(`「${reminder.title}」を完全に削除しました`, 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: (errors) => {
       console.error('Delete error:', errors)
@@ -151,7 +151,7 @@ const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {
   if (isCreatingNew.value) {
     isCreatingNew.value = false
   }
-  window.dispatchEvent(new CustomEvent('reminder-updated'))
+  window.dispatchEvent(new CustomEvent('notification-updated'))
 }
 
 
@@ -277,7 +277,7 @@ const handleBulkComplete = () => {
     onSuccess: () => {
       selectedActiveItems.value.clear()
       showMessage(`${ids.length}件のリマインダーを完了しました。`, 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     }
   })
 }
@@ -291,7 +291,7 @@ const handleBulkRestore = () => {
     onSuccess: () => {
       selectedCompletedItems.value.clear()
       showMessage(`${ids.length}件のリマインダーを未完了に戻しました。`, 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     }
   })
 }
@@ -311,7 +311,7 @@ const confirmBulkDelete = () => {
     onSuccess: () => {
       selectedCompletedItems.value.clear()
       showMessage(`${ids.length}件のリマインダーを完全に削除しました。`, 'success')
-      window.dispatchEvent(new CustomEvent('reminder-updated'))
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     }
   })
   showBulkDeleteDialog.value = false
@@ -323,7 +323,7 @@ const confirmBulkDelete = () => {
   <Head title="個人リマインダー" />
   <div class="max-w-[1800px] mx-auto h-full p-6">
     <Card class="h-full overflow-hidden flex flex-col">
-      <div class="p-4 border-b border-gray-300">
+      <div class="p-4 border-b border-border">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))" class="mr-1">
@@ -356,7 +356,7 @@ const confirmBulkDelete = () => {
                 v-model="searchQuery"
                 type="text"
                 placeholder="タイトルなどで検索"
-                class="pl-9 pr-4 w-[280px] flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                class="pl-9 pr-4 w-[280px] flex h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
             <Button variant="outline" @click="() => { isCreateDialogOpen = true; isCreatingNew = true }" class="gap-2">
@@ -377,7 +377,7 @@ const confirmBulkDelete = () => {
                     type="checkbox" 
                     :checked="isAllActiveSelected" 
                     @change="(e) => toggleAllActive((e.target as HTMLInputElement).checked)"
-                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                   />
                   <span>未完了</span>
                   <Badge>{{ activeReminders.length }}件</Badge>
@@ -399,11 +399,11 @@ const confirmBulkDelete = () => {
                 <div class="space-y-3">
                   <div v-for="reminder in activeReminders" :key="reminder.reminder_id" 
                     :class="[
-                      'rounded-lg p-4 hover:shadow-md transition-all cursor-pointer border bg-white',
-                      selectedActiveItems.has(reminder.reminder_id) ? 'border-blue-500 bg-blue-50' : 
+                      'rounded-lg p-4 hover:shadow-md transition-all cursor-pointer border bg-card text-card-foreground',
+                      selectedActiveItems.has(reminder.reminder_id) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 
                       reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
                       reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
-                      'border-gray-300'
+                      'border-border'
                     ]" 
                     @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedActiveItems.size > 0) { const checked = selectedActiveItems.has(reminder.reminder_id); if (checked) { selectedActiveItems.delete(reminder.reminder_id) } else { selectedActiveItems.add(reminder.reminder_id) }; selectedActiveItems = new Set(selectedActiveItems) } else { selectedReminder = reminder } } }">
                     <div class="flex items-start gap-3">
@@ -415,8 +415,8 @@ const confirmBulkDelete = () => {
                       />
                       <div class="flex-1">
                         <h3 class="mb-2">{{ reminder.title }}</h3>
-                        <p v-if="reminder.description" class="text-sm text-gray-600 mb-2">{{ reminder.description }}</p>
-                        <div class="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                        <p v-if="reminder.description" class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ reminder.description }}</p>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           <div v-if="reminder.deadline_date" class="flex items-center gap-1">
                             <Clock class="h-3 w-3" />
                             期限: {{ formatDate(reminder.deadline_date) }} {{ reminder.deadline_time ? reminder.deadline_time.substring(0, 5) : '' }}
@@ -467,7 +467,7 @@ const confirmBulkDelete = () => {
                     type="checkbox" 
                     :checked="isAllCompletedSelected" 
                     @change="(e) => toggleAllCompleted((e.target as HTMLInputElement).checked)"
-                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                   />
                   <span>完了済</span>
                   <Badge variant="secondary">{{ completedReminders.length }}件</Badge>
@@ -499,11 +499,11 @@ const confirmBulkDelete = () => {
                 <div class="space-y-3">
                   <div v-for="reminder in completedReminders" :key="reminder.reminder_id" 
                     :class="[
-                      'rounded-lg p-4 opacity-60 cursor-pointer border bg-gray-100',
-                      selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 opacity-100' : 
+                      'rounded-lg p-4 opacity-60 cursor-pointer border bg-muted/50 dark:bg-muted/10',
+                      selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 dark:bg-green-900/20 opacity-100' : 
                       reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
                       reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
-                      'border-gray-300'
+                      'border-border'
                     ]" 
                     @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedCompletedItems.size > 0) { const checked = selectedCompletedItems.has(reminder.reminder_id); if (checked) { selectedCompletedItems.delete(reminder.reminder_id) } else { selectedCompletedItems.add(reminder.reminder_id) }; selectedCompletedItems = new Set(selectedCompletedItems) } } }">
                     <div class="flex items-start gap-3">
@@ -514,8 +514,8 @@ const confirmBulkDelete = () => {
                         class="mt-1 h-4 w-4 text-blue-600 rounded"
                       />
                       <div class="flex-1">
-                        <h3 class="mb-2 line-through text-gray-500">{{ reminder.title }}</h3>
-                        <p v-if="reminder.description" class="text-sm text-gray-500 mb-2 line-through">{{ reminder.description }}</p>
+                        <h3 class="mb-2 line-through text-muted-foreground">{{ reminder.title }}</h3>
+                        <p v-if="reminder.description" class="text-sm text-muted-foreground mb-2 line-through">{{ reminder.description }}</p>
                         <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                           <div v-if="reminder.deadline_date" class="flex items-center gap-1">
                             <Clock class="h-3 w-3" />
@@ -577,7 +577,7 @@ const confirmBulkDelete = () => {
     />
 
     <AlertDialog :open="reminderToDelete !== null">
-      <AlertDialogContent class="bg-white">
+      <AlertDialogContent class="bg-card text-card-foreground">
         <AlertDialogHeader>
           <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
@@ -592,7 +592,7 @@ const confirmBulkDelete = () => {
     </AlertDialog>
 
     <AlertDialog :open="showBulkDeleteDialog" @update:open="(open) => showBulkDeleteDialog = open">
-      <AlertDialogContent class="bg-white">
+      <AlertDialogContent class="bg-card text-card-foreground">
         <AlertDialogHeader>
           <AlertDialogTitle>選択した{{ selectedCompletedItems.size }}件を完全に削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>この操作は取り消せません。</AlertDialogDescription>

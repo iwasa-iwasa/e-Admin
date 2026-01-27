@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch, ref, onMounted, onUnmounted, nextTick} from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
+import { getEventColor } from '@/constants/calendar'
 
 const props = defineProps<{
     events: App.Models.Event[]
@@ -288,16 +289,7 @@ const pxPerMin = computed(() => {
 
 
 
-const getEventColor = (category: string) => {
-    const categoryColorMap: { [key: string]: string } = {
-        '会議': '#42A5F5',
-        '業務': '#66BB6A',
-        '来客': '#FFA726',
-        '出張': '#9575CD',
-        '休暇': '#F06292',
-    }
-    return categoryColorMap[category] || '#6b7280'
-}
+// getEventColor replaced by import
 
 // ========== 現在時刻表示 ==========
 const currentTimePosition = computed(() => {
@@ -640,9 +632,18 @@ type StackedEvent = DisplayEvent & {
     text-align: center;
 }
 
+.dark .summary-cell {
+    border-color: #374151;
+}
+
 .summary-header .summary-cell {
     background: #f9fafb;
     font-weight: 600;
+}
+
+.dark .summary-header .summary-cell {
+    background: #1f2937;
+    color: #e5e7eb;
 }
 
 .summary-cell.clickable {
@@ -654,28 +655,50 @@ type StackedEvent = DisplayEvent & {
     background: #f3f4f6;
 }
 
+.dark .summary-cell.clickable:hover {
+    background: #374151;
+}
+
 .summary-total {
     background: #f3f4f6;
     font-weight: 600;
+}
+
+.dark .summary-total {
+    background: #1f2937;
 }
 
 .summary-total .summary-cell {
     background: #f3f4f6;
 }
 
+.dark .summary-total .summary-cell {
+    background: #1f2937;
+    color: #e5e7eb;
+}
+
 .summary-total-card {
   margin-top: 1.5rem;
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  background: #f9fafb;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    background: #f9fafb;
+}
+
+.dark .summary-total-card {
+    border-color: #374151;
+    background: #1f2937;
 }
 
 .summary-total-title {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #374151;
-  margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.dark .summary-total-title {
+    color: #e5e7eb;
 }
 
 .summary-total-grid {
@@ -695,10 +718,19 @@ type StackedEvent = DisplayEvent & {
   cursor: default;
 }
 
+.dark .summary-total-item {
+    background: #1f2937;
+    border-color: #374151;
+}
 
 .summary-total-item:hover {
   background: #f3f4f6;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.dark .summary-total-item:hover {
+    background: #374151;
+    box-shadow: none;
 }
 
 .summary-total-item .label {
@@ -707,14 +739,27 @@ type StackedEvent = DisplayEvent & {
   margin-bottom: 0.25rem;
 }
 
+.dark .summary-total-item .label {
+    color: #9ca3af;
+}
+
 .summary-total-item .count {
   font-size: 0.875rem;
   font-weight: 600;
 }
 
+.dark .summary-total-item .count {
+    color: #e5e7eb;
+}
+
 .summary-total-row .summary-cell {
   background: #f3f4f6;
   font-weight: 600;
+}
+
+.dark .summary-total-row .summary-cell {
+    background: #1f2937;
+    color: #e5e7eb;
 }
 
 
@@ -736,8 +781,15 @@ type StackedEvent = DisplayEvent & {
     position: sticky;
     top: 0;
     z-index: 10;
+    top: 0;
+    z-index: 10;
     background: white;
     border-bottom: 2px solid #e5e7eb;
+}
+
+.dark .gantt-header {
+    background: #09090b; /* bg-background */
+    border-color: #374151;
 }
 
 .member-column-header {
@@ -748,6 +800,12 @@ type StackedEvent = DisplayEvent & {
     border-right: 1px solid #e5e7eb;
     background: #f9fafb;
     flex-shrink: 0;
+}
+
+.dark .member-column-header {
+    border-color: #374151;
+    background: #1f2937;
+    color: #e5e7eb;
 }
 
 /* ========== 時間軸（固定幅） ========== */
@@ -772,16 +830,35 @@ type StackedEvent = DisplayEvent & {
     background: #f9fafb;
 }
 
+.dark .time-cell {
+    border-color: #374151;
+    background: #1f2937;
+    color: #9ca3af;
+}
+
 .time-cell.work-hours {
     background: #eff6ff;
+}
+
+.dark .time-cell.work-hours {
+    background: #1e293b; /* dark:bg-slate-900 like */
+    color: #e5e7eb;
 }
 
 .time-cell-bg {
     border-right: 1px solid #e5e7eb;
 }
 
+.dark .time-cell-bg {
+    border-color: #374151;
+}
+
 .time-cell-bg.work-hours {
     background: #f8fafc;
+}
+
+.dark .time-cell-bg.work-hours {
+    background: rgba(30, 41, 59, 0.3);
 }
 
 /* ========== メンバー行 ========== */
@@ -795,6 +872,10 @@ type StackedEvent = DisplayEvent & {
     min-height: 4.375rem;
 }
 
+.dark .member-row {
+    border-color: #374151;
+}
+
 .member-column {
     width: var(--member-column-width);
     min-width: var(--member-column-width);
@@ -802,6 +883,11 @@ type StackedEvent = DisplayEvent & {
     border-right: 1px solid #e5e7eb;
     background: white;
     flex-shrink: 0;
+}
+
+.dark .member-column {
+    border-color: #374151;
+    background: #09090b; /* bg-background */
 }
 
 .member-info {
@@ -824,7 +910,12 @@ type StackedEvent = DisplayEvent & {
 
 .member-name {
     font-size: 0.875rem;
+    font-size: 0.875rem;
     font-weight: 500;
+}
+
+.dark .member-name {
+    color: #e5e7eb;
 }
 
 /* ========== 時間グリッド ========== */
@@ -922,8 +1013,15 @@ type StackedEvent = DisplayEvent & {
 .gantt-footer {
     display: flex;
     border-top: 2px solid #e5e7eb;
+    display: flex;
+    border-top: 2px solid #e5e7eb;
     background: #f9fafb;
     min-height: 2.5rem;
+}
+
+.dark .gantt-footer {
+    border-color: #374151;
+    background: #1f2937;
 }
 
 .member-column-footer {
@@ -931,6 +1029,10 @@ type StackedEvent = DisplayEvent & {
     min-width: var(--member-column-width);
     border-right: 1px solid #e5e7eb;
     flex-shrink: 0;
+}
+
+.dark .member-column-footer {
+    border-color: #374151;
 }
 
 .time-grid-footer {
@@ -964,12 +1066,21 @@ type StackedEvent = DisplayEvent & {
   background: #f9fafb;
 }
 
+.dark .daily-summary-section {
+    border-color: #374151;
+    background: #1f2937;
+}
+
 .daily-summary-title {
   font-weight: 600;
   font-size: 1rem;
   color: #374151;
   margin-bottom: 1rem;
   text-align: center;
+}
+
+.dark .daily-summary-title {
+    color: #e5e7eb;
 }
 
 .daily-summary-content {
@@ -991,10 +1102,18 @@ type StackedEvent = DisplayEvent & {
   font-weight: 500;
 }
 
+.dark .stat-label {
+    color: #9ca3af;
+}
+
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
   color: #374151;
+}
+
+.dark .stat-value {
+    color: #e5e7eb;
 }
 
 </style>

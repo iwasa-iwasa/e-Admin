@@ -47,6 +47,10 @@ const selectedUser = ref<App.Data.UserData | null>(null)
 const isDeactivateDialogOpen = ref(false)
 const deactivationReason = ref('')
 
+// Role Update
+const isRoleDialogOpen = ref(false)
+const pendingRoleUpdate = ref<{ user: App.Data.UserData, role: 'member' | 'admin' } | null>(null)
+
 // Logs
 const isLogDialogOpen = ref(false)
 const userLogs = ref<any[]>([])
@@ -79,10 +83,20 @@ const restoreUser = (user: App.Data.UserData) => {
 
 const updateRole = (user: App.Data.UserData, role: 'member' | 'admin') => {
   if (user.role === role) return
-  if (!confirm(`${user.name} さんの権限を ${role} に変更しますか？`)) return
+  pendingRoleUpdate.value = { user, role }
+  isRoleDialogOpen.value = true
+}
 
-  router.patch(route('admin.users.update-role', user.id), {
-    role: role
+const executeRoleUpdate = () => {
+  if (!pendingRoleUpdate.value) return
+
+  router.patch(route('admin.users.update-role', pendingRoleUpdate.value.user.id), {
+    role: pendingRoleUpdate.value.role
+  }, {
+    onSuccess: () => {
+        isRoleDialogOpen.value = false
+        pendingRoleUpdate.value = null
+    }
   })
 }
 
@@ -123,7 +137,7 @@ const formatDate = (dateString: string) => {
       <CardContent class="flex-1 overflow-auto p-0">
         <div class="h-full overflow-y-auto relative">
           <Table>
-            <TableHeader class="sticky top-0 bg-white z-10 shadow-sm">
+            <TableHeader class="sticky top-0 bg-white dark:bg-card z-10 shadow-sm">
               <TableRow>
                 <TableHead>名前</TableHead>
                 <TableHead>メールアドレス</TableHead>
@@ -221,7 +235,22 @@ const formatDate = (dateString: string) => {
       </DialogContent>
     </Dialog>
 
-    <!-- Role Dialog removed -->
+    <!-- Role Update Dialog -->
+    <Dialog :open="isRoleDialogOpen" @update:open="isRoleDialogOpen = $event">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>権限の変更確認</DialogTitle>
+          <DialogDescription>
+            {{ pendingRoleUpdate?.user.name }} さんの権限を 
+            <span class="font-bold">{{ pendingRoleUpdate?.role }}</span> に変更しますか？
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="isRoleDialogOpen = false">キャンセル</Button>
+          <Button @click="executeRoleUpdate">変更する</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Logs Dialog -->
     <Dialog :open="isLogDialogOpen" @update:open="isLogDialogOpen = $event">

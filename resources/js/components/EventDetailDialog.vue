@@ -78,6 +78,7 @@ const handleDelete = () => {
         // ダイアログを閉じた後にメッセージを表示
         setTimeout(() => {
           showMessage('イベントを削除しました。', 'delete')
+          window.dispatchEvent(new CustomEvent('notification-updated'))
         }, 100)
       },
       onError: (errors) => {
@@ -119,6 +120,7 @@ const handleUndoDelete = () => {
   router.post(route('events.restore', eventToRestore.event_id), {}, {
     onSuccess: () => {
       showMessage('イベントが元に戻されました。', 'success')
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: () => {
       showMessage('元に戻す処理に失敗しました。', 'success')
@@ -209,9 +211,9 @@ const recurrenceText = computed(() => {
         <div class="flex items-start gap-4">
           <CalendarIcon class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
-            <p class="font-semibold">{{ displayDate }}</p>
-            <p class="text-sm text-gray-600">{{ displayTime }}</p>
-            <p v-if="event.recurrence" class="text-sm text-gray-600 flex items-center gap-1 mt-1">
+            <p class="font-semibold dark:text-gray-100">{{ displayDate }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">{{ displayTime }}</p>
+            <p v-if="event.recurrence" class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1 mt-1">
               <Repeat class="h-4 w-4" />
               {{ recurrenceText }}
             </p>
@@ -221,9 +223,9 @@ const recurrenceText = computed(() => {
         <div v-if="event.creator" class="flex items-start gap-4">
           <User class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
-            <p class="text-sm text-gray-500 mb-2">作成者</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">作成者</p>
             <div class="flex flex-wrap gap-2">
-              <Badge variant="outline" class="border-gray-400 text-gray-700">
+              <Badge variant="outline" class="border-gray-400 text-gray-700 dark:text-gray-300 dark:border-gray-500">
                   {{ event.creator.name }}
               </Badge>
             </div>
@@ -233,9 +235,9 @@ const recurrenceText = computed(() => {
         <div v-if="event.participants && event.participants.length > 0" class="flex items-start gap-4">
           <Users class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
-            <p class="text-sm text-gray-500 mb-2">参加者</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">参加者</p>
             <div class="flex flex-wrap gap-2">
-                <Badge v-for="participant in event.participants" :key="participant.id" variant="outline" class="border-gray-400 text-gray-700">
+                <Badge v-for="participant in event.participants" :key="participant.id" variant="outline" class="border-gray-400 text-gray-700 dark:text-gray-300 dark:border-gray-500">
                     {{ participant.name }}
                 </Badge>
             </div>
@@ -245,25 +247,25 @@ const recurrenceText = computed(() => {
         <div v-if="event.location" class="flex items-start gap-4">
           <MapPin class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
-            <p class="text-sm text-gray-500">場所</p>
-            <p>{{ event.location }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">場所</p>
+            <p class="dark:text-gray-200">{{ event.location }}</p>
           </div>
         </div>
 
         <div v-if="event.url" class="flex items-start gap-4">
           <LinkIcon class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
-            <p class="text-sm text-gray-500">URL</p>
-            <a :href="event.url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline break-all">{{ event.url }}</a>
+            <p class="text-sm text-gray-500 dark:text-gray-400">URL</p>
+            <a :href="event.url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline break-all dark:text-blue-400">{{ event.url }}</a>
           </div>
         </div>
 
         <div v-if="event.attachments && event.attachments.length > 0" class="flex items-start gap-4">
           <Paperclip class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
-            <p class="text-sm text-gray-500 mb-2">添付ファイル</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">添付ファイル</p>
             <div class="space-y-2">
-              <a v-for="file in event.attachments" :key="file.attachment_id" :href="`/storage/${file.file_path}`" target="_blank" class="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+              <a v-for="file in event.attachments" :key="file.attachment_id" :href="`/storage/${file.file_path}`" target="_blank" class="flex items-center gap-2 text-sm text-blue-600 hover:underline dark:text-blue-400">
                 {{ file.file_name }}
               </a>
             </div>
@@ -275,14 +277,14 @@ const recurrenceText = computed(() => {
             <div class="w-3 h-3 rounded-full border-2 border-current"></div>
           </div>
           <div class="flex-1">
-            <p class="text-sm text-gray-500 mb-2">進捗 ({{ event.progress }}%)</p>
+            <p class="text-sm text-gray-500 mb-2 dark:text-gray-400">進捗 ({{ event.progress }}%)</p>
             <div class="relative">
               <div 
                 class="w-full h-2 rounded-lg overflow-hidden"
                 :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${event.progress}%, #e5e7eb ${event.progress}%, #e5e7eb 100%)` }"
               >
               </div>
-              <div class="flex justify-between text-xs text-gray-500 mt-1">
+              <div class="flex justify-between text-xs text-gray-500 mt-1 dark:text-gray-400">
                 <span>0%</span>
                 <span>50%</span>
                 <span>100%</span>
@@ -294,16 +296,16 @@ const recurrenceText = computed(() => {
         <div class="flex items-start gap-4">
           <Clock class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
-            <p class="text-sm text-gray-500">締切</p>
-            <p class="text-gray-700">{{ formatDate(event.end_date) }}{{ event.end_time && !event.is_all_day ? ' ' + formatTime(event.end_time) : '' }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">締切</p>
+            <p class="text-gray-700 dark:text-gray-200">{{ formatDate(event.end_date) }}{{ event.end_time && !event.is_all_day ? ' ' + formatTime(event.end_time) : '' }}</p>
           </div>
         </div>
 
         <div v-if="event.description" class="flex items-start gap-4">
           <Info class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
-            <p class="text-sm text-gray-500 mb-1">詳細</p>
-            <p class="text-gray-700 whitespace-pre-wrap">{{ event.description }}</p>
+            <p class="text-sm text-gray-500 mb-1 dark:text-gray-400">詳細</p>
+            <p class="text-gray-700 whitespace-pre-wrap dark:text-gray-200">{{ event.description }}</p>
           </div>
         </div>
       </div>
