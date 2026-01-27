@@ -282,6 +282,7 @@ const handleSave = (isDraft: boolean, force = false, resetResponses = false) => 
             preserveScroll: true,
             onSuccess: () => {
                 showMessage('更新しました', 'success');
+                window.dispatchEvent(new CustomEvent('notification-updated'));
                 handleClose();
             },
             onError: handleError
@@ -292,6 +293,7 @@ const handleSave = (isDraft: boolean, force = false, resetResponses = false) => 
             onSuccess: () => {
                 if (!isDraft) clearDraft();
                 showMessage('作成しました', 'success');
+                window.dispatchEvent(new CustomEvent('notification-updated'));
                 handleClose();
             },
             onError: handleError

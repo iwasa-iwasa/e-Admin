@@ -369,9 +369,9 @@ const handleComplete = () => {
       <!-- 下書きバナー -->
       <div
         v-if="showDraftBanner && isCreateMode"
-        class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between"
+        class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between dark:bg-blue-900/20 dark:border-blue-800"
       >
-        <div class="flex items-center gap-2 text-sm text-blue-700">
+        <div class="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
           <Clock class="h-4 w-4" />
           <span>下書きから復元されました</span>
         </div>
@@ -379,7 +379,7 @@ const handleComplete = () => {
           variant="ghost"
           size="sm"
           @click="clearDraft"
-          class="h-6 px-2 text-blue-700 hover:text-blue-900"
+          class="h-6 px-2 text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
         >
           <X class="h-3 w-3" />
         </Button>
@@ -388,7 +388,7 @@ const handleComplete = () => {
       <form @submit.prevent="handleSave">
         <div class="space-y-4 pt-4">
           <div class="space-y-2">
-            <div class="text-sm text-gray-600">タイトル *</div>
+            <div class="text-sm text-gray-600 dark:text-gray-300">タイトル *</div>
             <Input 
               v-if="isEditing" 
               v-model="form.title" 
@@ -405,7 +405,7 @@ const handleComplete = () => {
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm text-gray-600 flex items-center gap-2">
+            <div class="text-sm text-gray-600 flex items-center gap-2 dark:text-gray-300">
               <Tag class="h-4 w-4" />
               タグ
             </div>
@@ -455,10 +455,10 @@ const handleComplete = () => {
             </div>
           </div>
 
-          <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-            <Clock class="h-4 w-4 text-gray-600" />
+          <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg dark:bg-gray-800">
+            <Clock class="h-4 w-4 text-gray-600 dark:text-gray-400" />
             <div class="flex-1">
-              <div class="text-sm text-gray-600">期限（任意）</div>
+              <div class="text-sm text-gray-600 dark:text-gray-300">期限（任意）</div>
               <Input 
                 v-if="isEditing" 
                 type="datetime-local" 
@@ -476,16 +476,16 @@ const handleComplete = () => {
             </div>
           </div>
 
-          <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
             <h4 class="text-sm mb-2">詳細</h4>
             <Textarea 
               v-if="isEditing" 
               v-model="form.description" 
-              class="min-h-[80px] bg-white" 
+              class="min-h-[80px]" 
               placeholder="詳細を入力..."
               :class="{ 'border-red-500': form.errors.description }"
             />
-            <div v-else class="text-sm whitespace-pre-wrap">
+            <div v-else class="text-sm whitespace-pre-wrap dark:text-gray-100">
               {{ props.reminder?.description || '詳細なし' }}
             </div>
             <div v-if="form.errors.description" class="text-xs text-red-500 mt-1">
@@ -493,20 +493,20 @@ const handleComplete = () => {
             </div>
           </div>
 
-          <div v-if="!isCreateMode && props.reminder?.completed && (props.reminder.completedAt || props.reminder.completed_at)" class="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div class="flex items-center gap-2 text-green-700">
+          <div v-if="!isCreateMode && props.reminder?.completed && (props.reminder.completedAt || props.reminder.completed_at)" class="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/20 dark:border-green-800">
+            <div class="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle2 class="h-4 w-4" />
               <span class="text-sm">
                 完了日時: {{ props.reminder.completedAt ? formatDate(props.reminder.completedAt) : (props.reminder.completed_at ? formatDate(props.reminder.completed_at) : '') }}
               </span>
             </div>
-            <p class="text-xs text-green-600 mt-2">
+            <p class="text-xs text-green-600 mt-2 dark:text-green-400">
               ※ 次回ログイン時にゴミ箱へ移動します
             </p>
           </div>
 
-          <div v-if="!isCreateMode && props.reminder" class="flex items-center justify-between p-3 border border-gray-300 rounded-lg">
-            <span class="text-sm text-gray-600">ステータス</span>
+          <div v-if="!isCreateMode && props.reminder" class="flex items-center justify-between p-3 border border-gray-300 rounded-lg dark:border-gray-600">
+            <span class="text-sm text-gray-600 dark:text-gray-300">ステータス</span>
             <Badge :variant="props.reminder.completed ? 'secondary' : 'default'">
               {{ props.reminder.completed ? '完了' : '未完了' }}
             </Badge>

@@ -476,7 +476,7 @@ const getQuestionResponses = (
     <Head :title="`${surveyData.title} - 結果`" />
     <div class="max-w-[1800px] mx-auto h-full p-6">
         <Card class="h-full overflow-hidden flex flex-col">
-            <div class="p-4 border-b border-gray-300 shrink-0">
+            <div class="p-4 border-b border-border shrink-0">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-2">
                         <Button
@@ -494,7 +494,7 @@ const getQuestionResponses = (
                         CSVダウンロード
                     </Button>
                 </div>
-                <p class="text-sm text-gray-500">集計結果の分析</p>
+                <p class="text-sm text-muted-foreground">集計結果の分析</p>
             </div>
             
             <div class="flex-1 overflow-y-auto p-6 space-y-6">
@@ -505,11 +505,11 @@ const getQuestionResponses = (
                             <CardTitle class="text-xl mb-2">{{
                                 surveyData.title
                             }}</CardTitle>
-                            <p class="text-gray-600 mb-4">
+                            <p class="text-muted-foreground mb-4">
                                 {{ surveyData.description }}
                             </p>
                             <div
-                                class="flex flex-wrap items-center gap-4 text-sm text-gray-500"
+                                class="flex flex-wrap items-center gap-4 text-sm text-muted-foreground"
                             >
                                 <div class="flex items-center gap-1">
                                     <CalendarIcon class="h-4 w-4" />
@@ -529,8 +529,8 @@ const getQuestionResponses = (
                                 <Badge
                                     :class="[
                                         surveyData.status === 'active'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gray-100 text-gray-700',
+                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
                                     ]"
                                 >
                                     {{
@@ -546,16 +546,16 @@ const getQuestionResponses = (
                 <CardContent>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div
-                            class="bg-blue-50 border border-blue-200 rounded-lg p-4"
+                            class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
                         >
                             <div class="flex items-center gap-3 mb-3">
-                                <div class="p-3 bg-blue-100 rounded-lg">
+                                <div class="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
                                     <CheckCircle2
                                         class="h-6 w-6 text-blue-600"
                                     />
                                 </div>
                                 <div>
-                                    <p class="text-sm text-gray-600">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">
                                         回答済み
                                     </p>
                                     <p class="text-2xl text-blue-600">
@@ -574,16 +574,16 @@ const getQuestionResponses = (
                             </div>
                         </div>
                         <div
-                            class="bg-orange-50 border border-orange-200 rounded-lg p-4"
+                            class="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-lg p-4"
                         >
                             <div class="flex items-center gap-3 mb-3">
-                                <div class="p-3 bg-orange-100 rounded-lg">
+                                <div class="p-3 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
                                     <AlertCircle
                                         class="h-6 w-6 text-orange-600"
                                     />
                                 </div>
                                 <div>
-                                    <p class="text-sm text-gray-600">未回答</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">未回答</p>
                                     <p class="text-2xl text-orange-600">
                                         {{ surveyData.totalNonRespondents }}名
                                     </p>
@@ -600,14 +600,14 @@ const getQuestionResponses = (
                             </div>
                         </div>
                         <div
-                            class="bg-green-50 border border-green-200 rounded-lg p-4"
+                            class="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4"
                         >
                             <div class="flex items-center gap-3">
-                                <div class="p-3 bg-green-100 rounded-lg">
+                                <div class="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
                                     <Users class="h-6 w-6 text-green-600" />
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-sm text-gray-600 mb-1">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
                                         回答率
                                     </p>
                                     <Progress
@@ -628,7 +628,7 @@ const getQuestionResponses = (
 
             <div class="space-y-6">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-gray-900">質問ごとの集計結果</h2>
+                    <h2 class="text-foreground">質問ごとの集計結果</h2>
                     <Badge variant="secondary"
                         >全{{ surveyData.questions.length }}問</Badge
                     >
@@ -670,7 +670,7 @@ const getQuestionResponses = (
                             <div class="space-y-6">
                                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <div>
-                                        <h4 class="text-sm mb-4 text-gray-600">
+                                        <h4 class="text-sm mb-4 text-muted-foreground">
                                             回答の割合
                                         </h4>
                                         <div
@@ -708,7 +708,7 @@ const getQuestionResponses = (
                                         </div>
                                     </div>
                                     <div>
-                                        <h4 class="text-sm mb-4 text-gray-600">
+                                        <h4 class="text-sm mb-4 text-muted-foreground">
                                             回答数
                                         </h4>
                                         <div
@@ -747,17 +747,17 @@ const getQuestionResponses = (
                                     </div>
                                 </div>
                                 <div>
-                                    <h4 class="text-sm mb-4 text-gray-600">
+                                    <h4 class="text-sm mb-4 text-muted-foreground">
                                         回答者別の選択内容
                                     </h4>
                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         <div
                                             v-for="(response, index) in question.responses"
                                             :key="index"
-                                            class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                            class="bg-gray-50 dark:bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg p-3"
                                         >
                                             <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
-                                            <p class="text-sm text-gray-700 font-medium">{{ response.value }}</p>
+                                            <p class="text-sm text-foreground font-medium">{{ response.value }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -766,7 +766,7 @@ const getQuestionResponses = (
                         <template v-if="question.type === 'multiple'">
                             <div class="space-y-6">
                                 <div>
-                                    <h4 class="text-sm mb-4 text-gray-600">
+                                    <h4 class="text-sm mb-4 text-muted-foreground">
                                         選択された回数（複数選択可）
                                     </h4>
                                     <div v-if="question.aggregatedData && question.aggregatedData.length > 0" style="height: 300px; position: relative">

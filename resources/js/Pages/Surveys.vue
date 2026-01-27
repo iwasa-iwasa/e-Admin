@@ -223,6 +223,7 @@ const confirmDelete = () => {
             onSuccess: () => {
                 surveyToDelete.value = null;
                 showMessage('アンケートを削除しました。', 'delete');
+                window.dispatchEvent(new CustomEvent('notification-updated'));
             },
             onError: () => {
                 surveyToDelete.value = null;
@@ -247,6 +248,7 @@ const handleUndoDelete = () => {
     router.post(`/surveys/${surveyToRestore.survey_id}/restore`, {}, {
         onSuccess: () => {
             showMessage('アンケートが元に戻されました。', 'success');
+            window.dispatchEvent(new CustomEvent('notification-updated'));
         },
         onError: () => {
             showMessage('元に戻す処理に失敗しました。', 'success');

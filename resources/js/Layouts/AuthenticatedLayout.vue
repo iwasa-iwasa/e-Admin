@@ -48,7 +48,7 @@
   </script>
   
   <template>
-    <div class="flex h-screen overflow-hidden bg-gray-50">
+    <div class="flex h-screen overflow-hidden bg-gray-50 dark:bg-background dark:text-foreground">
       <!-- Overlay (タブレットのみ) -->
       <div
         v-if="isSidebarOpen && isTablet"

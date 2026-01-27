@@ -349,7 +349,7 @@ onMounted(() => {
   <div class="max-w-[1800px] mx-auto h-full p-6">
     <Card class="h-full overflow-hidden flex flex-col">
       <!-- ヘッダー部分 -->
-      <div class="p-6 border-b border-gray-200 shrink-0 bg-white">
+      <div class="p-6 border-b border-border shrink-0 bg-background">
         <div class="flex items-center justify-between mb-4">
           <!-- タイトル部分 -->
           <div class="flex items-center gap-3">
@@ -360,7 +360,7 @@ onMounted(() => {
             >
               <ArrowLeft class="h-5 w-5" />
             </Button>
-            <Trash2 class="h-6 w-6 text-gray-600" />
+            <Trash2 class="h-6 w-6 text-muted-foreground" />
             <CardTitle class="text-2xl">ゴミ箱</CardTitle>
           </div>
           
@@ -380,9 +380,9 @@ onMounted(() => {
                 ref="searchInputRef"
                 placeholder="タイトルなどで検索"
                 v-model="filterTitle"
-                class="pl-9 pr-9 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-[300px]"
+                class="pl-9 pr-9 flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-[300px]"
               />
-              <button v-if="filterTitle" @click="filterTitle = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button v-if="filterTitle" @click="filterTitle = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 <X class="h-4 w-4" />
               </button>
             </div>
@@ -409,7 +409,7 @@ onMounted(() => {
         </div>
         
         <!-- フィルターパネル -->
-        <div v-if="showFilterDialog" class="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200 mb-4">
+        <div v-if="showFilterDialog" class="space-y-3 p-4 bg-muted/50 rounded-lg border border-border mb-4">
           <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="text-xs font-medium text-gray-700 mb-1.5 block">種類</label>
@@ -461,8 +461,8 @@ onMounted(() => {
         </div>
         
         <div class="flex items-center justify-between">
-          <p class="text-sm text-gray-600">
-            削除されたアイテム <span class="font-semibold text-gray-900">{{ sortedItems.length }}件</span>
+          <p class="text-sm text-muted-foreground">
+            削除されたアイテム <span class="font-semibold text-foreground">{{ sortedItems.length }}件</span>
           </p>
           <div v-if="selectedItems.size > 0" class="flex items-center gap-2">
             <input 
@@ -477,8 +477,8 @@ onMounted(() => {
       </div>
       
       <!-- テーブルヘッダー (固定) -->
-      <div v-if="trashItems.length > 0" class="sticky top-0 z-10 bg-white border-b border-gray-200 shrink-0">
-        <div class="grid grid-cols-12 gap-3 py-3 px-4 text-sm font-medium text-gray-700">
+      <div v-if="trashItems.length > 0" class="sticky top-0 z-10 bg-background border-b border-border shrink-0">
+        <div class="grid grid-cols-12 gap-3 py-3 px-4 text-sm font-medium text-muted-foreground">
           <div class="col-span-1 flex items-center justify-center">
             <div class="translate-x-2">
               <input 
@@ -496,13 +496,13 @@ onMounted(() => {
       </div>
       
       <!-- メインコンテンツ -->
-      <div class="flex-1 overflow-y-auto bg-gray-50">
+      <div class="flex-1 overflow-y-auto bg-muted/10">
         <!-- 空の状態 -->
         <div v-if="trashItems.length === 0" class="flex items-center justify-center h-full">
           <div class="text-center py-16">
-            <Trash2 class="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <h2 class="text-xl font-semibold mb-2 text-gray-900">ゴミ箱は空です</h2>
-            <p class="text-gray-500">削除されたアイテムはここに表示されます</p>
+            <Trash2 class="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+            <h2 class="text-xl font-semibold mb-2 text-foreground">ゴミ箱は空です</h2>
+            <p class="text-muted-foreground">削除されたアイテムはここに表示されます</p>
           </div>
         </div>
         
@@ -513,8 +513,8 @@ onMounted(() => {
             :key="item.id" 
             :id="`item-${item.id}`" 
             :class="[
-              'bg-white rounded-lg border transition-all duration-200 hover:shadow-md',
-              selectedItems.has(item.id) ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200'
+              'bg-card rounded-lg border transition-all duration-200 hover:shadow-md',
+              selectedItems.has(item.id) ? 'border-blue-500 ring-2 ring-blue-100 dark:ring-blue-900' : 'border-border'
             ]"
             @click="handleRowClick($event, item)"
           >
@@ -547,7 +547,7 @@ onMounted(() => {
                 <div class="col-span-6 min-w-0">
                   <!-- メイン行（列の基準） -->
                   <div class="flex items-center gap-2 min-w-0">
-                    <h3 class="text-sm truncate font-semibold text-gray-900">
+                    <h3 class="text-sm truncate font-semibold text-foreground">
                       {{ item?.title || '不明' }}
                     </h3>
 
@@ -588,7 +588,7 @@ onMounted(() => {
                     variant="outline" 
                     size="sm" 
                     @click.stop="handleRestore(item.id)" 
-                    class="w-[150px] flex items-center justify-center gap-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700"
+                    class="w-[150px] flex items-center justify-center gap-2 hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-300 hover:text-green-700"
                     :disabled="!item"
                   >
                     <RotateCcw class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -599,7 +599,7 @@ onMounted(() => {
                     variant="outline" 
                     size="sm" 
                     @click.stop="itemToDelete = item?.id" 
-                    class="w-[150px] flex items-center justify-center gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600"
+                    class="w-[150px] flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-600 hover:text-white hover:border-red-600"
                     :disabled="!item"
                   >
                     <X class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -615,7 +615,7 @@ onMounted(() => {
 
     <!-- ダイアログ（元のまま） -->
     <AlertDialog :open="itemToDelete !== null">
-      <AlertDialogContent class="bg-white">
+      <AlertDialogContent class="bg-background">
         <AlertDialogHeader>
           <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
@@ -630,7 +630,7 @@ onMounted(() => {
     </AlertDialog>
 
     <AlertDialog :open="showRestoreSelectedDialog" @update:open="(open) => showRestoreSelectedDialog = open">
-      <AlertDialogContent class="bg-white">
+      <AlertDialogContent class="bg-background">
         <AlertDialogHeader>
           <AlertDialogTitle>
             {{ restoreMode === 'selected' ? `選択した${selectedItems.size}件を復元しますか？` : `選択以外の${sortedItems.length - selectedItems.size}件を復元しますか？` }}
@@ -647,7 +647,7 @@ onMounted(() => {
     </AlertDialog>
 
     <AlertDialog :open="showDeleteSelectedDialog" @update:open="(open) => showDeleteSelectedDialog = open">
-      <AlertDialogContent class="bg-white">
+      <AlertDialogContent class="bg-background">
         <AlertDialogHeader>
           <AlertDialogTitle>
             {{ deleteMode === 'selected' ? `選択した${selectedItems.size}件を削除しますか？` : `選択以外の${sortedItems.length - selectedItems.size}件を削除しますか？` }}
@@ -664,7 +664,7 @@ onMounted(() => {
     </AlertDialog>
 
     <AlertDialog :open="showEmptyTrashDialog" @update:open="(open) => showEmptyTrashDialog = open">
-      <AlertDialogContent class="bg-white">
+      <AlertDialogContent class="bg-background">
         <AlertDialogHeader>
           <AlertDialogTitle>ゴミ箱を空にしますか？</AlertDialogTitle>
           <AlertDialogDescription>すべてのアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
