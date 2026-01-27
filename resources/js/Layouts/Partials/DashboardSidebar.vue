@@ -199,7 +199,12 @@
             <Link href="/surveys" class="flex items-center gap-3 w-full">
               <BarChart3 class="h-5 w-5 text-purple-700 dark:text-purple-400 flex-shrink-0" />
               <span class="flex-shrink-0">アンケート管理</span>
-              <Badge v-if="unansweredSurveysCount > 0" variant="secondary" class="ml-auto flex-shrink-0">
+              <Badge v-if="unansweredSurveysCount > 0" variant="secondary" :class="[
+              'w-full justify-start gap-3 px-3 overflow-hidden',
+              isActive('/surveys')
+                ? 'bg-gray-900 text-white shadow-sm hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100 dark:bg-black dark:text-gray-400 dark:border-gray-800 dark:hover:bg-gray-900'
+            ]">
                 {{ unansweredSurveysCount }}件
               </Badge>
             </Link>

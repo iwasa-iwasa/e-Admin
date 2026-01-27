@@ -134,4 +134,8 @@
   .highlight-flash {
     animation: highlight-flash 1s ease-in-out 3;
   }
+
+  .dark ::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
 }
