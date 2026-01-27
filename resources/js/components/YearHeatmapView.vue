@@ -109,7 +109,7 @@ const handleDateClick = (date: Date) => {
                     >
                         <div class="day-number" :class="{ 'inactive-number': !day.isCurrentMonth, 'white-text': day.isCurrentMonth && getDayLevel(day.dateStr)?.level === 4 }">{{ day.day }}</div>
                         <div v-if="day.isCurrentMonth && getDaySummary(day.dateStr)" class="day-info" :class="{ 'white-text': getDayLevel(day.dateStr)?.level === 4 }">
-                            <div v-if="getDaySummary(day.dateStr)!.totalHours > 0" class="hours">{{ Math.round(getDaySummary(day.dateStr)!.totalHours) }}h</div>
+                            <div v-if="getDaySummary(day.dateStr)!.totalHours > 0" class="hours ">{{ Math.round(getDaySummary(day.dateStr)!.totalHours) }}h</div>
                             <div v-if="getDaySummary(day.dateStr)!.eventCount > 0 || getDaySummary(day.dateStr)!.importantCount > 0" class="dots">
                                 <div v-if="getDaySummary(day.dateStr)!.alldayCount > 0" class="allday-dot"></div>
                                 <div v-if="getDaySummary(day.dateStr)!.importantCount > 0" class="important-dot"></div>
@@ -212,8 +212,8 @@ const handleDateClick = (date: Date) => {
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: flex-start;
     border-radius: 0.25rem;
     overflow: hidden;
 }
@@ -230,10 +230,11 @@ const handleDateClick = (date: Date) => {
 }
 
 .day-number {
-    font-size: 0.75rem;
-    font-weight: 700;
+    font-size: 0.625rem;
+    font-weight: 500;
     color: #1f2937;
-    margin-bottom: 0.125rem;
+    align-self: flex-start;
+    line-height: 1;
 }
 
 .day-number.inactive-number {
@@ -250,7 +251,9 @@ const handleDateClick = (date: Date) => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.125rem;
+    justify-content: center;
+    gap: 0.25rem;
+    flex: 1;
 }
 
 .dots {
@@ -260,8 +263,8 @@ const handleDateClick = (date: Date) => {
 }
 
 .hours {
-    font-size: 0.625rem;
-    font-weight: 600;
+    font-size: 1.125rem;
+    font-weight: 700;
     color: #374151;
     line-height: 1;
 }
