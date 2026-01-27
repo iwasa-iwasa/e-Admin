@@ -536,35 +536,13 @@ function handleScopeButtonClick(
                 >
                     <div v-if="layoutMode === 'default'" class="flex-1">
                         <Tabs :model-value="viewMode" @update:model-value="changeView" class="flex-1">
-                            <TabsList class="grid w-full max-w-[500px] grid-cols-4 bg-gray-100">
+                            <TabsList class="grid w-full max-w-[500px] grid-cols-4 bg-gray-100 dark:bg-gray-800">
                                 <TabsTrigger value="yearView">年</TabsTrigger>
                                 <TabsTrigger value="dayGridMonth">月</TabsTrigger>
                                 <TabsTrigger value="timeGridWeek">週</TabsTrigger>
                                 <TabsTrigger value="timeGridDay">日</TabsTrigger>
                             </TabsList>
                         </Tabs>
-                        <div class="flex-1">
-                        <div class="grid w-full max-w-[400px] grid-cols-4 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                            <button
-                                v-for="view in [
-                                    { value: 'multiMonthYear', label: '年' },
-                                    { value: 'dayGridMonth', label: '月' },
-                                    { value: 'timeGridWeek', label: '週' },
-                                    { value: 'timeGridDay', label: '日' },
-                                ]"
-                                :key="view.value"
-                                @click="changeView(view.value)"
-                                :class="[
-                                    'flex items-center justify-center py-1 text-sm font-medium rounded-md transition-all duration-200',
-                                    viewMode === view.value
-                                        ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
-                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                                ]"
-                            >
-                                {{ view.label }}
-                            </button>
-                        </div>
-                    </div>
                     </div>
                 </Transition>
 
