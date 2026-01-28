@@ -33,7 +33,4 @@ createInertiaApp({
             .directive('focus-restore', vFocusRestore)
             .mount(el);
     },
-    progress: {
-        color: '#4B5563',
-    },
 });
