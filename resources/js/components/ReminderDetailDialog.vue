@@ -314,6 +314,8 @@ const handleCancel = () => {
   isEditing.value = false
   isSaving.value = false
   form.reset()
+  // タグ入力欄をクリア
+  newTag.value = ''
   if (props.reminder) {
     editedReminder.value = { ...props.reminder }
     form.title = props.reminder.title
@@ -334,6 +336,8 @@ const closeDialog = (isOpen: boolean) => {
       isEditing.value = false
       form.reset()
     }
+    // タグ入力欄をクリア
+    newTag.value = ''
     isSaving.value = false
     emit('update:open', false)
   }
