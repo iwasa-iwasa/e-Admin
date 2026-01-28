@@ -333,9 +333,8 @@ onMounted(() => {
                 width < 480 ? 'ultra-minimal'
                 : width < 540 ? 'minimal'
                 : width < 600 ? 'compact'
-                : width < 650 ? 'title-hide'
-                : width < 700 ? 'search-icon'
-                : width < 750 ? 'filter-small'
+                : width < 640 ? 'title-hide'
+                : width < 680 ? 'search-icon'
                 : 'default'
         })
         resizeObserver.observe(headerRef.value)
@@ -585,11 +584,11 @@ function handleScopeButtonClick(
 
                 <div class="flex items-center gap-3 transition-all duration-300 ease-in-out">
                     <Button 
-                        v-if="canGoBack" 
                         variant="outline" 
                         size="sm" 
-                        @click="goBackOneLevel"
+                        @click="canGoBack && goBackOneLevel()"
                         class="gap-1 transition-all duration-300 ease-in-out flex-shrink-0 border-gray-300 dark:border-input"
+                        :class="{ 'opacity-0 pointer-events-none': !canGoBack }"
                     >
                         <ChevronUp class="h-4 w-4" />
                         <Transition
@@ -607,7 +606,7 @@ function handleScopeButtonClick(
                         <ChevronLeft class="h-4 w-4" />
                     </Button>
                     <div 
-                        class="text-center font-semibold truncate transition-all duration-300 ease-in-out flex-shrink-0"
+                        class="text-center font-semibold truncate transition-all duration-300 ease-in-out flex-shrink-0 w-[240px]"
                     >
                         {{ compactCalendarTitle }}
                     </div>

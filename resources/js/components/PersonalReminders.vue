@@ -274,11 +274,11 @@ onUnmounted(() => {
             leave-to-class="opacity-0 scale-95"
           >
             <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
+              v-if="headerStage !== 'iconOnly'"
               :class="[headerStage !== 'normal' && 'truncate',
               {
                 'max-w-full': headerStage === 'normal',
                 'max-w-[220px]': headerStage === 'titleCut',
-                'max-w-[140px]': headerStage === 'iconOnly',
               },
               ]"
             >
@@ -308,7 +308,7 @@ onUnmounted(() => {
               >
                 <span v-if="headerStage === 'normal'" class="whitespace-nowrap">未完了</span>
               </Transition>
-              <Badge variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
+              <Badge v-if="headerStage !== 'iconOnly'" variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
                 {{ activeCount }}
               </Badge>
             </button>
@@ -332,7 +332,7 @@ onUnmounted(() => {
               >
                 <span v-if="headerStage === 'normal'" class="whitespace-nowrap">完了済</span>
               </Transition>
-              <Badge variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
+              <Badge v-if="headerStage !== 'iconOnly'" variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
                 {{ completedCount }}
               </Badge>
             </button>
