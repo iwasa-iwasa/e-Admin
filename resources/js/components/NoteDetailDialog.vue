@@ -364,7 +364,7 @@ const editedContent = computed({
 
 <template>
   <Dialog :open="open" @update:open="closeDialog" :modal="true">
-    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
       <DialogHeader class="p-6 pb-2 shrink-0">
         <div class="flex flex-col items-start gap-4">
           <div class="flex items-center justify-between w-full flex-wrap gap-2">
