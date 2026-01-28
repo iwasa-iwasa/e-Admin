@@ -153,6 +153,9 @@ watch(selectedNote, (newNote) => {
     editedTags.value = newNote.tags.map(tag => tag.tag_name)
     editedParticipants.value = newNote.participants || []
     participantSelectValue.value = null
+    // タグ入力欄をクリア
+    tagInput.value = ''
+    showTagSuggestions.value = false
   }
 })
 
