@@ -160,11 +160,11 @@ const getColorClass = (color: string) => {
 
 const getColorInfo = (c: string) => {
   const colorMap: Record<string, { bg: string; label: string }> = {
-    blue: { bg: 'bg-blue-100', label: 'ブルー' },
-    green: { bg: 'bg-green-100', label: 'グリーン' },
-    yellow: { bg: 'bg-yellow-100', label: 'オレンジ' },
-    purple: { bg: 'bg-purple-100', label: 'パープル' },
-    pink: { bg: 'bg-pink-100', label: 'ピンク' },
+    blue: { bg: 'bg-blue-100 dark:bg-blue-500', label: 'ブルー' },
+    green: { bg: 'bg-green-100 dark:bg-green-500', label: 'グリーン' },
+    yellow: { bg: 'bg-yellow-100 dark:bg-yellow-500', label: 'オレンジ' },
+    purple: { bg: 'bg-purple-100 dark:bg-purple-500', label: 'パープル' },
+    pink: { bg: 'bg-pink-100 dark:bg-pink-500', label: 'ピンク' },
   }
   return colorMap[c] || colorMap.yellow
 }
@@ -424,7 +424,7 @@ const editedContent = computed({
             </div>
           </div>
         </div>
-        <div class="flex items-center gap-4 text-sm text-gray-600 pt-2 flex-wrap">
+        <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 pt-2 flex-wrap">
           <div class="flex items-center gap-1 flex-shrink-0">
             <User class="h-4 w-4" />
             <span class="dark:text-gray-300">{{ currentNote.author?.name || 'N/A' }}</span>
@@ -550,47 +550,47 @@ const editedContent = computed({
           <!-- 参加者編集UI -->
           <div v-if="isEditing && editedNote" class="space-y-2 mt-3">
             <label class="text-xs font-medium text-gray-700 block">共有範囲</label>
-            <div class="text-xs text-gray-600 p-2 bg-gray-50 rounded border">
+            <div class="text-xs text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
               💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
             </div>
             <template v-if="!canEditParticipants">
-              <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+              <div class="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
                 共有メンバーの変更は作成者または参加者のみ可能です
               </div>
             </template>
             <template v-else-if="isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId">
-              <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+              <div class="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
                 全員共有のメモは作成者のみが共有設定を変更できます
               </div>
             </template>
             <template v-else>
-              <div v-if="editedNote?.participants?.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+              <div v-if="editedNote?.participants?.length === props.totalUsers" class="text-xs text-blue-600 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-900/30 rounded border dark:border-blue-800">
                 全員が選択されています。変更するにはメンバーを削除してください。
               </div>
-              <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
-                <label v-for="member in props.teamMembers?.filter(m => m.id !== editedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+              <div v-else class="max-h-[200px] overflow-y-auto border dark:border-gray-700 rounded p-2 space-y-1">
+                <label v-for="member in props.teamMembers?.filter(m => m.id !== editedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
                   <input 
                     type="checkbox" 
                     :checked="editedNote?.participants?.find(p => p.id === member.id) !== undefined"
                     @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
-                    class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                    class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                   />
-                  <span class="text-xs">{{ member.name }}</span>
+                  <span class="text-xs dark:text-gray-300">{{ member.name }}</span>
                 </label>
               </div>
             </template>
-            <div v-if="editedNote.participants && editedNote.participants.length > 0" class="min-h-[60px] p-3 border border-purple-300 rounded-md bg-purple-50">
-              <div class="text-xs font-medium text-purple-800 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
+            <div v-if="editedNote.participants && editedNote.participants.length > 0" class="min-h-[60px] p-3 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/20">
+              <div class="text-xs font-medium text-purple-800 dark:text-purple-300 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
               <div class="flex flex-wrap gap-1">
                 <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">
                   {{ participant.name }}
-                  <button v-if="canEdit && canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                  <button v-if="canEdit && canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-0.5">
                     <X class="h-2 w-2" />
                   </button>
                 </Badge>
               </div>
             </div>
-            <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 text-blue-700 text-sm">
+            <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm">
               🌐 全体公開: 全員に表示されます
             </div>
           </div>
@@ -606,7 +606,7 @@ const editedContent = computed({
             v-if="isEditing && editedNote"
             v-model="editedContent"
             :disabled="!canEdit"
-            class="min-h-[200px] whitespace-pre-line bg-white"
+            class="min-h-[200px] whitespace-pre-line bg-white dark:bg-gray-950 dark:text-gray-100"
             aria-label="メモ内容"
           />
           <p v-else class="whitespace-pre-line text-gray-800 dark:text-gray-200">
