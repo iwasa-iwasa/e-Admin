@@ -31,6 +31,13 @@ interface Props {
   totalUsers?: number
 }
 
+// フォーム用の拡張型定義
+type EditableNote = App.Models.SharedNote & {
+  deadline?: string | null
+  progress?: number
+  is_pinned?: boolean
+}
+
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
@@ -41,7 +48,7 @@ const emit = defineEmits<{
 }>()
 
 const isEditing = ref(false)
-const editedNote = ref<App.Models.SharedNote | null>(null)
+const editedNote = ref<EditableNote | null>(null)
 const participantSelectValue = ref<string | null>(null)
 const tagInput = ref('')
 const saveMessage = ref('')
@@ -97,7 +104,10 @@ watch(() => props.note, (newNote) => {
   tagInput.value = ''
 }, { deep: true })
 
-const currentNote = computed(() => isEditing.value && editedNote.value ? editedNote.value : props.note)
+const currentNote = computed(() => {
+  const note = isEditing.value && editedNote.value ? editedNote.value : props.note
+  return note as EditableNote | null
+})
 
 const getPriorityInfo = (priority: Priority) => {
   switch (priority) {
@@ -354,21 +364,21 @@ const editedContent = computed({
 
 <template>
   <Dialog :open="open" @update:open="closeDialog" :modal="true">
-    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] max-h-[90vh]">
-      <DialogHeader>
-        <div class="flex flex-col items-startgap-4">
-          <div class="flex items-center  justify-between ">
-            <DialogTitle class="flex-1">
+    <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogHeader class="p-6 pb-2 shrink-0">
+        <div class="flex flex-col items-start gap-4">
+          <div class="flex items-center justify-between w-full flex-wrap gap-2">
+            <DialogTitle class="flex-1 min-w-[200px]">
               <Input
                 v-if="isEditing && editedNote"
                 v-model="editedNote.title"
                 :disabled="!canEdit"
-                class="h-8"
+                class="h-8 w-full"
                 aria-label="メモタイトル"
               />
               <template v-else>{{ currentNote.title }}</template>
             </DialogTitle>
-            <div class="flex items-center gap-2 mr-8">
+            <div class="flex items-center gap-2 flex-shrink-0">
               <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
                 {{ getPriorityInfo(currentNote.priority as Priority).label }}
               </Badge>
@@ -387,12 +397,12 @@ const editedContent = computed({
             </div>
           </div>
         </div>
-        <div class="flex items-center gap-4 text-sm text-gray-600 pt-2">
-          <div class="flex items-center gap-1">
+        <div class="flex items-center gap-4 text-sm text-gray-600 pt-2 flex-wrap">
+          <div class="flex items-center gap-1 flex-shrink-0">
             <User class="h-4 w-4" />
             <span class="dark:text-gray-300">{{ currentNote.author?.name || 'N/A' }}</span>
           </div>
-          <div v-if="currentNote.participants && currentNote.participants.length > 0" class="flex items-center gap-1">
+          <div v-if="currentNote.participants && currentNote.participants.length > 0" class="flex items-center gap-1 flex-shrink-0">
             <Badge v-if="isAllUsers(currentNote.participants)" variant="secondary" class="text-xs px-1 py-0">
               全員
             </Badge>
@@ -405,17 +415,17 @@ const editedContent = computed({
               </Badge>
             </template>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-1 flex-shrink-0">
             <Clock class="h-4 w-4" />
-            <span class="dark:text-gray-300">{{ new Date(currentNote.updated_at || currentNote.created_at).toLocaleDateString() }}</span>
+            <span class="dark:text-gray-300">{{ new Date(currentNote.updated_at ?? currentNote.created_at ?? '').toLocaleDateString() }}</span>
           </div>
-          <div v-if="isEditing && editedNote" class="flex items-center gap-2">
-            <span class="text-xs">期限:</span>
+          <div v-if="isEditing && editedNote" class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+            <span class="text-xs whitespace-nowrap">期限:</span>
             <Input
               type="datetime-local"
-              v-model="editedNote.deadline"
+              v-model="editedDeadline"
               :disabled="!canEdit"
-              class="h-7 w-48 text-xs"
+              class="h-7 w-full sm:w-48 text-xs"
               aria-label="期限日時"
             />
             <div class="flex items-center gap-2">
@@ -439,127 +449,127 @@ const editedContent = computed({
           </div>
           <div v-else class="flex items-center gap-2">
             <Badge variant="outline" class="text-xs">
-              {{ currentNote.deadline_date ? '期限' : '作成日' }}: {{ currentNote.deadline_date ? `${new Date(currentNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(currentNote.deadline_time || '23:59:00').substring(0, 5)}` : new Date(currentNote.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
+              {{ currentNote.deadline_date ? '期限' : '作成日' }}: {{ currentNote.deadline_date ? `${new Date(currentNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(currentNote.deadline_time || '23:59:00').substring(0, 5)}` : new Date(currentNote.created_at ?? '').toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
             </Badge>
           </div>
         </div>
       </DialogHeader>
 
-      <div v-if="isEditing && editedNote" class="space-y-3 pt-2">
-        <div class="flex gap-2">
-          <Select v-model="editedNote.priority" :disabled="!canEdit">
-            <SelectTrigger class="w-32 h-8 text-xs" aria-label="重要度選択">
-              <div class="flex items-center gap-2">
-                <Badge :class="getPriorityInfo(editedNote.priority as Priority).className" class="text-xs px-1 py-0">
-                  {{ getPriorityInfo(editedNote.priority as Priority).label }}
+      <div class="flex-1 overflow-y-auto px-6">
+        <div v-if="isEditing && editedNote" class="space-y-3 pt-2">
+          <div class="flex gap-2 flex-wrap">
+            <Select v-model="editedNote.priority" :disabled="!canEdit">
+              <SelectTrigger class="w-full sm:w-32 h-8 text-xs" aria-label="重要度選択">
+                <div class="flex items-center gap-2">
+                  <Badge :class="getPriorityInfo(editedNote.priority as Priority).className" class="text-xs px-1 py-0">
+                    {{ getPriorityInfo(editedNote.priority as Priority).label }}
+                  </Badge>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">
+                  <Badge class="bg-red-600 text-white text-xs">重要</Badge>
+                </SelectItem>
+                <SelectItem value="medium">
+                  <Badge class="bg-yellow-500 text-white text-xs">中</Badge>
+                </SelectItem>
+                <SelectItem value="low">
+                  <Badge class="bg-gray-400 text-white text-xs">低</Badge>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Select v-model="editedNote.color" :disabled="!canEdit">
+              <SelectTrigger class="w-full sm:w-32 h-8 text-xs" aria-label="色選択">
+                <div class="flex items-center gap-2">
+                  <div :class="['w-3 h-3 rounded', getColorInfo(editedNote.color).bg]"></div>
+                  <span>{{ getColorInfo(editedNote.color).label }}</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="c in ['yellow', 'blue', 'green', 'pink', 'purple']" :key="c" :value="c">
+                  <div class="flex items-center gap-2">
+                    <div :class="['w-3 h-3 rounded', getColorInfo(c).bg]"></div>
+                    <span>{{ getColorInfo(c).label }}</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <div v-if="canEdit" class="flex gap-1 flex-1 min-w-[200px]">
+              <Input
+                placeholder="タグを追加"
+                v-model="tagInput"
+                @keypress.enter.prevent="handleAddTag"
+                class="h-8 text-xs flex-1 w-full"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                @click="handleAddTag"
+                class="h-8 px-2 text-xs"
+              >
+                追加
+              </Button>
+            </div>
+          </div>
+          <div v-if="editedNote.tags && editedNote.tags.length > 0" class="flex flex-wrap gap-1">
+            <Badge v-for="tag in editedNote.tags" :key="tag.tag_name" variant="secondary" class="text-xs gap-1">
+              {{ tag.tag_name }}
+              <button v-if="canEdit" @click="handleRemoveTag(tag.tag_name)" class="hover:bg-gray-300 rounded-full p-0.5">
+                <X class="h-2 w-2" />
+              </button>
+            </Badge>
+          </div>
+          <!-- 参加者編集UI -->
+          <div v-if="isEditing && editedNote" class="space-y-2 mt-3">
+            <label class="text-xs font-medium text-gray-700 block">共有範囲</label>
+            <div class="text-xs text-gray-600 p-2 bg-gray-50 rounded border">
+              💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
+            </div>
+            <template v-if="!canEditParticipants">
+              <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+                共有メンバーの変更は作成者または参加者のみ可能です
+              </div>
+            </template>
+            <template v-else-if="isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId">
+              <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
+                全員共有のメモは作成者のみが共有設定を変更できます
+              </div>
+            </template>
+            <template v-else>
+              <div v-if="editedNote?.participants?.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+                全員が選択されています。変更するにはメンバーを削除してください。
+              </div>
+              <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
+                <label v-for="member in props.teamMembers?.filter(m => m.id !== editedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    :checked="editedNote?.participants?.find(p => p.id === member.id) !== undefined"
+                    @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                    class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                  />
+                  <span class="text-xs">{{ member.name }}</span>
+                </label>
+              </div>
+            </template>
+            <div v-if="editedNote.participants && editedNote.participants.length > 0" class="min-h-[60px] p-3 border border-purple-300 rounded-md bg-purple-50">
+              <div class="text-xs font-medium text-purple-800 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
+              <div class="flex flex-wrap gap-1">
+                <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">
+                  {{ participant.name }}
+                  <button v-if="canEdit && canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                    <X class="h-2 w-2" />
+                  </button>
                 </Badge>
               </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="high">
-                <Badge class="bg-red-600 text-white text-xs">重要</Badge>
-              </SelectItem>
-              <SelectItem value="medium">
-                <Badge class="bg-yellow-500 text-white text-xs">中</Badge>
-              </SelectItem>
-              <SelectItem value="low">
-                <Badge class="bg-gray-400 text-white text-xs">低</Badge>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Select v-model="editedNote.color" :disabled="!canEdit">
-            <SelectTrigger class="w-32 h-8 text-xs" aria-label="色選択">
-              <div class="flex items-center gap-2">
-                <div :class="['w-3 h-3 rounded', getColorInfo(editedNote.color).bg]"></div>
-                <span>{{ getColorInfo(editedNote.color).label }}</span>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="c in ['yellow', 'blue', 'green', 'pink', 'purple']" :key="c" :value="c">
-                <div class="flex items-center gap-2">
-                  <div :class="['w-3 h-3 rounded', getColorInfo(c).bg]"></div>
-                  <span>{{ getColorInfo(c).label }}</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <div v-if="canEdit" class="flex gap-1">
-            <Input
-              placeholder="タグを追加"
-              v-model="tagInput"
-              @keypress.enter.prevent="handleAddTag"
-              class="h-8 text-xs flex-1 w-32"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              @click="handleAddTag"
-              class="h-8 px-2 text-xs"
-            >
-              追加
-            </Button>
+            </div>
+            <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 text-blue-700 text-sm">
+              🌐 全体公開: 全員に表示されます
+            </div>
           </div>
         </div>
-        <div v-if="editedNote.tags && editedNote.tags.length > 0" class="flex flex-wrap gap-1">
-          <Badge v-for="tag in editedNote.tags" :key="tag.tag_name" variant="secondary" class="text-xs gap-1">
-            {{ tag.tag_name }}
-            <button v-if="canEdit" @click="handleRemoveTag(tag.tag_name)" class="hover:bg-gray-300 rounded-full p-0.5">
-              <X class="h-2 w-2" />
-            </button>
-          </Badge>
-        </div>
-        <!-- 参加者編集UI -->
-        <div v-if="isEditing && editedNote" class="space-y-2 mt-3">
-          <label class="text-xs font-medium text-gray-700 block">共有範囲</label>
-          <div class="text-xs text-gray-600 p-2 bg-gray-50 rounded border">
-            💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
-          </div>
-          <template v-if="!canEditParticipants">
-            <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
-              共有メンバーの変更は作成者または参加者のみ可能です
-            </div>
-          </template>
-          <template v-else-if="isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId">
-            <div class="text-xs text-gray-500 p-2 bg-gray-50 rounded border">
-              全員共有のメモは作成者のみが共有設定を変更できます
-            </div>
-          </template>
-          <template v-else>
-            <div v-if="editedNote?.participants?.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
-              全員が選択されています。変更するにはメンバーを削除してください。
-            </div>
-            <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
-              <label v-for="member in props.teamMembers?.filter(m => m.id !== editedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  :checked="editedNote?.participants?.find(p => p.id === member.id) !== undefined"
-                  @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
-                  class="h-4 w-4 text-blue-600 rounded border-gray-300"
-                />
-                <span class="text-xs">{{ member.name }}</span>
-              </label>
-            </div>
-          </template>
-          <div v-if="editedNote.participants && editedNote.participants.length > 0" class="min-h-[60px] p-3 border border-purple-300 rounded-md bg-purple-50">
-            <div class="text-xs font-medium text-purple-800 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
-            <div class="flex flex-wrap gap-1">
-              <Badge v-for="participant in editedNote.participants" :key="participant.id" variant="secondary" class="text-xs gap-1">
-                {{ participant.name }}
-                <button v-if="canEdit && canEditParticipants && !(isAllUsers(editedNote.participants || []) && editedNote.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
-                  <X class="h-2 w-2" />
-                </button>
-              </Badge>
-            </div>
-          </div>
-          <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 text-blue-700 text-sm">
-            🌐 全体公開: 全員に表示されます
-          </div>
-        </div>
-      </div>
 
-      <ScrollArea class="max-h-[60vh]">
-        <div :class="[getColorClass(currentNote.color), 'border-2 rounded-lg p-6']">
+        <div :class="[getColorClass(currentNote.color), 'border-2 rounded-lg p-6 mt-4']">
           <div v-if="!isEditing && currentNote.tags && currentNote.tags.length > 0" class="flex flex-wrap gap-1 mb-3">
             <Badge v-for="tag in currentNote.tags" :key="tag.tag_name" variant="secondary" class="text-xs">
               {{ tag.tag_name }}
@@ -576,9 +586,10 @@ const editedContent = computed({
             {{ currentNote.content }}
           </p>
         </div>
-      </ScrollArea>
+        <div class="h-6"></div> <!-- Spacer -->
+      </div>
 
-      <DialogFooter class="gap-2">
+      <DialogFooter class="gap-2 p-6 border-t mt-auto shrink-0 bg-white dark:bg-card">
         <template v-if="isEditing">
           <Button variant="outline" @click="closeDialog" size="sm">
             <X class="h-4 w-4 mr-1" />
