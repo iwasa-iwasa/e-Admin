@@ -321,7 +321,7 @@ const confirmBulkDelete = () => {
 
 <template>
   <Head title="個人リマインダー" />
-  <div class="max-w-[1800px] mx-auto h-full p-6">
+  <div class="mx-auto h-full p-6">
     <Card class="h-full overflow-hidden flex flex-col">
       <div class="p-4 border-b border-border">
         <div class="flex items-center justify-between mb-2">
