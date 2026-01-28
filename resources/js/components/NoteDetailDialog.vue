@@ -22,29 +22,56 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+// App.Models.SharedNoteが不完全なため手動定義
+interface UserModel {
+  id: number
+  name: string
+  email?: string
+  profile_photo_url?: string
+}
+
+interface SharedNoteModel {
+  note_id: number
+  title: string
+  content: string | null
+  author_id: number
+  linked_event_id?: number | null
+  color: string
+  priority: string
+  deadline_date: string | null
+  deadline_time: string | null
+  progress?: number | null
+  is_pinned?: boolean
+  is_deleted: boolean
+  created_at: string | null
+  updated_at: string | null
+  author?: UserModel
+  participants?: UserModel[]
+  tags?: Array<{ tag_id: number; tag_name: string }>
+}
+
 type Priority = 'high' | 'medium' | 'low'
 
 interface Props {
-  note: App.Models.SharedNote | null
+  note: SharedNoteModel | null
   open: boolean
-  teamMembers?: App.Models.User[]
+  teamMembers?: UserModel[]
   totalUsers?: number
 }
 
 // フォーム用の拡張型定義
-type EditableNote = App.Models.SharedNote & {
+type EditableNote = SharedNoteModel & {
   deadline?: string | null
-  progress?: number
-  is_pinned?: boolean
+  tag_relations?: any[] // 必要に応じて
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'save': [value: App.Models.SharedNote]
-  'toggle-pin': [value: App.Models.SharedNote]
-  'delete': [value: App.Models.SharedNote]
+  'save': [value: SharedNoteModel]
+  'toggle-pin': [value: SharedNoteModel]
+  'delete': [value: SharedNoteModel]
 }>()
 
 const isEditing = ref(false)
@@ -88,7 +115,7 @@ const canEditParticipants = computed(() => {
 })
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
-const lastDeletedNote = ref<App.Models.SharedNote | null>(null)
+const lastDeletedNote = ref<SharedNoteModel | null>(null)
 
 watch(() => props.note, (newNote) => {
   if (newNote) {
@@ -262,7 +289,7 @@ const handleRemoveTag = (tagToRemove: string) => {
 
 const handleAddParticipant = (memberId: unknown) => {
   if (memberId === null || memberId === undefined || !editedNote.value) return
-  const id = Number(memberId as any)
+  const id = Number(memberId)
   if (Number.isNaN(id)) return
   const member = props.teamMembers?.find((m) => m.id === id)
   if (member) {

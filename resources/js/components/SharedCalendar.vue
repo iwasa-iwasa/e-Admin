@@ -24,17 +24,46 @@ import { useCalendarView } from '@/composables/calendar/useCalendarView'
 import { useCalendarDom } from '@/composables/calendar/useCalendarDom'
 import { useFullCalendarConfig } from '@/composables/calendar/useFullCalendarConfig'
 
+// EventModel definition to replace App.Models.Event
+export interface EventModel {
+    event_id: number
+    title: string
+    start_date: string
+    end_date: string
+    start_time: string | null
+    end_time: string | null
+    is_all_day: boolean
+    category: string
+    importance: '高' | '中' | '低'
+    progress?: number | null
+    description: string | null
+    location: string | null
+    url: string | null
+    recurrence?: {
+        recurrence_type: 'daily' | 'weekly' | 'monthly' | 'yearly'
+        recurrence_interval: number
+        by_day?: string[]
+        by_month?: number[]
+        by_month_day?: number[]
+        by_set_pos?: number
+    } | null
+    created_by: number
+    participants?: { id: number; name: string }[]
+    attachments?: { attachment_id: number; file_name: string; file_path: string }[]
+    creator?: { id: number; name: string }
+}
+
 const props = defineProps<{
-    events: App.Models.Event[]
+    events: EventModel[]
     showBackButton?: boolean
     filteredMemberId?: number | null
 }>()
 
 const fullCalendar = ref<any>(null)
-const selectedEvent = ref<App.Models.Event | null>(null)
+const selectedEvent = ref<EventModel | null>(null)
 const isEventFormOpen = ref(false)
-const editingEvent = ref<App.Models.Event | null>(null)
-const currentEvents = ref<App.Models.Event[]>([])
+const editingEvent = ref<EventModel | null>(null)
+const currentEvents = ref<EventModel[]>([])
 
 // 1. Events Logic (only for filters state)
 const { 
@@ -205,7 +234,7 @@ const openEditDialog = (eventId: number) => {
 
 
 
-const handleEventClickFromGantt = (event: App.Models.Event) => {
+const handleEventClickFromGantt = (event: EventModel) => {
     selectedEvent.value = event
 }
 
@@ -223,7 +252,7 @@ const handleDateClickFromYear = (date: Date) => {
     })
 }
 
-const handleEventHoverFromGantt = (event: App.Models.Event | null, position: { x: number, y: number }) => {
+const handleEventHoverFromGantt = (event: EventModel | null, position: { x: number, y: number }) => {
     hoveredEvent.value = event
     hoverPosition.value = position
 }
@@ -344,6 +373,14 @@ const toggleSearch = () => {
 //         })
 //     }
 // })
+
+const scopeButtons: { value: 'all' | 'current' | 'before' | 'middle' | 'after'; label: string }[] = [
+    { value: 'all', label: '全体' },
+    { value: 'current', label: '現在' },
+    { value: 'before', label: '前' },
+    { value: 'middle', label: '中' },
+    { value: 'after', label: '後' }
+]
 
 const activeScope = ref<'all'|'current'|'before'|'middle'|'after'>('current')
 
@@ -642,21 +679,15 @@ function handleScopeButtonClick(
                     v-if="viewMode === 'timeGridDay'"
                     class="flex gap-1 text-xs flex-shrink-0 overflow-hidden"
                 >
-                    <Button v-for="s in [
-                        ['all','全体'],
-                        ['current','現在'],
-                        ['before','前'],
-                        ['middle','中'],
-                        ['after','後']
-                        ]"
-                        :key="s[0]"
-                        @click="handleScopeButtonClick(s[0])"
+                    <Button v-for="s in scopeButtons"
+                        :key="s.value"
+                        @click="handleScopeButtonClick(s.value)"
                         class="px-2 py-1 rounded transition whitespace-nowrap"
-                        :class="activeScope === s[0]
+                        :class="activeScope === s.value
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                     >
-                        {{ s[1] }}
+                        {{ s.label }}
                     </Button>
                 </div>
             </div>

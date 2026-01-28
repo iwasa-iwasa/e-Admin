@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 
+#[TypeScript]
 class Survey extends Model
 {
     use HasFactory;
@@ -14,6 +15,24 @@ class Survey extends Model
     /**
      * The table associated with the model.
      *
+     * @property int $survey_id
+     * @property string $title
+     * @property string|null $description
+     * @property int $created_by
+     * @property string|null $deadline_date
+     * @property string|null $deadline_time
+     * @property boolean $is_active
+     * @property boolean $is_deleted
+     * @property string|null $deleted_at
+     * @property int|null $version
+     * @property string|null $created_at
+     * @property string|null $updated_at
+     * @property-read \App\Models\User|null $creator
+     * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\SurveyQuestion[] $questions
+     * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\SurveyResponse[] $responses
+     * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $designatedUsers
+     * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $respondents
+     * 
      * @var string
      */
     protected $table = 'surveys';

@@ -236,11 +236,33 @@ const COLORS = [
 
 
 
+// App.Modelsの代替定義
+interface SurveyModel {
+    survey_id: number;
+    title: string;
+    description: string | null;
+    deadline_date: string | null;
+    deadline_time: string | null;
+    deadline?: string | null; // アクセサまたは互換性のため
+    is_active: boolean;
+    created_at: string | null;
+    creator?: { name: string };
+    questions?: any[];
+}
+
+interface SurveyResponseModel {
+    response_id: number;
+    respondent_id: number;
+    submitted_at: string | null;
+    respondent?: { name: string };
+    answers?: Record<string | number, any> | any[];
+}
+
 const { toast } = useToast();
 
 const props = defineProps<{
-    survey?: App.Models.Survey;
-    responses?: App.Models.SurveyResponse[];
+    survey?: SurveyModel;
+    responses?: SurveyResponseModel[];
     statistics?: any;
     unansweredUsers?: Array<{id: number, name: string}>;
     errors?: any;
@@ -285,8 +307,8 @@ const surveyData = computed(() => {
         return {
             id: String(props.survey.survey_id),
             title: props.survey.title,
-            description: props.survey.description,
-            deadline: props.survey.deadline,
+            description: props.survey.description || "",
+            deadline: props.survey.deadline || props.survey.deadline_date || "",
             createdBy: props.survey.creator?.name || "不明",
             createdAt: props.survey.created_at,
             status: props.survey.is_active ? "active" : "closed",
@@ -402,7 +424,7 @@ const getMultipleChoiceValues = (value: any): string[] => {
 // 質問ごとの回答を取得
 const getQuestionResponses = (
     question: any,
-    responses: App.Models.SurveyResponse[]
+    responses: SurveyResponseModel[]
 ) => {
     const questionResponses: any[] = [];
 
