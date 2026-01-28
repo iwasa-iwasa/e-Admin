@@ -20,9 +20,9 @@ enum EventImportance: string
     public function busyWeight(): int
     {
         return match($this) {
-            self::HIGH => 3,
-            self::MEDIUM => 2,
-            self::LOW => 1,
+            self::HIGH => 3,    // 重要: 3倍
+            self::MEDIUM => 2,  // 中: 2倍
+            self::LOW => 1,     // 低: 1倍（ベース）
         };
     }
 }

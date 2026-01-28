@@ -11,12 +11,15 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
+import RecurrenceEditScopeDialog from '@/components/RecurrenceEditScopeDialog.vue'
 import ScrollArea from './ui/scroll-area/ScrollArea.vue'
 import { CATEGORY_COLORS, CATEGORY_LABELS, GENRE_FILTERS, getEventColor, CATEGORY_ITEMS } from '@/constants/calendar'
 
 const DayViewGantt = defineAsyncComponent(() => import('@/components/DayViewGantt.vue'))
 const WeekSummaryView = defineAsyncComponent(() => import('@/components/WeekSummaryView.vue'))
 const YearHeatmapView = defineAsyncComponent(() => import('@/components/YearHeatmapView.vue'))
+
+import { useUnifiedEvents } from '@/composables/calendar/useUnifiedEvents'
 
 // Composables
 import { useCalendarEvents } from '@/composables/calendar/useCalendarEvents'
@@ -25,16 +28,18 @@ import { useCalendarDom } from '@/composables/calendar/useCalendarDom'
 import { useFullCalendarConfig } from '@/composables/calendar/useFullCalendarConfig'
 
 const props = defineProps<{
-    events: App.Models.Event[]
+    events: App.Models.ExpandedEvent[]
     showBackButton?: boolean
     filteredMemberId?: number | null
 }>()
 
 const fullCalendar = ref<any>(null)
-const selectedEvent = ref<App.Models.Event | null>(null)
+const selectedEvent = ref<App.Models.ExpandedEvent | null>(null)
 const isEventFormOpen = ref(false)
 const editingEvent = ref<App.Models.Event | null>(null)
-const currentEvents = ref<App.Models.Event[]>([])
+const currentEvents = ref<App.Models.ExpandedEvent[]>([])
+const showRecurrenceEditDialog = ref(false)
+const pendingEditEvent = ref<App.Models.ExpandedEvent | null>(null)
 
 // 1. Events Logic (only for filters state)
 const { 
@@ -96,13 +101,58 @@ const handleEventClick = (info: any) => {
     }
 }
 
-const handleEventsFetched = (events: any[]) => {
-    currentEvents.value = events
-}
+// 統一データソース（Single Source of Truth）
+const dateRange = computed(() => {
+    if (viewMode.value === 'timeGridDay') {
+        const start = new Date(currentDayViewDate.value)
+        start.setDate(start.getDate() - 7)
+        const end = new Date(currentDayViewDate.value)
+        end.setDate(end.getDate() + 8)
+        return {
+            start: start.toISOString().split('T')[0],
+            end: end.toISOString().split('T')[0]
+        }
+    } else if (viewMode.value === 'timeGridWeek') {
+        const start = new Date(currentWeekStart.value)
+        start.setDate(start.getDate() - 14)
+        const end = new Date(currentWeekStart.value)
+        end.setDate(end.getDate() + 21)
+        return {
+            start: start.toISOString().split('T')[0],
+            end: end.toISOString().split('T')[0]
+        }
+    } else if (viewMode.value === 'yearView') {
+        return {
+            start: `${currentYearViewYear.value}-01-01`,
+            end: `${currentYearViewYear.value}-12-31`
+        }
+    } else {
+        // FullCalendar (月表示) - 現在の月の前後1ヶ月
+        const today = new Date()
+        const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const end = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+        return {
+            start: start.toISOString().split('T')[0],
+            end: end.toISOString().split('T')[0]
+        }
+    }
+})
+
+const eventFilters = computed(() => ({
+    searchQuery: searchQuery.value,
+    genreFilter: genreFilter.value,
+    memberId: props.filteredMemberId
+}))
+
+const { events: unifiedEventData, loading, refresh: refreshUnifiedEvents } = useUnifiedEvents(
+    computed(() => dateRange.value.start),
+    computed(() => dateRange.value.end),
+    computed(() => eventFilters.value)
+)
 
 // 4. FullCalendar Config
 const { calendarOptions } = useFullCalendarConfig(
-    fetchEvents,
+    () => unifiedEventData.value,
     computed(() => props.filteredMemberId),
     viewMode,
     fullCalendar,
@@ -116,96 +166,10 @@ const { calendarOptions } = useFullCalendarConfig(
         moreLinkClassNames: getMoreLinkClassNames,
         moreLinkDidMount: handleMoreLinkDidMount,
         dayCellDidMount: handleDayCellDidMount
-    },
-    handleEventsFetched
+    }
 )
 
-// Manual Fetch Logic for Custom Views (Day/Week)
-const fetchEventsForCustomView = async () => {
-    let startStr = ''
-    let endStr = ''
-
-    if (viewMode.value === 'timeGridDay') {
-        // Pre-fetch: current day +/- 1 week
-        const start = new Date(currentDayViewDate.value)
-        start.setDate(start.getDate() - 7)
-        start.setHours(0, 0, 0, 0)
-        startStr = start.toISOString().split('T')[0]
-        
-        const end = new Date(currentDayViewDate.value)
-        end.setDate(end.getDate() + 8) // +1 (next day) +7 (buffer)
-        endStr = end.toISOString().split('T')[0]
-    } else if (viewMode.value === 'timeGridWeek') {
-        // Pre-fetch: current week +/- 2 weeks
-        const start = new Date(currentWeekStart.value)
-        start.setDate(start.getDate() - 14)
-        start.setHours(0, 0, 0, 0)
-        startStr = start.toISOString().split('T')[0]
-        
-        const end = new Date(currentWeekStart.value)
-        end.setDate(end.getDate() + 21) // +7 (next week start) + 14 (buffer)
-        endStr = end.toISOString().split('T')[0]
-    } else {
-        return // FullCalendar handles other views
-    }
-
-    const events = await fetchEvents(startStr, endStr, props.filteredMemberId)
-    currentEvents.value = events
-}
-
-// Watch filters to refetch events
-watch([searchQuery, genreFilter, () => props.filteredMemberId], () => {
-    const api = fullCalendar.value?.getApi()
-    if (api && (viewMode.value === 'dayGridMonth' || viewMode.value === 'multiMonthYear')) {
-        api.refetchEvents()
-    } else {
-        fetchEventsForCustomView()
-    }
-})
-
-// Watch view navigation for custom views
-watch([viewMode, currentDayViewDate, currentWeekStart], () => {
-    fetchEventsForCustomView()
-}, { immediate: true })
-
-// Watch dark mode for theme changes
-watch(isDark, () => {
-    const api = fullCalendar.value?.getApi()
-    if (api && (viewMode.value === 'dayGridMonth' || viewMode.value === 'multiMonthYear')) {
-        api.refetchEvents()
-    } else {
-        fetchEventsForCustomView()
-    }
-})
-
-const displayCategoryItems = computed(() => {
-    return CATEGORY_ITEMS.map(item => ({
-        ...item,
-        color: getEventColor(item.label)
-    }))
-})
-
-// Helper Methods
-const openCreateDialog = () => {
-    editingEvent.value = null
-    isEventFormOpen.value = true
-}
-
-const openEditDialog = (eventId: number) => {
-    // Try to find in current events first
-    let event = currentEvents.value.find(e => e.event_id === eventId)
-    
-    // If not found (might be outside range, but user clicked edit on something visible? should correspond to currentEvents)
-    if (event) {
-        selectedEvent.value = null
-        editingEvent.value = event
-        isEventFormOpen.value = true
-    }
-}
-
-
-
-const handleEventClickFromGantt = (event: App.Models.Event) => {
+const handleEventClickFromGantt = (event: App.Models.ExpandedEvent) => {
     selectedEvent.value = event
 }
 
@@ -223,7 +187,7 @@ const handleDateClickFromYear = (date: Date) => {
     })
 }
 
-const handleEventHoverFromGantt = (event: App.Models.Event | null, position: { x: number, y: number }) => {
+const handleEventHoverFromGantt = (event: App.Models.ExpandedEvent | null, position: { x: number, y: number }) => {
     hoveredEvent.value = event
     hoverPosition.value = position
 }
@@ -235,7 +199,7 @@ const highlightId = computed(() => (page.props as any).highlight)
 watch(highlightId, (id) => {
     if (id) {
         nextTick(() => {
-            const event = currentEvents.value.find(e => e.event_id === id)
+            const event = currentEventsComputed.value.find(e => e.event_id === id)
             if (event) {
                 selectedEvent.value = event
             }
@@ -288,12 +252,7 @@ onMounted(() => {
     
     // Inertia success listener
     removeInertiaListener = router.on('success', () => {
-        const api = fullCalendar.value?.getApi()
-        if (api && (viewMode.value === 'dayGridMonth' || viewMode.value === 'multiMonthYear')) {
-            api.refetchEvents()
-        } else {
-            fetchEventsForCustomView()
-        }
+        refreshUnifiedEvents()
     })
     
     // ResizeObserver for header
@@ -356,6 +315,35 @@ function handleScopeButtonClick(
 ) {
   activeScope.value = scope
 }
+
+// 不足している関数を追加
+const displayCategoryItems = computed(() => CATEGORY_ITEMS)
+
+const openCreateDialog = () => {
+    editingEvent.value = null
+    isEventFormOpen.value = true
+}
+
+const openEditDialog = (eventId: number) => {
+    const event = unifiedEventData.value.find(e => e.event_id === eventId)
+    if (event) {
+        editingEvent.value = event as any
+        isEventFormOpen.value = true
+    }
+}
+
+const handleEventUpdate = () => {
+    refreshUnifiedEvents()
+    isEventFormOpen.value = false
+    editingEvent.value = null
+}
+
+const handleRecurrenceEditScope = () => {
+    showRecurrenceEditDialog.value = false
+    pendingEditEvent.value = null
+}
+
+const currentEventsComputed = computed(() => unifiedEventData.value)
 
 
 </script>
@@ -590,11 +578,12 @@ function handleScopeButtonClick(
                     :year="currentYearViewYear"
                     :member-id="filteredMemberId"
                     :calendar-id="1"
+                    :events="unifiedEventData"
                     @date-click="handleDateClickFromYear"
                 />
                 <DayViewGantt
                     v-else-if="viewMode === 'timeGridDay'"
-                    :events="currentEvents"
+                    :events="unifiedEventData"
                     :current-date="currentDayViewDate"
                     @event-click="handleEventClickFromGantt"
                     @event-hover="handleEventHoverFromGantt"
@@ -604,7 +593,7 @@ function handleScopeButtonClick(
                 />
                 <WeekSummaryView
                     v-else-if="viewMode === 'timeGridWeek'"
-                    :events="currentEvents"
+                    :events="unifiedEventData"
                     :week-start="currentWeekStart"
                     @event-click="handleEventClickFromGantt"
                     @date-click="handleDateClickFromWeek"
@@ -643,11 +632,11 @@ function handleScopeButtonClick(
                     class="flex gap-1 text-xs flex-shrink-0 overflow-hidden"
                 >
                     <Button v-for="s in [
-                        ['all','全体'],
-                        ['current','現在'],
-                        ['before','前'],
-                        ['middle','中'],
-                        ['after','後']
+                        ['all','全体'] as const,
+                        ['current','現在'] as const,
+                        ['before','前'] as const,
+                        ['middle','中'] as const,
+                        ['after','後'] as const
                         ]"
                         :key="s[0]"
                         @click="handleScopeButtonClick(s[0])"
@@ -675,6 +664,15 @@ function handleScopeButtonClick(
             @update:open="isEventFormOpen = $event"
             :event="editingEvent"
             :readonly="editingEvent ? !canEditEvent(editingEvent) : false"
+            @event-updated="handleEventUpdate"
+        />
+
+        <RecurrenceEditScopeDialog
+            :open="showRecurrenceEditDialog"
+            @update:open="showRecurrenceEditDialog = $event"
+            @scope-selected="handleRecurrenceEditScope"
+            :event-title="pendingEditEvent?.title || ''"
+            :event-date="pendingEditEvent?.start_date || ''"
         />
 
         <!-- ホバー表示 -->

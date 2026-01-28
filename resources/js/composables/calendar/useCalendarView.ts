@@ -12,7 +12,8 @@ export function useCalendarView(fullCalendarRef: any) {
     const getWeekStart = (date: Date) => {
         const d = new Date(date)
         const day = d.getDay()
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+        // 日曜開始に統一
+        const diff = d.getDate() - day
         return new Date(d.setDate(diff))
     }
 
@@ -204,7 +205,7 @@ export function useCalendarView(fullCalendarRef: any) {
     }
 
     const handleDateClick = (info: any) => {
-        const clickedDate = new Date(info.date)
+        const clickedDate = new Date(info.dateStr || info.date)
 
         if (viewMode.value === 'dayGridMonth') {
             currentWeekStart.value = getWeekStart(clickedDate)

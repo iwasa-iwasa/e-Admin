@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 const props = defineProps<{ 
-    event: App.Models.Event | null,
+    event: App.Models.ExpandedEvent | null,
     open: boolean 
 }>()
 const emit = defineEmits(['update:open', 'edit'])
@@ -58,7 +58,7 @@ const canEdit = computed(() => {
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
-const lastDeletedEvent = ref<App.Models.Event | null>(null)
+const lastDeletedEvent = ref<App.Models.ExpandedEvent | null>(null)
 
 const handleEditOrView = () => {
   emit('edit')
@@ -210,14 +210,24 @@ const recurrenceText = computed(() => {
       <div class="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
         <div class="flex items-start gap-4">
           <CalendarIcon class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
-          <div>
-            <p class="font-semibold dark:text-gray-100">{{ displayDate }}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-300">{{ displayTime }}</p>
-            <p v-if="event.recurrence" class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1 mt-1">
-              <Repeat class="h-4 w-4" />
-              {{ recurrenceText }}
-            </p>
+            <div>
+              <p class="font-semibold dark:text-gray-100">{{ displayDate }}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-300">{{ displayTime }}</p>
+              <p v-if="event.recurrence" class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1 mt-1">
+                <Repeat class="h-4 w-4" />
+                {{ recurrenceText }}
+              </p>
+            </div>
+          <div class="flex items-start gap-4">
+          <Clock class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+            <div>
+              <p class="text-sm text-gray-500 dark:text-gray-400">締切</p>
+              <p class="text-gray-700 dark:text-gray-200">{{ formatDate(event.end_date) }}{{ event.end_time && !event.is_all_day ? ' ' + formatTime(event.end_time) : '' }}</p>
+            </div>
           </div>
+          
+        <!-- ここに繰り返しであれば繰り返しのアイコンと繰り返しという文字表示 -->
+        
         </div>
 
         <div v-if="event.creator" class="flex items-start gap-4">
@@ -230,8 +240,7 @@ const recurrenceText = computed(() => {
               </Badge>
             </div>
           </div>
-        </div>
-
+        
         <div v-if="event.participants && event.participants.length > 0" class="flex items-start gap-4">
           <Users class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div>
@@ -243,6 +252,8 @@ const recurrenceText = computed(() => {
             </div>
           </div>
         </div>
+      </div>
+
 
         <div v-if="event.location" class="flex items-start gap-4">
           <MapPin class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
@@ -293,13 +304,6 @@ const recurrenceText = computed(() => {
           </div>
         </div>
 
-        <div class="flex items-start gap-4">
-          <Clock class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
-          <div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">締切</p>
-            <p class="text-gray-700 dark:text-gray-200">{{ formatDate(event.end_date) }}{{ event.end_time && !event.is_all_day ? ' ' + formatTime(event.end_time) : '' }}</p>
-          </div>
-        </div>
 
         <div v-if="event.description" class="flex items-start gap-4">
           <Info class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />

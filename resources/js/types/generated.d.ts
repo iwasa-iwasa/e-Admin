@@ -231,8 +231,33 @@ declare namespace App.Models {
     updated_at: string | null;
     deleted_at: string | null;
     // リレーション
+    creator?: App.Models.User;
     participants?: App.Models.User[];
     recurrence?: EventRecurrence;
+    attachments?: EventAttachment[];
+  };
+
+  // 展開済みイベント型を追加
+  export type ExpandedEvent = {
+    id: number;
+    event_id: number;
+    originalEventId?: number | null;
+    isRecurring: boolean;
+    title: string;
+    description: string | null;
+    location: string | null;
+    url: string | null;
+    category: App.Enums.EventCategory;
+    importance: App.Enums.EventImportance;
+    start_date: string;
+    start_time: string | null;
+    end_date: string;
+    end_time: string | null;
+    is_all_day: boolean;
+    created_by: number;
+    progress?: number;
+    creator?: App.Models.User;
+    participants?: App.Models.User[];
     attachments?: EventAttachment[];
   };
 
