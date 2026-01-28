@@ -28,20 +28,40 @@ defineOptions({
   layout: AuthenticatedLayout,
 })
 
+// App.Models.Reminderの代替定義
+interface ReminderModel {
+  reminder_id: number
+  user_id: number
+  title: string
+  description: string | null
+  deadline_date: string | null
+  deadline_time: string | null
+  completed: boolean
+  is_deleted: boolean
+  tags?: Array<{ tag_id: number; tag_name: string }>
+  created_at: string | null
+  updated_at: string | null
+  // 互換性のためのプロパティ
+  category: string
+  completed_at: string | null
+  deleted_at: string | null
+  deadline?: string // 文字列のdeadline
+}
+
 const props = defineProps<{
-  reminders: App.Models.Reminder[]
+  reminders: ReminderModel[]
 }>()
 
 const page = usePage()
 const isCreateDialogOpen = ref(false)
 const isCreatingNew = ref(false)
-const selectedReminder = ref<App.Models.Reminder | null>(null)
+const selectedReminder = ref<ReminderModel | null>(null)
 const showCompleted = ref(false)
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
-const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
-const reminderToDelete = ref<App.Models.Reminder | null>(null)
+const lastDeletedReminder = ref<ReminderModel | null>(null)
+const reminderToDelete = ref<ReminderModel | null>(null)
 const selectedActiveItems = ref<Set<number>>(new Set())
 const selectedCompletedItems = ref<Set<number>>(new Set())
 const searchQuery = ref('')
@@ -123,7 +143,7 @@ const handleUndoDelete = () => {
   })
 }
 
-const handleDeletePermanently = (reminder: App.Models.Reminder) => {
+const handleDeletePermanently = (reminder: ReminderModel) => {
   reminderToDelete.value = reminder
 }
 
@@ -146,7 +166,7 @@ const confirmPermanentDelete = () => {
   
   reminderToDelete.value = null
 }
-const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {
+const handleUpdateReminder = (updatedReminder: ReminderModel) => {
   // メッセージ表示はReminderDetailDialog内で処理される
   if (isCreatingNew.value) {
     isCreatingNew.value = false

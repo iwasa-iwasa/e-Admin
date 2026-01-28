@@ -21,17 +21,42 @@ import {
 } from '@/components/ui/alert-dialog'
 import ReminderDetailDialog from './ReminderDetailDialog.vue'
 
+interface Tag {
+  tag_id: number;
+  tag_name: string;
+}
+
+export interface ReminderModel {
+  id?: number;
+  reminder_id: number;
+  user_id: number;
+  title: string;
+  description: string | null;
+  deadline?: string;
+  deadline_date: string | null;
+  deadline_time: string | null;
+  category: string;
+  completed: boolean;
+  completed_at: string | null;
+  is_deleted: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  deleted_at: string | null;
+  completedAt?: string;
+  tags?: Tag[];
+}
+
 const props = defineProps<{
-  reminders: App.Models.Reminder[]
+  reminders: ReminderModel[]
 }>()
 
-const selectedReminder = ref<any>(null)
+const selectedReminder = ref<ReminderModel | null>(null)
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
-const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
+const lastDeletedReminder = ref<ReminderModel | null>(null)
 const showCompleted = ref(false)
-const reminderToDelete = ref<App.Models.Reminder | null>(null)
+const reminderToDelete = ref<ReminderModel | null>(null)
 const headerRef = ref<HTMLElement | null>(null)
 const headerStage = ref<'normal' | 'compact' | 'titleCut' | 'iconOnly'>('normal')
 let resizeObserver: ResizeObserver | null = null
@@ -146,7 +171,7 @@ const handleUndoDelete = () => {
     }
   })
 }
-const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
+const handleUpdateReminder = (updatedReminder: ReminderModel) => {}
 const isCreateDialogOpen = ref(false)
 
 const handleCloseDetailDialog = (isOpen: boolean, completed?: boolean) => {
@@ -164,7 +189,7 @@ const handleCloseCreateDialog = (isOpen: boolean) => {
   isCreateDialogOpen.value = isOpen
 }
 
-const handlePermanentDelete = (reminder: App.Models.Reminder) => {
+const handlePermanentDelete = (reminder: ReminderModel) => {
   reminderToDelete.value = reminder
 }
 
