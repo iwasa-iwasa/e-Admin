@@ -215,12 +215,12 @@ const getPriorityInfo = (p: Priority) => {
 
 const getColorInfo = (c: string) => {
     const colorMap: Record<string, { bg: string; label: string; color: string }> = {
-        blue: { bg: "bg-blue-100", label: "会議", color: "#3b82f6" },
-        green: { bg: "bg-green-100", label: "業務", color: "#66bb6a" },
-        yellow: { bg: "bg-yellow-100", label: "来客", color: "#ffa726" },
-        purple: { bg: "bg-purple-100", label: "出張", color: "#9575cd" },
-        pink: { bg: "bg-pink-100", label: "休暇", color: "#f06292" },
-        gray: { bg: "bg-gray-100", label: "その他", color: "#9e9e9e" },
+        blue: { bg: "bg-blue-100 dark:bg-blue-500", label: "会議", color: "#3b82f6" },
+        green: { bg: "bg-green-100 dark:bg-green-500", label: "業務", color: "#66bb6a" },
+        yellow: { bg: "bg-yellow-100 dark:bg-yellow-500", label: "来客", color: "#ffa726" },
+        purple: { bg: "bg-purple-100 dark:bg-purple-500", label: "出張", color: "#9575cd" },
+        pink: { bg: "bg-pink-100 dark:bg-pink-500", label: "休暇", color: "#f06292" },
+        gray: { bg: "bg-gray-100 dark:bg-gray-500", label: "その他", color: "#9e9e9e" },
     };
     return colorMap[c] || colorMap.yellow;
 };
@@ -354,7 +354,7 @@ watch(() => props.open, (isOpen) => {
 
                         <div class="space-y-2">
                             <Label>ピン留め</Label>
-                            <label class="flex items-center gap-2 h-10 px-3 border rounded-md cursor-pointer hover:bg-gray-50">
+                            <label class="flex items-center gap-2 h-10 px-3 border dark:border-gray-700 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                                 <input 
                                     type="checkbox" 
                                     v-model="form.pinned"
@@ -373,35 +373,35 @@ watch(() => props.open, (isOpen) => {
                                 利用可能メンバー: {{ props.teamMembers?.length || 0 }}人
                             </div>
                         </div>
-                        <div class="text-xs text-gray-600 p-2 bg-gray-50 rounded border">
+                        <div class="text-xs text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
                             💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
                         </div>
-                        <div v-if="selectedParticipants.length === (props.teamMembers?.length || 0)" class="text-xs text-blue-600 p-2 bg-blue-50 rounded border">
+                        <div v-if="selectedParticipants.length === (props.teamMembers?.length || 0)" class="text-xs text-blue-600 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-900/30 rounded border dark:border-blue-800">
                             全員が選択されています。
                         </div>
-                        <div v-else class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
-                            <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                        <div v-else class="max-h-[200px] overflow-y-auto border dark:border-gray-700 rounded p-2 space-y-1">
+                            <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
                                 <input 
                                     type="checkbox" 
                                     :checked="selectedParticipants.find(p => p.id === member.id) !== undefined"
                                     @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
-                                    class="h-4 w-4 text-blue-600 rounded border-gray-300"
+                                    class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                                 />
-                                <span class="text-xs">{{ member.name }}</span>
+                                <span class="text-xs dark:text-gray-300">{{ member.name }}</span>
                             </label>
                         </div>
-                        <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border border-purple-300 rounded-md bg-purple-50">
-                            <div class="text-xs font-medium text-purple-800 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
+                        <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/20">
+                            <div class="text-xs font-medium text-purple-800 dark:text-purple-300 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
                             <div class="flex flex-wrap gap-2">
                                 <Badge v-for="participant in selectedParticipants" :key="participant.id" variant="secondary" class="gap-2 px-3 py-1">
                                     {{ participant.name }}
-                                    <button @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 rounded-full p-0.5">
+                                    <button @click="handleRemoveParticipant(participant.id)" class="hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-0.5">
                                         <X class="h-3 w-3" />
                                     </button>
                                 </Badge>
                             </div>
                         </div>
-                        <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 text-blue-700 text-sm">
+                        <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm">
                             🌐 全体公開: 全員に表示されます
                         </div>
                     </div>

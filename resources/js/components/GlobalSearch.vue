@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { Search, Calendar, StickyNote, Clock, BarChart3, Trash2, Filter, X } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
@@ -104,6 +104,24 @@ const performSearch = async () => {
     }
 }
 
+
+const handleNotificationUpdate = () => {
+    if (searchQuery.value.length >= 2) {
+        performSearch()
+    } else {
+        recentItemsLoaded.value = false
+        loadRecentItems()
+    }
+}
+
+onMounted(() => {
+    window.addEventListener('notification-updated', handleNotificationUpdate)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('notification-updated', handleNotificationUpdate)
+})
+
 const loadUsersOnce = async () => {
     if (allUsers.value.length > 0) return
     try {
@@ -204,7 +222,7 @@ const activeFilterCount = computed(() => {
 })
 
 const activeFiltersText = computed(() => {
-    const filters = []
+    const filters: string[] = []
     if (selectedTypes.value.length > 0 && selectedTypes.value[0] !== '_all_') {
         const labels = selectedTypes.value.map(t => typeOptions.find(o => o.value === t)?.label).join(', ')
         filters.push(`種類: ${labels}`)

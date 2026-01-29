@@ -5,9 +5,9 @@ import { GENRE_FILTERS, getEventColor } from '@/constants/calendar'
 
 export function useCalendarEvents() {
     const searchQuery = ref('')
-    const genreFilter = ref(GENRE_FILTERS.ALL)
+    const genreFilter = ref<string>(GENRE_FILTERS.ALL)
 
-    const canEditEvent = (event: App.Models.Event) => {
+    const canEditEvent = (event: App.Models.ExpandedEvent | App.Models.Event) => {
         const page = usePage()
         const currentUserId = (page.props as any).auth?.user?.id ?? null
         const teamMembers = (page.props as any).teamMembers || []
@@ -35,23 +35,14 @@ export function useCalendarEvents() {
                 }
             })
 
-            const events = response.data
-            // Apply mapping similar to useFullCalendarConfig but returning raw objects mostly
-            // actually useFullCalendarConfig maps them for FullCalendar. 
-            // Here we return raw events but we might need to map them if we want consistency?
-            // SharedCalendar uses them for DayViewGantt/WeekSummaryView which expect App.Models.Event
-            // The API returns JSON structure of App.Models.Event so it should be fine.
-            // However, useFullCalendarConfig does some extra mapping (e.g. extending duration for allDay).
-            // Let's return the raw response data as it matches App.Models.Event structure.
-
-            // Note: The components might expect some fields like 'start'/'end' as strings or Dates?
-            // DayViewGantt uses event.start_date, end_date (string YYYY-MM-DD) or start_time etc.
-            // The API returns these fields.
-
-            return events
+            return response.data as App.Models.ExpandedEvent[]
         } catch (error) {
             console.error('Error fetching events:', error)
-            return []
+            // ユーザーにエラーを通知
+            if (error instanceof Error) {
+                throw new Error(`イベントの取得に失敗しました: ${error.message}`)
+            }
+            throw new Error('イベントの取得に失敗しました')
         }
     }
 

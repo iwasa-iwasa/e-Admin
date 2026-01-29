@@ -54,6 +54,9 @@ class Event extends Model
         'end_time',
         'is_all_day',
         'created_by',
+        'parent_event_id',
+        'original_date',
+        'is_exception',
     ];
 
     /**

@@ -96,7 +96,7 @@ const updateField = (field: keyof Question, val: any) => {
             </div>
 
             <!-- Configuration: Rating/Scale -->
-            <div v-if="isRating" class="grid grid-cols-1 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div v-if="isRating" class="grid grid-cols-1 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div class="space-y-2">
                     <Label>星の数（3〜15）</Label>
                     <Input
@@ -109,7 +109,7 @@ const updateField = (field: keyof Question, val: any) => {
                 </div>
             </div>
 
-            <div v-if="isScale" class="grid grid-cols-1 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div v-if="isScale" class="grid grid-cols-1 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div class="space-y-2">
                     <Label>段階数（2〜10）</Label>
                     <Input

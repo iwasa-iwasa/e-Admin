@@ -20,12 +20,37 @@ defineOptions({
   layout: AuthenticatedLayout,
 })
 
+// App.Modelsの代替定義
 type Priority = 'high' | 'medium' | 'low'
 
+interface UserModel {
+  id: number
+  name: string
+  profile_photo_url?: string
+}
+
+interface SharedNoteModel {
+  note_id: number
+  title: string
+  content: string | null
+  author_id: number
+  color: string
+  priority: string
+  deadline_date: string | null
+  deadline_time: string | null
+  is_deleted: boolean
+  created_at: string | null
+  updated_at: string | null
+  author?: UserModel
+  participants?: UserModel[]
+  tags: Array<{ tag_id: number; tag_name: string }>
+  is_pinned?: boolean
+}
+
 const props = defineProps<{
-  notes: (App.Models.SharedNote & { is_pinned: boolean })[]
+  notes: SharedNoteModel[]
   totalUsers: number
-  teamMembers: App.Models.User[]
+  teamMembers: UserModel[]
   allTags: string[]
   filteredMemberId?: number | null
 }>()
@@ -45,7 +70,7 @@ const clearFilter = () => {
   })
 }
 
-const isAllUsers = (participants: App.Models.User[] | undefined) => {
+const isAllUsers = (participants: UserModel[] | undefined) => {
   return participants && participants.length === props.totalUsers
 }
 
@@ -57,7 +82,7 @@ const canEditParticipants = computed(() => {
   return selectedNote.value.participants?.some(p => p.id === currentUserId.value) || false
 })
 
-const selectedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null>(props.notes.length > 0 ? props.notes[0] : null)
+const selectedNote = ref<SharedNoteModel | null>(props.notes.length > 0 ? props.notes[0] : null)
 const searchQuery = ref('')
 const filterAuthor = ref('all')
 const filterPinned = ref('all')
@@ -72,7 +97,7 @@ const editedDeadline = ref('')
 const editedPriority = ref<Priority>(selectedNote.value?.priority as Priority || 'medium')
 const editedColor = ref(selectedNote.value?.color || 'yellow')
 const editedTags = ref<string[]>(selectedNote.value?.tags.map(tag => tag.tag_name) || [])
-const editedParticipants = ref<App.Models.User[]>(selectedNote.value?.participants || [])
+const editedParticipants = ref<UserModel[]>(selectedNote.value?.participants || [])
 const participantSelectValue = ref<string | null>(null)
 const tagInput = ref('')
 const showTagSuggestions = ref(false)
@@ -84,7 +109,7 @@ const saveMessage = ref('')
 // メッセージとUndoロジック
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
-const lastDeletedNote = ref<(App.Models.SharedNote & { is_pinned: boolean }) | null>(null)
+const lastDeletedNote = ref<SharedNoteModel | null>(null)
 
 onMounted(() => {
   const url = new URL(window.location.href)
@@ -270,7 +295,7 @@ const authors = computed<string[]>(() =>
   )
 )
 
-const handleSelectNote = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
+const handleSelectNote = (note: SharedNoteModel) => {
   selectedNote.value = note
 }
 
@@ -407,7 +432,7 @@ const scrollToNote = (noteId: string) => {
   }, 100)
 }
 
-const togglePin = (note: App.Models.SharedNote & { is_pinned: boolean }) => {
+const togglePin = (note: SharedNoteModel) => {
     const noteId = note.note_id
     if (note.is_pinned) {
         router.delete(route('notes.unpin', noteId), {
@@ -695,11 +720,11 @@ const isHelpOpen = ref(false)
                       全員
                     </Badge>
                     <template v-else>
-                      <Badge v-for="participant in note.participants.slice(0, 2)" :key="participant.id" variant="outline" class="text-xs text-blue-600 border-blue-300">
+                      <Badge v-for="participant in (note.participants || []).slice(0, 2)" :key="participant.id" variant="outline" class="text-xs text-blue-600 border-blue-300">
                         {{ participant.name }}
                       </Badge>
-                      <Badge v-if="note.participants.length > 2" variant="outline" class="text-xs text-blue-600 border-blue-300">
-                        +{{ note.participants.length - 2 }}
+                      <Badge v-if="(note.participants?.length || 0) > 2" variant="outline" class="text-xs text-blue-600 border-blue-300">
+                        +{{ (note.participants?.length || 0) - 2 }}
                       </Badge>
                     </template>
                   </div>
@@ -929,7 +954,7 @@ const isHelpOpen = ref(false)
       </div>
       </div>
     </Card>
-    <CreateNoteDialog :open="isCreateDialogOpen" @update:open="isCreateDialogOpen = $event" :teamMembers="props.teamMembers" />
+    <CreateNoteDialog :open="isCreateDialogOpen" @update:open="isCreateDialogOpen = $event" :team-members="(props.teamMembers as any[])" />
     
     <!-- 下部メッセージ -->
     <Transition

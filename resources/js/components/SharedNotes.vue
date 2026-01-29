@@ -15,14 +15,44 @@ type SortKey = 'priority' | 'deadline'
 type SortDirection = 'asc' | 'desc'
 type HeaderStage = 'normal' | 'compact' | 'iconOnly'
 
+export interface SharedNoteModel {
+  note_id: number
+  title: string
+  content: string | null
+  author_id: number
+  author?: UserModel // Changed to optional UserModel
+  participants?: { id: number; name: string }[]
+  deadline_date: string | null
+  deadline_time: string | null
+  color: string
+  priority: string // Changed to string for compatibility
+  is_pinned?: boolean
+  progress?: number | null
+  tags?: { tag_id: number; tag_name: string }[]
+  created_at: string | null
+  updated_at: string | null
+  is_deleted: boolean
+  linked_event_id?: number | null
+}
+
+export interface Note extends SharedNoteModel {
+  // content is already in SharedNoteModel as nullable
+}
+
+export interface UserModel {
+  id: number
+  name: string
+  profile_photo_url?: string
+}
+
 const props = defineProps<{
-  notes: App.Models.SharedNote[]
+  notes: SharedNoteModel[]
   totalUsers?: number
-  teamMembers?: App.Models.User[]
+  teamMembers?: UserModel[]
 }>()
 
 // 修正1: props直接変更を防ぐためローカルstateを作成
-const localNotes = ref<App.Models.SharedNote[]>([...props.notes])
+const localNotes = ref<SharedNoteModel[]>([...props.notes])
 
 // propsの変更を監視してlocalNotesを同期
 watch(() => props.notes, (newNotes) => {
@@ -30,14 +60,14 @@ watch(() => props.notes, (newNotes) => {
 }, { deep: true })
 
 // 修正4: any型を排除し型安全性を強化
-const isAllUsers = (participants: App.Models.User[]) => {
+const isAllUsers = (participants: UserModel[]) => {
   return participants && props.totalUsers && participants.length === props.totalUsers
 }
 
 const sortKey = ref<SortKey>('priority')
 const sortDirection = ref<SortDirection>('desc')
 const isCreateDialogOpen = ref(false)
-const selectedNote = ref<App.Models.SharedNote | null>(null)
+const selectedNote = ref<SharedNoteModel | null>(null)
 const saveMessage = ref('')
 const messageTimer = ref<number | null>(null)
 const skipDialogOpen = ref(false)
@@ -103,19 +133,19 @@ watch(() => localNotes.value, (newNotes) => {
 }, { deep: true })
 
 // 修正1: localNotesを更新するように変更
-const handleUpdateNote = (updatedNote: App.Models.SharedNote) => {
+const handleUpdateNote = (updatedNote: SharedNoteModel) => {
   const index = localNotes.value.findIndex(note => note.note_id === updatedNote.note_id)
   if (index !== -1) {
     localNotes.value[index] = updatedNote
   }
 }
 
-const handleSaveNote = (updatedNote: App.Models.SharedNote) => {
+const handleSaveNote = (updatedNote: SharedNoteModel) => {
   handleUpdateNote(updatedNote)
 }
 
 // 修正1: localNotesを更新するように変更
-const handleDeleteNote = (deletedNote: App.Models.SharedNote) => {
+const handleDeleteNote = (deletedNote: SharedNoteModel) => {
   const index = localNotes.value.findIndex(note => note.note_id === deletedNote.note_id)
   if (index !== -1) {
     localNotes.value.splice(index, 1)
@@ -123,7 +153,7 @@ const handleDeleteNote = (deletedNote: App.Models.SharedNote) => {
   selectedNote.value = null
 }
 
-const handleTogglePin = (note: App.Models.SharedNote) => {
+const handleTogglePin = (note: SharedNoteModel) => {
   const noteId = note.note_id
   if (note.is_pinned) {
     router.delete(route('notes.unpin', noteId), {
@@ -139,6 +169,12 @@ const handleTogglePin = (note: App.Models.SharedNote) => {
     })
   }
 }
+
+const handleCreateSave = () => {
+  router.reload({ only: ['notes'] })
+  window.dispatchEvent(new CustomEvent('notification-updated'))
+}
+
 
 const showMessage = (message: string) => {
   if (messageTimer.value) {
@@ -183,7 +219,7 @@ const getColorClass = (color: string) => {
   return colorMap[color] || 'bg-gray-100 border-gray-300 dark:bg-card dark:border-gray-600';
 }
 
-const isOverdue = (deadlineDate: string | null, deadlineTime: string | null) => {
+const isOverdue = (deadlineDate: string | null | undefined, deadlineTime: string | null | undefined) => {
   if (!deadlineDate) return false
   const now = new Date()
   const deadline = new Date(deadlineDate)
@@ -215,7 +251,7 @@ const handleSortClick = (key: SortKey) => {
 }
 
 // 修正5: 日付フォーマット処理をcomputed関数に切り出し
-const formatDeadlineDate = (deadlineDate: string | null, deadlineTime: string | null) => {
+const formatDeadlineDate = (deadlineDate: string | null | undefined, deadlineTime: string | null | undefined) => {
   if (!deadlineDate) return ''
   const formatted = new Date(deadlineDate).toLocaleDateString('ja-JP', { 
     year: 'numeric', 
@@ -257,21 +293,7 @@ const sortedNotes = computed(() => {
   })
 })
 
-export interface SharedNote {
-  note_id: number
-  title: string
-  author: { name: string }
-  participants?: { id: number; name: string }[]
-  deadline_date?: string | null
-  deadline_time?: string | null
-  color: string
-  priority: 'high' | 'medium' | 'low'
-  is_pinned?: boolean
-}
 
-export interface Note extends SharedNote {
-  content: string
-}
 
 
 </script>
@@ -469,8 +491,9 @@ export interface Note extends SharedNote {
     </CardContent>
     <CreateNoteDialog
       :open="isCreateDialogOpen"
+      :team-members="(teamMembers as any[])"
       @update:open="isCreateDialogOpen = $event"
-      :teamMembers="teamMembers"
+      @save="handleCreateSave"
     />
     <NoteDetailDialog
       :note="selectedNote"

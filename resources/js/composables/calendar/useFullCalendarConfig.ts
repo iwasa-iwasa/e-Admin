@@ -4,11 +4,11 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import multiMonthPlugin from '@fullcalendar/multimonth'
-import rrulePlugin from '@fullcalendar/rrule'
+// RRULE削除済み
 import { getEventColor } from '@/constants/calendar'
 
 export function useFullCalendarConfig(
-    fetchEvents: (start: string, end: string, memberId?: number | null) => Promise<any[]>,
+    getUnifiedEvents: () => any[],
     memberId: Ref<number | null | undefined>,
     viewMode: Ref<string>,
     fullCalendarRef: Ref<any>,
@@ -22,11 +22,10 @@ export function useFullCalendarConfig(
         moreLinkClassNames: (arg: any) => string[]
         moreLinkDidMount: (arg: any) => void
         dayCellDidMount: (arg: any) => void
-    },
-    onEventsFetched?: (events: any[]) => void
+    }
 ) {
     const calendarOptions = computed((): CalendarOptions => ({
-        plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin, rrulePlugin],
+        plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, multiMonthPlugin], // RRULEプラグイン削除済み
         initialView: viewMode.value,
         headerToolbar: false,
         contentHeight: 'auto',
@@ -41,49 +40,47 @@ export function useFullCalendarConfig(
             if (aImportance !== '重要' && bImportance === '重要') return 1
             return 0
         },
-        events: async (info, successCallback, failureCallback) => {
+        events: (info, successCallback, failureCallback) => {
             try {
-                const events = await fetchEvents(
-                    info.startStr,
-                    info.endStr,
-                    memberId.value
-                )
+                const allEvents = getUnifiedEvents()
+                
+                // 期間フィルタリング
+                const startDate = new Date(info.startStr)
+                const endDate = new Date(info.endStr)
+                
+                const filteredEvents = allEvents.filter(event => {
+                    const eventStart = new Date(event.start_date || event.start)
+                    const eventEnd = new Date(event.end_date || event.end)
+                    return eventStart < endDate && eventEnd >= startDate
+                })
 
-                const mappedEvents = events.map((event: any) => {
+                const mappedEvents = filteredEvents.map((event: any) => {
                     const commonProps = {
-                        id: String(event.event_id),
+                        id: String(event.id),
                         title: event.title,
                         backgroundColor: categoryColorGetter(event.category),
                         borderColor: event.importance === '重要' ? '#dc2626' : categoryColorGetter(event.category),
                         extendedProps: event,
-                        allDay: event.is_all_day,
-                        classNames: event.importance === '重要' ? ['important-event'] : [],
+                        allDay: event.isAllDay || event.is_all_day,
+                        classNames: (event.importance === '重要' || event.isImportant) ? ['important-event'] : [],
                     };
 
-                    if (event.rrule) {
-                        return {
-                            ...commonProps,
-                            rrule: event.rrule,
-                            duration: event.duration,
-                        };
-                    }
-
-                    if (event.is_all_day) {
-                        // event.end_dateの翌日を計算
-                        const [year, month, day] = event.end_date.split('T')[0].split('-').map(Number);
+                    if (event.isAllDay || event.is_all_day) {
+                        const endDateStr = event.end || event.end_date
+                        const [year, month, day] = endDateStr.split('T')[0].split('-').map(Number);
                         const endDate = new Date(Date.UTC(year, month - 1, day));
                         endDate.setUTCDate(endDate.getUTCDate() + 1);
                         const endStr = endDate.toISOString().split('T')[0];
 
                         return {
                             ...commonProps,
-                            start: event.start_date.split('T')[0],
+                            start: (event.start || event.start_date).split('T')[0],
                             end: endStr,
                         };
                     }
 
-                    const startDateStr = event.start_date.split('T')[0];
-                    const endDateStr = event.end_date.split('T')[0];
+                    const startDateStr = (event.start || event.start_date).split('T')[0];
+                    const endDateStr = (event.end || event.end_date).split('T')[0];
                     const startTime = event.start_time || '00:00:00';
                     const endTime = event.end_time || '00:00:00';
 
@@ -100,15 +97,9 @@ export function useFullCalendarConfig(
                     };
                 })
 
-                if (onEventsFetched) {
-                    // Extract the original events from extendedProps to update various view states
-                    const originalEvents = mappedEvents.map((e: any) => e.extendedProps)
-                    onEventsFetched(originalEvents)
-                }
-
                 successCallback(mappedEvents)
             } catch (error) {
-                console.error('Error fetching events:', error)
+                console.error('Error processing unified events:', error)
                 failureCallback(error as Error)
             }
         },
