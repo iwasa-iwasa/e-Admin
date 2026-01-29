@@ -2,12 +2,13 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
-import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2, Filter, Search } from 'lucide-vue-next'
+import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2, Filter, Search, HelpCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardTitle, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -60,6 +61,7 @@ const filterDateFrom = ref('')
 const filterDateTo = ref('')
 const showFilterDialog = ref(false)
 const searchInputRef = ref<HTMLInputElement | null>(null)
+const isHelpOpen = ref(false)
 
 // 計算プロパティ
 const uniqueCreators = computed(() => {
@@ -362,6 +364,16 @@ onMounted(() => {
             </Button>
             <Trash2 class="h-6 w-6 text-muted-foreground" />
             <CardTitle class="text-2xl">ゴミ箱</CardTitle>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+              @click="isHelpOpen = true"
+              title="ゴミ箱の使い方"
+            >
+              <HelpCircle class="h-5 w-5" />
+            </Button>
           </div>
           
           <!-- 検索・フィルター・アクションボタン -->
@@ -698,5 +710,51 @@ onMounted(() => {
         </div>
       </div>
     </Transition>
+    
+    <!-- ヘルプダイアログ -->
+    <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">
+      <DialogContent class="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>ゴミ箱の使い方</DialogTitle>
+          <DialogDescription>
+            ゴミ箱の基本的な使い方をご説明します。
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-semibold mb-2">基本操作</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 削除されたアイテムが一覧で表示されます</li>
+              <li>• 「元に戻す」ボタンでアイテムを復元できます</li>
+              <li>• 「完全に削除」ボタンでアイテムを永久に削除できます</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-2">一括操作</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• チェックボックスで複数のアイテムを選択できます</li>
+              <li>• 「選択を復元」ボタンで選択したアイテムを一括復元</li>
+              <li>• 「選択を完全削除」ボタンで選択したアイテムを一括削除</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-2">フィルター機能</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• フィルターボタンで種類、作成者、削除日で絞り込み</li>
+              <li>• 検索ボックスでタイトルや説明で検索</li>
+              <li>• 種類バッジでアイテムの種類を一目で確認</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-2">注意事項</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 完全に削除したアイテムは復元できません</li>
+              <li>• アイテムは一定期間後に自動的に完全削除されます</li>
+              <li>• 復元したアイテムは元の場所に戻ります</li>
+            </ul>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

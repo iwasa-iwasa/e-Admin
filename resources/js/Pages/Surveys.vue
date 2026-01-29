@@ -17,6 +17,7 @@ import {
     Trash2,
     CheckCircle,
     Undo2,
+    HelpCircle,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CreateSurveyDialog from "@/components/CreateSurveyDialog.vue";
 
@@ -107,7 +115,8 @@ const saveMessage = ref('');
 const messageType = ref<'success' | 'delete'>('success');
 const messageTimer = ref<number | null>(null);
 const lastDeletedSurvey = ref<SurveyWithResponse | null>(null);
-const scrollAreaRef = ref<any>(null); // UIコンポーネント参照はanyのままが安全な場合もあるが、型があればbetter
+const scrollAreaRef = ref<any>(null);
+const isHelpOpen = ref(false);
 
 // メッセージ表示関数
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
@@ -319,6 +328,16 @@ onMounted(() => {
                         </Button>
                         <BarChart3 class="h-6 w-6 text-purple-700" />
                         <CardTitle>アンケート管理</CardTitle>
+                        
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                            @click="isHelpOpen = true"
+                            title="アンケート管理の使い方"
+                        >
+                            <HelpCircle class="h-5 w-5" />
+                        </Button>
                     </div>
                     
                     <!-- 検索・作成ボタン -->
@@ -631,5 +650,46 @@ onMounted(() => {
                 </div>
             </div>
         </Transition>
+        
+        <!-- ヘルプダイアログ -->
+        <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">
+            <DialogContent class="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>アンケート管理の使い方</DialogTitle>
+                    <DialogDescription>
+                        アンケート管理の基本的な使い方をご説明します。
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="font-semibold mb-2">基本操作</h3>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li>• 新規作成ボタンでアンケートを作成できます</li>
+                            <li>• アンケートタイトルをクリックして結果を表示できます</li>
+                            <li>• 編集ボタンでアンケートを修正できます</li>
+                            <li>• 回答ボタンでアンケートに回答できます</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">タブ切り替え</h3>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li>• すべてタブで全アンケートを表示</li>
+                            <li>• 回答受付中タブでアクティブなアンケートを表示</li>
+                            <li>• 未回答タブで回答が必要なアンケートを表示</li>
+                            <li>• 終了済みタブで期限切れや非アクティブなアンケートを表示</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">状態表示</h3>
+                        <ul class="space-y-1 text-sm text-gray-600">
+                            <li>• 期限切れのアンケートは赤いバッジで表示されます</li>
+                            <li>• 期限間近のアンケートは黄色いバッジで表示されます</li>
+                            <li>• 回答済み・未回答のメンバーが一目で確認できます</li>
+                            <li>• 削除したアンケートは「元に戻す」で復元できます</li>
+                        </ul>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

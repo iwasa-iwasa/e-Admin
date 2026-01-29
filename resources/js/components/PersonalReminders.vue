@@ -271,8 +271,8 @@ onUnmounted(() => {
   <Card class="h-full flex flex-col relative">
     <CardHeader>
       <div ref="headerRef" class="flex items-center gap-2">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
+        <div class="flex justify-start items-center gap-2 flex-1 min-w-0">
+          <div class="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
             <Bell class="h-6 w-6 text-green-700 flex-shrink-0" />
             <Transition
               enter-active-class="transition-all duration-300 ease-in-out"
@@ -282,7 +282,7 @@ onUnmounted(() => {
               leave-from-class="opacity-100 scale-100"
               leave-to-class="opacity-0 scale-95"
             >
-              <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
+              <CardTitle v-if="headerStage !== 'iconOnly'" class="min-w-0 transition-all duration-200 whitespace-nowrap"
                 :class="[headerStage !== 'normal' && 'truncate',
                 {
                   'max-w-full': headerStage === 'normal',
@@ -294,18 +294,16 @@ onUnmounted(() => {
                 個人リマインダー
               </CardTitle>
             </Transition>
-            
           </div>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
-            @click="isHelpOpen = true"
-            title="個人リマインダーの使い方"
-          >
-            <HelpCircle class="h-5 w-5" />
-          </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+          @click="isHelpOpen = true"
+          title="個人リマインダーの使い方"
+        >
+          <HelpCircle class="h-5 w-5" />
+        </Button>
         </div>
         
         <div class="flex items-center gap-2 flex-shrink-0 ml-auto">

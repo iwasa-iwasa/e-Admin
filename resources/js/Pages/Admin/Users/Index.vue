@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Users, History, Loader2, ChevronDown } from 'lucide-vue-next'
+import { Users, History, Loader2, ChevronDown, HelpCircle } from 'lucide-vue-next'
 import axios from 'axios'
 
 defineOptions({
@@ -55,6 +55,7 @@ const pendingRoleUpdate = ref<{ user: App.Data.UserData, role: 'member' | 'admin
 const isLogDialogOpen = ref(false)
 const userLogs = ref<any[]>([])
 const isLoadingLogs = ref(false)
+const isHelpOpen = ref(false)
 
 // Methods
 const openDeactivateDialog = (user: App.Data.UserData) => {
@@ -132,6 +133,16 @@ const formatDate = (dateString: string) => {
         <div class="flex items-center gap-2">
            <Users class="h-6 w-6 text-blue-700" />
            <CardTitle>ユーザー管理</CardTitle>
+           
+           <Button
+             variant="ghost"
+             size="icon"
+             class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+             @click="isHelpOpen = true"
+             title="ユーザー管理の使い方"
+           >
+             <HelpCircle class="h-5 w-5" />
+           </Button>
         </div>
       </CardHeader>
       <CardContent class="flex-1 overflow-auto p-0">
@@ -291,6 +302,45 @@ const formatDate = (dateString: string) => {
                     </TableRow>
                 </TableBody>
             </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+    
+    <!-- ヘルプダイアログ -->
+    <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">
+      <DialogContent class="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>ユーザー管理の使い方</DialogTitle>
+          <DialogDescription>
+            ユーザー管理の基本的な使い方をご説明します。
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-semibold mb-2">基本操作</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• ユーザー一覧で全ユーザーの情報を確認できます</li>
+              <li>• 履歴ボタンでユーザーの変更履歴を表示できます</li>
+              <li>• ユーザーの有効化・無効化ができます</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-2">権限管理</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 役割バッジをクリックしてユーザーの権限を変更できます</li>
+              <li>• member：一般ユーザー権限</li>
+              <li>• admin：管理者権限（ユーザー管理可能）</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-2">ユーザー管理</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 無効化ボタンでユーザーを無効化できます（理由必須）</li>
+              <li>• 無効化されたユーザーは有効化ボタンで復元できます</li>
+              <li>• 管理者ユーザーは無効化できません</li>
+              <li>• 変更履歴で過去の操作を確認できます</li>
+            </ul>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
