@@ -271,16 +271,6 @@ onUnmounted(() => {
   <Card class="h-full flex flex-col relative">
     <CardHeader>
       <div ref="headerRef" class="flex items-center gap-2">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
-            <Bell class="h-6 w-6 text-green-700 flex-shrink-0" />
-            <Transition
-              enter-active-class="transition-all duration-300 ease-in-out"
-              leave-active-class="transition-all duration-300 ease-in-out"
-              enter-from-class="opacity-0 scale-95"
-              enter-to-class="opacity-100 scale-100"
-              leave-from-class="opacity-100 scale-100"
-              leave-to-class="opacity-0 scale-95"
         <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
           <Bell class="h-6 w-6 text-green-700 flex-shrink-0" />
           <Transition
@@ -291,30 +281,18 @@ onUnmounted(() => {
             leave-from-class="opacity-100 scale-100"
             leave-to-class="opacity-0 scale-95"
           >
-            <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
-              v-if="headerStage !== 'iconOnly'"
+            <CardTitle v-if="headerStage !== 'iconOnly'" class="min-w-0 transition-all duration-200 whitespace-nowrap"
               :class="[headerStage !== 'normal' && 'truncate',
               {
                 'max-w-full': headerStage === 'normal',
                 'max-w-[220px]': headerStage === 'titleCut',
+                'max-w-[140px]': headerStage === 'iconOnly',
               },
               ]"
             >
-              <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
-                :class="[headerStage !== 'normal' && 'truncate',
-                {
-                  'max-w-full': headerStage === 'normal',
-                  'max-w-[220px]': headerStage === 'titleCut',
-                  'max-w-[140px]': headerStage === 'iconOnly',
-                },
-                ]"
-              >
-                個人リマインダー
-              </CardTitle>
-            </Transition>
-            
-          </div>
-          
+              個人リマインダー
+            </CardTitle>
+          </Transition>
           <Button
             variant="ghost"
             size="icon"
@@ -325,6 +303,7 @@ onUnmounted(() => {
             <HelpCircle class="h-5 w-5" />
           </Button>
         </div>
+        
         
         <div class="flex items-center gap-2 flex-shrink-0 ml-auto">
           <div class="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
