@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
-import { Bell, Plus, Clock, ArrowLeft, Trash2, CheckCircle, Undo2, Search, Tag } from 'lucide-vue-next'
+import { Bell, Plus, Clock, ArrowLeft, Trash2, CheckCircle, Undo2, Search, Tag, HelpCircle } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +20,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
@@ -297,6 +304,7 @@ const handleBulkRestore = () => {
 }
 
 const showBulkDeleteDialog = ref(false)
+const isHelpOpen = ref(false)
 
 const handleBulkDelete = () => {
   showBulkDeleteDialog.value = true
@@ -331,6 +339,16 @@ const confirmBulkDelete = () => {
             </Button>
             <Bell class="h-6 w-6 text-green-700" />
             <CardTitle>個人リマインダー</CardTitle>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+              @click="isHelpOpen = true"
+              title="個人リマインダーの使い方"
+            >
+              <HelpCircle class="h-5 w-5" />
+            </Button>
           </div>
           <div class="flex items-center gap-2">
             <Select v-model="filterTag">
@@ -635,5 +653,44 @@ const confirmBulkDelete = () => {
         </div>
       </div>
     </Transition>
+    
+    <!-- ヘルプダイアログ -->
+    <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">
+      <DialogContent class="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>個人リマインダーの使い方</DialogTitle>
+          <DialogDescription>
+            個人リマインダーの基本的な使い方をご説明します。
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-semibold mb-2">基本操作</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 新規作成ボタンでリマインダーを作成できます</li>
+              <li>• チェックボックスをクリックして完了/未完了を切り替えられます</li>
+              <li>• リマインダーをクリックして詳細を表示・編集できます</li>
+              <li>• 完全に削除ボタンでリマインダーを削除できます</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-2">表示切り替え</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 未完了タブで進行中のリマインダーを表示</li>
+              <li>• 完了済タブで完了したリマインダーを表示</li>
+              <li>• 各タブの数字で件数を確認できます</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold mb-2">期限管理</h3>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 期限切れのリマインダーは赤い枠で表示されます</li>
+              <li>• 期限間近（3日以内）のリマインダーは黄色い枠で表示されます</li>
+              <li>• 完了したリマインダーは「元に戻す」で復元できます</li>
+            </ul>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

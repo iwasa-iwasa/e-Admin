@@ -3,12 +3,13 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick, defineAsyncComp
 import { usePage, router } from '@inertiajs/vue3'
 import { isDark } from '@/composables/useAppDark'
 import FullCalendar from '@fullcalendar/vue3'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp, ChevronDown, Filter } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, ArrowLeft, Search, ChevronUp, ChevronDown, Filter, HelpCircle } from 'lucide-vue-next'
 import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import ScrollArea from './ui/scroll-area/ScrollArea.vue'
@@ -346,6 +347,7 @@ const toggleSearch = () => {
 // })
 
 const activeScope = ref<'all'|'current'|'before'|'middle'|'after'>('current')
+const isHelpOpen = ref(false)
 
 function handleSelectScope(scope: 'before' | 'middle' | 'after') {
   activeScope.value = scope
@@ -364,30 +366,41 @@ function handleScopeButtonClick(
     <Card class="flex flex-col h-full overflow-hidden min-w-0">
         <div ref="headerRef" class="p-4">
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2 min-w-0 flex-shrink-0" 
-                    :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" 
-                    @click="!showBackButton && router.visit('/calendar')">
-                    <Button v-if="showBackButton" variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
-                        <ArrowLeft class="h-5 w-5" />
-                    </Button>
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex items-center gap-2 min-w-0 flex-shrink-0" 
+                        :class="!showBackButton ? 'cursor-pointer hover:opacity-70 transition-opacity' : ''" 
+                        @click="!showBackButton && router.visit('/calendar')">
+                        <Button v-if="showBackButton" variant="ghost" size="icon" @click="router.get('/')" class="mr-1">
+                            <ArrowLeft class="h-5 w-5" />
+                        </Button>
 
-                    <CalendarIcon class="h-6 w-6 text-blue-700 flex-shrink-0" />
+                        <CalendarIcon class="h-6 w-6 text-blue-700 flex-shrink-0" />
 
-                    <Transition
-                        enter-active-class="transition-all duration-300 ease-in-out"
-                        leave-active-class="transition-all duration-300 ease-in-out"
-                        enter-from-class="opacity-0 scale-95"
-                        enter-to-class="opacity-100 scale-100"
-                        leave-from-class="opacity-100 scale-100"
-                        leave-to-class="opacity-0 scale-95"
-                    >
-                        <CardTitle 
-                            v-if="layoutMode === 'default' || layoutMode === 'filter-small' || layoutMode === 'search-icon'"
-                            class="transition-all duration-300 ease-in-out whitespace-nowrap"
+                        <Transition
+                            enter-active-class="transition-all duration-300 ease-in-out"
+                            leave-active-class="transition-all duration-300 ease-in-out"
+                            enter-from-class="opacity-0 scale-95"
+                            enter-to-class="opacity-100 scale-100"
+                            leave-from-class="opacity-100 scale-100"
+                            leave-to-class="opacity-0 scale-95"
                         >
-                            共有カレンダー
-                        </CardTitle>
-                    </Transition>
+                            <CardTitle 
+                                v-if="layoutMode === 'default' || layoutMode === 'filter-small' || layoutMode === 'search-icon'"
+                                class="transition-all duration-300 ease-in-out whitespace-nowrap flex items-center gap-2"
+                            >
+                                共有カレンダー
+                            </CardTitle>
+                        </Transition>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                        @click="isHelpOpen = true"
+                        title="共有カレンダーの使い方"
+                        >
+                        <HelpCircle class="h-5 w-5" />
+                    </Button>
                 </div>
                 <!-- 右上操作エリア -->
                 <div class="flex items-center gap-2 min-w-0 flex-shrink">
@@ -740,6 +753,40 @@ function handleScopeButtonClick(
             </div>
         </Transition>
     </Card>
+
+    <!-- ヘルプダイアログ -->
+    <Dialog v-model:open="isHelpOpen">
+        <DialogContent class="max-w-2xl">
+            <DialogHeader>
+                <DialogTitle>共有カレンダーの使い方</DialogTitle>
+            </DialogHeader>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-semibold mb-2">基本操作</h3>
+                    <ul class="space-y-1 text-sm text-gray-600">
+                        <li>• 表示切替：年/月/週/日の4つの表示モードを選択できます</li>
+                        <li>• ナビゲーション：←→ボタンで期間を移動、「今日」ボタンで現在日時に戻ります</li>
+                        <li>• イベント作成：「新規作成」ボタンから予定を追加できます</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-2">フィルター機能</h3>
+                    <ul class="space-y-1 text-sm text-gray-600">
+                        <li>• ジャンル絞り込み：フィルターアイコンから特定カテゴリのみ表示</li>
+                        <li>• 検索：タイトルや内容でイベントを検索できます</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-2">イベント操作</h3>
+                    <ul class="space-y-1 text-sm text-gray-600">
+                        <li>• クリック：イベントをクリックすると詳細が表示されます</li>
+                        <li>• 編集：詳細画面から編集・削除が可能です</li>
+                        <li>• 重要度：重要なイベントは赤枠で強調表示されます</li>
+                    </ul>
+                </div>
+            </div>
+        </DialogContent>
+    </Dialog>
 </template>
 
 <style>
