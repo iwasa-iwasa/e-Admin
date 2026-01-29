@@ -27,7 +27,10 @@ class EventService
             $query->where(function($q) use ($memberId) {
                 $q->whereHas('participants', function ($subQ) use ($memberId) {
                     $subQ->where('users.id', $memberId);
-                })->orWhere('created_by', $memberId);
+                })
+                ->orWhere('created_by', $memberId)
+                // 参加者がいない予定（全員が確認できる）も含める
+                ->orWhereDoesntHave('participants');
             });
         }
         
@@ -55,64 +58,192 @@ class EventService
     }
     
     /**
-     * Expand recurring event into individual occurrences.
+     * 繰り返し予定を個別の発生（occurrence）に展開する
+     * 
+     * 【2フェーズ設計の絶対原則】
+     * Phase 1（スキップ）: rangeStart より前の発生は計算のみで追加しない
+     * Phase 2（展開）: rangeStart 以上 rangeEnd 以下の発生を追加する
+     * 
+     * 【過去の致命的バグ】
+     * - rangeEnd を理由にスキップフェーズで break していた
+     * - 「次の発生が範囲外」を理由に展開を止めていた
+     * - 月次・年次で最初の1件追加後に即終了していた
+     * 
+     * 【正しい設計】
+     * - rangeStart/rangeEnd は「いつから/どこまで追加するか」の境界
+     * - ループ終了条件ではない
+     * - current が rangeEnd を超えたら終了（次の発生ではなく現在の発生で判定）
      */
     private function expandRecurringEvent(Event $event, string $startDate, string $endDate): array
     {
         $occurrences = [];
         $recurrence = $event->recurrence;
         
-        $rangeStart = Carbon::parse($startDate);
-        $rangeEnd = Carbon::parse($endDate);
+        if (!$recurrence) {
+            return $occurrences;
+        }
         
-        $current = Carbon::parse($event->start_date);
+        // 日付を Carbon インスタンスに変換（時刻は 00:00:00）
+        $rangeStart = Carbon::parse($startDate)->startOfDay();
+        $rangeEnd = Carbon::parse($endDate)->startOfDay();
+        $recurrenceEnd = $recurrence->end_date ? Carbon::parse($recurrence->end_date)->startOfDay() : null;
+        
+        // 繰り返しの起点
+        $current = Carbon::parse($event->start_date)->startOfDay();
         $interval = $recurrence->recurrence_interval;
-        $maxOccurrences = 1000; // 無限ループ防止
-        $count = 0;
+        $originalDay = $current->day;
+        $originalMonth = $current->month;
         
-        // 例外日付を取得
+        // 例外日（個別編集された日付）を取得
         $exceptionDates = $this->getExceptionDates($event->event_id);
         
-        while ($current <= $rangeEnd && $count < $maxOccurrences) {
-            // 終了日が設定されている場合はチェック
-            if ($recurrence->end_date && $current > Carbon::parse($recurrence->end_date)) {
+        \Log::info('[expandRecurringEvent] Start', [
+            'event_id' => $event->event_id,
+            'type' => $recurrence->recurrence_type,
+            'interval' => $interval,
+            'start_date' => $event->start_date,
+            'rangeStart' => $rangeStart->toDateString(),
+            'rangeEnd' => $rangeEnd->toDateString(),
+            'recurrenceEnd' => $recurrenceEnd?->toDateString(),
+            'by_day' => $recurrence->by_day ?? [],
+        ]);
+        
+        // ===== Phase 1: スキップフェーズ =====
+        // rangeStart より前の発生は計算のみ（追加しない）
+        $skipIterations = 0;
+        $maxSkipIterations = 10000;
+        
+        while ($current->lt($rangeStart) && $skipIterations < $maxSkipIterations) {
+            // 繰り返し終了日を超えたら空配列を返す
+            if ($recurrenceEnd && $current->gt($recurrenceEnd)) {
+                \Log::info('[expandRecurringEvent] Skip phase: exceeded recurrence end', [
+                    'current' => $current->toDateString(),
+                ]);
+                return $occurrences;
+            }
+            
+            $current = $this->advanceRecurrence($current, $recurrence->recurrence_type, $interval, $originalDay, $originalMonth, $recurrence->by_day ?? []);
+            $skipIterations++;
+        }
+        
+        if ($skipIterations >= $maxSkipIterations) {
+            \Log::error('[expandRecurringEvent] Infinite loop in skip phase', [
+                'event_id' => $event->event_id,
+                'skipIterations' => $skipIterations,
+            ]);
+            return $occurrences;
+        }
+        
+        \Log::info('[expandRecurringEvent] Skip phase completed', [
+            'skipIterations' => $skipIterations,
+            'current' => $current->toDateString(),
+        ]);
+        
+        // ===== Phase 2: 展開フェーズ =====
+        // current が rangeEnd 以下の間、発生を収集
+        $expandIterations = 0;
+        $maxExpandIterations = 1000;
+        
+        while ($current->lte($rangeEnd) && $expandIterations < $maxExpandIterations) {
+            // 繰り返し終了日チェック
+            if ($recurrenceEnd && $current->gt($recurrenceEnd)) {
+                \Log::info('[expandRecurringEvent] Expand phase: exceeded recurrence end', [
+                    'current' => $current->toDateString(),
+                ]);
                 break;
             }
             
-            // 期間内かつ例外日でない場合のみ追加
-            if ($current >= $rangeStart && !in_array($current->toDateString(), $exceptionDates)) {
-                $occurrenceId = $event->event_id * 10000 + $current->format('md');
-                $occurrence = $this->formatExpandedEvent($event, $occurrenceId, $current->toDateString());
+            // 例外日でなければ追加
+            $dateStr = $current->toDateString();
+            if (!in_array($dateStr, $exceptionDates)) {
+                $occurrenceId = $this->generateOccurrenceId($event->event_id, $current);
+                $occurrence = $this->formatExpandedEvent($event, $occurrenceId, $dateStr);
                 $occurrence['originalEventId'] = $event->event_id;
                 $occurrence['isRecurring'] = true;
                 $occurrences[] = $occurrence;
             }
             
-            switch ($recurrence->recurrence_type) {
-                case 'daily':
-                    $current->addDays($interval);
-                    break;
-                case 'weekly':
-                    if (!empty($recurrence->by_day)) {
-                        $current = $this->getNextWeeklyOccurrence($current, $recurrence->by_day, $interval);
-                    } else {
-                        $current->addWeeks($interval);
-                    }
-                    break;
-                case 'monthly':
-                    $current->addMonths($interval);
-                    break;
-                case 'yearly':
-                    $current->addYears($interval);
-                    break;
-                default:
-                    break 2;
-            }
-            
-            $count++;
+            // 次の発生へ進める
+            $current = $this->advanceRecurrence($current, $recurrence->recurrence_type, $interval, $originalDay, $originalMonth, $recurrence->by_day ?? []);
+            $expandIterations++;
+        }
+        
+        \Log::info('[expandRecurringEvent] Completed', [
+            'event_id' => $event->event_id,
+            'expandIterations' => $expandIterations,
+            'occurrences_count' => count($occurrences),
+        ]);
+        
+        if ($expandIterations >= $maxExpandIterations) {
+            \Log::warning('[expandRecurringEvent] Reached max iterations', [
+                'event_id' => $event->event_id,
+            ]);
         }
         
         return $occurrences;
+    }
+    
+    /**
+     * 繰り返しを次の発生に進める
+     * 
+     * 【重要】
+     * - 必ず新しい Carbon インスタンスを返す（copy() 使用）
+     * - 月次・年次は日付ずれルールを適用（Google Calendar 方式）
+     * - 週次は by_day が空の場合も考慮
+     */
+    private function advanceRecurrence(Carbon $current, string $type, int $interval, int $originalDay, int $originalMonth, array $byDay): Carbon
+    {
+        $next = $current->copy();
+        
+        switch ($type) {
+            case 'daily':
+                $next->addDays($interval);
+                break;
+                
+            case 'weekly':
+                if (!empty($byDay)) {
+                    // 曜日指定あり：次の対象曜日を探す
+                    $next = $this->getNextWeeklyOccurrence($next, $byDay, $interval);
+                } else {
+                    // 曜日指定なし：単純に interval 週間進める
+                    $next->addWeeks($interval);
+                }
+                break;
+                
+            case 'monthly':
+                // 月を interval 分進める
+                $year = $next->year;
+                $month = $next->month + $interval;
+                while ($month > 12) {
+                    $year++;
+                    $month -= 12;
+                }
+                // 日付ずれルール：その月に存在しない日は月末に繰り下げ
+                $daysInMonth = Carbon::create($year, $month, 1)->daysInMonth;
+                $day = min($originalDay, $daysInMonth);
+                $next->setDate($year, $month, $day);
+                break;
+                
+            case 'yearly':
+                // 年を interval 分進める
+                $year = $next->year + $interval;
+                // 日付ずれルール：うるう年の 2/29 などを考慮
+                $daysInMonth = Carbon::create($year, $originalMonth, 1)->daysInMonth;
+                $day = min($originalDay, $daysInMonth);
+                $next->setDate($year, $originalMonth, $day);
+                break;
+        }
+        
+        return $next;
+    }
+    
+    /**
+     * Generate unique occurrence ID.
+     */
+    private function generateOccurrenceId(int $eventId, Carbon $date): int
+    {
+        $dateStr = $date->format('Ymd');
+        return abs(crc32($eventId . '-' . $dateStr));
     }
     
     /**
@@ -120,11 +251,12 @@ class EventService
      */
     private function getNextWeeklyOccurrence(Carbon $current, array $byDay, int $interval): Carbon
     {
+        $next = $current->copy();
         $dayMap = ['SU' => 0, 'MO' => 1, 'TU' => 2, 'WE' => 3, 'TH' => 4, 'FR' => 5, 'SA' => 6];
         $targetDays = array_map(fn($day) => $dayMap[$day] ?? 1, $byDay);
         sort($targetDays);
         
-        $currentDayOfWeek = $current->dayOfWeek;
+        $currentDayOfWeek = $next->dayOfWeek;
         $nextDay = null;
         
         foreach ($targetDays as $day) {
@@ -134,13 +266,18 @@ class EventService
             }
         }
         
-        if ($nextDay === null) {
-            $current->addWeeks($interval);
-            $nextDay = $targetDays[0];
+        if ($nextDay !== null) {
+            $daysToAdd = $nextDay - $currentDayOfWeek;
+            $next->addDays($daysToAdd);
+        } else {
+            $daysUntilNextWeek = (7 - $currentDayOfWeek) + $targetDays[0];
+            $next->addDays($daysUntilNextWeek);
+            if ($interval > 1) {
+                $next->addWeeks($interval - 1);
+            }
         }
         
-        $current->startOfWeek()->addDays($nextDay);
-        return $current;
+        return $next;
     }
     
     /**
@@ -169,7 +306,10 @@ class EventService
             $query->where(function($q) use ($memberId) {
                 $q->whereHas('participants', function ($subQ) use ($memberId) {
                     $subQ->where('users.id', $memberId);
-                })->orWhere('created_by', $memberId);
+                })
+                ->orWhere('created_by', $memberId)
+                // 参加者がいない予定（全員が確認できる）も含める
+                ->orWhereDoesntHave('participants');
             });
         }
         

@@ -133,6 +133,7 @@ const memberEventMap = computed<Map<number, DisplayEvent[]>>(() => {
         map.get(p.id)!.push(event)
       })
     }
+    // 参加者なし予定は各メンバーには追加しない
   }
 
   return map
@@ -406,11 +407,33 @@ const summaryByMember = computed(() => {
   })
 })
 
-const totalSummary = computed(() => {
+// 参加者なし予定の時間帯別集計
+const noParticipantSummary = computed(() => {
+  const scope = scopeRanges.value
+  const events = normalizedEvents.value
+    .filter(e => !e.original.participants || e.original.participants.length === 0)
+    .filter(e => e.end > scope.start && e.start < scope.end)
+
+  const count = (s: number, e: number) =>
+    events.filter(ev => ev.end > s && ev.start < e)
+
   return {
-    beforeEvents: summaryByMember.value.flatMap(r => r.before),
-    middleEvents: summaryByMember.value.flatMap(r => r.middle),
-    afterEvents: summaryByMember.value.flatMap(r => r.after),
+    before: count(DAY_START_MIN, 11 * 60),
+    middle: count(11 * 60, 15 * 60),
+    after: count(15 * 60, DAY_END_MIN),
+  }
+})
+
+const totalSummary = computed(() => {
+  // メンバーの予定 + 参加者なし予定を合算
+  const memberBefore = summaryByMember.value.flatMap(r => r.before)
+  const memberMiddle = summaryByMember.value.flatMap(r => r.middle)
+  const memberAfter = summaryByMember.value.flatMap(r => r.after)
+  
+  return {
+    beforeEvents: [...memberBefore, ...noParticipantSummary.value.before],
+    middleEvents: [...memberMiddle, ...noParticipantSummary.value.middle],
+    afterEvents: [...memberAfter, ...noParticipantSummary.value.after],
   }
 })
 
@@ -515,6 +538,13 @@ type StackedEvent = DisplayEvent & {
                 <div class="summary-cell clickable" @click="emit('select-scope','before')">{{ formatCount(before) }}</div>
                 <div class="summary-cell clickable" @click="emit('select-scope','middle')">{{ formatCount(middle) }}</div>
                 <div class="summary-cell clickable" @click="emit('select-scope','after')">{{ formatCount(after) }}</div>
+            </div>
+            <!-- 参加者なし予定の行 -->
+            <div class="summary-row summary-no-participant-row">
+                <div class="summary-cell no-participant">参加者なし</div>
+                <div class="summary-cell clickable" @click="emit('select-scope','before')">{{ formatCount(noParticipantSummary.before) }}</div>
+                <div class="summary-cell clickable" @click="emit('select-scope','middle')">{{ formatCount(noParticipantSummary.middle) }}</div>
+                <div class="summary-cell clickable" @click="emit('select-scope','after')">{{ formatCount(noParticipantSummary.after) }}</div>
             </div>
             <div class="summary-row summary-total-row">
                 <div class="summary-cell total">合計</div>
@@ -864,9 +894,28 @@ type StackedEvent = DisplayEvent & {
   font-weight: 600;
 }
 
+.summary-no-participant-row .summary-cell {
+  background-color: #fef3c7;
+  font-style: italic;
+}
+
+.summary-cell.no-participant {
+  color: #92400e;
+  font-weight: 500;
+}
+
 .dark .summary-total-row .summary-cell {
     background: #1f2937;
     color: #e5e7eb;
+}
+
+.dark .summary-no-participant-row .summary-cell {
+    background-color: #78350f;
+    color: #fef3c7;
+}
+
+.dark .summary-cell.no-participant {
+    color: #fef3c7;
 }
 
 

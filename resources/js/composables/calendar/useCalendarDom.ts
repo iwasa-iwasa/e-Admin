@@ -4,7 +4,8 @@ export function useCalendarDom(
     fullCalendarRef: Ref<any>,
     viewMode: Ref<string>,
     isTodayInViewForFullCalendar: Ref<boolean>,
-    calendarTitle: Ref<string>
+    calendarTitle: Ref<string>,
+    fullCalendarCurrentDate: Ref<Date>
 ) {
     const hoveredEvent = ref<any>(null)
     const hoveredEvents = ref<any[]>([])
@@ -72,8 +73,14 @@ export function useCalendarDom(
     }
 
     const handleDatesSet = (info: any) => {
-        // FullCalendar使用時（月・年表示）のみタイトルを更新
+        // FullCalendarの表示範囲が変わったら、現在の日付を更新
         if (info.view.type === 'dayGridMonth' || info.view.type === 'multiMonthYear') {
+            // 表示範囲の中間の日付を使用
+            const start = new Date(info.view.currentStart)
+            const end = new Date(info.view.currentEnd)
+            const middle = new Date((start.getTime() + end.getTime()) / 2)
+            fullCalendarCurrentDate.value = middle
+            
             calendarTitle.value = info.view.title
         }
 

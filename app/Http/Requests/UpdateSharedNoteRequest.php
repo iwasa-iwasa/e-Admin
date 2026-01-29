@@ -34,4 +34,19 @@ class UpdateSharedNoteRequest extends FormRequest
             'tags.*' => ['string', 'max:50'],
         ];
     }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'title.required' => 'タイトルを入力してください。',
+            'title.max' => 'タイトルは255文字以内で入力してください。',
+            'participants.*.exists' => '選択された参加者が見つかりません。',
+            'tags.*.max' => 'タグは50文字以内で入力してください。',
+        ];
+    }
 }
