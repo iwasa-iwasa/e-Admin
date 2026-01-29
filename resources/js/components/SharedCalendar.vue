@@ -171,6 +171,14 @@ const { calendarOptions } = useFullCalendarConfig(
     }
 )
 
+// データの変更を監視してカレンダーを再描画
+watch(unifiedEventData, () => {
+    const api = fullCalendar.value?.getApi()
+    if (api) {
+        api.refetchEvents()
+    }
+}, { deep: true })
+
 const handleEventClickFromGantt = (event: App.Models.ExpandedEvent) => {
     selectedEvent.value = event
 }
