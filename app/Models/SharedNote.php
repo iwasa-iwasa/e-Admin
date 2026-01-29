@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 
+#[TypeScript]
 class SharedNote extends Model
 {
     use HasFactory;
@@ -15,6 +16,24 @@ class SharedNote extends Model
     /**
      * The table associated with the model.
      *
+     * @property int $note_id
+     * @property string $title
+     * @property string|null $content
+     * @property int $author_id
+     * @property int|null $linked_event_id
+     * @property string $color
+     * @property string $priority
+     * @property string|null $deadline_date
+     * @property string|null $deadline_time
+     * @property int|null $progress
+     * @property boolean $is_deleted
+     * @property string|null $created_at
+     * @property string|null $updated_at
+     * @property-read \App\Models\User|null $author
+     * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\NoteTag[] $tags
+     * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $participants
+     * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\User[] $pinnedByUsers
+     * 
      * @var string
      */
     protected $table = 'shared_notes';

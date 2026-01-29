@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\Api\ActivityController;
 use App\Http\Controllers\Api\UserController as ApiUserController;
+use App\Http\Controllers\Api\VisitorEventController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GlobalSearchController;
@@ -130,6 +131,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/reminders/{id}', [PersonalReminderController::class, 'show']);
         Route::get('/surveys/{id}', [SurveyController::class, 'show']);
         Route::post('/track-activity', [ActivityController::class, 'track']);
+        Route::get('/visitor-events/check', [VisitorEventController::class, 'checkUpcoming'])->name('visitor-events.check');
     });
 
     Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {

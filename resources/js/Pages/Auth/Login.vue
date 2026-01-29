@@ -76,7 +76,7 @@ const submit = () => {
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600"
+                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400"
                         >ログイン状態を保持する</span
                     >
                 </label>
@@ -86,7 +86,7 @@ const submit = () => {
                 <Link
                     v-if="canResetPassword"
                     :href="route('password.request')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100"
                 >
                     パスワードをお忘れですか？
                 </Link>

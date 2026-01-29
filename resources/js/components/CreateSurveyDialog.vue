@@ -364,7 +364,7 @@ const formatSavedTime = (date: Date | null) => {
                 <div class="h-6"></div> <!-- Spacer -->
             </div>
 
-            <DialogFooter class="p-6 border-t mt-auto shrink-0 bg-white">
+            <DialogFooter class="p-6 border-t mt-auto shrink-0 bg-white dark:bg-card">
                 <Button variant="outline" @click="handleClose">キャンセル</Button>
                 <div class="flex gap-2">
                     <Button v-if="!isEditMode" variant="outline" @click="saveDraft">一時保存</Button>

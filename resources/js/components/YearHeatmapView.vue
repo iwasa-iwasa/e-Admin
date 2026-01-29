@@ -31,7 +31,14 @@ const getDaysInMonth = (month: number): DayInfo[] => {
     const daysInMonth = lastDay.getDate()
     const startDayOfWeek = firstDay.getDay() // 0=日曜
     
-    const days: DayInfo[] = []
+    interface Day {
+        date: Date
+        dateStr: string
+        day: number
+        isCurrentMonth: boolean
+    }
+
+    const days: Day[] = []
     
     // 前月の日付を追加
     if (startDayOfWeek > 0) {
@@ -134,7 +141,21 @@ const handleDateClick = (date: Date) => {
     padding: 1.5rem;
     height: 100%;
     overflow-y: auto;
-    background: #fafafa;
+    background: var(--heatmap-bg, #fafafa);
+    color: var(--heatmap-text, #1f2937);
+}
+
+:global(.dark) .year-heatmap-view {
+    --heatmap-bg: #030213; /* dark:bg-background */
+    --heatmap-text: #f9fafb; /* dark:text-foreground */
+    --heatmap-month-bg: #1f2937; /* dark:bg-card */
+    --heatmap-month-border: #374151; /* dark:border-gray-700 */
+    --heatmap-header-bg: #111827; /* dark:bg-gray-900 */
+    --heatmap-header-text: #e5e7eb; /* dark:text-gray-200 */
+    --heatmap-weekday-bg: #1f2937; /* dark:bg-gray-800 */
+    --heatmap-weekday-text: #9ca3af; /* dark:text-gray-400 */
+    --heatmap-grid-bg: #111827; /* dark:bg-gray-900 */
+    --heatmap-cell-hover: rgba(255, 255, 255, 0.1);
 }
 
 .loading-state,
@@ -170,8 +191,8 @@ const handleDateClick = (date: Date) => {
 }
 
 .month-container {
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--heatmap-month-bg, white);
+    border: 1px solid var(--heatmap-month-border, #e5e7eb);
     border-radius: 0.75rem;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -179,19 +200,19 @@ const handleDateClick = (date: Date) => {
 
 .month-header {
     padding: 1rem;
-    background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+    background: var(--heatmap-header-bg, linear-gradient(to bottom, #f9fafb, #f3f4f6));
     font-weight: 700;
     font-size: 1rem;
     text-align: center;
-    border-bottom: 2px solid #e5e7eb;
-    color: #374151;
+    border-bottom: 2px solid var(--heatmap-month-border, #e5e7eb);
+    color: var(--heatmap-header-text, #374151);
 }
 
 .weekday-header {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    background: #f3f4f6;
-    border-bottom: 1px solid #e5e7eb;
+    background: var(--heatmap-weekday-bg, #f3f4f6);
+    border-bottom: 1px solid var(--heatmap-month-border, #e5e7eb);
 }
 
 .weekday {
@@ -199,7 +220,7 @@ const handleDateClick = (date: Date) => {
     text-align: center;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--heatmap-weekday-text, #6b7280);
 }
 
 .days-grid {
@@ -208,7 +229,7 @@ const handleDateClick = (date: Date) => {
     grid-template-rows: repeat(6, 1fr);
     gap: 2px;
     padding: 0.5rem;
-    background: #f9fafb;
+    background: var(--heatmap-grid-bg, #f9fafb);
     min-height: 240px;
 }
 
@@ -234,12 +255,13 @@ const handleDateClick = (date: Date) => {
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 10;
+    filter: brightness(1.1);
 }
 
 .day-number {
     font-size: 0.625rem;
     font-weight: 500;
-    color: #1f2937;
+    color: var(--heatmap-text, #1f2937);
     align-self: flex-start;
     line-height: 1;
 }
@@ -272,7 +294,7 @@ const handleDateClick = (date: Date) => {
 .hours {
     font-size: 1.125rem;
     font-weight: 700;
-    color: #374151;
+    color: var(--heatmap-text, #374151);
     line-height: 1;
 }
 

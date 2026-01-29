@@ -24,15 +24,15 @@ class UserSeeder extends Seeder
                 'role' => 'admin',
             ]
         );
-        User::firstOrCreate(
-            ['email' => 'b@b'],
-            [
-                'name' => 'b',
-                'password' => Hash::make('b'),
-                'department' => '総務部',
-                'role' => 'admin',
-            ]
-        );
-        User::factory()->count(50)->create();
+        // User::firstOrCreate(
+        //     ['email' => 'b@b'],
+        //     [
+        //         'name' => 'b',
+        //         'password' => Hash::make('b'),
+        //         'department' => '総務部',
+        //         'role' => 'admin',
+        //     ]
+        // );
+        User::factory()->count(3)->create();
     }
 }
