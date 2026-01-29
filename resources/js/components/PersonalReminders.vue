@@ -281,24 +281,6 @@ onUnmounted(() => {
               enter-to-class="opacity-100 scale-100"
               leave-from-class="opacity-100 scale-100"
               leave-to-class="opacity-0 scale-95"
-        <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
-          <Bell class="h-6 w-6 text-green-700 flex-shrink-0" />
-          <Transition
-            enter-active-class="transition-all duration-300 ease-in-out"
-            leave-active-class="transition-all duration-300 ease-in-out"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-          >
-            <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
-              v-if="headerStage !== 'iconOnly'"
-              :class="[headerStage !== 'normal' && 'truncate',
-              {
-                'max-w-full': headerStage === 'normal',
-                'max-w-[220px]': headerStage === 'titleCut',
-              },
-              ]"
             >
               <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
                 :class="[headerStage !== 'normal' && 'truncate',
