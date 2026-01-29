@@ -2,6 +2,13 @@
 import { computed, watch, ref, onMounted, onUnmounted } from 'vue'
 import { useYearHeatmap } from '@/composables/calendar/useYearHeatmap'
 
+interface DayInfo {
+    date: Date
+    dateStr: string
+    day: number
+    isCurrentMonth: boolean
+}
+
 const props = defineProps<{
     year: number
     memberId?: number | null
@@ -18,7 +25,7 @@ const { heatmapReady, loading, fetchYearSummary, getDayLevel, getDaySummary } = 
 const months = computed(() => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 
 // 指定された月の日付を生成（前月・翌月含む）
-const getDaysInMonth = (month: number) => {
+const getDaysInMonth = (month: number): DayInfo[] => {
     const firstDay = new Date(props.year, month - 1, 1)
     const lastDay = new Date(props.year, month, 0)
     const daysInMonth = lastDay.getDate()
@@ -115,7 +122,7 @@ const handleDateClick = (date: Date) => {
                         @click="day.isCurrentMonth && handleDateClick(day.date)"
                     >
                         <div class="day-number" :class="{ 'inactive-number': !day.isCurrentMonth, 'white-text': day.isCurrentMonth && getDayLevel(day.dateStr)?.level === 4 }">{{ day.day }}</div>
-                        <div v-if="day.isCurrentMonth && getDaySummary(day.dateStr)" class="day-info" :class="{ 'white-text': getDayLevel(day.dateStr)?.level === 4 }">
+                        <div v-if="day.isCurrentMonth && getDaySummary(day.dateStr)" class="day-info" :class="{ 'white-text': getDayLevel(day.dateStr)?.level >= 3 }">
                             <div v-if="getDaySummary(day.dateStr)!.totalHours > 0" class="hours ">{{ Math.round(getDaySummary(day.dateStr)!.totalHours) }}h</div>
                             <div v-if="getDaySummary(day.dateStr)!.eventCount > 0 || getDaySummary(day.dateStr)!.importantCount > 0" class="dots">
                                 <div v-if="getDaySummary(day.dateStr)!.alldayCount > 0" class="allday-dot"></div>

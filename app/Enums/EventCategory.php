@@ -38,9 +38,12 @@ enum EventCategory: string
     public function busyWeight(): int
     {
         return match($this) {
-            self::MEETING, self::WORK, self::VISITOR, self::BUSINESS_TRIP => 3,
-            self::OTHER => 2,
-            self::VACATION => 0,
+            self::VISITOR => 4,        // 来客（顧客）: 最重要
+            self::BUSINESS_TRIP => 3,  // 出張: 重要
+            self::WORK => 3,           // 業務: 重要
+            self::MEETING => 2,        // 会議: 中程度
+            self::OTHER => 1,          // その他: 中程度
+            self::VACATION => 0,       // 休暇: 重みなし
         };
     }
 }

@@ -3,14 +3,14 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { getEventColor } from '@/constants/calendar'
 
 const props = defineProps<{
-    events: App.Models.Event[]
+    events: App.Models.ExpandedEvent[]
     weekStart: Date
 }>()
 
 const emit = defineEmits<{
-    eventClick: [event: App.Models.Event]
+    eventClick: [event: App.Models.ExpandedEvent]
     dateClick: [date: Date]
-    eventHover: [event: App.Models.Event | null, position: { x: number, y: number }]
+    eventHover: [event: App.Models.ExpandedEvent | null, position: { x: number, y: number }]
 }>()
 
 // リサイズ関連
@@ -27,7 +27,7 @@ const WORK_END_HOUR = 17
 
 // イベントバー型（分割しない）
 interface EventBar {
-    event: App.Models.Event
+    event: App.Models.ExpandedEvent
     startDayIndex: number
     endDayIndex: number
     startHour: number
@@ -44,6 +44,7 @@ const toLocalDateString = (date: Date) => {
 
 // 👇 ここに追加（UTC地雷回避用）
 const toComparableDate = (dateStr: string) => {
+    if (!dateStr) return new Date()
     const [y, m, d] = dateStr.split('-').map(Number)
     return new Date(y, m - 1, d)
 }
@@ -95,6 +96,7 @@ const multiDayBars = computed(() => {
     )
     
     props.events.forEach(event => {
+        if (!event.start_date) return
         const eventStartStr = event.start_date.split('T')[0]
         const eventEndStr = (event.end_date || event.start_date).split('T')[0]
         
@@ -193,6 +195,7 @@ const dailyEvents = computed(() => {
     return weekDays.value.map(day => {
         const dateStr = toLocalDateString(day)
         return props.events.filter(event => {
+            if (!event.start_date) return false
             const start = event.start_date.split('T')[0]
             const end = (event.end_date || event.start_date).split('T')[0]
             // 単日予定のみを対象とし、複数日予定は週間サマリーエリアで表示
