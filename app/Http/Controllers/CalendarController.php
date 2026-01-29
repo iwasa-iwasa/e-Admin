@@ -58,6 +58,14 @@ class CalendarController extends Controller
         $searchQuery = $request->query('search_query');
         $genreFilter = $request->query('genre_filter');
 
+        \Log::info('[CalendarAPI] Request received', [
+            'start' => $start,
+            'end' => $end,
+            'memberId' => $memberId,
+            'searchQuery' => $searchQuery,
+            'genreFilter' => $genreFilter,
+        ]);
+
         // Get expanded events (including recurring event occurrences)
         $events = $this->eventService->getExpandedEvents(
             $start ?: Carbon::now()->subMonths(1)->format('Y-m-d'),
@@ -65,13 +73,13 @@ class CalendarController extends Controller
             $memberId
         );
 
-        // デバッグ情報をログに出力
-        \Log::info('Calendar API Debug', [
-            'start' => $start,
-            'end' => $end,
-            'memberId' => $memberId,
+        \Log::info('[CalendarAPI] Events fetched', [
             'total_events' => count($events),
-            'sample_event' => count($events) > 0 ? $events[0] : null
+            'date_range' => [
+                'start' => $start,
+                'end' => $end,
+            ],
+            'sample_dates' => array_slice(array_map(fn($e) => $e['start_date'], $events), 0, 5),
         ]);
 
         // Apply additional filters
@@ -106,7 +114,13 @@ class CalendarController extends Controller
             }
         }
 
-        return response()->json(array_values($events));
+        $finalEvents = array_values($events);
+        
+        \Log::info('[CalendarAPI] Response prepared', [
+            'final_count' => count($finalEvents),
+        ]);
+
+        return response()->json($finalEvents);
     }
 
     /**

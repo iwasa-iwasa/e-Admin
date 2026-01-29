@@ -82,6 +82,7 @@ const pendingDraft = ref<any>(null)
 const date = ref<[Date, Date]>([new Date(), new Date()])
 const recurrenceSection = ref<HTMLElement | null>(null)
 const scrollViewport = ref<HTMLElement | null>(null)
+const nextOccurrences = ref<string[]>([])
 
 // Computed Properties
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
@@ -254,7 +255,10 @@ watch(date, (newDates) => {
 watch(
   () => form.recurrence.is_recurring,
   async (enabled) => {
-    if (!enabled) return
+    if (!enabled) {
+      nextOccurrences.value = []
+      return
+    }
 
     await nextTick()
 
@@ -265,6 +269,57 @@ watch(
       })
     }
   }
+)
+
+// 週次繰り返し時の曜日自動選択
+watch(
+  () => form.recurrence.recurrence_type,
+  (newType, oldType) => {
+    if (newType === 'weekly' && form.recurrence.by_day.length === 0) {
+      const startDate = form.date_range[0]
+      if (startDate instanceof Date) {
+        const dayIndex = startDate.getDay()
+        const dayMap = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA']
+        form.recurrence.by_day = [dayMap[dayIndex]]
+      }
+    }
+    
+    // 終了日のデフォルト値を単位別に最適化（新規作成時のみ、かつ終了日が未設定の場合）
+    if (newType && newType !== oldType && !isEditMode.value && !form.recurrence.end_date) {
+      const startDate = form.date_range[0]
+      if (startDate instanceof Date) {
+        const endDate = new Date(startDate)
+        switch (newType) {
+          case 'daily':
+            endDate.setDate(endDate.getDate() + 7)
+            break
+          case 'weekly':
+            endDate.setMonth(endDate.getMonth() + 1)
+            break
+          case 'monthly':
+            endDate.setMonth(endDate.getMonth() + 6)
+            break
+          case 'yearly':
+            endDate.setFullYear(endDate.getFullYear() + 2)
+            break
+        }
+        form.recurrence.end_date = endDate
+      }
+    }
+    
+    updateNextOccurrences()
+  }
+)
+
+// 次回発生日プレビューの更新
+watch(
+  () => [form.recurrence.recurrence_interval, form.recurrence.by_day, form.recurrence.end_date, form.date_range],
+  () => {
+    if (form.recurrence.is_recurring) {
+      updateNextOccurrences()
+    }
+  },
+  { deep: true }
 )
 
 // Event Handlers
@@ -515,6 +570,73 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
     saveMessage.value = ''
   }, 4000)
 }
+
+// 次回発生日プレビューの計算
+const updateNextOccurrences = () => {
+  if (!form.recurrence.is_recurring || !form.date_range[0]) {
+    nextOccurrences.value = []
+    return
+  }
+
+  const occurrences: string[] = []
+  let currentDate = new Date(form.date_range[0])
+  const endDate = form.recurrence.end_date ? new Date(form.recurrence.end_date) : null
+  const interval = form.recurrence.recurrence_interval || 1
+  const maxOccurrences = 3
+  let count = 0
+  let iterations = 0
+  const maxIterations = 100
+
+  while (count < maxOccurrences && iterations < maxIterations) {
+    iterations++
+    
+    switch (form.recurrence.recurrence_type) {
+      case 'daily':
+        currentDate = new Date(currentDate.getTime() + interval * 24 * 60 * 60 * 1000)
+        break
+      case 'weekly':
+        if (form.recurrence.by_day.length > 0) {
+          const dayMap: Record<string, number> = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 }
+          const targetDays = form.recurrence.by_day.map(d => dayMap[d]).sort((a, b) => a - b)
+          const currentDay = currentDate.getDay()
+          
+          let nextDay = targetDays.find(d => d > currentDay)
+          if (nextDay === undefined) {
+            currentDate = new Date(currentDate.getTime() + 7 * interval * 24 * 60 * 60 * 1000)
+            currentDate.setDate(currentDate.getDate() - currentDate.getDay() + targetDays[0])
+          } else {
+            currentDate.setDate(currentDate.getDate() + (nextDay - currentDay))
+          }
+        } else {
+          currentDate = new Date(currentDate.getTime() + 7 * interval * 24 * 60 * 60 * 1000)
+        }
+        break
+      case 'monthly': {
+        const originalDay = form.date_range[0].getDate()
+        currentDate.setMonth(currentDate.getMonth() + interval)
+        const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
+        currentDate.setDate(Math.min(originalDay, daysInMonth))
+        break
+      }
+      case 'yearly': {
+        const originalDay = form.date_range[0].getDate()
+        const originalMonth = form.date_range[0].getMonth()
+        currentDate.setFullYear(currentDate.getFullYear() + interval)
+        currentDate.setMonth(originalMonth)
+        const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()
+        currentDate.setDate(Math.min(originalDay, daysInMonth))
+        break
+      }
+    }
+
+    if (endDate && currentDate > endDate) break
+
+    occurrences.push(currentDate.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }))
+    count++
+  }
+
+  nextOccurrences.value = occurrences
+}
 </script>
 
 <template>
@@ -752,15 +874,16 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                   </Button>
                 </div>
                 <div class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
-                  <label v-for="member in teamMembers" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                  <div v-for="member in teamMembers" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
                     <input 
+                      :id="`member-${member.id}`"
                       type="checkbox" 
                       :checked="form.participants.find(p => p.id === member.id) !== undefined"
                       @change="(e) => (e.target as HTMLInputElement).checked ? form.participants.push(member) : handleRemoveParticipant(member.id)"
                       class="h-4 w-4 text-blue-600 rounded border-gray-300"
                     />
-                    <span class="text-xs">{{ member.name }}</span>
-                  </label>
+                    <label :for="`member-${member.id}`" class="text-xs cursor-pointer">{{ member.name }}</label>
+                  </div>
                 </div>
               </div>
               
@@ -808,6 +931,10 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                         <SelectItem value="yearly">毎年</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p v-if="form.recurrence.recurrence_type === 'monthly' || form.recurrence.recurrence_type === 'yearly'" class="text-xs text-amber-600 flex items-start gap-1">
+                      <Info class="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span>月末など存在しない日は、その月の最終日に繰り下げて繰り返されます（例：1/30 → 2/28 → 3/30）</span>
+                    </p>
                   </div>
                   
                   <div v-if="form.recurrence.recurrence_type === 'weekly'" class="space-y-2">
@@ -852,6 +979,15 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                       :disabled="!canEdit"
                     />
                     <p class="text-xs text-gray-500">空白の場合は無期限で繰り返されます</p>
+                  </div>
+                  
+                  <div v-if="nextOccurrences.length > 0" class="space-y-2 pt-2">
+                    <Label class="text-sm text-gray-700">次の予定:</Label>
+                    <div class="bg-blue-50 border border-blue-200 rounded-md p-3 space-y-1">
+                      <div v-for="(date, index) in nextOccurrences" :key="index" class="text-sm text-blue-800">
+                        ・{{ date }}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
