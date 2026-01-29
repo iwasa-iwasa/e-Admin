@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { StickyNote, Plus, User, AlertCircle, Calendar, CheckCircle, ArrowUp, ArrowDown } from 'lucide-vue-next'
+import { StickyNote, Plus, User, AlertCircle, Calendar, CheckCircle, ArrowUp, ArrowDown, HelpCircle } from 'lucide-vue-next'
 import { router } from '@inertiajs/vue3'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 
@@ -72,6 +73,7 @@ const messageTimer = ref<number | null>(null)
 const skipDialogOpen = ref(false)
 const headerRef = ref<HTMLElement | null>(null)
 const headerStage = ref<HeaderStage>('normal')
+const isHelpOpen = ref(false)
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
@@ -300,19 +302,34 @@ const sortedNotes = computed(() => {
   <Card class="h-full flex flex-col">
     <CardHeader>
       <div ref="headerRef" class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/notes')">
-          <StickyNote class="h-6 w-6 text-orange-600 flex-shrink-0" />
-          <Transition
-            enter-active-class="transition-all duration-300 ease-in-out"
-            leave-active-class="transition-all duration-300 ease-in-out"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-          >
-            <CardTitle v-if="headerStage !== 'iconOnly'" class="whitespace-nowrap">共有メモ</CardTitle>
-          </Transition>
+        <div class="flex justify-start gap-2 items-center">
+          <div class="flex items-center gap-2 min-w-0 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/notes')">
+            <StickyNote class="h-6 w-6 text-orange-600 flex-shrink-0" />
+            <Transition
+              enter-active-class="transition-all duration-300 ease-in-out"
+              leave-active-class="transition-all duration-300 ease-in-out"
+              enter-from-class="opacity-0 scale-95"
+              enter-to-class="opacity-100 scale-100"
+              leave-from-class="opacity-100 scale-100"
+              leave-to-class="opacity-0 scale-95"
+            >
+              <CardTitle v-if="headerStage !== 'iconOnly'" class="whitespace-nowrap flex items-center gap-2">
+                共有メモ
+              </CardTitle>
+            </Transition>
         </div>
+        
+        <Button
+            variant="ghost"
+            size="icon"
+            class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+            @click="isHelpOpen = true"
+            title="共有メモの使い方"
+          >
+            <HelpCircle class="h-5 w-5" />
+        </Button>
+        </div>
+
         <div class="flex items-center gap-2 flex-shrink-0">
           <div class="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <button
@@ -510,4 +527,39 @@ const sortedNotes = computed(() => {
       </div>
     </Transition>
   </Card>
+
+  <!-- ヘルプダイアログ -->
+  <Dialog v-model:open="isHelpOpen">
+    <DialogContent class="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>共有メモの使い方</DialogTitle>
+      </DialogHeader>
+      <div class="space-y-4">
+        <div>
+          <h3 class="font-semibold mb-2">基本操作</h3>
+          <ul class="space-y-1 text-sm text-gray-600">
+            <li>• メモ作成：「新規作成」ボタンからメモを作成できます</li>
+            <li>• メモ選択：メモをクリックして詳細を表示できます</li>
+            <li>• 保存：詳細ダイアログで変更を保存できます</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">整理機能</h3>
+          <ul class="space-y-1 text-sm text-gray-600">
+            <li>• ピン留め：重要なメモを上部に固定できます</li>
+            <li>• ソート：重要度、期限で並び替えできます</li>
+            <li>• 期限管理：期限切れのメモはグレーで表示されます</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">共有機能</h3>
+          <ul class="space-y-1 text-sm text-gray-600">
+            <li>• メンバー選択：特定のメンバーとメモを共有できます</li>
+            <li>• タグ付け：メモをカテゴリ分けできます</li>
+            <li>• 期限設定：メモに期限を設定できます</li>
+          </ul>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
 </template>

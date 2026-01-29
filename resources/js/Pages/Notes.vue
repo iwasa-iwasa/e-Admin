@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { useHighlight } from '@/composables/useHighlight'
-import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2 } from 'lucide-vue-next'
+import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2, HelpCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
@@ -529,6 +530,8 @@ const handleRemoveParticipant = (participantId: number) => {
   editedParticipants.value = editedParticipants.value.filter((p) => p.id !== participantId)
 }
 
+const isHelpOpen = ref(false)
+
 </script>
 
 <template>
@@ -543,7 +546,18 @@ const handleRemoveParticipant = (participantId: number) => {
               <ArrowLeft class="h-5 w-5" />
             </Button>
             <StickyNote class="h-6 w-6 text-orange-600" />
-            <CardTitle>共有メモ</CardTitle>
+            <CardTitle class="flex items-center gap-2">
+              共有メモ
+              <Button
+                variant="ghost"
+                size="icon"
+                class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                @click="isHelpOpen = true"
+                title="共有メモの使い方"
+              >
+                <HelpCircle class="h-5 w-5" />
+              </Button>
+            </CardTitle>
           </div>
           <Button variant="outline" @click="handleCreateNote" class="gap-2">
             <Plus class="h-4 w-4" />
@@ -972,4 +986,39 @@ const handleRemoveParticipant = (participantId: number) => {
       </div>
     </Transition>
   </div>
+
+  <!-- ヘルプダイアログ -->
+  <Dialog v-model:open="isHelpOpen">
+    <DialogContent class="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>共有メモの使い方</DialogTitle>
+      </DialogHeader>
+      <div class="space-y-4">
+        <div>
+          <h3 class="font-semibold mb-2">基本操作</h3>
+          <ul class="space-y-1 text-sm text-gray-600">
+            <li>• メモ作成：「新規作成」ボタンからメモを作成できます</li>
+            <li>• メモ選択：左サイドバーからメモをクリックして編集できます</li>
+            <li>• 保存：「保存」ボタンで変更を保存できます</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">整理機能</h3>
+          <ul class="space-y-1 text-sm text-gray-600">
+            <li>• ピン留め：重要なメモを上部に固定できます</li>
+            <li>• ソート：更新日時、重要度、期限で並び替えできます</li>
+            <li>• フィルター：作成者、メモの種類、タグで絞り込みできます</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">共有機能</h3>
+          <ul class="space-y-1 text-sm text-gray-600">
+            <li>• メンバー選択：特定のメンバーとメモを共有できます</li>
+            <li>• タグ付け：メモをカテゴリ分けできます</li>
+            <li>• 期限設定：メモに期限を設定できます</li>
+          </ul>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
 </template>
