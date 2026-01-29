@@ -403,7 +403,7 @@ onUnmounted(() => {
               reminder.completed ? 'opacity-60' : 'hover:shadow-md',
               reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
               reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
-              'border-gray-300'
+              'border-gray-300 dark:border-gray-700'
             ]"
             @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
           >
