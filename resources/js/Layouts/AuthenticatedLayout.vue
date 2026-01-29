@@ -1,6 +1,8 @@
 <script setup lang="ts">
   import DashboardSidebar from '@/Layouts/Partials/DashboardSidebar.vue'
   import DashboardHeader from '@/Layouts/Partials/DashboardHeader.vue'
+  import VisitorNotificationDialog from '@/components/VisitorNotificationDialog.vue'
+  import { useVisitorNotifications } from '@/composables/useVisitorNotifications'
   import { Toaster } from '@/components/ui/toast'
   import { ref, onMounted, onUnmounted } from 'vue'
   
@@ -8,6 +10,8 @@
   const isTablet = ref(false)
   const sidebarWidth = ref(256)
   const isResizing = ref(false)
+  
+  const { notificationEvent, showNotification, closeNotification } = useVisitorNotifications()
   
   const checkDevice = () => {
     const width = window.innerWidth
@@ -88,5 +92,12 @@
       </div>
       
       <Toaster />
+      
+      <!-- Visitor Notification Dialog -->
+      <VisitorNotificationDialog 
+        :open="showNotification" 
+        :event="notificationEvent" 
+        @update:open="closeNotification" 
+      />
     </div>
   </template>
