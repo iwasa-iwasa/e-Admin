@@ -117,7 +117,7 @@ const handleDateClick = (date: Date) => {
                         class="day-cell"
                         :class="{ 'inactive-day': !day.isCurrentMonth }"
                         :style="{ 
-                            backgroundColor: day.isCurrentMonth ? (getDayLevel(day.dateStr)?.color || '#f9fafb') : '#fafafa'
+                            backgroundColor: day.isCurrentMonth ? (getDayLevel(day.dateStr)?.color || 'var(--heatmap-level-0)') : 'var(--heatmap-inactive-bg)'
                         }"
                         @click="day.isCurrentMonth && handleDateClick(day.date)"
                     >
@@ -143,9 +143,35 @@ const handleDateClick = (date: Date) => {
     overflow-y: auto;
     background: var(--heatmap-bg, #fafafa);
     color: var(--heatmap-text, #1f2937);
+    /* Variables now handled in global style */
 }
 
-:global(.dark) .year-heatmap-view {
+/* Global styles for theming to ensure dark mode works */
+</style>
+
+<style>
+.year-heatmap-view {
+    /* Light Mode Defaults */
+    --heatmap-level-0: #f3f4f6;
+    --heatmap-level-1: #dbeafe;
+    --heatmap-level-2: #93c5fd;
+    --heatmap-level-3: #3b82f6;
+    --heatmap-level-4: #1d4ed8;
+    --heatmap-inactive-bg: #fafafa;
+    --heatmap-text-muted: #9ca3af;
+    --heatmap-bg: #fafafa;
+    --heatmap-text: #1f2937;
+    --heatmap-month-bg: white;
+    --heatmap-month-border: #e5e7eb;
+    --heatmap-header-bg: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+    --heatmap-header-text: #374151;
+    --heatmap-weekday-bg: #f3f4f6;
+    --heatmap-weekday-text: #6b7280;
+    --heatmap-grid-bg: #f9fafb;
+    /* --heatmap-cell-hover is used locally */
+}
+
+.dark .year-heatmap-view {
     --heatmap-bg: #030213; /* dark:bg-background */
     --heatmap-text: #f9fafb; /* dark:text-foreground */
     --heatmap-month-bg: #1f2937; /* dark:bg-card */
@@ -155,8 +181,18 @@ const handleDateClick = (date: Date) => {
     --heatmap-weekday-bg: #1f2937; /* dark:bg-gray-800 */
     --heatmap-weekday-text: #9ca3af; /* dark:text-gray-400 */
     --heatmap-grid-bg: #111827; /* dark:bg-gray-900 */
-    --heatmap-cell-hover: rgba(255, 255, 255, 0.1);
+
+    /* Dark Mode Levels */
+    --heatmap-level-0: #374151; /* gray-700 */
+    --heatmap-level-1: #172554; /* blue-950 */
+    --heatmap-level-2: #1e40af; /* blue-800 */
+    --heatmap-level-3: #2563eb; /* blue-600 */
+    --heatmap-level-4: #3b82f6; /* blue-500 */
+    --heatmap-inactive-bg: #111827; /* dark:bg-gray-900 */
+    --heatmap-text-muted: #6b7280;
 }
+
+/* Removed :global(.dark) block as it is moved to global style */
 
 .loading-state,
 .error-state {
@@ -267,7 +303,7 @@ const handleDateClick = (date: Date) => {
 }
 
 .day-number.inactive-number {
-    color: #9ca3af;
+    color: var(--heatmap-text-muted, #9ca3af);
     font-weight: 400;
 }
 
