@@ -2,7 +2,7 @@
 import { Head, usePage, router } from '@inertiajs/vue3'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import SharedCalendar, { EventModel } from '@/components/SharedCalendar.vue'
+import SharedCalendar from '@/components/SharedCalendar.vue'
 import SharedNotes, { SharedNoteModel, UserModel } from '@/components/SharedNotes.vue'
 import PersonalReminders, { ReminderModel } from '@/components/PersonalReminders.vue'
 import { Badge } from '@/components/ui/badge'
@@ -15,7 +15,7 @@ defineOptions({
 })
 
 const props = defineProps<{
-  events: EventModel[];
+  events: App.Models.ExpandedEvent[];
   sharedNotes: SharedNoteModel[];
   personalReminders: ReminderModel[];
   filteredMemberId?: number | null

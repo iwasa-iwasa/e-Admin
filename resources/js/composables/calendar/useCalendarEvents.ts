@@ -5,9 +5,9 @@ import { GENRE_FILTERS, getEventColor } from '@/constants/calendar'
 
 export function useCalendarEvents() {
     const searchQuery = ref('')
-    const genreFilter = ref(GENRE_FILTERS.ALL)
+    const genreFilter = ref<string>(GENRE_FILTERS.ALL)
 
-    const canEditEvent = (event: App.Models.ExpandedEvent) => {
+    const canEditEvent = (event: App.Models.ExpandedEvent | App.Models.Event) => {
         const page = usePage()
         const currentUserId = (page.props as any).auth?.user?.id ?? null
         const teamMembers = (page.props as any).teamMembers || []
