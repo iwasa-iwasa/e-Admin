@@ -136,7 +136,7 @@ onUnmounted(() => {
 <template>
     <Head title="ホーム" />
     
-    <div class="max-w-[1800px] mx-auto h-full p-6">
+    <div class="h-full p-6">
         <!-- iPad横画面：縦並びレイアウト -->
         <Card v-if="isIPadLayout" class="h-full overflow-hidden flex flex-col">
             <div class="flex-1 overflow-y-auto p-6 space-y-6">

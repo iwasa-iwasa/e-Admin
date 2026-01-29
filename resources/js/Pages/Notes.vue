@@ -178,6 +178,9 @@ watch(selectedNote, (newNote) => {
     editedTags.value = newNote.tags.map(tag => tag.tag_name)
     editedParticipants.value = newNote.participants || []
     participantSelectValue.value = null
+    // タグ入力欄をクリア
+    tagInput.value = ''
+    showTagSuggestions.value = false
   }
 })
 
@@ -530,7 +533,7 @@ const handleRemoveParticipant = (participantId: number) => {
 
 <template>
   <Head title="共有メモ" />
-  <div class="flex gap-6 max-w-[1800px] mx-auto h-full p-6">
+  <div class="flex gap-6 mx-auto h-full p-6">
     <Card class="flex-1 flex h-full overflow-hidden">
       <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-border bg-background">
       <div class="p-4 border-b border-border">
