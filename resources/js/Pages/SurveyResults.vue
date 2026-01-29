@@ -828,7 +828,7 @@ const getQuestionResponses = (
                                         <div
                                             v-for="(response, index) in question.responses"
                                             :key="index"
-                                            class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                            class="bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg p-4"
                                         >
                                             <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
                                             <div class="flex flex-wrap gap-2">
@@ -1070,10 +1070,10 @@ const getQuestionResponses = (
                                     <div
                                         v-for="(response, index) in question.responses"
                                         :key="index"
-                                        class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                        class="bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg p-3"
                                     >
                                         <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
-                                        <p class="text-sm text-gray-700 font-medium">
+                                        <p class="text-sm text-gray-700 dark:text-gray-300 font-medium">
                                             {{ response.value ? new Date(response.value).toLocaleString('ja-JP', { 
                                                 year: 'numeric', 
                                                 month: '2-digit', 
@@ -1104,7 +1104,7 @@ const getQuestionResponses = (
                                             response, index
                                         ) in question.responses"
                                         :key="index"
-                                        class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                        class="bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg p-4"
                                     >
                                         <div
                                             class="flex items-start justify-between mb-2"
@@ -1133,7 +1133,7 @@ const getQuestionResponses = (
                                             </div>
                                         </div>
                                         <p
-                                            class="text-gray-700 whitespace-pre-wrap"
+                                            class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
                                         >
                                             {{ response.value }}
                                         </p>
