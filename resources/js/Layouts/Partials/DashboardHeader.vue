@@ -2,7 +2,7 @@
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import { ref, onMounted, computed, onUnmounted } from 'vue'
-import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2, Menu, Sun, Moon } from 'lucide-vue-next'
+import { Search, Bell, User, Calendar, StickyNote, BarChart3, Settings, Clock, Undo2, Menu, Sun, Moon, HelpCircle } from 'lucide-vue-next'
 import { isDark, toggleDark } from '@/composables/useAppDark'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
@@ -102,6 +109,7 @@ const isEventDetailOpen = ref(false)
 const isEventEditOpen = ref(false)
 
 const isProfileSettingsOpen = ref(false)
+const isHelpOpen = ref(false)
 const showEventsFilter = ref<'mine' | 'all'>(
   (localStorage.getItem('notif_events_filter') as 'mine' | 'all') || 'mine'
 )
@@ -572,6 +580,16 @@ onUnmounted(() => {
                   <h3 class="flex items-center gap-2">
                     <Bell class="h-5 w-5 text-blue-600" />
                     通知センター
+                    
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                      @click.stop="isHelpOpen = true"
+                      title="通知センターの使い方"
+                    >
+                      <HelpCircle class="h-4 w-4" />
+                    </Button>
                   </h3>
                   <p class="text-xs text-gray-500 mt-1">
                     重要な予定、メモ、アンケートをまとめて確認
@@ -900,7 +918,45 @@ onUnmounted(() => {
       @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); fetchNotifications(); } selectedReminder = null; } }"
       @update:reminder="fetchNotifications"
     />
-
+    
+    <!-- ヘルプダイアログ -->
+    <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>通知センターの使い方</DialogTitle>
+          <DialogDescription>
+            重要な予定、メモ、アンケートをまとめて確認できます。
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <div>
+            <h4 class="font-medium mb-2">基本操作</h4>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• アイテムをクリックして詳細を表示・編集</li>
+              <li>• 期限切れ・期限間近のアイテムは色付きで表示</li>
+              <li>• 参加者のイニシャルで関係者を確認</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-medium mb-2">表示設定</h4>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 設定ボタンで表示フィルターを変更</li>
+              <li>• 「自分のみ」：関係するアイテムのみ表示</li>
+              <li>• 「全員表示」：チーム全体の重要アイテムを表示</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-medium mb-2">アイテム種類</h4>
+            <ul class="space-y-1 text-sm text-gray-600">
+              <li>• 共有カレンダー：チームの予定やイベント</li>
+              <li>• 共有メモ：期限付きの重要なメモ</li>
+              <li>• 個人リマインダー：個人のタスク</li>
+              <li>• 未回答アンケート：回答が必要なアンケート</li>
+            </ul>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
 
   </header>
 </template>
