@@ -144,7 +144,7 @@ const eventFilters = computed(() => ({
     memberId: props.filteredMemberId
 }))
 
-const { events: unifiedEventData, loading, refresh: refreshUnifiedEvents } = useUnifiedEvents(
+const { events: unifiedEventData, loading, initialized, refresh: refreshUnifiedEvents, clearCache } = useUnifiedEvents(
     computed(() => dateRange.value.start),
     computed(() => dateRange.value.end),
     computed(() => eventFilters.value)
@@ -252,7 +252,17 @@ onMounted(() => {
     
     // Inertia success listener
     removeInertiaListener = router.on('success', () => {
-        refreshUnifiedEvents()
+        // ログイン後やページ遷移後はキャッシュクリアして強制リフレッシュ
+        clearCache()
+        refreshUnifiedEvents(true)
+    })
+    
+    // 初期データの確実な読み込み
+    nextTick(async () => {
+        // 初期化が完了していない場合は強制リフレッシュ
+        if (!initialized.value) {
+            await refreshUnifiedEvents(true)
+        }
     })
     
     // ResizeObserver for header

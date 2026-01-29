@@ -48,10 +48,11 @@ export function useUnifiedEvents(
   const events = ref<UnifiedEvent[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const initialized = ref(false)
   
   const { searchQuery, genreFilter, fetchEvents } = useCalendarEvents()
 
-  const loadEvents = async () => {
+  const loadEvents = async (forceRefresh = false) => {
     loading.value = true
     error.value = null
     
@@ -71,8 +72,10 @@ export function useUnifiedEvents(
       const cacheKey = getCacheKey(start, end, filterValues)
       const cached = eventCache.get(cacheKey)
       
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      // 強制リフレッシュまたは初期化時はキャッシュを無視
+      if (!forceRefresh && !initialized.value && cached && Date.now() - cached.timestamp < CACHE_TTL) {
         events.value = cached.data
+        initialized.value = true
         return
       }
       
@@ -104,28 +107,28 @@ export function useUnifiedEvents(
       
       eventCache.set(cacheKey, { data: unifiedEvents, timestamp: Date.now() })
       events.value = unifiedEvents
+      initialized.value = true
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Unknown error'
       events.value = []
+      initialized.value = true
     } finally {
       loading.value = false
     }
   }
 
-  // 初回読み込み
-  loadEvents()
-
   // フィルター変更時の再読み込み
   watch([rangeStart, rangeEnd, filters], 
     () => loadEvents(), 
-    { deep: true }
+    { deep: true, immediate: false }
   )
 
   return {
     events: computed(() => events.value),
     loading: computed(() => loading.value),
     error: computed(() => error.value),
-    refresh: loadEvents,
+    initialized: computed(() => initialized.value),
+    refresh: (forceRefresh = true) => loadEvents(forceRefresh),
     clearCache: () => eventCache.clear()
   }
 }

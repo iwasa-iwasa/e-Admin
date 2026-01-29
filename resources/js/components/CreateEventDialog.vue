@@ -174,13 +174,13 @@ const form = useForm({
 
 // Weekdays Configuration
 const weekdays = [
+  { label: '日', value: 'SU' },
   { label: '月', value: 'MO' },
   { label: '火', value: 'TU' },
   { label: '水', value: 'WE' },
   { label: '木', value: 'TH' },
   { label: '金', value: 'FR' },
   { label: '土', value: 'SA' },
-  { label: '日', value: 'SU' },
 ]
 
 // Watchers
@@ -697,6 +697,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                     placeholder="期間を選択"
                     :locale="ja"
                     :format="format"
+                    :week-start="0"
                     auto-apply
                     teleport-center
                     :disabled="!canEdit"
@@ -845,6 +846,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                       v-model="form.recurrence.end_date"
                       placeholder="終了日を選択"
                       :locale="ja"
+                      :week-start="0"
                       auto-apply
                       teleport-center
                       :disabled="!canEdit"
