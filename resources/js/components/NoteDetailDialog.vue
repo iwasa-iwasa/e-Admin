@@ -387,6 +387,16 @@ const editedContent = computed({
   }
 })
 
+const editedProgress = computed({
+  get: (): number => {
+    return editedNote.value?.progress ?? 0
+  },
+  set: (val: number) => {
+    if (!editedNote.value) return
+    editedNote.value.progress = val
+  }
+})
+
 </script>
 
 <template>
@@ -455,11 +465,14 @@ const editedContent = computed({
               class="h-7 w-full sm:w-48 text-xs"
               aria-label="期限日時"
             />
-            <div class="flex items-center gap-2">
-              <span class="text-xs whitespace-nowrap">進捗 ({{ editedNote.progress || 0 }}%):</span>
-              <div class="relative w-24">
+            <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+              <div class="flex items-center gap-1">
+                <span class="text-xs whitespace-nowrap">進捗:</span>
+                <span class="text-xs font-mono w-[3em] text-right">{{ editedNote.progress || 0 }}%</span>
+              </div>
+              <div class="relative flex-1 w-full sm:w-32 min-w-[100px] h-4 flex items-center">
                 <div 
-                  class="w-full h-2 rounded-lg overflow-hidden"
+                  class="absolute w-full h-2 rounded-lg overflow-hidden pointer-events-none"
                   :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editedNote.progress || 0}%, #e5e7eb ${editedNote.progress || 0}%, #e5e7eb 100%)` }"
                 >
                 </div>
@@ -467,9 +480,9 @@ const editedContent = computed({
                   type="range" 
                   min="0" 
                   max="100" 
-                  v-model.number="editedNote.progress"
+                  v-model.number="editedProgress"
                   :disabled="!canEdit"
-                  class="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider absolute top-0"
+                  class="relative w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider m-0 z-10 focus:outline-none"
                 />
               </div>
             </div>
