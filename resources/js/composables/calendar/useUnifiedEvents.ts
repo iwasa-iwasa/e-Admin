@@ -1,29 +1,13 @@
 import { ref, computed, watch, unref, Ref, ComputedRef } from 'vue'
 import { useCalendarEvents } from './useCalendarEvents'
 
-export interface UnifiedEvent {
-  id: number
-  event_id: number
+export interface UnifiedEvent extends App.Models.ExpandedEvent {
   start: string
   end: string
-  start_date: string
-  end_date: string
-  start_time?: string
-  end_time?: string
-  title: string
-  isAllDay: boolean
-  is_all_day: boolean
-  isImportant: boolean
-  parentEventId?: number
+  isAllDay: boolean // FullCalendar alias
+  isImportant: boolean // Helper
+  parentEventId?: number // Alias
   isException?: boolean
-  category: string
-  importance: string
-  description?: string
-  location?: string
-  progress?: number
-  creator?: any
-  participants?: any[]
-  attachments?: any[]
 }
 
 interface EventFilters {
@@ -49,18 +33,18 @@ export function useUnifiedEvents(
   const loading = ref(false)
   const error = ref<string | null>(null)
   const initialized = ref(false)
-  
+
   const { searchQuery, genreFilter, fetchEvents } = useCalendarEvents()
 
   const loadEvents = async (forceRefresh = false) => {
     loading.value = true
     error.value = null
-    
+
     try {
       const start = unref(rangeStart)
       const end = unref(rangeEnd)
       const filterValues = unref(filters)
-      
+
       // フィルター値をuseCalendarEventsに設定
       if (filterValues.searchQuery !== undefined) {
         searchQuery.value = filterValues.searchQuery
@@ -68,43 +52,32 @@ export function useUnifiedEvents(
       if (filterValues.genreFilter !== undefined) {
         genreFilter.value = filterValues.genreFilter
       }
-      
+
       const cacheKey = getCacheKey(start, end, filterValues)
       const cached = eventCache.get(cacheKey)
-      
+
       // 強制リフレッシュまたは初期化時はキャッシュを無視
       if (!forceRefresh && !initialized.value && cached && Date.now() - cached.timestamp < CACHE_TTL) {
         events.value = cached.data
         initialized.value = true
         return
       }
-      
+
       const fetchedEvents = await fetchEvents(start, end, filterValues.memberId)
       const unifiedEvents: UnifiedEvent[] = fetchedEvents.map((event: any) => ({
+        ...event,
         id: event.id || event.event_id,
-        event_id: event.event_id,
+        // event_id is preserved via spread
         start: event.start_date,
         end: event.end_date,
-        start_date: event.start_date,
-        end_date: event.end_date,
-        start_time: event.start_time,
-        end_time: event.end_time,
-        title: event.title,
+        // start_date, end_date preserved
+        // start_time, end_time preserved
         isAllDay: event.is_all_day,
-        is_all_day: event.is_all_day,
         isImportant: event.importance === '重要',
         parentEventId: event.originalEventId,
-        isException: event.isException,
-        category: event.category,
-        importance: event.importance,
-        description: event.description,
-        location: event.location,
-        progress: event.progress,
-        creator: event.creator,
-        participants: event.participants,
-        attachments: event.attachments
+        isException: event.isException
       }))
-      
+
       eventCache.set(cacheKey, { data: unifiedEvents, timestamp: Date.now() })
       events.value = unifiedEvents
       initialized.value = true
@@ -118,8 +91,8 @@ export function useUnifiedEvents(
   }
 
   // フィルター変更時の再読み込み
-  watch([rangeStart, rangeEnd, filters], 
-    () => loadEvents(), 
+  watch([rangeStart, rangeEnd, filters],
+    () => loadEvents(),
     { deep: true, immediate: false }
   )
 

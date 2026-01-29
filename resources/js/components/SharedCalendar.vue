@@ -27,38 +27,10 @@ import { useCalendarView } from '@/composables/calendar/useCalendarView'
 import { useCalendarDom } from '@/composables/calendar/useCalendarDom'
 import { useFullCalendarConfig } from '@/composables/calendar/useFullCalendarConfig'
 
-// EventModel definition to replace App.Models.Event
-export interface EventModel {
-    event_id: number
-    title: string
-    start_date: string
-    end_date: string
-    start_time: string | null
-    end_time: string | null
-    is_all_day: boolean
-    category: string
-    importance: '高' | '中' | '低'
-    progress?: number | null
-    description: string | null
-    location: string | null
-    url: string | null
-    recurrence?: {
-        recurrence_type: 'daily' | 'weekly' | 'monthly' | 'yearly'
-        recurrence_interval: number
-        by_day?: string[]
-        by_month?: number[]
-        by_month_day?: number[]
-        by_set_pos?: number
-    } | null
-    created_by: number
-    participants?: { id: number; name: string }[]
-    attachments?: { attachment_id: number; file_name: string; file_path: string }[]
-    creator?: { id: number; name: string }
-}
+
 
 const props = defineProps<{
     events: App.Models.ExpandedEvent[]
-    events: EventModel[]
     showBackButton?: boolean
     filteredMemberId?: number | null
 }>()
@@ -70,10 +42,6 @@ const editingEvent = ref<App.Models.Event | null>(null)
 const currentEvents = ref<App.Models.ExpandedEvent[]>([])
 const showRecurrenceEditDialog = ref(false)
 const pendingEditEvent = ref<App.Models.ExpandedEvent | null>(null)
-const selectedEvent = ref<EventModel | null>(null)
-const isEventFormOpen = ref(false)
-const editingEvent = ref<EventModel | null>(null)
-const currentEvents = ref<EventModel[]>([])
 
 // 1. Events Logic (only for filters state)
 const { 
@@ -204,7 +172,6 @@ const { calendarOptions } = useFullCalendarConfig(
 )
 
 const handleEventClickFromGantt = (event: App.Models.ExpandedEvent) => {
-const handleEventClickFromGantt = (event: EventModel) => {
     selectedEvent.value = event
 }
 
@@ -223,7 +190,6 @@ const handleDateClickFromYear = (date: Date) => {
 }
 
 const handleEventHoverFromGantt = (event: App.Models.ExpandedEvent | null, position: { x: number, y: number }) => {
-const handleEventHoverFromGantt = (event: EventModel | null, position: { x: number, y: number }) => {
     hoveredEvent.value = event
     hoverPosition.value = position
 }
@@ -684,15 +650,6 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                     v-if="viewMode === 'timeGridDay'"
                     class="flex gap-1 text-xs flex-shrink-0 overflow-hidden"
                 >
-                    <Button v-for="s in [
-                        ['all','全体'] as const,
-                        ['current','現在'] as const,
-                        ['before','前'] as const,
-                        ['middle','中'] as const,
-                        ['after','後'] as const
-                        ]"
-                        :key="s[0]"
-                        @click="handleScopeButtonClick(s[0])"
                     <Button v-for="s in scopeButtons"
                         :key="s.value"
                         @click="handleScopeButtonClick(s.value)"
