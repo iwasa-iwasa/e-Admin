@@ -32,7 +32,7 @@ const updateValue = (val: number) => {
                 class="h-8 w-8 transition-colors"
                 :class="n <= (Number(modelValue) || 0)
                     ? 'text-yellow-400 fill-yellow-400'
-                    : 'text-gray-300'"
+                    : 'text-gray-300 dark:text-gray-600'"
             />
         </button>
         <span v-if="mode === 'read'" class="ml-2 text-sm text-gray-500">

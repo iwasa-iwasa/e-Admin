@@ -134,9 +134,9 @@ export function useCalendarDom(
                         // 月の最初の日付を取得してその月へ遷移
                         const firstDayCell = el.querySelector('.fc-daygrid-day[data-date]')
                         if (firstDayCell) {
-                            const dateStr = firstDayCell.getAttribute('data-date')
-                            if (dateStr) {
-                                const targetDate = new Date(dateStr)
+                            const dateAttr = firstDayCell.getAttribute('data-date')
+                            if (dateAttr) {
+                                const targetDate = new Date(dateAttr)
                                 viewMode.value = 'dayGridMonth'
                                 api.changeView('dayGridMonth')
                                 api.gotoDate(targetDate)

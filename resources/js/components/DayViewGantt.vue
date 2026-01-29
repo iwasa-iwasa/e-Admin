@@ -4,20 +4,20 @@ import { usePage, router } from '@inertiajs/vue3'
 import { getEventColor } from '@/constants/calendar'
 
 const props = defineProps<{
-    events: App.Models.Event[]
+    events: App.Models.ExpandedEvent[]
     currentDate: Date
     timeScope: 'all' | 'current' | 'before' | 'middle' | 'after'
 }>()
 
 const emit = defineEmits<{
-    eventClick: [event: App.Models.Event]
-    eventHover: [event: App.Models.Event | null, position: { x: number, y: number }]
+    eventClick: [event: App.Models.ExpandedEvent]
+    eventHover: [event: App.Models.ExpandedEvent | null, position: { x: number, y: number }]
     'select-scope': ['before' | 'middle' | 'after']
 }>()
 
 const page = usePage()
 const teamMembers = computed(() => (page.props as any).teamMembers || [])
-const localEvents = ref<App.Models.Event[]>([...props.events])
+const localEvents = ref<App.Models.ExpandedEvent[]>([...props.events])
 
 // propsの変更を監視してリアルタイム更新
 watch(() => props.events, (newEvents) => {
@@ -26,13 +26,13 @@ watch(() => props.events, (newEvents) => {
 
 
 
-// ========== 時間軸設定 ==========
-const DAY_START_HOUR = 7
-const DAY_END_HOUR = 19
+// ========== 時間軸設定（設定可能） ==========
+const DAY_START_HOUR = 7  // TODO: 設定ファイルまたはAPIから取得
+const DAY_END_HOUR = 19   // TODO: 設定ファイルまたはAPIから取得
 const DAY_START_MIN: number = DAY_START_HOUR * 60
 const DAY_END_MIN: number = DAY_END_HOUR * 60
-const workStartHour = 8
-const workEndHour = 17
+const workStartHour = 8   // TODO: 組織設定から取得
+const workEndHour = 17    // TODO: 組織設定から取得
 
 // ⑤ current スコープの時間更新修正
 const nowRef = ref(new Date())
@@ -97,6 +97,7 @@ const todayEvents = computed(() => {
     const d = props.currentDate
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     return localEvents.value.filter(event => {
+        if (!event.start_date || !event.end_date) return false
         const eventStart = event.start_date.split('T')[0]
         const eventEnd = event.end_date.split('T')[0]
         return eventStart <= dateStr && dateStr <= eventEnd
@@ -126,13 +127,49 @@ const memberEventMap = computed<Map<number, DisplayEvent[]>>(() => {
   const map = new Map<number, DisplayEvent[]>()
 
   for (const event of normalizedEvents.value) {
-    event.original.participants?.forEach(p => {
-      if (!map.has(p.id)) map.set(p.id, [])
-      map.get(p.id)!.push(event)
-    })
+    if (event.original.participants && event.original.participants.length > 0) {
+      event.original.participants.forEach(p => {
+        if (!map.has(p.id)) map.set(p.id, [])
+        map.get(p.id)!.push(event)
+      })
+    }
   }
 
   return map
+})
+
+// 参加者なしの予定を取得
+const noParticipantEvents = computed(() => {
+  const scope = scopeRanges.value
+  
+  const events = normalizedEvents.value
+    .filter(e => !e.original.participants || e.original.participants.length === 0)
+    .filter(e => e.end > scope.start && e.start < scope.end)
+
+  const sorted = [...events].sort((a, b) =>
+    a.priority !== b.priority
+      ? b.priority - a.priority
+      : a.start - b.start
+  )
+
+  const lanesEnd: number[] = []
+  const stacked: StackedEvent[] = []
+
+  for (const e of sorted) {
+    let lane = 0
+    while (lanesEnd[lane] !== undefined && lanesEnd[lane] > e.start) {
+      lane++
+    }
+    lanesEnd[lane] = e.end
+    stacked.push({ ...e, lane })
+  }
+
+  const maxLane = Math.max(-1, ...stacked.map(e => e.lane))
+  const laneGroups: StackedEvent[][] = Array.from({ length: maxLane + 1 }, () => [])
+
+  stacked.forEach(e => laneGroups[e.lane].push(e))
+
+  return { lanes: laneGroups, maxLaneIndex: maxLane }
 })
 
 const memberEvents = computed(() => {
@@ -267,7 +304,7 @@ onUnmounted(() => {
 })
 
 
-const MEMBER_COLUMN_WIDTH = 150
+const MEMBER_COLUMN_WIDTH = 150  // TODO: メンバー名の長さに応じて動的調整
 const CURRENT_SCALE = 0.934
 
 const pxPerMin = computed(() => {
@@ -313,11 +350,11 @@ const isToday = computed(() => {
 })
 
 // ========== イベントハンドラ ==========
-const handleEventClick = (event: App.Models.Event) => {
+const handleEventClick = (event: App.Models.ExpandedEvent) => {
     emit('eventClick', event)
 }
 
-const handleEventHover = (event: App.Models.Event | null, mouseEvent: MouseEvent) => {
+const handleEventHover = (event: App.Models.ExpandedEvent | null, mouseEvent: MouseEvent) => {
     if (event) {
         emit('eventHover', event, { x: mouseEvent.clientX, y: mouseEvent.clientY })
     } else {
@@ -378,7 +415,7 @@ const totalSummary = computed(() => {
 })
 
 
-const formatCount = (events: { original: App.Models.Event }[]) => {
+const formatCount = (events: { original: App.Models.ExpandedEvent }[]) => {
   const total = events.length
   const important = events.filter(e => e.original.importance === '重要').length
   return important > 0 ? `${total}件 (重要：${important}件)` : `${total}件`
@@ -392,7 +429,7 @@ const dailySummary = computed(() => {
       acc.push(event)
     }
     return acc
-  }, [] as App.Models.Event[])
+  }, [] as App.Models.ExpandedEvent[])
   
   return uniqueEvents
 })
@@ -404,9 +441,13 @@ type NormalizedTimeRange = {
 }
 
 const getEventTimeForDate = (
-  event: App.Models.Event,
+  event: App.Models.ExpandedEvent,
   date: Date
 ): NormalizedTimeRange => {
+  if (!event.start_date || !event.end_date) {
+    return { start: DAY_START_MIN, end: DAY_END_MIN }
+  }
+  
   const d = date
   const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const startDate = event.start_date.split('T')[0]
@@ -440,7 +481,7 @@ const getEventTimeForDate = (
 // 表示用イベント
 type DisplayEvent = {
   id: number
-  original: App.Models.Event
+  original: App.Models.ExpandedEvent
   start: number   // 分
   end: number     // 分
   priority: number
@@ -531,6 +572,72 @@ type StackedEvent = DisplayEvent & {
         
         <!-- ボディ：メンバー × 予定 -->
         <div class="gantt-body">
+            <!-- 参加者なしの予定レーン -->
+            <div
+                v-if="noParticipantEvents.maxLaneIndex >= 0"
+                class="member-row no-participant-row"
+                :style="{ 
+                    minHeight: `${Math.max(4.375, (noParticipantEvents.maxLaneIndex + 1) * ROW_HEIGHT)}rem`
+                }"
+            >
+                <div class="member-column">
+                    <div class="member-info">
+                        <div class="member-avatar no-participant" :style="{ backgroundColor: '#6b7280' }">
+                            無
+                        </div>
+                        <span class="member-name">参加者なし</span>
+                    </div>
+                </div>
+                
+                <div class="time-grid" :style="{ width: `${timeGridWidth}px` }">
+                    <!-- 背景グリッド -->
+                    <div class="time-grid-bg"  :style="{ width: `${timeGridWidth}px` }">
+                        <div
+                            v-for="hour in visibleHours"
+                            :key="hour"
+                            class="time-cell"
+                            :style="{ width: `${hourWidth}px` }"
+                        />
+                    </div>
+                    
+                    <!-- 予定バー -->
+                    <div class="events-container">
+                        <template v-for="(lane, laneIndex) in noParticipantEvents.lanes" :key="laneIndex">
+                            <div
+                                v-for="event in lane"
+                                :key="event.id"
+                                class="event-bar"
+                                :class="{ 'important': event.original.importance === '重要' }"
+                                :style="{
+                                    ...getEventStyle(event),
+                                    backgroundColor: getEventColor(event.original.category),
+                                    borderColor: event.original.importance === '重要' ? '#dc2626' : getEventColor(event.original.category)
+                                }"
+                                @click="handleEventClick(event.original)"
+                                @mouseenter="handleEventHover(event.original, $event)"
+                                @mouseleave="handleEventHover(null, $event)"
+                            >
+                                <div class="event-content">
+                                    <div class="event-title">{{ event.original.title }}</div>
+                                    <div class="event-creator" v-if="event.original.creator?.name">
+                                        作成者: {{ event.original.creator.name }}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <!-- 現在時刻ライン -->
+                    <div
+                        v-if="isToday && currentTimePosition !== null"
+                        class="current-time-line"
+                        :style="{ left: `${currentTimePosition}px` }"
+                    >
+                        <div class="current-time-marker"/>
+                    </div>
+                </div>
+            </div>
+            
             <div
                 v-for="{ member, lanes, maxLaneIndex } in memberEvents"
                 :key="member.id"
@@ -975,6 +1082,29 @@ type StackedEvent = DisplayEvent & {
     overflow: hidden;
     text-overflow: ellipsis;
     text-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.2);
+}
+
+.event-creator {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.2);
+}
+
+.no-participant-row {
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.dark .no-participant-row {
+    border-color: #374151;
+    background: #1f2937;
+}
+
+.member-avatar.no-participant {
+    background-color: #6b7280 !important;
 }
 
 .event-bar:hover {

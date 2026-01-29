@@ -174,13 +174,13 @@ const form = useForm({
 
 // Weekdays Configuration
 const weekdays = [
+  { label: '日', value: 'SU' },
   { label: '月', value: 'MO' },
   { label: '火', value: 'TU' },
   { label: '水', value: 'WE' },
   { label: '木', value: 'TH' },
   { label: '金', value: 'FR' },
   { label: '土', value: 'SA' },
-  { label: '日', value: 'SU' },
 ]
 
 // Watchers
@@ -425,9 +425,19 @@ const handleSave = () => {
       participants: data.participants.map((p: App.Models.User) => p.id)
     }
     
-    if (isEditMode.value) {
+    // 繰り返し編集のスコープを追加
+    if (isEditMode.value && props.event) {
+      const editScope = (props.event as any).editScope
+      const originalDate = (props.event as any).originalDate
+      
+      if (editScope) {
+        transformed.edit_scope = editScope
+        transformed.original_date = originalDate
+      }
+      
       transformed._method = 'put'
     }
+    
     return transformed
   }
 
@@ -438,6 +448,8 @@ const handleSave = () => {
       setTimeout(() => {
         showMessage(`予定を${isEditMode.value ? '更新' : '作成'}しました`, 'success')
         window.dispatchEvent(new CustomEvent('notification-updated'))
+        // 全ビューのデータ更新をトリガー
+        window.dispatchEvent(new CustomEvent('calendar-data-updated'))
       }, 100)
     },
     onError: (errors: any) => {
@@ -462,9 +474,12 @@ const handleConfirm = () => {
 }
 
 const handleClose = () => {
+  emit("update:open", false)
+}
+
+const resetForm = () => {
   form.reset()
   date.value = [new Date(), new Date()]
-  emit("update:open", false)
 }
 
 // Utility Functions
@@ -503,7 +518,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="handleClose">
+  <Dialog :open="open" @update:open="(val) => { if (!val) resetForm(); emit('update:open', val) }">
     <DialogContent class="max-w-3xl md:max-w-4xl lg:max-w-5xl w-[95vw] md:w-[66vw] max-h-[90vh]">
       <DialogHeader>
         <DialogTitle>
@@ -682,6 +697,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                     placeholder="期間を選択"
                     :locale="ja"
                     :format="format"
+                    :week-start="0"
                     auto-apply
                     teleport-center
                     :disabled="!canEdit"
@@ -830,6 +846,7 @@ const showMessage = (message: string, type: 'success' | 'error' = 'success') => 
                       v-model="form.recurrence.end_date"
                       placeholder="終了日を選択"
                       :locale="ja"
+                      :week-start="0"
                       auto-apply
                       teleport-center
                       :disabled="!canEdit"

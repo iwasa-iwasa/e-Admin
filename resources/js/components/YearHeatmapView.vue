@@ -2,6 +2,13 @@
 import { computed, watch, ref, onMounted, onUnmounted } from 'vue'
 import { useYearHeatmap } from '@/composables/calendar/useYearHeatmap'
 
+interface DayInfo {
+    date: Date
+    dateStr: string
+    day: number
+    isCurrentMonth: boolean
+}
+
 const props = defineProps<{
     year: number
     memberId?: number | null
@@ -18,7 +25,7 @@ const { heatmapReady, loading, fetchYearSummary, getDayLevel, getDaySummary } = 
 const months = computed(() => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
 
 // 指定された月の日付を生成（前月・翌月含む）
-const getDaysInMonth = (month: number) => {
+const getDaysInMonth = (month: number): DayInfo[] => {
     const firstDay = new Date(props.year, month - 1, 1)
     const lastDay = new Date(props.year, month, 0)
     const daysInMonth = lastDay.getDate()
@@ -110,12 +117,12 @@ const handleDateClick = (date: Date) => {
                         class="day-cell"
                         :class="{ 'inactive-day': !day.isCurrentMonth }"
                         :style="{ 
-                            backgroundColor: day.isCurrentMonth ? (getDayLevel(day.dateStr)?.color || '#f9fafb') : '#fafafa'
+                            backgroundColor: day.isCurrentMonth ? (getDayLevel(day.dateStr)?.color || 'var(--heatmap-level-0)') : 'var(--heatmap-inactive-bg)'
                         }"
                         @click="day.isCurrentMonth && handleDateClick(day.date)"
                     >
                         <div class="day-number" :class="{ 'inactive-number': !day.isCurrentMonth, 'white-text': day.isCurrentMonth && getDayLevel(day.dateStr)?.level === 4 }">{{ day.day }}</div>
-                        <div v-if="day.isCurrentMonth && getDaySummary(day.dateStr)" class="day-info" :class="{ 'white-text': getDayLevel(day.dateStr)?.level === 4 }">
+                        <div v-if="day.isCurrentMonth && getDaySummary(day.dateStr)" class="day-info" :class="{ 'white-text': getDayLevel(day.dateStr)?.level >= 3 }">
                             <div v-if="getDaySummary(day.dateStr)!.totalHours > 0" class="hours ">{{ Math.round(getDaySummary(day.dateStr)!.totalHours) }}h</div>
                             <div v-if="getDaySummary(day.dateStr)!.eventCount > 0 || getDaySummary(day.dateStr)!.importantCount > 0" class="dots">
                                 <div v-if="getDaySummary(day.dateStr)!.alldayCount > 0" class="allday-dot"></div>
@@ -136,9 +143,35 @@ const handleDateClick = (date: Date) => {
     overflow-y: auto;
     background: var(--heatmap-bg, #fafafa);
     color: var(--heatmap-text, #1f2937);
+    /* Variables now handled in global style */
 }
 
-:global(.dark) .year-heatmap-view {
+/* Global styles for theming to ensure dark mode works */
+</style>
+
+<style>
+.year-heatmap-view {
+    /* Light Mode Defaults */
+    --heatmap-level-0: #f3f4f6;
+    --heatmap-level-1: #dbeafe;
+    --heatmap-level-2: #93c5fd;
+    --heatmap-level-3: #3b82f6;
+    --heatmap-level-4: #1d4ed8;
+    --heatmap-inactive-bg: #fafafa;
+    --heatmap-text-muted: #9ca3af;
+    --heatmap-bg: #fafafa;
+    --heatmap-text: #1f2937;
+    --heatmap-month-bg: white;
+    --heatmap-month-border: #e5e7eb;
+    --heatmap-header-bg: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+    --heatmap-header-text: #374151;
+    --heatmap-weekday-bg: #f3f4f6;
+    --heatmap-weekday-text: #6b7280;
+    --heatmap-grid-bg: #f9fafb;
+    /* --heatmap-cell-hover is used locally */
+}
+
+.dark .year-heatmap-view {
     --heatmap-bg: #030213; /* dark:bg-background */
     --heatmap-text: #f9fafb; /* dark:text-foreground */
     --heatmap-month-bg: #1f2937; /* dark:bg-card */
@@ -148,8 +181,18 @@ const handleDateClick = (date: Date) => {
     --heatmap-weekday-bg: #1f2937; /* dark:bg-gray-800 */
     --heatmap-weekday-text: #9ca3af; /* dark:text-gray-400 */
     --heatmap-grid-bg: #111827; /* dark:bg-gray-900 */
-    --heatmap-cell-hover: rgba(255, 255, 255, 0.1);
+
+    /* Dark Mode Levels */
+    --heatmap-level-0: #374151; /* gray-700 */
+    --heatmap-level-1: #172554; /* blue-950 */
+    --heatmap-level-2: #1e40af; /* blue-800 */
+    --heatmap-level-3: #2563eb; /* blue-600 */
+    --heatmap-level-4: #3b82f6; /* blue-500 */
+    --heatmap-inactive-bg: #111827; /* dark:bg-gray-900 */
+    --heatmap-text-muted: #6b7280;
 }
+
+/* Removed :global(.dark) block as it is moved to global style */
 
 .loading-state,
 .error-state {
@@ -260,7 +303,7 @@ const handleDateClick = (date: Date) => {
 }
 
 .day-number.inactive-number {
-    color: #9ca3af;
+    color: var(--heatmap-text-muted, #9ca3af);
     font-weight: 400;
 }
 

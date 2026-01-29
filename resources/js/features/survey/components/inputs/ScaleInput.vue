@@ -39,7 +39,7 @@ const updateValue = (val: number) => {
                 :class="[
                     n === Number(modelValue)
                         ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400',
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-blue-500',
                     mode === 'edit' ? 'cursor-pointer' : 'cursor-default opacity-90'
                 ]"
             >

@@ -64,7 +64,28 @@ defineOptions({
     layout: AuthenticatedLayout,
 });
 
-interface SurveyWithResponse extends App.Models.Survey {
+// App.Models.Surveyが不完全なため、手動で定義
+interface SurveyModel {
+    survey_id: number;
+    title: string;
+    description: string | null;
+    created_by: number;
+    deadline_date: string | null;
+    deadline_time: string | null;
+    is_active: boolean;
+    is_deleted: boolean;
+    created_at: string | null;
+    updated_at: string | null;
+    deleted_at: string | null;
+    creator?: {
+        id: number;
+        name: string;
+    };
+    questions: any[]; // 詳細は必要に応じて定義
+    responses: any[];
+}
+
+interface SurveyWithResponse extends SurveyModel {
     has_responded?: boolean;
     respondent_names?: string[];
     unanswered_names?: string[];
@@ -74,8 +95,8 @@ const props = defineProps<{
     surveys: SurveyWithResponse[];
     editSurvey?: SurveyWithResponse;
     teamMembers?: Array<{id: number, name: string}>;
-    errors?: any;
-    auth?: any;
+    errors?: Record<string, string>;
+    auth?: { user: { id: number; name: string } };
     ziggy?: any;
     flash?: any;
     totalUsers?: number;
@@ -88,7 +109,7 @@ const categoryFilter = ref("all");
 const activeTab = ref("active");
 const isCreateSurveyDialogOpen = ref(false);
 const showCreateDialog = ref(false);
-const editingSurvey = ref(null);
+const editingSurvey = ref<SurveyWithResponse | null>(null);
 const surveyToDelete = ref<SurveyWithResponse | null>(null);
 const saveMessage = ref('');
 const messageType = ref<'success' | 'delete'>('success');
@@ -104,11 +125,12 @@ const showMessage = (message: string, type: 'success' | 'delete' = 'success') =>
     }
     saveMessage.value = message;
     messageType.value = type;
-    messageTimer.value = setTimeout(() => {
+    messageTimer.value = window.setTimeout(() => { // window.setTimeoutに変更
         saveMessage.value = '';
         lastDeletedSurvey.value = null;
     }, 4000);
 };
+
 
 // フィルタリングされたアンケート一覧
 const filteredSurveys = computed(() => {
@@ -181,7 +203,7 @@ watch(
     () => props.editSurvey,
     (survey) => {
         if (survey) {
-            editingSurvey.value = survey as any;
+            editingSurvey.value = survey;
             showCreateDialog.value = true;
             isEditDialogOpen.value = true;
         }
@@ -203,7 +225,7 @@ const handleCreate = () => {
 };
 
 const handleEdit = (survey: SurveyWithResponse) => {
-    editingSurvey.value = survey as any;
+    editingSurvey.value = survey;
     showCreateDialog.value = true;
 };
 

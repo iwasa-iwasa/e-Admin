@@ -28,17 +28,42 @@ import {
 } from '@/components/ui/dialog'
 import ReminderDetailDialog from './ReminderDetailDialog.vue'
 
+interface Tag {
+  tag_id: number;
+  tag_name: string;
+}
+
+export interface ReminderModel {
+  id?: number;
+  reminder_id: number;
+  user_id: number;
+  title: string;
+  description: string | null;
+  deadline?: string;
+  deadline_date: string | null;
+  deadline_time: string | null;
+  category: string;
+  completed: boolean;
+  completed_at: string | null;
+  is_deleted: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  deleted_at: string | null;
+  completedAt?: string;
+  tags?: Tag[];
+}
+
 const props = defineProps<{
-  reminders: App.Models.Reminder[]
+  reminders: ReminderModel[]
 }>()
 
-const selectedReminder = ref<any>(null)
+const selectedReminder = ref<ReminderModel | null>(null)
 const saveMessage = ref('')
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<number | null>(null)
-const lastDeletedReminder = ref<App.Models.Reminder | null>(null)
+const lastDeletedReminder = ref<ReminderModel | null>(null)
 const showCompleted = ref(false)
-const reminderToDelete = ref<App.Models.Reminder | null>(null)
+const reminderToDelete = ref<ReminderModel | null>(null)
 const headerRef = ref<HTMLElement | null>(null)
 const headerStage = ref<'normal' | 'compact' | 'titleCut' | 'iconOnly'>('normal')
 let resizeObserver: ResizeObserver | null = null
@@ -153,7 +178,7 @@ const handleUndoDelete = () => {
     }
   })
 }
-const handleUpdateReminder = (updatedReminder: App.Models.Reminder) => {}
+const handleUpdateReminder = (updatedReminder: ReminderModel) => {}
 const isCreateDialogOpen = ref(false)
 const isHelpOpen = ref(false)
 
@@ -172,7 +197,7 @@ const handleCloseCreateDialog = (isOpen: boolean) => {
   isCreateDialogOpen.value = isOpen
 }
 
-const handlePermanentDelete = (reminder: App.Models.Reminder) => {
+const handlePermanentDelete = (reminder: ReminderModel) => {
   reminderToDelete.value = reminder
 }
 
@@ -256,6 +281,24 @@ onUnmounted(() => {
               enter-to-class="opacity-100 scale-100"
               leave-from-class="opacity-100 scale-100"
               leave-to-class="opacity-0 scale-95"
+        <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer hover:opacity-70 transition-opacity" @click="router.visit('/reminders')">
+          <Bell class="h-6 w-6 text-green-700 flex-shrink-0" />
+          <Transition
+            enter-active-class="transition-all duration-300 ease-in-out"
+            leave-active-class="transition-all duration-300 ease-in-out"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
+              v-if="headerStage !== 'iconOnly'"
+              :class="[headerStage !== 'normal' && 'truncate',
+              {
+                'max-w-full': headerStage === 'normal',
+                'max-w-[220px]': headerStage === 'titleCut',
+              },
+              ]"
             >
               <CardTitle class="min-w-0 transition-all duration-200 whitespace-nowrap"
                 :class="[headerStage !== 'normal' && 'truncate',
@@ -305,7 +348,7 @@ onUnmounted(() => {
               >
                 <span v-if="headerStage === 'normal'" class="whitespace-nowrap">未完了</span>
               </Transition>
-              <Badge variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
+              <Badge v-if="headerStage !== 'iconOnly'" variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
                 {{ activeCount }}
               </Badge>
             </button>
@@ -329,7 +372,7 @@ onUnmounted(() => {
               >
                 <span v-if="headerStage === 'normal'" class="whitespace-nowrap">完了済</span>
               </Transition>
-              <Badge variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
+              <Badge v-if="headerStage !== 'iconOnly'" variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600 dark:text-gray-100">
                 {{ completedCount }}
               </Badge>
             </button>

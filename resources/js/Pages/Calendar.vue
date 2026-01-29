@@ -13,7 +13,7 @@ defineOptions({
 })
 
 const props = defineProps<{
-  events: App.Models.Event[]
+  events: App.Models.ExpandedEvent[]
   filteredMemberId?: number | null
   teamMembers: App.Models.User[]
 }>()

@@ -30,26 +30,26 @@ export function useYearHeatmap() {
 
     const fetchYearSummary = async (year: number, calendarId: number, memberId?: number) => {
         console.log('[YearHeatmap] Fetching year summary:', { year, calendarId, memberId })
-        
+
         // 明示的にリセット（エラー時に前回のデータが残る事故を防ぐ）
         heatmapReady.value = false
         yearSummary.value = null
         heatmapLevels.value = []
         loading.value = true
-        
+
         try {
             const response = await axios.get('/api/calendar/year-summary', {
                 params: { year, calendar_id: calendarId, member_id: memberId }
             })
-            
+
             yearSummary.value = response.data
             const daysCount = Object.keys(response.data.days || {}).length
             console.log('[YearHeatmap] Summary received:', { days: daysCount })
-            
+
             calculateHeatmapLevels()
             heatmapReady.value = true
             console.log('[YearHeatmap] Heatmap ready')
-            
+
             return true
         } catch (error) {
             console.error('[YearHeatmap] Failed to fetch year summary:', error)
@@ -78,11 +78,11 @@ export function useYearHeatmap() {
         console.log('[YearHeatmap] Calculated min/max:', { min: minScore, max: maxScore })
 
         const colors = [
-            '#f3f4f6', // 0: 予定なし/軽い
-            '#dbeafe', // 1: 軽い
-            '#93c5fd', // 2: 普通
-            '#3b82f6', // 3: 忙しい
-            '#1d4ed8'  // 4: 非常に忙しい
+            'var(--heatmap-level-0)', // 0: 予定なし/軽い
+            'var(--heatmap-level-1)', // 1: 軽い
+            'var(--heatmap-level-2)', // 2: 普通
+            'var(--heatmap-level-3)', // 3: 忙しい
+            'var(--heatmap-level-4)'  // 4: 非常に忙しい
         ]
 
         heatmapLevels.value = colors.map((color, index) => ({
@@ -95,7 +95,7 @@ export function useYearHeatmap() {
 
     const getDayLevel = (date: string): HeatmapLevel | null => {
         if (!heatmapReady.value) return null
-        
+
         const summary = yearSummary.value?.days[date]
         if (!summary || heatmapLevels.value.length === 0) return null
 

@@ -236,11 +236,33 @@ const COLORS = [
 
 
 
+// App.Modelsの代替定義
+interface SurveyModel {
+    survey_id: number;
+    title: string;
+    description: string | null;
+    deadline_date: string | null;
+    deadline_time: string | null;
+    deadline?: string | null; // アクセサまたは互換性のため
+    is_active: boolean;
+    created_at: string | null;
+    creator?: { name: string };
+    questions?: any[];
+}
+
+interface SurveyResponseModel {
+    response_id: number;
+    respondent_id: number;
+    submitted_at: string | null;
+    respondent?: { name: string };
+    answers?: Record<string | number, any> | any[];
+}
+
 const { toast } = useToast();
 
 const props = defineProps<{
-    survey?: App.Models.Survey;
-    responses?: App.Models.SurveyResponse[];
+    survey?: SurveyModel;
+    responses?: SurveyResponseModel[];
     statistics?: any;
     unansweredUsers?: Array<{id: number, name: string}>;
     errors?: any;
@@ -285,8 +307,8 @@ const surveyData = computed(() => {
         return {
             id: String(props.survey.survey_id),
             title: props.survey.title,
-            description: props.survey.description,
-            deadline: props.survey.deadline,
+            description: props.survey.description || "",
+            deadline: props.survey.deadline || props.survey.deadline_date || "",
             createdBy: props.survey.creator?.name || "不明",
             createdAt: props.survey.created_at,
             status: props.survey.is_active ? "active" : "closed",
@@ -402,7 +424,7 @@ const getMultipleChoiceValues = (value: any): string[] => {
 // 質問ごとの回答を取得
 const getQuestionResponses = (
     question: any,
-    responses: App.Models.SurveyResponse[]
+    responses: SurveyResponseModel[]
 ) => {
     const questionResponses: any[] = [];
 
@@ -806,7 +828,7 @@ const getQuestionResponses = (
                                         <div
                                             v-for="(response, index) in question.responses"
                                             :key="index"
-                                            class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                            class="bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg p-4"
                                         >
                                             <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
                                             <div class="flex flex-wrap gap-2">
@@ -826,9 +848,9 @@ const getQuestionResponses = (
                         <template v-if="question.type === 'rating'">
                             <div class="space-y-6">
                                 <div
-                                    class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center"
+                                    class="bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-900/50 rounded-lg p-6 text-center"
                                 >
-                                    <p class="text-sm text-gray-600 mb-2">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
                                         平均評価
                                     </p>
                                     <p class="text-4xl text-blue-600 mb-2">
@@ -844,7 +866,7 @@ const getQuestionResponses = (
                                                 'text-2xl',
                                                 i <= (question.averageRating || 0)
                                                     ? 'text-yellow-400'
-                                                    : 'text-gray-300',
+                                                    : 'text-gray-300 dark:text-gray-600',
                                             ]"
                                             >★</span
                                         >
@@ -854,7 +876,7 @@ const getQuestionResponses = (
                                     </p>
                                 </div>
                                 <div>
-                                    <h4 class="text-sm mb-4 text-gray-600">
+                                    <h4 class="text-sm mb-4 text-gray-600 dark:text-gray-400">
                                         評価の分布
                                     </h4>
                                     <div
@@ -911,14 +933,14 @@ const getQuestionResponses = (
                                     </div>
                                 </div>
                                 <div>
-                                    <h4 class="text-sm mb-4 text-gray-600">
+                                    <h4 class="text-sm mb-4 text-gray-600 dark:text-gray-400">
                                         回答者別の評価
                                     </h4>
                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         <div
                                             v-for="(response, index) in question.responses"
                                             :key="index"
-                                            class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                            class="bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg p-3"
                                         >
                                             <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
                                             <div class="flex items-center gap-1">
@@ -929,11 +951,11 @@ const getQuestionResponses = (
                                                         'text-lg',
                                                         i <= response.value
                                                             ? 'text-yellow-400'
-                                                            : 'text-gray-300',
+                                                            : 'text-gray-300 dark:text-gray-600',
                                                     ]"
                                                     >★</span
                                                 >
-                                                <span class="text-sm text-gray-600 ml-2">{{ response.value }}</span>
+                                                <span class="text-sm text-gray-600 dark:text-gray-400 ml-2">{{ response.value }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -943,11 +965,11 @@ const getQuestionResponses = (
                         <template v-if="question.type === 'scale'">
                             <div class="space-y-6">
                                 <div>
-                                    <h4 class="text-sm mb-4 text-gray-600">
+                                    <h4 class="text-sm mb-4 text-gray-600 dark:text-gray-400">
                                         平均評価（{{ question.scaleMax || 5 }}段階）
                                     </h4>
-                                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-6 text-center">
-                                        <p class="text-sm text-gray-600 mb-2">平均評価</p>
+                                    <div class="bg-purple-50 border border-purple-200 dark:bg-purple-900/10 dark:border-purple-900/50 rounded-lg p-6 text-center">
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">平均評価</p>
                                         <p class="text-4xl text-purple-600 mb-2">{{ question.averageRating ? question.averageRating.toFixed(1) : '回答なし' }}</p>
                                         <div v-if="question.scaleMinLabel && question.scaleMaxLabel" class="flex items-center justify-center gap-2 text-sm text-gray-500">
                                             <span>{{ question.scaleMinLabel }}</span>
@@ -958,21 +980,78 @@ const getQuestionResponses = (
                                     </div>
                                 </div>
                                 <div>
-                                    <h4 class="text-sm mb-4 text-gray-600">
+                                    <h4 class="text-sm mb-4 text-gray-600 dark:text-gray-400">
+                                        評価の分布
+                                    </h4>
+                                    <div
+                                        v-if="question.aggregatedData && question.aggregatedData.length > 0"
+                                        style="
+                                            height: 250px;
+                                            position: relative;
+                                        "
+                                    >
+                                        <Bar
+                                            :data="{
+                                                labels: question.aggregatedData.map(
+                                                    (d) => d.name
+                                                ),
+                                                datasets: [
+                                                    {
+                                                        label: '回答数',
+                                                        backgroundColor:
+                                                            '#9333ea',
+                                                        data: question.aggregatedData.map(
+                                                            (d) => d.value
+                                                        ),
+                                                    },
+                                                ],
+                                            }"
+                                            :options="{
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        display: false,
+                                                    },
+                                                },
+                                                scales: {
+                                                    x: {
+                                                        title: {
+                                                            display: true,
+                                                            text: '評価',
+                                                        },
+                                                    },
+                                                    y: {
+                                                        title: {
+                                                            display: true,
+                                                            text: '回答数',
+                                                        },
+                                                        ticks: {
+                                                            stepSize: 1,
+                                                            precision: 0
+                                                        }
+                                                    },
+                                                },
+                                            }"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm mb-4 text-gray-600 dark:text-gray-400">
                                         回答者別の評価
                                     </h4>
                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                         <div
                                             v-for="(response, rIndex) in question.responses"
                                             :key="rIndex"
-                                            class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                            class="bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg p-3"
                                         >
                                             <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
                                             <div class="flex items-center gap-2">
-                                                <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                                <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                                     <div class="bg-purple-500 h-full" :style="{ width: `${(response.value / (question.scaleMax || 5)) * 100}%` }"></div>
                                                 </div>
-                                                <Badge class="bg-purple-100 text-purple-700">{{ response.value }} / {{ question.scaleMax || 5 }}</Badge>
+                                                <Badge class="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">{{ response.value }} / {{ question.scaleMax || 5 }}</Badge>
                                             </div>
                                             <p v-if="question.scaleMinLabel && question.scaleMaxLabel" class="text-xs text-gray-500 mt-2">
                                                 {{ response.value <= (question.scaleMax || 5) / 2 ? question.scaleMinLabel : question.scaleMaxLabel }}寄り
@@ -991,10 +1070,10 @@ const getQuestionResponses = (
                                     <div
                                         v-for="(response, index) in question.responses"
                                         :key="index"
-                                        class="bg-gray-50 border border-gray-300 rounded-lg p-3"
+                                        class="bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg p-3"
                                     >
                                         <Badge variant="outline" class="text-xs mb-2">{{ response.respondent }}</Badge>
-                                        <p class="text-sm text-gray-700 font-medium">
+                                        <p class="text-sm text-gray-700 dark:text-gray-300 font-medium">
                                             {{ response.value ? new Date(response.value).toLocaleString('ja-JP', { 
                                                 year: 'numeric', 
                                                 month: '2-digit', 
@@ -1025,7 +1104,7 @@ const getQuestionResponses = (
                                             response, index
                                         ) in question.responses"
                                         :key="index"
-                                        class="bg-gray-50 border border-gray-300 rounded-lg p-4"
+                                        class="bg-gray-50 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg p-4"
                                     >
                                         <div
                                             class="flex items-start justify-between mb-2"
@@ -1054,7 +1133,7 @@ const getQuestionResponses = (
                                             </div>
                                         </div>
                                         <p
-                                            class="text-gray-700 whitespace-pre-wrap"
+                                            class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap"
                                         >
                                             {{ response.value }}
                                         </p>

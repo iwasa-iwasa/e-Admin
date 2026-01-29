@@ -58,70 +58,55 @@ class CalendarController extends Controller
         $searchQuery = $request->query('search_query');
         $genreFilter = $request->query('genre_filter');
 
-        $query = Event::with(['creator', 'participants', 'attachments', 'recurrence']);
+        // Get expanded events (including recurring event occurrences)
+        $events = $this->eventService->getExpandedEvents(
+            $start ?: Carbon::now()->subMonths(1)->format('Y-m-d'),
+            $end ?: Carbon::now()->addMonths(1)->format('Y-m-d'),
+            $memberId
+        );
 
-        // Date Range Filtering
-        if ($start && $end) {
-            $startDate = Carbon::parse($start)->format('Y-m-d');
-            $endDate = Carbon::parse($end)->format('Y-m-d');
-            
-            // Events that overlap with the requested range
-            $query->where(function($q) use ($startDate, $endDate) {
-                $q->where('start_date', '<', $endDate)
-                  ->where('end_date', '>=', $startDate);
+        // デバッグ情報をログに出力
+        \Log::info('Calendar API Debug', [
+            'start' => $start,
+            'end' => $end,
+            'memberId' => $memberId,
+            'total_events' => count($events),
+            'sample_event' => count($events) > 0 ? $events[0] : null
+        ]);
+
+        // Apply additional filters
+        if ($searchQuery) {
+            $search = strtolower($searchQuery);
+            $events = array_filter($events, function($event) use ($search) {
+                return str_contains(strtolower($event['title']), $search) ||
+                       str_contains(strtolower($event['description'] ?? ''), $search) ||
+                       ($event['creator'] && str_contains(strtolower($event['creator']['name']), $search)) ||
+                       ($event['participants'] && collect($event['participants'])->some(fn($p) => str_contains(strtolower($p['name']), $search)));
             });
         }
 
-        // Member Filtering
-        if ($memberId) {
-            $query->whereHas('participants', function ($q) use ($memberId) {
-                $q->where('users.id', $memberId);
-            });
-        }
-
-        // Genre Filtering
         if ($genreFilter && $genreFilter !== 'all') {
             if ($genreFilter === 'other') {
-                // 'other' excludes standard known categories that have specific colors
                 $excludedCategories = [
-                    EventCategory::MEETING,
-                    EventCategory::WORK,
-                    EventCategory::VISITOR,
-                    EventCategory::BUSINESS_TRIP,
-                    EventCategory::VACATION,
+                    EventCategory::MEETING->value,
+                    EventCategory::WORK->value,
+                    EventCategory::VISITOR->value,
+                    EventCategory::BUSINESS_TRIP->value,
+                    EventCategory::VACATION->value,
                 ];
                 
-                $query->whereNotIn('category', array_map(fn($c) => $c->value, $excludedCategories));
+                $events = array_filter($events, fn($event) => !in_array($event['category'], $excludedCategories));
             } else {
-                 // specific color filter
-                 // find the category that has this color
-                 $targetCategory = collect(EventCategory::cases())
-                    ->first(fn($c) => $c->color()->value === $genreFilter);
-                 
-                 if ($targetCategory) {
-                     $query->where('category', $targetCategory->value);
-                 }
+                $targetCategory = collect(EventCategory::cases())
+                   ->first(fn($c) => $c->color()->value === $genreFilter);
+                
+                if ($targetCategory) {
+                    $events = array_filter($events, fn($event) => $event['category'] === $targetCategory->value);
+                }
             }
         }
 
-        // Search Query
-        if ($searchQuery) {
-            $search = strtolower($searchQuery);
-            $query->where(function($q) use ($search) {
-                $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%")
-                  ->orWhereHas('creator', function($subQ) use ($search) {
-                      $subQ->where('name', 'LIKE', "%{$search}%");
-                  })
-                  ->orWhereHas('participants', function($subQ) use ($search) {
-                      $subQ->where('name', 'LIKE', "%{$search}%");
-                  });
-            });
-        }
-
-        $events = $query->orderBy('start_date')->get();
-
-        return response()->json($events);
+        return response()->json(array_values($events));
     }
 
     /**
@@ -157,7 +142,28 @@ class CalendarController extends Controller
      */
     public function update(UpdateEventRequest $request, Event $event)
     {
-        $this->eventService->updateEvent($event, $request->validated());
+        $data = $request->validated();
+        $editScope = $request->input('edit_scope');
+        $originalDate = $request->input('original_date');
+        
+        \Log::info('[CalendarController] Event update request', [
+            'event_id' => $event->event_id,
+            'edit_scope' => $editScope,
+            'original_date' => $originalDate
+        ]);
+        
+        // 繰り返し編集の範囲に応じて処理を分岐
+        if ($editScope === 'this-only' && $originalDate) {
+            // この予定のみ：例外イベントを作成
+            $this->eventService->handleRecurrenceException($event->event_id, $originalDate, $data);
+        } elseif ($editScope === 'this-and-future' && $originalDate) {
+            // この予定以降：繰り返しを分割
+            $this->eventService->handleRecurrenceSplit($event->event_id, $originalDate, $data);
+        } else {
+            // すべての予定：通常の更新
+            $this->eventService->updateEvent($event, $data);
+        }
+        
         return redirect()->back();
     }
 
