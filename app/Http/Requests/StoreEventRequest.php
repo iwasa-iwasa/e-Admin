@@ -46,10 +46,33 @@ class StoreEventRequest extends FormRequest
             'recurrence.by_day' => 'nullable|array',
             'recurrence.by_day.*' => [Rule::in(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'])],
             'recurrence.by_set_pos' => 'nullable|integer',
-            'recurrence.end_date' => 'nullable|date|after_or_equal:end_date',
+            'recurrence.end_date' => 'nullable|date|after_or_equal:date_range.0',
             'attachments' => 'nullable|array',
             'attachments.new_files' => 'nullable|array',
             'attachments.new_files.*' => 'file|max:10240', // 10MB max
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'title.required' => 'タイトルを入力してください。',
+            'title.max' => 'タイトルは255文字以内で入力してください。',
+            'date_range.required' => '期間を選択してください。',
+            'start_time.required_if' => '開始時刻を入力してください。',
+            'end_time.required_if' => '終了時刻を入力してください。',
+            'end_time.after' => '終了時刻は開始時刻より後に設定してください。',
+            'participants.*.exists' => '選択された参加者が見つかりません。',
+            'url.url' => '正しいURL形式で入力してください。',
+            'category.required' => 'ジャンルを選択してください。',
+            'importance.required' => '重要度を選択してください。',
+            'recurrence.end_date.after_or_equal' => '繰り返し終了日は、予定の開始日以降を指定してください。',
+            'attachments.new_files.*.max' => 'ファイルサイズは10MB以下にしてください。',
         ];
     }
 }

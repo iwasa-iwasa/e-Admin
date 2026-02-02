@@ -72,6 +72,9 @@ const {
     updateCalendarTitle 
 } = useCalendarView(fullCalendar)
 
+// FullCalendar の現在表示中の日付を追跡
+const fullCalendarCurrentDate = ref(new Date())
+
 // 3. DOM Logic
 const {
     hoveredEvent,
@@ -85,7 +88,7 @@ const {
     getMoreLinkClassNames,
     handleMoreLinkDidMount,
     handleDayCellDidMount
-} = useCalendarDom(fullCalendar, viewMode, isTodayInViewForFullCalendar, calendarTitle)
+} = useCalendarDom(fullCalendar, viewMode, isTodayInViewForFullCalendar, calendarTitle, fullCalendarCurrentDate)
 
 // Component Specific Logic for Event Click (Navigation vs Selection)
 const handleEventClick = (info: any) => {
@@ -130,10 +133,10 @@ const dateRange = computed(() => {
             end: `${currentYearViewYear.value}-12-31`
         }
     } else {
-        // FullCalendar (月表示) - 現在の月の前後1ヶ月
-        const today = new Date()
-        const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-        const end = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+        // FullCalendar (月表示・年表示) - 表示中の月の前後3ヶ月（広めに取得してキャッシュ効率向上）
+        const currentDate = fullCalendarCurrentDate.value
+        const start = new Date(currentDate.getFullYear(), currentDate.getMonth() - 3, 1)
+        const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 4, 0)
         return {
             start: start.toISOString().split('T')[0],
             end: end.toISOString().split('T')[0]

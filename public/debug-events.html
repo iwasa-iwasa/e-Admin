@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>イベント表示デバッグ</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .period { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .period.ok { background: #d4edda; }
+        .period.error { background: #f8d7da; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>イベント表示デバッグツール</h1>
+    <button onclick="testAllPeriods()">全期間テスト実行</button>
+    <div id="results"></div>
+
+    <script>
+        async function testPeriod(label, start, end) {
+            try {
+                const response = await fetch(`/api/events?start=${start}&end=${end}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const events = await response.json();
+                return {
+                    label,
+                    start,
+                    end,
+                    count: events.length,
+                    success: true,
+                    sample: events.length > 0 ? events[0].start_date + ': ' + events[0].title : 'なし'
+                };
+            } catch (error) {
+                return {
+                    label,
+                    start,
+                    end,
+                    count: 0,
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+
+        async function testAllPeriods() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>テスト実行中...</p>';
+
+            const periods = [
+                { label: '2025年12月', start: '2025-12-01', end: '2025-12-31' },
+                { label: '2026年1月', start: '2026-01-01', end: '2026-01-31' },
+                { label: '2026年2月', start: '2026-02-01', end: '2026-02-28' },
+                { label: '2026年3月', start: '2026-03-01', end: '2026-03-31' },
+                { label: '2026年4月', start: '2026-04-01', end: '2026-04-30' },
+                { label: '2026年5月', start: '2026-05-01', end: '2026-05-31' },
+            ];
+
+            const results = [];
+            for (const period of periods) {
+                const result = await testPeriod(period.label, period.start, period.end);
+                results.push(result);
+            }
+
+            let html = '<h2>テスト結果</h2>';
+            for (const result of results) {
+                const className = result.count > 0 ? 'ok' : 'error';
+                html += `
+                    <div class="period ${className}">
+                        <strong>${result.label}</strong> (${result.start} ～ ${result.end})<br>
+                        イベント数: <strong>${result.count}件</strong><br>
+                        ${result.sample ? 'サンプル: ' + result.sample : ''}
+                        ${result.error ? 'エラー: ' + result.error : ''}
+                    </div>
+                `;
+            }
+
+            resultsDiv.innerHTML = html;
+
+            // ログも確認
+            console.log('=== テスト結果 ===');
+            console.table(results);
+        }
+
+        // ページ読み込み時に自動実行
+        window.addEventListener('load', () => {
+            setTimeout(testAllPeriods, 500);
+        });
+    </script>
+</body>
+</html>
