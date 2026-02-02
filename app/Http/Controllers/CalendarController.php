@@ -187,9 +187,17 @@ class CalendarController extends Controller
      * @param  \App\Models\Event  $event
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Event $event)
+    public function destroy(Request $request, Event $event)
     {
-        $this->eventService->deleteEvent($event);
+        $deleteScope = $request->input('delete_scope');
+        $originalDate = $request->input('original_date');
+        
+        if ($deleteScope && $event->recurrence) {
+            $this->eventService->handleRecurrenceDelete($event->event_id, $deleteScope, $originalDate);
+        } else {
+            $this->eventService->deleteEvent($event);
+        }
+        
         return redirect()->back();
     }
 

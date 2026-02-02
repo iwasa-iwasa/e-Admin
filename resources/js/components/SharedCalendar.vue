@@ -692,7 +692,6 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
             :event="selectedEvent"
             :open="selectedEvent !== null"
             @update:open="(isOpen) => !isOpen && (selectedEvent = null)"
-            @edit="() => selectedEvent && openEditDialog(selectedEvent.event_id)"
         />
 
         <CreateEventDialog

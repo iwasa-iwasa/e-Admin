@@ -606,6 +606,53 @@ class EventService
 
         $event->delete();
     }
+    
+    /**
+     * Handle recurrence delete with scope.
+     */
+    public function handleRecurrenceDelete(int $eventId, string $deleteScope, ?string $targetDate = null): void
+    {
+        \Log::info('[EventService] Handling recurrence delete', [
+            'event_id' => $eventId,
+            'delete_scope' => $deleteScope,
+            'target_date' => $targetDate
+        ]);
+        
+        $event = Event::findOrFail($eventId);
+        
+        switch ($deleteScope) {
+            case 'this-only':
+                // この予定のみ削除：例外イベントとして削除フラグを立てる
+                Event::create([
+                    'calendar_id' => $event->calendar_id,
+                    'parent_event_id' => $eventId,
+                    'original_date' => $targetDate,
+                    'is_exception' => true,
+                    'title' => $event->title . ' (削除済み)',
+                    'start_date' => $targetDate,
+                    'end_date' => $targetDate,
+                    'is_all_day' => true,
+                    'created_by' => auth()->id() ?? 1,
+                    'deleted_at' => now(),
+                ]);
+                break;
+                
+            case 'this-and-future':
+                // この予定以降削除：親イベントの終了日を調整
+                if ($event->recurrence && $targetDate) {
+                    $endDate = Carbon::parse($targetDate)->subDay();
+                    $event->recurrence->update([
+                        'end_date' => $endDate->toDateString()
+                    ]);
+                }
+                break;
+                
+            case 'all':
+                // すべて削除：親イベントごと削除
+                $this->deleteEvent($event);
+                break;
+        }
+    }
 
     /**
      * Restore a deleted event.

@@ -25,6 +25,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   <DialogPortal>
     <DialogOverlay
       class="fixed inset-0 z-50 bg-black/20 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+      :class="props.class?.includes('z-[100]') ? 'z-[99]' : ''"
     />
     <DialogContent
       v-bind="forwarded"
