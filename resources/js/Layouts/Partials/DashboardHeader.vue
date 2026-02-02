@@ -69,13 +69,13 @@ interface Event {
 interface Note {
   note_id: number
   title: string
-  content: string
-  author: { name: string }
+  content: string | null
+  author?: { name: string }
   participants?: { id: number; name: string }[]
   deadline_date?: string | null
   deadline_time?: string | null
   color: string
-  priority: 'high' | 'medium' | 'low'
+  priority: string
 }
 
 interface Survey {
@@ -736,9 +736,9 @@ onUnmounted(() => {
                           {{ getDaysText(note.deadline_date, note.deadline_time ?? undefined) }}
                         </Badge>
                         <div v-if="!(note.deadline_date && (isOverdue(note.deadline_date, note.deadline_time ?? undefined) || isUpcoming(note.deadline_date ?? undefined, note.deadline_time ?? undefined)))" class="flex-1 flex items-end justify-end">
-                          <Badge class="text-xs bg-orange-500 text-white">{{ note.author.name }}</Badge>
+                          <Badge class="text-xs bg-orange-500 text-white">{{ note.author?.name || 'N/A' }}</Badge>
                         </div>
-                        <Badge v-else class="text-xs bg-orange-500 text-white">{{ note.author.name }}</Badge>
+                        <Badge v-else class="text-xs bg-orange-500 text-white">{{ note.author?.name || 'N/A' }}</Badge>
                       </div>
                     </div>
                   </div>
@@ -921,38 +921,158 @@ onUnmounted(() => {
     
     <!-- ヘルプダイアログ -->
     <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">
-      <DialogContent class="max-w-md">
+      <DialogContent class="max-w-2xl">
         <DialogHeader>
           <DialogTitle>通知センターの使い方</DialogTitle>
-          <DialogDescription>
-            重要な予定、メモ、アンケートをまとめて確認できます。
-          </DialogDescription>
         </DialogHeader>
         <div class="space-y-4">
           <div>
-            <h4 class="font-medium mb-2">基本操作</h4>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• アイテムをクリックして詳細を表示・編集</li>
-              <li>• 期限切れ・期限間近のアイテムは色付きで表示</li>
-              <li>• 参加者のイニシャルで関係者を確認</li>
-            </ul>
+            <h3 class="font-semibold mb-2">通知アイテムの種類</h3>
+            <div class="grid gap-4">
+              <!-- 共有カレンダー -->
+              <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
+                  <div class="p-2 rounded-lg border bg-blue-50 border-blue-200 dark:bg-card dark:border-blue-800 opacity-100">
+                    <div class="flex items-start justify-between gap-2">
+                       <div class="flex-1">
+                          <div class="text-sm mb-1 font-medium">チーム定例会議</div>
+                          <div class="text-xs text-gray-600 mb-1">
+                            <span>2024/12/25 10:00</span>
+                          </div>
+                          <div class="flex items-center gap-1 flex-wrap">
+                            <Badge variant="outline" class="text-xs bg-white dark:bg-gray-800">S</Badge>
+                            <Badge variant="outline" class="text-xs bg-white dark:bg-gray-800">T</Badge>
+                          </div>
+                       </div>
+                       <div class="flex flex-col items-end gap-1">
+                          <Badge class="text-xs bg-yellow-500 text-white">期限間近</Badge>
+                          <Badge class="text-xs bg-blue-500 text-white">佐藤</Badge>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p class="font-medium text-sm">共有カレンダー</p>
+                  <p class="text-sm text-gray-500">
+                    チームメンバーと共有している予定が表示されます。<br>
+                    期限が近いものは黄色、期限切れは赤色のバッジで強調されます。
+                  </p>
+                </div>
+              </div>
+
+               <!-- 共有メモ -->
+               <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
+                  <div class="p-2 rounded-lg border bg-orange-50 border-orange-200 dark:bg-card dark:border-orange-800 opacity-100">
+                    <div class="flex items-start justify-between gap-2">
+                       <div class="flex-1">
+                          <div class="text-sm mb-1 font-medium">プロジェクト企画案</div>
+                          <div class="text-xs text-gray-600 mb-1">
+                            <span>期限: 2024/12/31 17:00</span>
+                          </div>
+                       </div>
+                       <div class="flex flex-col items-end gap-1">
+                          <Badge class="text-xs bg-orange-500 text-white">重要</Badge>
+                          <Badge class="text-xs bg-orange-500 text-white">鈴木</Badge>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p class="font-medium text-sm">共有メモ</p>
+                  <p class="text-sm text-gray-500">
+                    関係者と共有している重要なメモです。<br>
+                    背景色はメモの設定色（重要度など）を反映します。
+                  </p>
+                </div>
+              </div>
+
+               <!-- 個人リマインダー -->
+               <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
+                  <div class="p-2 rounded-lg border bg-green-50 border-green-200 dark:bg-card dark:border-green-800 opacity-100">
+                    <div class="flex items-start justify-between gap-2">
+                       <div class="flex-1">
+                          <div class="text-sm mb-1 font-medium">日報提出</div>
+                          <div class="text-xs text-gray-600">
+                            <span>期限: 今日 18:00</span>
+                          </div>
+                       </div>
+                       <div class="flex flex-col items-end gap-1">
+                          <Badge class="text-xs bg-yellow-500 text-white">期限間近</Badge>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p class="font-medium text-sm">個人リマインダー</p>
+                  <p class="text-sm text-gray-500">
+                    自分だけのToDoやリマインダーです。<br>
+                    完了するとリストから消えます（詳細ダイアログから完了操作が可能）。
+                  </p>
+                </div>
+              </div>
+              
+              <!-- アンケート -->
+               <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
+                  <div class="p-2 rounded-lg border bg-purple-50 border-purple-200 dark:bg-card dark:border-purple-800 opacity-100">
+                    <div class="flex items-start justify-between gap-2">
+                       <div class="flex-1">
+                          <div class="text-sm mb-1 font-medium">忘年会の日程調整</div>
+                          <div class="text-xs text-gray-600">
+                            <span>回答期限: 2024/12/20</span>
+                          </div>
+                       </div>
+                       <div class="flex flex-col items-end gap-1">
+                          <Badge class="text-xs bg-purple-500 text-white">田中</Badge>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <p class="font-medium text-sm">未回答アンケート</p>
+                  <p class="text-sm text-gray-500">
+                    まだ回答していないアンケートが表示されます。<br>
+                    クリックすると回答画面へ移動します。
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div>
-            <h4 class="font-medium mb-2">表示設定</h4>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 設定ボタンで表示フィルターを変更</li>
-              <li>• 「自分のみ」：関係するアイテムのみ表示</li>
-              <li>• 「全員表示」：チーム全体の重要アイテムを表示</li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="font-medium mb-2">アイテム種類</h4>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 共有カレンダー：チームの予定やイベント</li>
-              <li>• 共有メモ：期限付きの重要なメモ</li>
-              <li>• 個人リマインダー：個人のタスク</li>
-              <li>• 未回答アンケート：回答が必要なアンケート</li>
-            </ul>
+            <h3 class="font-semibold mb-2">その他の機能</h3>
+             <div class="grid gap-4">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
+                     <div class="flex gap-1 p-1 bg-muted rounded-lg w-fit">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          class="h-7 text-xs bg-background shadow-sm text-foreground opacity-100"
+                          tabindex="-1"
+                        >
+                          自分のみ
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          class="h-7 text-xs text-muted-foreground opacity-100"
+                          tabindex="-1"
+                        >
+                          全員表示
+                        </Button>
+                      </div>
+                  </div>
+                  <div>
+                    <p class="font-medium text-sm">表示フィルター</p>
+                    <p class="text-sm text-gray-500">
+                      歯車アイコンから、表示するアイテムを「自分に関係あるもの」か「全員分」かで切り替えられます。
+                    </p>
+                  </div>
+                </div>
+             </div>
           </div>
         </div>
       </DialogContent>
