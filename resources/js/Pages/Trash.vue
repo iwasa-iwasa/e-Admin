@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
-import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2, Filter, Search, HelpCircle } from 'lucide-vue-next'
+import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2, Filter, Search, HelpCircle, AlertCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardTitle, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -723,35 +723,128 @@ onMounted(() => {
         <div class="space-y-4">
           <div>
             <h3 class="font-semibold mb-2">基本操作</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 削除されたアイテムが一覧で表示されます</li>
-              <li>• 「元に戻す」ボタンでアイテムを復元できます</li>
-              <li>• 「完全に削除」ボタンでアイテムを永久に削除できます</li>
-            </ul>
+            <div class="grid gap-6">
+              <div class="flex items-start gap-4">
+                 <div class="flex-shrink-0 pt-1 w-48 flex gap-2 pointer-events-none opacity-100">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      class="flex-1 flex items-center justify-center gap-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700"
+                      tabindex="-1"
+                    >
+                      <RotateCcw class="h-3.5 w-3.5" />
+                      <span class="text-xs">元に戻す</span>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      class="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600"
+                      tabindex="-1"
+                    >
+                      <X class="h-3.5 w-3.5" />
+                      <span class="text-xs">削除</span>
+                    </Button>
+                 </div>
+                 <div>
+                   <p class="font-medium text-sm">復元と完全削除</p>
+                   <p class="text-sm text-gray-500">
+                     「元に戻す」でアイテムを復元し、「削除」で完全に消去します（取り消せません）。
+                   </p>
+                 </div>
+               </div>
+            </div>
           </div>
+
           <div>
             <h3 class="font-semibold mb-2">一括操作</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• チェックボックスで複数のアイテムを選択できます</li>
-              <li>• 「選択を復元」ボタンで選択したアイテムを一括復元</li>
-              <li>• 「選択を完全削除」ボタンで選択したアイテムを一括削除</li>
-            </ul>
+            <div class="grid gap-6">
+              <div class="flex items-start gap-4">
+                 <div class="flex-shrink-0 pt-1 w-48 pointer-events-none opacity-100">
+                    <div class="flex items-center gap-2 mb-2">
+                       <input 
+                          type="checkbox" 
+                          checked
+                          class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          tabindex="-1"
+                          readonly
+                        />
+                        <span class="text-xs text-gray-600">選択中</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        class="gap-2 bg-green-600 text-white border-green-600 w-full text-xs h-8"
+                        tabindex="-1"
+                      >
+                        <RotateCcw class="h-3 w-3" />
+                        選択を復元
+                      </Button>
+                    </div>
+                 </div>
+                 <div>
+                   <p class="font-medium text-sm">一括選択と操作</p>
+                   <p class="text-sm text-gray-500">
+                     チェックボックスで複数のアイテムを選択し、まとめて復元や削除ができます。
+                   </p>
+                 </div>
+               </div>
+            </div>
           </div>
+
           <div>
             <h3 class="font-semibold mb-2">フィルター機能</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• フィルターボタンで種類、作成者、削除日で絞り込み</li>
-              <li>• 検索ボックスでタイトルや説明で検索</li>
-              <li>• 種類バッジでアイテムの種類を一目で確認</li>
-            </ul>
+            <div class="grid gap-6">
+              <div class="flex items-start gap-4">
+                 <div class="flex-shrink-0 pt-1 w-48 pointer-events-none opacity-100 space-y-2">
+                    <div class="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        class="h-8 w-8 bg-gray-100"
+                        tabindex="-1"
+                      >
+                        <Filter class="h-4 w-4" />
+                      </Button>
+                      <div class="relative flex-1">
+                        <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                        <div class="pl-8 pr-2 h-8 w-full rounded-md border border-gray-300 bg-background flex items-center text-xs text-muted-foreground">
+                          検索...
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                       <Badge variant="outline" class="bg-blue-100 text-blue-700 border-blue-200 text-[10px] px-1 py-0.5 gap-0.5">
+                          <CalendarIcon class="h-3 w-3" />
+                          共有カレンダー
+                       </Badge>
+                       <Badge variant="outline" class="bg-yellow-100 text-orange-600 border-yellow-200 text-[10px] px-1 py-0.5 gap-0.5">
+                          <StickyNote class="h-3 w-3" />
+                          共有メモ
+                       </Badge>
+                    </div>
+                 </div>
+                 <div>
+                   <p class="font-medium text-sm">検索と絞り込み</p>
+                   <p class="text-sm text-gray-500">
+                     タイトル検索や、種類・作成者・削除日での絞り込みが可能です。
+                   </p>
+                 </div>
+               </div>
+            </div>
           </div>
+
           <div>
             <h3 class="font-semibold mb-2">注意事項</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 完全に削除したアイテムは復元できません</li>
-              <li>• アイテムは一定期間後に自動的に完全削除されます</li>
-              <li>• 復元したアイテムは元の場所に戻ります</li>
-            </ul>
+             <div class="flex items-start gap-4 p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900/20">
+                <AlertCircle class="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div class="text-sm text-red-800 dark:text-red-300">
+                   <p class="font-medium">自動削除について</p>
+                   <p class="text-xs mt-1 opacity-90">
+                     ゴミ箱のアイテムは一定期間（例：30日）経過すると自動的に完全に削除され、復元できなくなります。
+                   </p>
+                </div>
+             </div>
           </div>
         </div>
       </DialogContent>
