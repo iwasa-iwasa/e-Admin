@@ -656,37 +656,144 @@ onMounted(() => {
             <DialogContent class="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>アンケート管理の使い方</DialogTitle>
-                    <DialogDescription>
-                        アンケート管理の基本的な使い方をご説明します。
-                    </DialogDescription>
                 </DialogHeader>
                 <div class="space-y-4">
                     <div>
                         <h3 class="font-semibold mb-2">基本操作</h3>
-                        <ul class="space-y-1 text-sm text-gray-600">
-                            <li>• 新規作成ボタンでアンケートを作成できます</li>
-                            <li>• アンケートタイトルをクリックして結果を表示できます</li>
-                            <li>• 編集ボタンでアンケートを修正できます</li>
-                            <li>• 回答ボタンでアンケートに回答できます</li>
-                        </ul>
+                        <div class="grid gap-6">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-48">
+                                    <Button
+                                        variant="outline"
+                                        class="gap-2 pointer-events-none opacity-100"
+                                        tabindex="-1"
+                                    >
+                                        <Plus class="h-4 w-4" />
+                                        新規作成
+                                    </Button>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-sm">アンケート作成</p>
+                                    <p class="text-sm text-gray-500">
+                                        「新規作成」ボタンから、新しいアンケートを作成し、質問を設定できます。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-48 pointer-events-none select-none">
+                                    <div class="relative">
+                                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                        <Input
+                                            placeholder="タイトルなどで検索"
+                                            class="pl-9 h-9"
+                                            readonly
+                                            tabindex="-1"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-sm">検索</p>
+                                    <p class="text-sm text-gray-500">
+                                        タイトルや説明文、作成者名でアンケートを検索できます。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
                     <div>
-                        <h3 class="font-semibold mb-2">タブ切り替え</h3>
-                        <ul class="space-y-1 text-sm text-gray-600">
-                            <li>• すべてタブで全アンケートを表示</li>
-                            <li>• 回答受付中タブでアクティブなアンケートを表示</li>
-                            <li>• 未回答タブで回答が必要なアンケートを表示</li>
-                            <li>• 終了済みタブで期限切れや非アクティブなアンケートを表示</li>
-                        </ul>
+                        <h3 class="font-semibold mb-2">アクション</h3>
+                        <div class="grid gap-6">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-48 pointer-events-none">
+                                    <div class="flex gap-2 flex-wrap">
+                                        <Button variant="outline" size="sm" class="gap-2 opacity-100" tabindex="-1">
+                                            <Edit class="h-4 w-4" />
+                                            編集
+                                        </Button>
+                                        <Button variant="outline" size="sm" class="gap-2 opacity-100" tabindex="-1">
+                                            <CheckCircle2 class="h-4 w-4" />
+                                            回答する
+                                        </Button>
+                                        <Button variant="outline" size="sm" class="gap-2 opacity-100 text-red-600" tabindex="-1">
+                                            <Trash2 class="h-4 w-4" />
+                                            削除
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-sm">編集・回答・削除</p>
+                                    <p class="text-sm text-gray-500">
+                                        アンケートの編集、回答、または不要なアンケートの削除が行えます。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-48 pointer-events-none">
+                                    <div class="flex gap-2">
+                                        <Button variant="outline" size="sm" class="gap-2 opacity-100" tabindex="-1">
+                                            <BarChart3 class="h-4 w-4" />
+                                            結果を見る
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-sm">結果確認</p>
+                                    <p class="text-sm text-gray-500">
+                                        集計結果や、誰が回答済みかなどの詳細を確認できます。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
                     <div>
-                        <h3 class="font-semibold mb-2">状態表示</h3>
-                        <ul class="space-y-1 text-sm text-gray-600">
-                            <li>• 期限切れのアンケートは赤いバッジで表示されます</li>
-                            <li>• 期限間近のアンケートは黄色いバッジで表示されます</li>
-                            <li>• 回答済み・未回答のメンバーが一目で確認できます</li>
-                            <li>• 削除したアンケートは「元に戻す」で復元できます</li>
-                        </ul>
+                        <h3 class="font-semibold mb-2">状態確認</h3>
+                        <div class="grid gap-6">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-48 pointer-events-none">
+                                    <div class="flex gap-1">
+                                        <Badge variant="default" class="gap-1 opacity-100">
+                                            <Clock class="h-3 w-3" />
+                                            残り3日
+                                        </Badge>
+                                        <Badge variant="destructive" class="gap-1 opacity-100">
+                                            <AlertCircle class="h-3 w-3" />
+                                            期限切れ
+                                        </Badge>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-sm">期限表示</p>
+                                    <p class="text-sm text-gray-500">
+                                        締め切りまでの日数や、期限切れの状態がバッジで表示されます。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-48 pointer-events-none">
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center gap-1 text-xs text-green-600">
+                                            <CheckCircle2 class="h-3 w-3" />
+                                            <span>回答済み (5名)</span>
+                                        </div>
+                                        <div class="flex items-center gap-1 text-xs text-orange-600">
+                                            <AlertCircle class="h-3 w-3" />
+                                            <span>未回答 (2名)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-sm">回答状況</p>
+                                    <p class="text-sm text-gray-500">
+                                        各カード内で、回答済み・未回答の人数やメンバーを素早く確認できます。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </DialogContent>

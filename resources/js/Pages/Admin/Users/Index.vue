@@ -311,35 +311,86 @@ const formatDate = (dateString: string) => {
       <DialogContent class="max-w-2xl">
         <DialogHeader>
           <DialogTitle>ユーザー管理の使い方</DialogTitle>
-          <DialogDescription>
-            ユーザー管理の基本的な使い方をご説明します。
-          </DialogDescription>
         </DialogHeader>
         <div class="space-y-4">
           <div>
-            <h3 class="font-semibold mb-2">基本操作</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• ユーザー一覧で全ユーザーの情報を確認できます</li>
-              <li>• 履歴ボタンでユーザーの変更履歴を表示できます</li>
-              <li>• ユーザーの有効化・無効化ができます</li>
-            </ul>
-          </div>
-          <div>
             <h3 class="font-semibold mb-2">権限管理</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 役割バッジをクリックしてユーザーの権限を変更できます</li>
-              <li>• member：一般ユーザー権限</li>
-              <li>• admin：管理者権限（ユーザー管理可能）</li>
-            </ul>
+            <div class="grid gap-6">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                        <Badge variant="outline" class="cursor-default hover:bg-gray-100 transition-colors opacity-100">
+                             member <ChevronDown class="h-3 w-3 ml-1" />
+                        </Badge>
+                    </div>
+                    <div>
+                        <p class="font-medium text-sm">権限変更</p>
+                         <p class="text-sm text-gray-500">
+                             役割バッジをクリックして、ユーザーの権限（member/admin）を変更できます。<br>
+                             adminは管理者権限を持ち、ユーザー管理が可能になります。
+                        </p>
+                    </div>
+                </div>
+            </div>
           </div>
+
+           <div>
+            <h3 class="font-semibold mb-2">履歴とステータス</h3>
+            <div class="grid gap-6">
+                 <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                        <Button variant="outline" size="sm" class="opacity-100" tabindex="-1">
+                            <History class="h-4 w-4 mr-1" />
+                            履歴
+                        </Button>
+                    </div>
+                    <div>
+                        <p class="font-medium text-sm">履歴確認</p>
+                         <p class="text-sm text-gray-500">
+                             履歴ボタンをクリックすると、そのユーザーの権限変更やステータス変更の履歴を確認できます。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                         <div class="flex gap-2">
+                             <Badge variant="default" class="opacity-100">有効</Badge>
+                             <Badge variant="destructive" class="opacity-100">無効</Badge>
+                         </div>
+                    </div>
+                    <div>
+                        <p class="font-medium text-sm">ステータス表示</p>
+                         <p class="text-sm text-gray-500">
+                             ユーザーのアカウント状態を表示します。無効の場合、ログインができなくなります。
+                        </p>
+                    </div>
+                </div>
+            </div>
+          </div>
+
           <div>
-            <h3 class="font-semibold mb-2">ユーザー管理</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 無効化ボタンでユーザーを無効化できます（理由必須）</li>
-              <li>• 無効化されたユーザーは有効化ボタンで復元できます</li>
-              <li>• 管理者ユーザーは無効化できません</li>
-              <li>• 変更履歴で過去の操作を確認できます</li>
-            </ul>
+             <h3 class="font-semibold mb-2">アカウント操作</h3>
+              <div class="grid gap-6">
+                  <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                         <div class="flex gap-2">
+                            <Button variant="destructive" size="sm" class="opacity-100" tabindex="-1">
+                                無効化
+                            </Button>
+                            <Button variant="default" size="sm" class="opacity-100" tabindex="-1">
+                                有効化
+                            </Button>
+                         </div>
+                    </div>
+                    <div>
+                        <p class="font-medium text-sm">有効化・無効化</p>
+                         <p class="text-sm text-gray-500">
+                             ユーザーを無効化（理由入力必須）したり、無効化されたユーザーを再度有効化したりできます。<br>
+                             ※自分自身や他の管理者を無効化することはできません。
+                        </p>
+                    </div>
+                </div>
+              </div>
           </div>
         </div>
       </DialogContent>

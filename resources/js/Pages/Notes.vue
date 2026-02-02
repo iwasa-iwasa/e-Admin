@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { useHighlight } from '@/composables/useHighlight'
-import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2, HelpCircle } from 'lucide-vue-next'
+import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2, HelpCircle, Tag } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -996,27 +996,168 @@ const isHelpOpen = ref(false)
       <div class="space-y-4">
         <div>
           <h3 class="font-semibold mb-2">基本操作</h3>
-          <ul class="space-y-1 text-sm text-gray-600">
-            <li>• メモ作成：「新規作成」ボタンからメモを作成できます</li>
-            <li>• メモ選択：左サイドバーからメモをクリックして編集できます</li>
-            <li>• 保存：「保存」ボタンで変更を保存できます</li>
-          </ul>
+          <div class="grid gap-6">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 w-48">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  class="gap-1 pointer-events-none opacity-100"
+                  tabindex="-1"
+                >
+                  <Plus class="h-3 w-3" />
+                  <span class="whitespace-nowrap">新規作成</span>
+                </Button>
+              </div>
+              <div>
+                <p class="font-medium text-sm">メモ作成</p>
+                <p class="text-sm text-gray-500">
+                   上部の「新規作成」ボタンをクリックして、新しいメモを作成できます。
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none select-none w-48">
+                <div class="w-40 border-l-4 border-gray-200 rounded p-2 bg-white dark:bg-card shadow-sm opacity-100 flex items-start gap-2">
+                   <div class="flex-1">
+                      <div class="flex items-center gap-1 mb-1">
+                         <div class="h-3 w-20 bg-gray-800 dark:bg-gray-200 rounded"></div>
+                         <Badge class="bg-red-600 text-white text-[10px] px-1 py-0 h-4">重要</Badge>
+                      </div>
+                      <div class="h-2 w-full bg-gray-200 rounded mb-1"></div>
+                      <div class="h-2 w-2/3 bg-gray-200 rounded"></div>
+                   </div>
+                </div>
+              </div>
+              <div>
+                <p class="font-medium text-sm">メモ選択</p>
+                <p class="text-sm text-gray-500">
+                  左側のリストからメモをクリックすると、右側で詳細の確認や編集ができます。
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 w-48">
+                 <Button variant="outline" class="gap-2 pointer-events-none opacity-100 h-9" tabindex="-1">
+                   <Save class="h-4 w-4" />
+                   保存
+                 </Button>
+              </div>
+              <div>
+                <p class="font-medium text-sm">保存</p>
+                <p class="text-sm text-gray-500">
+                  編集エリア下部の「保存」ボタンを押して変更を確定します。
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
         <div>
           <h3 class="font-semibold mb-2">整理機能</h3>
-          <ul class="space-y-1 text-sm text-gray-600">
-            <li>• ピン留め：重要なメモを上部に固定できます</li>
-            <li>• ソート：更新日時、重要度、期限で並び替えできます</li>
-            <li>• フィルター：作成者、メモの種類、タグで絞り込みできます</li>
-          </ul>
+          <div class="grid gap-6">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                <Button size="sm" variant="outline" class="gap-2 opacity-100 pointer-events-none" tabindex="-1">
+                  <Pin class="h-4 w-4 fill-current text-yellow-500" />
+                  ピン留め
+                </Button>
+              </div>
+              <div>
+                <p class="font-medium text-sm">ピン留め</p>
+                <p class="text-sm text-gray-500">
+                  「ピン留め」ボタンで、重要なメモをリストの上部に固定表示できます。
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                 <div class="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg opacity-100 w-fit">
+                    <div class="flex items-center justify-center gap-1 py-1 px-2 bg-white dark:bg-gray-700 shadow-sm rounded text-xs text-gray-900 dark:text-gray-100">
+                      <Clock class="h-3.5 w-3.5 text-yellow-500" />
+                      <span class="whitespace-nowrap">更新日時順</span>
+                       <ArrowDown class="h-3.5 w-3.5" />
+                    </div>
+                 </div>
+              </div>
+              <div>
+                <p class="font-medium text-sm">ソート</p>
+                <p class="text-sm text-gray-500">
+                  更新日時、重要度、期限の順にメモを並び替えることができます。
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                  <Button variant="outline" size="icon" class="h-8 w-8 opacity-100">
+                    <Filter class="h-4 w-4" />
+                  </Button>
+              </div>
+              <div>
+                <p class="font-medium text-sm">フィルター</p>
+                <p class="text-sm text-gray-500">
+                  フィルターボタンから、作成者やメモの種類、タグでリストを絞り込みできます。
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
         <div>
           <h3 class="font-semibold mb-2">共有機能</h3>
-          <ul class="space-y-1 text-sm text-gray-600">
-            <li>• メンバー選択：特定のメンバーとメモを共有できます</li>
-            <li>• タグ付け：メモをカテゴリ分けできます</li>
-            <li>• 期限設定：メモに期限を設定できます</li>
-          </ul>
+          <div class="grid gap-6">
+             <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                 <div class="flex gap-1 flex-wrap">
+                   <Badge variant="secondary" class="text-xs gap-1 opacity-100">
+                      山田 太郎
+                   </Badge>
+                   <Badge variant="secondary" class="text-xs gap-1 opacity-100">
+                      鈴木 花子
+                   </Badge>
+                 </div>
+              </div>
+              <div>
+                <p class="font-medium text-sm">メンバー選択</p>
+                <p class="text-sm text-gray-500">
+                  特定のメンバーを選択して、その人たちとだけメモを共有できます。
+                </p>
+              </div>
+            </div>
+
+             <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                 <div class="flex gap-1">
+                   <Badge variant="secondary" class="text-xs opacity-100 gap-1">
+                      企画
+                      <X class="h-2 w-2" />
+                   </Badge>
+                 </div>
+              </div>
+              <div>
+                <p class="font-medium text-sm">タグ付け</p>
+                <p class="text-sm text-gray-500">
+                  メモにタグを付けてカテゴリ分けし、検索しやすくすることができます。
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
+                 <Badge variant="outline" class="text-xs opacity-100">
+                  期限：12/31 23:59
+                 </Badge>
+              </div>
+              <div>
+                <p class="font-medium text-sm">期限設定</p>
+                <p class="text-sm text-gray-500">
+                  メモに期限を設定すると、日付と時間が表示され、スケジュール管理に役立ちます。
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </DialogContent>
