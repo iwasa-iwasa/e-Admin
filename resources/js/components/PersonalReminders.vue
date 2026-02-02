@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -532,26 +533,23 @@ onUnmounted(() => {
           <div>
             <h3 class="font-semibold mb-2">基本操作</h3>
             <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 新規作成ボタンでリマインダーを作成できます</li>
-              <li>• チェックボックスをクリックして完了/未完了を切り替えられます</li>
+              <li>• <Button size="sm" variant="outline" class="inline-flex items-center gap-1 mx-1 pointer-events-none"><Plus class="h-3 w-3" /><span class="text-xs">新規作成</span></Button><Button size="icon" variant="outline" class="inline-flex items-center mx-1 pointer-events-none w-8 h-8" title="新規作成"><Plus class="h-3 w-3" /></Button>でリマインダーを作成できます</li>
+              <li>• <input type="checkbox" class="inline-block mx-1 h-4 w-4 min-w-[1rem] text-blue-600 rounded pointer-events-none" :checked="false">（未完了）<input type="checkbox" class="inline-block mx-1 h-4 w-4 min-w-[1rem] text-blue-600 rounded pointer-events-none" :checked="true">（完了）をクリックして切り替えられます</li>
               <li>• リマインダーをクリックして詳細を表示・編集できます</li>
-              <li>• 完全に削除ボタンでリマインダーを削除できます</li>
+              <li>• <Button variant="outline" size="sm" class="inline-flex items-center gap-2 mx-1 bg-red-50 text-red-700 border-red-200 pointer-events-none"><Trash2 class="h-4 w-4" /><span class="text-xs">完全に削除</span></Button>でリマインダーを削除できます</li>
             </ul>
           </div>
           <div>
             <h3 class="font-semibold mb-2">表示切り替え</h3>
             <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 未完了タブで進行中のリマインダーを表示</li>
-              <li>• 完了済タブで完了したリマインダーを表示</li>
-              <li>• 各タブの数字で件数を確認できます</li>
+              <img src="/images/icons/ReminderKirikae.png" alt="表示切り替えボタン" class="inline mx-1 h-[150px]">
             </ul>
           </div>
           <div>
             <h3 class="font-semibold mb-2">期限管理</h3>
             <ul class="space-y-1 text-sm text-gray-600">
-              <li>• 期限切れのリマインダーは赤い枠で表示されます</li>
-              <li>• 期限間近（3日以内）のリマインダーは黄色い枠で表示されます</li>
-              <li>• 完了したリマインダーは「元に戻す」で復元できます</li>
+              <li class="flex items-center">• 期限切れのリマインダーは<Card class="inline-block mx-1 w-32 h-8 border-red-500 border-2 pointer-events-none align-middle"></Card>で表示されます</li>
+              <li class="flex items-center">• 期限間近（3日以内）のリマインダーは<Card class="inline-block mx-1 w-32 h-8 border-yellow-400 border-2 pointer-events-none align-middle"></Card>で表示されます</li>
             </ul>
           </div>
         </div>
