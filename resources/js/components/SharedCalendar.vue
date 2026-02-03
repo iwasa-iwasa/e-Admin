@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import RecurrenceEditScopeDialog from '@/components/RecurrenceEditScopeDialog.vue'
@@ -781,6 +781,9 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
         <DialogContent class="max-w-2xl">
             <DialogHeader>
                 <DialogTitle>共有カレンダーの使い方</DialogTitle>
+                <DialogDescription class="sr-only">
+                    共有カレンダーの表示切替、イベント操作、フィルター機能について説明します。
+                </DialogDescription>
             </DialogHeader>
             <div class="space-y-4">
                 <div>

@@ -11,27 +11,25 @@ export function useVisitorNotifications() {
 
   const checkVisitorEvents = async () => {
     if (!currentUserId) {
-      console.log('No current user ID')
       return
     }
 
-    console.log('Checking visitor events...')
+
     try {
       const response = await fetch('/api/visitor-events/check')
       const data = await response.json()
-      console.log('Visitor events response:', data)
-      
+
+
       if (data.event && !notifiedEvents.value.has(data.event.event_id)) {
-        console.log('Showing notification for event:', data.event)
         notificationEvent.value = data.event
         showNotification.value = true
         notifiedEvents.value.add(data.event.event_id)
-        
+
         // 通知を表示したらチェックを停止
         if (checkInterval.value) {
           clearInterval(checkInterval.value)
           checkInterval.value = null
-          console.log('Stopped checking after showing notification')
+
         }
       }
     } catch (error) {
@@ -40,7 +38,7 @@ export function useVisitorNotifications() {
   }
 
   const startChecking = () => {
-    console.log('Starting visitor event checking')
+
     checkVisitorEvents()
     checkInterval.value = window.setInterval(checkVisitorEvents, 30000)
   }
