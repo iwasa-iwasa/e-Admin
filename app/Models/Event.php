@@ -93,6 +93,22 @@ class Event extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+    
+    /**
+     * Get the parent event (for split recurring events).
+     */
+    public function parentEvent()
+    {
+        return $this->belongsTo(Event::class, 'parent_event_id', 'event_id');
+    }
+    
+    /**
+     * Get the child events (for split recurring events).
+     */
+    public function childEvents()
+    {
+        return $this->hasMany(Event::class, 'parent_event_id', 'event_id');
+    }
 
     /**
      * Get the calendar that this event belongs to.

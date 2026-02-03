@@ -173,8 +173,11 @@ class CalendarController extends Controller
         } elseif ($editScope === 'this-and-future' && $originalDate) {
             // この予定以降：繰り返しを分割
             $this->eventService->handleRecurrenceSplit($event->event_id, $originalDate, $data);
+        } elseif ($editScope === 'all') {
+            // すべての予定：親イベントと子イベントをすべて更新
+            $this->eventService->updateAllRecurrenceEvents($event, $data);
         } else {
-            // すべての予定：通常の更新
+            // 通常の更新
             $this->eventService->updateEvent($event, $data);
         }
         
@@ -187,9 +190,17 @@ class CalendarController extends Controller
      * @param  \App\Models\Event  $event
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(Event $event)
+    public function destroy(Request $request, Event $event)
     {
-        $this->eventService->deleteEvent($event);
+        $deleteScope = $request->input('delete_scope');
+        $originalDate = $request->input('original_date');
+        
+        if ($deleteScope && $event->recurrence) {
+            $this->eventService->handleRecurrenceDelete($event->event_id, $deleteScope, $originalDate);
+        } else {
+            $this->eventService->deleteEvent($event);
+        }
+        
         return redirect()->back();
     }
 
