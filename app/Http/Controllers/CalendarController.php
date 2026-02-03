@@ -173,8 +173,11 @@ class CalendarController extends Controller
         } elseif ($editScope === 'this-and-future' && $originalDate) {
             // この予定以降：繰り返しを分割
             $this->eventService->handleRecurrenceSplit($event->event_id, $originalDate, $data);
+        } elseif ($editScope === 'all') {
+            // すべての予定：親イベントと子イベントをすべて更新
+            $this->eventService->updateAllRecurrenceEvents($event, $data);
         } else {
-            // すべての予定：通常の更新
+            // 通常の更新
             $this->eventService->updateEvent($event, $data);
         }
         

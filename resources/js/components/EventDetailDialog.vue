@@ -110,6 +110,15 @@ const weekdays = [
 
 // イベントが変わったらフォームを初期化
 watch(() => props.event, (newEvent) => {
+  if (newEvent) {
+    console.log('[EventDetailDialog] Event changed:', {
+      event_id: newEvent.event_id,
+      title: newEvent.title,
+      has_recurrence: !!newEvent.recurrence,
+      recurrence: newEvent.recurrence,
+      isRecurring: newEvent.isRecurring
+    })
+  }
   if (newEvent && isEditMode.value) {
     form.title = newEvent.title || ''
     form.category = newEvent.category || '会議'
@@ -200,20 +209,21 @@ watch(() => form.recurrence.recurrence_type, (newType, oldType) => {
   }
 })
 
-// 開始時刻変更時に終了時刻を自動調整（分も同じ値にする）
+// 開始時刻変更時に終了時刻を自動調整（ちょうど1時間後）
 watch(() => form.start_time, (newStartTime, oldStartTime) => {
   if (isEditMode.value && !form.is_all_day && newStartTime && oldStartTime && newStartTime !== oldStartTime) {
     if (!endTimeManuallyChanged.value) {
       try {
         const [hours, minutes] = newStartTime.split(':').map(Number)
         const endHours = (hours + 1) % 24
-        // 分も同じ値にする
         const newEndTime = `${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-        // 一時的にフラグを無効化して自動更新
-        const tempFlag = endTimeManuallyChanged.value
-        endTimeManuallyChanged.value = false
+        // watcherを一時的に無効化
+        endTimeWatcherEnabled = false
         form.end_time = newEndTime
-        endTimeManuallyChanged.value = tempFlag
+        // 次のtickで再度有効化
+        setTimeout(() => {
+          endTimeWatcherEnabled = true
+        }, 0)
       } catch (e) {
         console.error('Time calculation error:', e)
       }
@@ -441,6 +451,15 @@ const handleCancelEdit = () => {
   form.reset()
 }
 
+const handleDialogClose = (open: boolean) => {
+  if (!open) {
+    // ダイアログを閉じるときは編集モードをリセット
+    isEditMode.value = false
+    form.reset()
+  }
+  emit('update:open', open)
+}
+
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
   if (messageTimer.value) {
     clearTimeout(messageTimer.value)
@@ -574,14 +593,69 @@ const getImportanceLabel = (imp: string) => {
   }
 }
 
+// 繰り返しイベントの前後の発生日を計算
+const calculateNextOccurrence = (currentDate: Date, recurrence: any, offset: number): Date | null => {
+  if (!recurrence) return null
+  
+  const result = new Date(currentDate)
+  const { recurrence_type, recurrence_interval } = recurrence
+  
+  switch (recurrence_type) {
+    case 'daily':
+      result.setDate(result.getDate() + (recurrence_interval * offset))
+      break
+    case 'weekly':
+      result.setDate(result.getDate() + (7 * recurrence_interval * offset))
+      break
+    case 'monthly':
+      result.setMonth(result.getMonth() + (recurrence_interval * offset))
+      break
+    case 'yearly':
+      result.setFullYear(result.getFullYear() + (recurrence_interval * offset))
+      break
+  }
+  
+  return result
+}
+
+const getPreviousOccurrence = computed(() => {
+  if (!props.event?.recurrence) {
+    console.log('[getPreviousOccurrence] No recurrence found')
+    return '-'
+  }
+  console.log('[getPreviousOccurrence] Calculating with:', {
+    start_date: props.event.start_date,
+    recurrence_type: props.event.recurrence.recurrence_type,
+    recurrence_interval: props.event.recurrence.recurrence_interval
+  })
+  const prev = calculateNextOccurrence(new Date(props.event.start_date), props.event.recurrence, -1)
+  const result = prev ? prev.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
+  console.log('[getPreviousOccurrence] Result:', result)
+  return result
+})
+
+const getNextOccurrence = (offset: number) => {
+  if (!props.event?.recurrence) {
+    console.log('[getNextOccurrence] No recurrence found')
+    return '-'
+  }
+  console.log('[getNextOccurrence] Calculating with offset:', offset)
+  const next = calculateNextOccurrence(new Date(props.event.start_date), props.event.recurrence, offset + 1)
+  const result = next ? next.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'
+  console.log('[getNextOccurrence] Result:', result)
+  return result
+}
+
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="emit('update:open', $event)">
+  <Dialog :open="open" @update:open="handleDialogClose">
     <DialogContent v-if="event" class="max-w-md md:max-w-2xl lg:max-w-4xl w-[95vw] md:w-[66vw]">
       <DialogHeader>
         <DialogTitle v-if="!isEditMode">{{ event.title }}</DialogTitle>
-        <Input v-else v-model="form.title" placeholder="タイトル" class="text-lg font-semibold" />
+        <div v-else class="flex items-center gap-3 pr-10">
+          <Input v-model="form.title" placeholder="タイトル" class="text-lg font-semibold flex-1" />
+        </div>
         <DialogDescription>
           {{ isEditMode ? '予定を編集' : '予定の詳細' }}
         </DialogDescription>
@@ -590,13 +664,57 @@ const getImportanceLabel = (imp: string) => {
       <Separator />
 
       <div class="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-        <!-- ジャンルと重要度 -->
-        <div class="flex items-start gap-4">
+        <!-- 表示モード: 日時、繰り返し、ジャンル、重要度 -->
+        <div v-if="!isEditMode" class="flex items-start gap-4">
+          <CalendarIcon class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
+          <div class="flex-1">
+            <div v-if="event.recurrence || event.isRecurring" class="mb-2 inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md text-xs font-medium">
+              <Repeat class="h-3 w-3" />
+              <span>繰り返しイベント</span>
+            </div>
+            <div class="flex items-start gap-4">
+              <!-- 日時情報 -->
+              <div>
+                <p class="font-semibold dark:text-gray-100">{{ displayDate }}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-300">{{ displayTime }}</p>
+                <p v-if="event.recurrence" class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1 mt-1">
+                  <Repeat class="h-4 w-4" />
+                  {{ recurrenceText }}
+                </p>
+              </div>
+              <!-- 繰り返しパターン -->
+              <div v-if="event.recurrence" class="text-xs text-gray-500 dark:text-gray-400 space-y-0.5 pl-4 border-l border-gray-300 dark:border-gray-600">
+                <div>前: {{ getPreviousOccurrence }}</div>
+                <div class="text-blue-600 dark:text-blue-400 font-medium">現在: {{ formatDate(event.start_date) }}</div>
+                <div>次: {{ getNextOccurrence(0) }}</div>
+                <div>次の次: {{ getNextOccurrence(1) }}</div>
+              </div>
+              <!-- ジャンルと重要度 -->
+              <div class="flex gap-4 pl-4 border-l border-gray-300 dark:border-gray-600">
+                <div>
+                  <Label class="text-xs text-gray-500 dark:text-gray-400 mb-1">ジャンル</Label>
+                  <Badge :class="[getCategoryColor(event.category), 'text-white']">
+                    {{ event.category }}
+                  </Badge>
+                </div>
+                <div>
+                  <Label class="text-xs text-gray-500 dark:text-gray-400 mb-1">重要度</Label>
+                  <Badge :class="event.importance === '重要' ? 'bg-red-600 text-white' : event.importance === '中' ? 'bg-yellow-500 text-white' : 'bg-gray-400 text-white'">
+                    {{ getImportanceLabel(event.importance) }}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 編集モード: ジャンルと重要度 -->
+        <div v-else class="flex items-start gap-4">
           <Tag class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div class="flex-1 flex gap-6">
             <div class="flex-1">
               <Label class="text-sm text-gray-500 dark:text-gray-400 mb-2">ジャンル</Label>
-              <Select v-if="isEditMode && canEdit" v-model="form.category">
+              <Select v-model="form.category">
                 <SelectTrigger>
                   <div class="flex items-center gap-2">
                     <div :class="['w-3 h-3 rounded-full', getCategoryColor(form.category)]"></div>
@@ -642,13 +760,10 @@ const getImportanceLabel = (imp: string) => {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <Badge v-else :class="[getCategoryColor(event.category), 'text-white']">
-                {{ event.category }}
-              </Badge>
             </div>
             <div class="flex-1">
               <Label class="text-sm text-gray-500 dark:text-gray-400 mb-2">重要度</Label>
-              <Select v-if="isEditMode && canEdit" v-model="form.importance">
+              <Select v-model="form.importance">
                 <SelectTrigger>
                   <div class="flex items-center gap-2">
                     <AlertCircle :class="['h-4 w-4', getImportanceColor(form.importance)]" />
@@ -667,19 +782,16 @@ const getImportanceLabel = (imp: string) => {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <Badge v-else :class="event.importance === '重要' ? 'bg-red-600 text-white' : event.importance === '中' ? 'bg-yellow-500 text-white' : 'bg-gray-400 text-white'">
-                {{ getImportanceLabel(event.importance) }}
-              </Badge>
             </div>
           </div>
         </div>
 
 
-        <div class="flex items-start gap-4">
+        <!-- 編集モード: 日時編集 -->
+        <div v-if="isEditMode" class="flex items-start gap-4">
           <CalendarIcon class="h-5 w-5 text-gray-400 mt-0.5 shrink-0" />
           <div class="flex-1">
-            <!-- 編集モード -->
-            <div v-if="isEditMode && canEdit" class="space-y-3">
+            <div v-if="canEdit" class="space-y-3">
               <div class="flex items-center gap-4">
                 <Switch v-model="form.is_all_day" id="edit-all-day" />
                 <Label for="edit-all-day" class="text-sm cursor-pointer">終日</Label>
@@ -732,16 +844,6 @@ const getImportanceLabel = (imp: string) => {
                   </Popover>
                 </div>
               </div>
-            </div>
-            
-            <!-- 表示モード -->
-            <div v-else>
-              <p class="font-semibold dark:text-gray-100">{{ displayDate }}</p>
-              <p class="text-sm text-gray-600 dark:text-gray-300">{{ displayTime }}</p>
-              <p v-if="event.recurrence" class="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1 mt-1">
-                <Repeat class="h-4 w-4" />
-                {{ recurrenceText }}
-              </p>
             </div>
           </div>
         </div>

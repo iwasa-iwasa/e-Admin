@@ -19,9 +19,9 @@ class EventService
      */
     public function getExpandedEvents(string $startDate, string $endDate, ?int $memberId = null): array
     {
-        // ベースクエリを構築
+        // 親イベント（parent_event_id = null）と子イベント（parent_event_id != null）の両方を取得
         $query = Event::with(['creator', 'participants', 'attachments', 'recurrence'])
-            ->where('is_exception', false); // 例外イベントは除外
+            ->where('is_exception', false);
             
         if ($memberId) {
             $query->where(function($q) use ($memberId) {
@@ -29,21 +29,18 @@ class EventService
                     $subQ->where('users.id', $memberId);
                 })
                 ->orWhere('created_by', $memberId)
-                // 参加者がいない予定（全員が確認できる）も含める
                 ->orWhereDoesntHave('participants');
             });
         }
         
-        // 全イベントを取得してからフィルタリング
         $events = $query->get();
         $expandedEvents = [];
         
         foreach ($events as $event) {
             if ($event->recurrence) {
-                // 繰り返しイベントを展開
+                // 繰り返しイベントを展開（recurrence.end_dateで自動的に制限される）
                 $expandedEvents = array_merge($expandedEvents, $this->expandRecurringEvent($event, $startDate, $endDate));
             } else {
-                // 通常イベントの期間チェック
                 if ($event->start_date <= $endDate && $event->end_date >= $startDate) {
                     $expandedEvents[] = $this->formatExpandedEvent($event, $event->event_id);
                 }
@@ -331,6 +328,9 @@ class EventService
         $startDate = $overrideDate ?? $event->start_date;
         $endDate = $overrideDate ?? $event->end_date;
         
+        // 例外イベント（is_exception = true）は繰り返し情報を表示しない
+        $recurrence = ($event->is_exception || !$event->recurrence) ? null : $event->recurrence;
+        
         return [
             'id' => $id,
             'event_id' => $event->event_id,
@@ -352,6 +352,7 @@ class EventService
             'creator' => $event->creator,
             'participants' => $event->participants,
             'attachments' => $event->attachments,
+            'recurrence' => $recurrence,
         ];
     }
     /**
@@ -558,10 +559,24 @@ class EventService
      */
     public function updateEvent(Event $event, array $data)
     {
+        \Log::info('[EventService] updateEvent called', [
+            'event_id' => $event->event_id,
+            'date_range' => $data['date_range'],
+            'date_range_type' => gettype($data['date_range'][0]),
+        ]);
+        
+        // date_rangeが文字列の場合とDateオブジェクトの場合を処理
+        $startDate = is_string($data['date_range'][0]) 
+            ? $data['date_range'][0] 
+            : Carbon::parse($data['date_range'][0])->format('Y-m-d');
+        $endDate = is_string($data['date_range'][1]) 
+            ? $data['date_range'][1] 
+            : Carbon::parse($data['date_range'][1])->format('Y-m-d');
+        
         $event->update([
             'title' => $data['title'],
-            'start_date' => Carbon::parse($data['date_range'][0])->format('Y-m-d'),
-            'end_date' => Carbon::parse($data['date_range'][1])->format('Y-m-d'),
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'is_all_day' => $data['is_all_day'],
             'start_time' => $data['is_all_day'] ? null : $data['start_time'],
             'end_time' => $data['is_all_day'] ? null : $data['end_time'],
@@ -571,6 +586,14 @@ class EventService
             'category' => $data['category'],
             'importance' => $data['importance'],
             'progress' => $data['progress'] ?? 0,
+        ]);
+        
+        \Log::info('[EventService] Event updated', [
+            'event_id' => $event->event_id,
+            'new_start_date' => $startDate,
+            'new_end_date' => $endDate,
+            'new_start_time' => $data['start_time'] ?? null,
+            'new_end_time' => $data['end_time'] ?? null,
         ]);
 
         if (isset($data['participants'])) {
@@ -586,6 +609,43 @@ class EventService
         $this->syncSharedNote($event, $data);
 
         return $event;
+    }
+    
+    /**
+     * Update all events in recurrence chain (parent and all children).
+     */
+    public function updateAllRecurrenceEvents(Event $event, array $data): Event
+    {
+        // 実質的な親イベントを特定
+        $rootEvent = $event->parent_event_id 
+            ? Event::find($event->parent_event_id) 
+            : $event;
+        
+        if (!$rootEvent) {
+            // 親が見つからない場合は通常の更新
+            return $this->updateEvent($event, $data);
+        }
+        
+        \Log::info('[EventService] Updating all recurrence events', [
+            'original_event_id' => $event->event_id,
+            'root_event_id' => $rootEvent->event_id,
+            'edited_date_range' => $data['date_range'],
+            'root_start_date' => $rootEvent->start_date,
+        ]);
+        
+        // 時間のみを更新する場合（日付は元のまま）
+        $updateData = $data;
+        $updateData['date_range'] = [
+            $rootEvent->start_date,
+            $rootEvent->end_date
+        ];
+        
+        // 親イベントを更新（繰り返し設定も更新）
+        $this->updateEvent($rootEvent, $updateData);
+        
+        \Log::info('[EventService] Root event updated, skipping child events to avoid duplication');
+        
+        return $rootEvent;
     }
 
     /**
@@ -742,7 +802,8 @@ class EventService
     {
         \Log::info('[EventService] Splitting recurring event', [
             'original_event_id' => $originalEventId,
-            'split_date' => $splitDate
+            'split_date' => $splitDate,
+            'data' => $data,
         ]);
         
         $originalEvent = Event::findOrFail($originalEventId);
@@ -755,11 +816,15 @@ class EventService
             $originalEvent->recurrence->update([
                 'end_date' => $endDate->toDateString()
             ]);
+            \Log::info('[EventService] Updated original event recurrence end_date', [
+                'new_end_date' => $endDate->toDateString(),
+            ]);
         }
         
-        // 新しい繰り返しイベントを作成
+        // 新しい繰り返しイベントを作成（親子関係を記録）
         $newEvent = Event::create([
             'calendar_id' => Calendar::first()->calendar_id,
+            'parent_event_id' => $originalEventId,
             'title' => $data['title'],
             'start_date' => $splitDate,
             'end_date' => Carbon::parse($data['date_range'][1])->format('Y-m-d'),
@@ -775,6 +840,12 @@ class EventService
             'created_by' => auth()->id() ?? 1,
         ]);
         
+        \Log::info('[EventService] Created new split event', [
+            'new_event_id' => $newEvent->event_id,
+            'parent_event_id' => $originalEventId,
+            'start_date' => $splitDate,
+        ]);
+        
         // 繰り返し設定をコピー
         if ($originalEvent->recurrence && $data['recurrence']['is_recurring']) {
             $newEvent->recurrence()->create([
@@ -783,6 +854,9 @@ class EventService
                 'by_day' => $data['recurrence']['by_day'] ?? null,
                 'by_set_pos' => $data['recurrence']['by_set_pos'] ?? null,
                 'end_date' => $data['recurrence']['end_date'] ?? null,
+            ]);
+            \Log::info('[EventService] Created recurrence for new event', [
+                'recurrence_type' => $data['recurrence']['recurrence_type'],
             ]);
         }
         
