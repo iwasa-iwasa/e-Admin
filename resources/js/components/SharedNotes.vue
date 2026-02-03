@@ -530,180 +530,207 @@ const sortedNotes = computed(() => {
 
   <!-- ヘルプダイアログ -->
   <Dialog v-model:open="isHelpOpen">
-    <DialogContent class="max-w-2xl">
+    <DialogContent class="max-w-3xl max-h-[90vh] flex flex-col">
       <DialogHeader>
-        <DialogTitle>共有メモの使い方</DialogTitle>
-        <DialogDescription class="sr-only">
-          共有メモ機能の基本的な使い方、整理機能、共有機能について説明します。
+        <DialogTitle class="flex items-center gap-2 text-xl">
+          <StickyNote class="h-6 w-6 text-orange-600" />
+          共有メモの使い方
+        </DialogTitle>
+        <DialogDescription class="text-base">
+          共有メモの基本的な使い方をご説明します。チームでの情報共有や、タスク管理に活用しましょう。
         </DialogDescription>
       </DialogHeader>
-      <div class="space-y-4">
-        <div>
-          <h3 class="font-semibold mb-2">基本操作</h3>
-          <div class="grid gap-6">
+      <div class="space-y-6 overflow-y-auto flex-1 pr-2">
+        <!-- 基本操作 -->
+        <div class="bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
+          <h3 class="font-semibold mb-3 flex items-center gap-2 text-blue-900 dark:text-blue-100">
+            <div class="w-1.5 h-5 bg-blue-600 rounded-full"></div>
+            基本操作
+          </h3>
+          <div class="space-y-4">
             <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 w-48">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  class="gap-1 pointer-events-none opacity-100"
-                  tabindex="-1"
-                >
+              <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                <Button size="sm" variant="outline" class="gap-1 shadow-sm" tabindex="-1">
                   <Plus class="h-3 w-3" />
-                  <span class="whitespace-nowrap">新規作成</span>
+                  <span class="text-xs">新規作成</span>
                 </Button>
               </div>
-              <div>
-                <p class="font-medium text-sm">メモ作成</p>
-                <p class="text-sm text-gray-500">
-                  ヘッダーの「新規作成」ボタンをクリックして、新しいメモを作成できます。
+              <div class="flex-1">
+                <p class="font-medium text-sm mb-1">メモ作成</p>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  「新規作成」ボタンから新しいメモを作成できます。タイトル、内容、期限、重要度などを設定しましょう。
                 </p>
               </div>
             </div>
 
             <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 pointer-events-none select-none w-48">
-                <div class="w-40 border-2 rounded-lg p-2 bg-yellow-100 border-yellow-300 dark:bg-card dark:border-yellow-600 shadow-sm opacity-100">
-                  <div class="flex justify-between items-start mb-1">
-                    <div class="h-2 w-16 bg-gray-300 rounded"></div>
-                    <div class="h-3 w-8 bg-red-600 rounded"></div>
+              <div class="flex-shrink-0 pt-1 pointer-events-none select-none">
+                <div class="w-48 border-2 rounded-lg p-3 bg-yellow-100 border-yellow-300 dark:bg-card dark:border-yellow-600 shadow-sm">
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="h-3 w-20 bg-gray-400 dark:bg-gray-600 rounded"></div>
+                    <div class="h-4 w-10 bg-red-600 rounded text-[8px] text-white flex items-center justify-center font-medium">重要</div>
                   </div>
-                  <div class="space-y-1">
-                     <div class="h-1.5 w-full bg-gray-200 rounded"></div>
-                     <div class="h-1.5 w-2/3 bg-gray-200 rounded"></div>
+                  <div class="space-y-1.5">
+                    <div class="h-2 w-full bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    <div class="h-2 w-3/4 bg-gray-300 dark:bg-gray-600 rounded"></div>
                   </div>
                 </div>
               </div>
-              <div>
-                <p class="font-medium text-sm">メモ選択</p>
-                <p class="text-sm text-gray-500">
-                  一覧のメモをクリックすると、詳細ダイアログが開き、内容の確認や編集ができます。
-                </p>
-              </div>
-            </div>
-
-            <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 w-48">
-                 <Button class="bg-blue-600 text-white hover:bg-blue-700 pointer-events-none opacity-100 h-8 px-4 text-xs" tabindex="-1">
-                   保存
-                 </Button>
-              </div>
-              <div>
-                <p class="font-medium text-sm">保存</p>
-                <p class="text-sm text-gray-500">
-                  詳細ダイアログで内容を編集した後、「保存」ボタンを押して変更を確定します。
+              <div class="flex-1">
+                <p class="font-medium text-sm mb-1">メモ選択</p>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  一覧のメモをクリックすると詳細ダイアログが開き、内容の確認や編集ができます。
                 </p>
               </div>
             </div>
           </div>
         </div>
-        <div>
-          <h3 class="font-semibold mb-2">整理機能</h3>
-          <div class="grid gap-6">
+
+        <!-- 整理機能 -->
+        <div class="bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-100 dark:border-green-900">
+          <h3 class="font-semibold mb-3 flex items-center gap-2 text-green-900 dark:text-green-100">
+            <div class="w-1.5 h-5 bg-green-600 rounded-full"></div>
+            整理機能
+          </h3>
+          <div class="space-y-4">
             <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
-                <Button size="icon" variant="ghost" class="h-8 w-8 opacity-100" tabindex="-1">
-                  <Pin class="h-4 w-4" />
-                </Button>
+              <div class="flex-shrink-0 pt-1 pointer-events-none">
+                <div class="flex gap-1 p-1.5 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                  <div class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white dark:bg-gray-700 shadow-sm rounded text-xs text-gray-900 dark:text-gray-100">
+                    <AlertCircle class="h-3.5 w-3.5 text-red-500" />
+                    <span class="whitespace-nowrap">重要度順</span>
+                    <ArrowDown class="h-3.5 w-3.5" />
+                  </div>
+                  <div class="flex items-center justify-center gap-1 py-1.5 px-2 rounded text-xs text-gray-500 dark:text-gray-400">
+                    <Calendar class="h-3.5 w-3.5 text-gray-400" />
+                    <span class="whitespace-nowrap">期限順</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p class="font-medium text-sm">ピン留め</p>
-                <p class="text-sm text-gray-500">
+              <div class="flex-1">
+                <p class="font-medium text-sm mb-1">ソート機能</p>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  ヘッダーのボタンで、重要度順または期限順にメモを並び替えることができます。矢印で昇順・降順を切り替えられます。
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none">
+                <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                  <Button size="icon" variant="ghost" class="h-8 w-8" tabindex="-1">
+                    <Pin class="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div class="flex-1">
+                <p class="font-medium text-sm mb-1">ピン留め</p>
+                <p class="text-sm text-muted-foreground leading-relaxed">
                   ピンアイコンをクリックして、重要なメモをリストの上部に固定表示できます。
                 </p>
               </div>
             </div>
 
             <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
-                 <div class="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg opacity-100 w-fit">
-                    <div class="flex items-center justify-center gap-1 py-1 px-2 bg-white dark:bg-gray-700 shadow-sm rounded text-xs text-gray-900 dark:text-gray-100">
-                      <AlertCircle class="h-3.5 w-3.5 text-red-500" />
-                      <span class="whitespace-nowrap">重要度順</span>
-                       <ArrowDown class="h-3.5 w-3.5" />
-                    </div>
-                 </div>
+              <div class="flex-shrink-0 pt-1 pointer-events-none">
+                <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                  <Badge variant="outline" class="text-xs h-5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-600">
+                    期限切れ
+                  </Badge>
+                </div>
               </div>
-              <div>
-                <p class="font-medium text-sm">ソート</p>
-                <p class="text-sm text-gray-500">
-                  ヘッダーのボタンで、重要度や期限の順にメモを並び替えることができます。
-                </p>
-              </div>
-            </div>
-
-            <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
-                 <Badge variant="outline" class="text-xs h-5 bg-gray-200 text-gray-700 border-gray-400 opacity-100">
-                   期限切れ
-                 </Badge>
-              </div>
-              <div>
-                <p class="font-medium text-sm">期限管理</p>
-                <p class="text-sm text-gray-500">
+              <div class="flex-1">
+                <p class="font-medium text-sm mb-1">期限管理</p>
+                <p class="text-sm text-muted-foreground leading-relaxed">
                   期日を過ぎたメモはグレーのバッジで「期限切れ」と表示され、視覚的に区別できます。
                 </p>
               </div>
             </div>
           </div>
         </div>
-        <div>
-          <h3 class="font-semibold mb-2">共有機能</h3>
-          <div class="grid gap-6">
-             <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
-                 <div class="flex gap-1 flex-wrap">
-                   <Badge variant="outline" class="text-xs text-blue-600 border-blue-300 opacity-100">
-                      山田 太郎
-                   </Badge>
-                   <Badge variant="outline" class="text-xs text-blue-600 border-blue-300 opacity-100">
-                      鈴木 花子
-                   </Badge>
-                 </div>
-              </div>
-              <div>
-                <p class="font-medium text-sm">メンバー選択</p>
-                <p class="text-sm text-gray-500">
-                  特定のメンバーを選択して、その人たちとだけメモを共有することができます。
-                </p>
-              </div>
-            </div>
 
-             <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
-                 <div class="flex gap-1">
-                   <Badge variant="secondary" class="text-xs opacity-100">
-                      企画
-                   </Badge>
-                    <Badge variant="secondary" class="text-xs opacity-100">
-                      会議
-                   </Badge>
-                 </div>
+        <!-- 共有機能 -->
+        <div class="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 p-4 rounded-lg border border-purple-100 dark:border-purple-900">
+          <h3 class="font-semibold mb-3 flex items-center gap-2 text-purple-900 dark:text-purple-100">
+            <div class="w-1.5 h-5 bg-purple-600 rounded-full"></div>
+            共有機能
+          </h3>
+          <div class="space-y-4">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none">
+                <div class="flex gap-1 flex-wrap bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                  <Badge variant="outline" class="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600">
+                    山田 太郎
+                  </Badge>
+                  <Badge variant="outline" class="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600">
+                    鈴木 花子
+                  </Badge>
+                </div>
               </div>
-              <div>
-                <p class="font-medium text-sm">タグ付け</p>
-                <p class="text-sm text-gray-500">
-                  メモにタグを付けてカテゴリ分けし、管理しやすくすることができます。
+              <div class="flex-1">
+                <p class="font-medium text-sm mb-1">メンバー選択</p>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  特定のメンバーを選択して、その人たちとだけメモを共有することができます。「全員」を選択すると全メンバーに共有されます。
                 </p>
               </div>
             </div>
 
             <div class="flex items-start gap-4">
-              <div class="flex-shrink-0 pt-1 pointer-events-none w-48">
-                 <Badge variant="outline" class="text-xs h-5 opacity-100">
-                  期限: 2024-12-31 23:59
-                 </Badge>
+              <div class="flex-shrink-0 pt-1 pointer-events-none">
+                <div class="flex gap-1 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                  <Badge variant="secondary" class="text-xs">
+                    企画
+                  </Badge>
+                  <Badge variant="secondary" class="text-xs">
+                    会議
+                  </Badge>
+                </div>
               </div>
-              <div>
-                <p class="font-medium text-sm">期限設定</p>
-                <p class="text-sm text-gray-500">
-                  メモに期限を設定すると、日付と時間が表示され、スケジュール管理に役立ちます。
+              <div class="flex-1">
+                <p class="font-medium text-sm mb-1">タグ付け</p>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  メモにタグを付けてカテゴリ分けし、管理しやすくすることができます。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 進捗管理 -->
+        <div class="bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950/30 dark:to-amber-950/30 p-4 rounded-lg border border-orange-100 dark:border-orange-900">
+          <h3 class="font-semibold mb-3 flex items-center gap-2 text-orange-900 dark:text-orange-100">
+            <div class="w-1.5 h-5 bg-orange-600 rounded-full"></div>
+            進捗管理
+          </h3>
+          <div class="space-y-4">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 pt-1 pointer-events-none">
+                <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                  <div class="flex items-center gap-2">
+                    <div class="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div class="h-full bg-blue-500 w-3/5"></div>
+                    </div>
+                    <span class="text-xs text-gray-600 dark:text-gray-400">60%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-1">
+                <p class="font-medium text-sm mb-1">進捗バー</p>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  メモに進捗状況を設定すると、視覚的にタスクの完了度を確認できます。
                 </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+        <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 flex-shrink-0">
+          <p class="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+            <span class="text-lg">💡</span>
+            <span>メモをクリックして詳細を確認し、編集や削除ができます</span>
+          </p>
+        </div>
     </DialogContent>
   </Dialog>
 </template>

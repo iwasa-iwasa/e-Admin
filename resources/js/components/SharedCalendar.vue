@@ -34,6 +34,11 @@ const props = defineProps<{
     events: App.Models.ExpandedEvent[]
     showBackButton?: boolean
     filteredMemberId?: number | null
+    isHelpOpen?: boolean
+}>()
+
+const emit = defineEmits<{
+    'update:isHelpOpen': [value: boolean]
 }>()
 
 const fullCalendar = ref<any>(null)
@@ -336,7 +341,10 @@ const scopeButtons: { value: 'all' | 'current' | 'before' | 'middle' | 'after'; 
 ]
 
 const activeScope = ref<'all'|'current'|'before'|'middle'|'after'>('current')
-const isHelpOpen = ref(false)
+const isHelpOpen = computed({
+    get: () => props.isHelpOpen ?? false,
+    set: (value) => emit('update:isHelpOpen', value)
+})
 
 function handleSelectScope(scope: 'before' | 'middle' | 'after') {
   activeScope.value = scope
@@ -413,7 +421,7 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                     <Button
                         variant="ghost"
                         size="icon"
-                        class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                        class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                         @click="isHelpOpen = true"
                         title="共有カレンダーの使い方"
                         >
@@ -777,37 +785,155 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
 
     <!-- ヘルプダイアログ -->
     <Dialog v-model:open="isHelpOpen">
-        <DialogContent class="max-w-2xl">
+        <DialogContent class="max-w-3xl max-h-[90vh] flex flex-col">
             <DialogHeader>
-                <DialogTitle>共有カレンダーの使い方</DialogTitle>
-                <DialogDescription class="sr-only">
-                    共有カレンダーの表示切替、イベント操作、フィルター機能について説明します。
+                <DialogTitle class="flex items-center gap-2 text-xl">
+                    <CalendarIcon class="h-6 w-6 text-blue-600" />
+                    共有カレンダーの使い方
+                </DialogTitle>
+                <DialogDescription class="text-base">
+                    共有カレンダーの基本的な使い方をご説明します。各機能を確認して、効率的にスケジュール管理を行いましょう。
                 </DialogDescription>
             </DialogHeader>
-            <div class="space-y-4">
-                <div>
-                    <h3 class="font-semibold mb-2">基本操作</h3>
-                    <ul class="space-y-1 text-sm text-gray-600">
-                        <li>• 表示切替：年/月/週/日の4つの表示モードを選択できます</li>
-                        <li>• ナビゲーション：←→ボタンで期間を移動、「今日」ボタンで現在日時に戻ります</li>
-                        <li>• イベント作成：「新規作成」ボタンから予定を追加できます</li>
-                    </ul>
+            <div class="space-y-6 overflow-y-auto flex-1 pr-2">
+                <!-- 表示切替 -->
+                <div class="relative pl-4 border-l-4 border-blue-500 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30 p-4 rounded-r-lg">
+                    <h3 class="font-semibold mb-3 text-lg">📅 表示切替</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-32 pointer-events-none opacity-100">
+                                    <div class="grid grid-cols-4 gap-1 bg-gray-100 dark:bg-gray-800 p-1.5 rounded-lg shadow-sm">
+                                        <div class="bg-white dark:bg-gray-700 text-center py-2 rounded text-xs font-medium shadow-sm">年</div>
+                                        <div class="text-center py-2 rounded text-xs text-gray-600 dark:text-gray-400">月</div>
+                                        <div class="text-center py-2 rounded text-xs text-gray-600 dark:text-gray-400">週</div>
+                                        <div class="text-center py-2 rounded text-xs text-gray-600 dark:text-gray-400">日</div>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-sm mb-1">4つの表示モード</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">年/月/週/日の4つの表示モードを切り替えて、予定を確認できます。年表示で全体を把握し、日表示で詳細を確認するなど、用途に応じて使い分けましょう。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="font-semibold mb-2">フィルター機能</h3>
-                    <ul class="space-y-1 text-sm text-gray-600">
-                        <li>• ジャンル絞り込み：フィルターアイコンから特定カテゴリのみ表示</li>
-                        <li>• 検索：タイトルや内容でイベントを検索できます</li>
-                    </ul>
+
+                <!-- ナビゲーション -->
+                <div class="relative pl-4 border-l-4 border-green-500 bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 p-4 rounded-r-lg">
+                    <h3 class="font-semibold mb-3 text-lg">🧭 ナビゲーション</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <div class="flex items-center gap-1 pointer-events-none opacity-100">
+                                    <Button variant="outline" size="sm" class="gap-1 h-8" tabindex="-1">
+                                        <ChevronUp class="h-3.5 w-3.5" />
+                                        <span class="text-xs">戻る</span>
+                                    </Button>
+                                    <Button variant="outline" size="sm" class="h-8 w-8 p-0" tabindex="-1">
+                                        <ChevronLeft class="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" class="h-8 w-8 p-0" tabindex="-1">
+                                        <ChevronRight class="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" class="text-xs h-8 px-3" tabindex="-1">今日</Button>
+                                </div>
+                                <span class="font-medium text-sm">期間の移動</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed"><>ボタンで前後の期間に移動、「今日」ボタンで現在日時に戻ります。「戻る」ボタンで前の表示レベルに戻れます（例：日→週→月）。</p>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="font-semibold mb-2">イベント操作</h3>
-                    <ul class="space-y-1 text-sm text-gray-600">
-                        <li>• クリック：イベントをクリックすると詳細が表示されます</li>
-                        <li>• 編集：詳細画面から編集・削除が可能です</li>
-                        <li>• 重要度：重要なイベントは赤枠で強調表示されます</li>
-                    </ul>
+
+                <!-- イベント作成 -->
+                <div class="relative pl-4 border-l-4 border-purple-500 bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-950/30 p-4 rounded-r-lg">
+                    <h3 class="font-semibold mb-3 text-lg">➕ イベント作成</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-32 pointer-events-none opacity-100">
+                                    <Button variant="outline" class="gap-2 shadow-sm" tabindex="-1">
+                                        <Plus class="h-4 w-4" />
+                                        <span class="text-sm">新規作成</span>
+                                    </Button>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-sm mb-1">予定の追加</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">「新規作成」ボタンから新しい予定を追加できます。タイトル、日時、カテゴリ、重要度、進捗状況などを設定できます。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- フィルター機能 -->
+                <div class="relative pl-4 border-l-4 border-orange-500 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950/30 p-4 rounded-r-lg">
+                    <h3 class="font-semibold mb-3 text-lg">🔍 フィルター機能</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <div class="flex items-center gap-1 pointer-events-none opacity-100">
+                                    <Button variant="outline" size="icon" class="h-8 w-8" tabindex="-1">
+                                        <Filter class="h-4 w-4" />
+                                    </Button>
+                                    <div class="relative w-32">
+                                        <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                                        <div class="pl-8 pr-2 h-8 w-full rounded-md border border-input bg-background flex items-center text-xs text-muted-foreground">検索...</div>
+                                    </div>
+                                </div>
+                                <span class="font-medium text-sm">検索と絞り込み</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">フィルターアイコンで特定カテゴリのみ表示、検索バーでタイトルや内容を検索できます。カテゴリは会議、業務、来客、出張、休暇、その他から選択できます。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- イベント操作 -->
+                <div class="relative pl-4 border-l-4 border-red-500 bg-gradient-to-r from-red-50 to-transparent dark:from-red-950/30 p-4 rounded-r-lg">
+                    <h3 class="font-semibold mb-3 text-lg">✏️ イベント操作</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="flex-shrink-0 pt-1 w-32 pointer-events-none opacity-100">
+                                    <div class="space-y-2 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                                        <div class="p-2 rounded border-2 border-red-600 bg-blue-50 dark:bg-blue-900/20 text-xs font-semibold text-center">重要な会議</div>
+                                        <div class="p-2 rounded border border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-900/20 text-xs text-center">通常の業務</div>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-sm mb-1">イベントの表示と編集</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">イベントをクリックすると詳細が表示され、編集や削除が可能です。重要なイベントは赤枠で強調表示されます。進捗状況も確認できます。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 日表示の時間範囲 -->
+                <div class="relative pl-4 border-l-4 border-cyan-500 bg-gradient-to-r from-cyan-50 to-transparent dark:from-cyan-950/30 p-4 rounded-r-lg">
+                    <h3 class="font-semibold mb-3 text-lg">⏰ 日表示の時間範囲</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <div class="flex items-center gap-0.5 pointer-events-none opacity-100">
+                                    <div class="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-[10px]">全体</div>
+                                    <div class="px-2 py-1 rounded bg-blue-600 text-white text-[10px] font-medium">現在</div>
+                                    <div class="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-[10px]">前</div>
+                                    <div class="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-[10px]">中</div>
+                                    <div class="px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-[10px]">後</div>
+                                </div>
+                                <span class="font-medium text-sm">時間範囲の切り替え</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">日表示では、全体/現在/前/中/後のボタンで表示する時間範囲を切り替えられます。現在時刻を中心に、効率的にスケジュールを確認できます。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 flex-shrink-0">
+                <p class="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                    <span class="text-lg">💡</span>
+                    <span>各機能を実際に試してみることで、より使いやすくなります</span>
+                </p>
             </div>
         </DialogContent>
     </Dialog>

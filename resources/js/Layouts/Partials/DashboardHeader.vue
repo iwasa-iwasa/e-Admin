@@ -921,162 +921,101 @@ onUnmounted(() => {
     
     <!-- ヘルプダイアログ -->
     <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">
-      <DialogContent class="max-w-2xl">
+      <DialogContent class="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>通知センターの使い方</DialogTitle>
         </DialogHeader>
-        <div class="space-y-4">
-          <div>
-            <h3 class="font-semibold mb-2">通知アイテムの種類</h3>
-            <div class="grid gap-4">
-              <!-- 共有カレンダー -->
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
-                  <div class="p-2 rounded-lg border bg-blue-50 border-blue-200 dark:bg-card dark:border-blue-800 opacity-100">
-                    <div class="flex items-start justify-between gap-2">
-                       <div class="flex-1">
-                          <div class="text-sm mb-1 font-medium">チーム定例会議</div>
-                          <div class="text-xs text-gray-600 mb-1">
-                            <span>2024/12/25 10:00</span>
-                          </div>
-                          <div class="flex items-center gap-1 flex-wrap">
-                            <Badge variant="outline" class="text-xs bg-white dark:bg-gray-800">S</Badge>
-                            <Badge variant="outline" class="text-xs bg-white dark:bg-gray-800">T</Badge>
-                          </div>
-                       </div>
-                       <div class="flex flex-col items-end gap-1">
-                          <Badge class="text-xs bg-yellow-500 text-white">期限間近</Badge>
-                          <Badge class="text-xs bg-blue-500 text-white">佐藤</Badge>
-                       </div>
+        <div class="space-y-6 overflow-y-auto flex-1 pr-2">
+          <div class="relative pl-4 border-l-4 border-blue-500 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30 p-4 rounded-r-lg">
+            <h3 class="font-semibold mb-3 text-lg">🔔 通知アイテムの種類</h3>
+            <div class="space-y-4">
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1">
+                    <div class="flex items-center gap-2">
+                      <Calendar class="h-4 w-4 text-blue-600" />
+                      <Badge class="text-xs bg-blue-500 text-white">{{ notifications.events.length }}件</Badge>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <p class="font-medium text-sm">共有カレンダー</p>
-                  <p class="text-sm text-gray-500">
-                    チームメンバーと共有している予定が表示されます。<br>
-                    期限が近いものは黄色、期限切れは赤色のバッジで強調されます。
-                  </p>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">共有カレンダー</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">チームメンバーと共有している予定が表示されます。期限が近いものは黄色、期限切れは赤色のバッジで強調されます。</p>
+                  </div>
                 </div>
               </div>
-
-               <!-- 共有メモ -->
-               <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
-                  <div class="p-2 rounded-lg border bg-orange-50 border-orange-200 dark:bg-card dark:border-orange-800 opacity-100">
-                    <div class="flex items-start justify-between gap-2">
-                       <div class="flex-1">
-                          <div class="text-sm mb-1 font-medium">プロジェクト企画案</div>
-                          <div class="text-xs text-gray-600 mb-1">
-                            <span>期限: 2024/12/31 17:00</span>
-                          </div>
-                       </div>
-                       <div class="flex flex-col items-end gap-1">
-                          <Badge class="text-xs bg-orange-500 text-white">重要</Badge>
-                          <Badge class="text-xs bg-orange-500 text-white">鈴木</Badge>
-                       </div>
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1">
+                    <div class="flex items-center gap-2">
+                      <StickyNote class="h-4 w-4 text-orange-600" />
+                      <Badge class="text-xs bg-orange-500 text-white">{{ notifications.notes.length }}件</Badge>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <p class="font-medium text-sm">共有メモ</p>
-                  <p class="text-sm text-gray-500">
-                    関係者と共有している重要なメモです。<br>
-                    背景色はメモの設定色（重要度など）を反映します。
-                  </p>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">共有メモ</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">関係者と共有している重要なメモです。背景色はメモの設定色（重要度など）を反映します。</p>
+                  </div>
                 </div>
               </div>
-
-               <!-- 個人リマインダー -->
-               <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
-                  <div class="p-2 rounded-lg border bg-green-50 border-green-200 dark:bg-card dark:border-green-800 opacity-100">
-                    <div class="flex items-start justify-between gap-2">
-                       <div class="flex-1">
-                          <div class="text-sm mb-1 font-medium">日報提出</div>
-                          <div class="text-xs text-gray-600">
-                            <span>期限: 今日 18:00</span>
-                          </div>
-                       </div>
-                       <div class="flex flex-col items-end gap-1">
-                          <Badge class="text-xs bg-yellow-500 text-white">期限間近</Badge>
-                       </div>
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1">
+                    <div class="flex items-center gap-2">
+                      <Clock class="h-4 w-4 text-green-600" />
+                      <Badge class="text-xs bg-green-500 text-white">{{ notifications.reminders.length }}件</Badge>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <p class="font-medium text-sm">個人リマインダー</p>
-                  <p class="text-sm text-gray-500">
-                    自分だけのToDoやリマインダーです。<br>
-                    完了するとリストから消えます（詳細ダイアログから完了操作が可能）。
-                  </p>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">個人リマインダー</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">自分だけのToDoやリマインダーです。完了するとリストから消えます（詳細ダイアログから完了操作が可能）。</p>
+                  </div>
                 </div>
               </div>
-              
-              <!-- アンケート -->
-               <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
-                  <div class="p-2 rounded-lg border bg-purple-50 border-purple-200 dark:bg-card dark:border-purple-800 opacity-100">
-                    <div class="flex items-start justify-between gap-2">
-                       <div class="flex-1">
-                          <div class="text-sm mb-1 font-medium">忘年会の日程調整</div>
-                          <div class="text-xs text-gray-600">
-                            <span>回答期限: 2024/12/20</span>
-                          </div>
-                       </div>
-                       <div class="flex flex-col items-end gap-1">
-                          <Badge class="text-xs bg-purple-500 text-white">田中</Badge>
-                       </div>
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1">
+                    <div class="flex items-center gap-2">
+                      <BarChart3 class="h-4 w-4 text-purple-600" />
+                      <Badge class="text-xs bg-purple-500 text-white">{{ notifications.surveys.length }}件</Badge>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <p class="font-medium text-sm">未回答アンケート</p>
-                  <p class="text-sm text-gray-500">
-                    まだ回答していないアンケートが表示されます。<br>
-                    クリックすると回答画面へ移動します。
-                  </p>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">未回答アンケート</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">まだ回答していないアンケートが表示されます。クリックすると回答画面へ移動します。</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <div>
-            <h3 class="font-semibold mb-2">その他の機能</h3>
-             <div class="grid gap-4">
+          <div class="relative pl-4 border-l-4 border-green-500 bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 p-4 rounded-r-lg">
+            <h3 class="font-semibold mb-3 text-lg">⚙️ 表示設定</h3>
+            <div class="space-y-4">
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
                 <div class="flex items-start gap-4">
-                  <div class="flex-shrink-0 pt-1 pointer-events-none w-64 select-none">
-                     <div class="flex gap-1 p-1 bg-muted rounded-lg w-fit">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          class="h-7 text-xs bg-background shadow-sm text-foreground opacity-100"
-                          tabindex="-1"
-                        >
-                          自分のみ
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          class="h-7 text-xs text-muted-foreground opacity-100"
-                          tabindex="-1"
-                        >
-                          全員表示
-                        </Button>
-                      </div>
+                  <div class="flex-shrink-0 pt-1">
+                    <Button variant="ghost" size="icon" class="h-8 w-8 pointer-events-none opacity-100" tabindex="-1">
+                      <Settings class="h-4 w-4" />
+                    </Button>
                   </div>
-                  <div>
-                    <p class="font-medium text-sm">表示フィルター</p>
-                    <p class="text-sm text-gray-500">
-                      歯車アイコンから、表示するアイテムを「自分に関係あるもの」か「全員分」かで切り替えられます。
-                    </p>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">表示フィルター</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">歯車アイコンから、共有カレンダーと共有メモの表示を「自分のみ」か「全員表示」で切り替えられます。</p>
                   </div>
                 </div>
-             </div>
+              </div>
+            </div>
           </div>
+        </div>
+        <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 flex-shrink-0">
+          <p class="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+            <span class="text-lg">💡</span>
+            <span>通知センターで重要なタスクを一括管理しましょう！</span>
+          </p>
         </div>
       </DialogContent>
     </Dialog>
 
+
   </header>
 </template>
+
