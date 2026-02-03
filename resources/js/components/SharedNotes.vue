@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 
@@ -533,6 +533,9 @@ const sortedNotes = computed(() => {
     <DialogContent class="max-w-2xl">
       <DialogHeader>
         <DialogTitle>共有メモの使い方</DialogTitle>
+        <DialogDescription class="sr-only">
+          共有メモ機能の基本的な使い方、整理機能、共有機能について説明します。
+        </DialogDescription>
       </DialogHeader>
       <div class="space-y-4">
         <div>
