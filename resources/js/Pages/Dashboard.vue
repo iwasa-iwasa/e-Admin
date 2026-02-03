@@ -34,6 +34,9 @@ const clearFilter = () => {
     replace: true,
   })
 }
+
+const isCalendarHelpOpen = ref(false)
+
 //iPad判定ロジック
 const isIPad = ref(false)
 const isLandscape = ref(false)
@@ -143,7 +146,12 @@ onUnmounted(() => {
                 <Card class="hover:shadow-md transition-shadow">
                     <CardContent class="p-0">
                       <div class="h-[80vh] min-h-0 overflow-hidden">
-                            <SharedCalendar :events="events" :filtered-member-id="filteredMemberId" />
+                            <SharedCalendar 
+                                :events="events" 
+                                :filtered-member-id="filteredMemberId"
+                                :is-help-open="isCalendarHelpOpen"
+                                @update:is-help-open="isCalendarHelpOpen = $event"
+                            />
                         </div>
                     </CardContent>
                 </Card>
@@ -169,7 +177,12 @@ onUnmounted(() => {
       <!-- PC：横並びレイアウト -->
       <div v-else ref="dashboardRef" class="flex h-full">
         <div :style="{ width: calendarWidth + '%' }" class="h-full pr-3">
-          <SharedCalendar :events="events" :filtered-member-id="filteredMemberId" />
+          <SharedCalendar 
+              :events="events" 
+              :filtered-member-id="filteredMemberId"
+              :is-help-open="isCalendarHelpOpen"
+              @update:is-help-open="isCalendarHelpOpen = $event"
+          />
         </div>
 
         <!-- 横リサイズバー -->

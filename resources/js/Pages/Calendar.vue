@@ -2,8 +2,8 @@
 import { Head, usePage, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SharedCalendar from '@/components/SharedCalendar.vue'
-import { computed } from 'vue'
-import { ArrowLeft, Calendar as CalendarIcon, X } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { ArrowLeft, Calendar as CalendarIcon, X, HelpCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CardTitle } from '@/components/ui/card'
@@ -29,13 +29,21 @@ const clearFilter = () => {
     replace: true,
   })
 }
+
+const isHelpOpen = ref(false)
 </script>
 
 <template>
     <Head title="カレンダー" />
     <div class="flex gap-6 mx-auto h-full p-4 md:p-6">
         <div class="flex-1 h-full flex flex-col">
-            <SharedCalendar :events="props.events" :show-back-button="true" :filtered-member-id="props.filteredMemberId" />
+            <SharedCalendar 
+                :events="props.events" 
+                :show-back-button="true" 
+                :filtered-member-id="props.filteredMemberId"
+                :is-help-open="isHelpOpen"
+                @update:is-help-open="isHelpOpen = $event"
+            />
         </div>
     </div>
 </template>

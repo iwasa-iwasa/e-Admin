@@ -522,36 +522,153 @@ onUnmounted(() => {
     
     <!-- ヘルプダイアログ -->
     <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">
-      <DialogContent class="max-w-2xl">
+      <DialogContent class="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>個人リマインダーの使い方</DialogTitle>
-          <DialogDescription>
-            個人リマインダーの基本的な使い方をご説明します。
+          <DialogTitle class="flex items-center gap-2 text-xl">
+            <Bell class="h-6 w-6 text-green-700" />
+            個人リマインダーの使い方
+          </DialogTitle>
+          <DialogDescription class="text-base">
+            個人リマインダーの基本的な使い方をご説明します。タスク管理や期限管理に活用しましょう。
           </DialogDescription>
         </DialogHeader>
-        <div class="space-y-4">
-          <div>
-            <h3 class="font-semibold mb-2">基本操作</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li>• <Button size="sm" variant="outline" class="inline-flex items-center gap-1 mx-1 pointer-events-none"><Plus class="h-3 w-3" /><span class="text-xs">新規作成</span></Button><Button size="icon" variant="outline" class="inline-flex items-center mx-1 pointer-events-none w-8 h-8" title="新規作成"><Plus class="h-3 w-3" /></Button>でリマインダーを作成できます</li>
-              <li>• <input type="checkbox" class="inline-block mx-1 h-4 w-4 min-w-[1rem] text-blue-600 rounded pointer-events-none" :checked="false">（未完了）<input type="checkbox" class="inline-block mx-1 h-4 w-4 min-w-[1rem] text-blue-600 rounded pointer-events-none" :checked="true">（完了）をクリックして切り替えられます</li>
-              <li>• リマインダーをクリックして詳細を表示・編集できます</li>
-              <li>• <Button variant="outline" size="sm" class="inline-flex items-center gap-2 mx-1 bg-red-50 text-red-700 border-red-200 pointer-events-none"><Trash2 class="h-4 w-4" /><span class="text-xs">完全に削除</span></Button>でリマインダーを削除できます</li>
-            </ul>
+        <div class="space-y-6 overflow-y-auto flex-1 pr-2">
+          <!-- 基本操作 -->
+          <div class="bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
+            <h3 class="font-semibold mb-3 flex items-center gap-2 text-blue-900 dark:text-blue-100">
+              <div class="w-1.5 h-5 bg-blue-600 rounded-full"></div>
+              基本操作
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                  <Button size="sm" variant="outline" class="gap-1 shadow-sm" tabindex="-1">
+                    <Plus class="h-3 w-3" />
+                    <span class="text-xs">新規作成</span>
+                  </Button>
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium text-sm mb-1">リマインダー作成</p>
+                  <p class="text-sm text-muted-foreground leading-relaxed">
+                    「新規作成」ボタンから新しいリマインダーを作成できます。タイトル、説明、期限、カテゴリなどを設定しましょう。
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                  <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                    <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" :checked="false" tabindex="-1">
+                    <span class="text-xs text-gray-600 dark:text-gray-400">未完了</span>
+                    <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" :checked="true" tabindex="-1">
+                    <span class="text-xs text-gray-600 dark:text-gray-400">完了</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium text-sm mb-1">完了状態の切り替え</p>
+                  <p class="text-sm text-muted-foreground leading-relaxed">
+                    チェックボックスをクリックすると、リマインダーの完了・未完了を切り替えられます。完了したタスクは別タブで管理されます。
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 class="font-semibold mb-2">表示切り替え</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <img src="/images/icons/ReminderKirikae.png" alt="表示切り替えボタン" class="inline mx-1 h-[150px]">
-            </ul>
+
+          <!-- 表示切り替え -->
+          <div class="bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-100 dark:border-green-900">
+            <h3 class="font-semibold mb-3 flex items-center gap-2 text-green-900 dark:text-green-100">
+              <div class="w-1.5 h-5 bg-green-600 rounded-full"></div>
+              表示切り替え
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                  <div class="flex gap-1 p-1.5 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-center gap-1 py-1.5 px-2 bg-white dark:bg-gray-700 shadow-sm rounded text-xs text-gray-900 dark:text-gray-100">
+                      <Clock class="h-3.5 w-3.5 text-orange-500" />
+                      <span class="whitespace-nowrap">未完了</span>
+                      <Badge variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600">5</Badge>
+                    </div>
+                    <div class="flex items-center justify-center gap-1 py-1.5 px-2 rounded text-xs text-gray-500 dark:text-gray-400">
+                      <CheckCircle class="h-3.5 w-3.5 text-gray-400" />
+                      <span class="whitespace-nowrap">完了済</span>
+                      <Badge variant="secondary" class="text-xs h-4 px-1 ml-1 dark:bg-gray-600">3</Badge>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium text-sm mb-1">タブ切り替え</p>
+                  <p class="text-sm text-muted-foreground leading-relaxed">
+                    「未完了」と「完了済」のタブで表示を切り替えられます。各タブには件数が表示され、一目で状況を把握できます。
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 class="font-semibold mb-2">期限管理</h3>
-            <ul class="space-y-1 text-sm text-gray-600">
-              <li class="flex items-center">• 期限切れのリマインダーは<Card class="inline-block mx-1 w-32 h-8 border-red-500 border-2 pointer-events-none align-middle"></Card>で表示されます</li>
-              <li class="flex items-center">• 期限間近（3日以内）のリマインダーは<Card class="inline-block mx-1 w-32 h-8 border-yellow-400 border-2 pointer-events-none align-middle"></Card>で表示されます</li>
-            </ul>
+
+          <!-- 期限管理 -->
+          <div class="bg-gradient-to-r from-red-50 to-transparent dark:from-red-950/30 dark:to-rose-950/30 p-4 rounded-lg border border-red-100 dark:border-red-900">
+            <h3 class="font-semibold mb-3 flex items-center gap-2 text-red-900 dark:text-red-100">
+              <div class="w-1.5 h-5 bg-red-600 rounded-full"></div>
+              期限管理
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                  <div class="space-y-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                    <Card class="w-40 h-12 border-red-500 border-2 flex items-center justify-center">
+                      <Badge variant="outline" class="text-xs bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-400 dark:border-red-600">
+                        期限切れ
+                      </Badge>
+                    </Card>
+                    <Card class="w-40 h-12 border-yellow-400 border-2 flex items-center justify-center">
+                      <Badge variant="outline" class="text-xs bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-400 dark:border-yellow-600">
+                        期限間近
+                      </Badge>
+                    </Card>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium text-sm mb-1">視覚的な期限警告</p>
+                  <p class="text-sm text-muted-foreground leading-relaxed">
+                    期限切れのリマインダーは赤枠、期限間近（3日以内）のリマインダーは黄色枠で表示され、一目で緊急度がわかります。
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <!-- 削除機能 -->
+          <div class="bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950/30 dark:to-amber-950/30 p-4 rounded-lg border border-orange-100 dark:border-orange-900">
+            <h3 class="font-semibold mb-3 flex items-center gap-2 text-orange-900 dark:text-orange-100">
+              <div class="w-1.5 h-5 bg-orange-600 rounded-full"></div>
+              削除機能
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                  <Button variant="outline" size="sm" class="gap-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 shadow-sm" tabindex="-1">
+                    <Trash2 class="h-4 w-4" />
+                    <span class="text-xs">完全に削除</span>
+                  </Button>
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium text-sm mb-1">完全削除</p>
+                  <p class="text-sm text-muted-foreground leading-relaxed">
+                    「完全に削除」ボタンでリマインダーを完全に削除できます。この操作は取り消せませんので、注意して実行してください。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- フッター -->
+        <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 flex-shrink-0">
+          <p class="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+            <span class="text-lg">💡</span>
+            <span>ヒント: リマインダーをクリックして詳細を確認・編集できます</span>
+          </p>
         </div>
       </DialogContent>
     </Dialog>
