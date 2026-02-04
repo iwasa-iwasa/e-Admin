@@ -725,156 +725,152 @@ onMounted(() => {
         </DialogHeader>
         <div class="space-y-6 overflow-y-auto flex-1 pr-2">
           <!-- 基本操作 -->
-          <div class="bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
-            <h3 class="font-semibold mb-3 flex items-center gap-2 text-blue-900 dark:text-blue-100">
-              <div class="w-1.5 h-5 bg-blue-600 rounded-full"></div>
-              基本操作
-            </h3>
+          <div class="relative pl-4 border-l-4 border-blue-500 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30 p-4 rounded-r-lg">
+            <h3 class="font-semibold mb-3 text-lg">🔄 基本操作</h3>
             <div class="space-y-4">
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
-                  <div class="flex gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      class="flex items-center justify-center gap-2 hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-300 hover:text-green-700"
-                      tabindex="-1"
-                    >
-                      <RotateCcw class="h-3.5 w-3.5" />
-                      <span class="text-xs">元に戻す</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      class="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
-                      tabindex="-1"
-                    >
-                      <X class="h-3.5 w-3.5" />
-                      <span class="text-xs">削除</span>
-                    </Button>
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                    <div class="flex gap-2 p-2 rounded-lg">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        class="flex items-center justify-center gap-2 hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-300 hover:text-green-700"
+                        tabindex="-1"
+                      >
+                        <RotateCcw class="h-3.5 w-3.5" />
+                        <span class="text-xs">元に戻す</span>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        class="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
+                        tabindex="-1"
+                      >
+                        <X class="h-3.5 w-3.5" />
+                        <span class="text-xs">削除</span>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div class="flex-1">
-                  <p class="font-medium text-sm mb-1">復元と完全削除</p>
-                  <p class="text-sm text-muted-foreground leading-relaxed">
-                    「元に戻す」でアイテムを復元し、「削除」で完全に消去します（取り消せません）。
-                  </p>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">復元と完全削除</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      「元に戻す」でアイテムを復元し、「削除」で完全に消去します（取り消せません）。
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 一括操作 -->
-          <div class="bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-100 dark:border-green-900">
-            <h3 class="font-semibold mb-3 flex items-center gap-2 text-green-900 dark:text-green-100">
-              <div class="w-1.5 h-5 bg-green-600 rounded-full"></div>
-              一括操作
-            </h3>
+          <div class="relative pl-4 border-l-4 border-green-500 bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 p-4 rounded-r-lg">
+            <h3 class="font-semibold mb-3 text-lg">✅ 一括操作</h3>
             <div class="space-y-4">
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
-                  <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm space-y-2">
-                    <div class="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        checked
-                        class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        tabindex="-1"
-                        readonly
-                      />
-                      <span class="text-xs text-gray-600 dark:text-gray-400">選択中</span>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        class="gap-2 bg-green-600 text-white border-green-600 w-full text-xs h-8"
-                        tabindex="-1"
-                      >
-                        <RotateCcw class="h-3 w-3" />
-                        選択を復元
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        class="gap-2 bg-red-600 text-white border-red-600 w-full text-xs h-8"
-                        tabindex="-1"
-                      >
-                        <Trash2 class="h-3 w-3" />
-                        選択を完全削除
-                      </Button>
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                    <div class="p-2 rounded-lg space-y-2">
+                      <div class="flex items-center gap-2">
+                        <input 
+                          type="checkbox" 
+                          checked
+                          class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          tabindex="-1"
+                          readonly
+                        />
+                        <span class="text-xs text-gray-600 dark:text-gray-400">選択中</span>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          class="gap-2 bg-green-600 text-white border-green-600 w-full text-xs h-8"
+                          tabindex="-1"
+                        >
+                          <RotateCcw class="h-3 w-3" />
+                          選択を復元
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          class="gap-2 bg-red-600 text-white border-red-600 w-full text-xs h-8"
+                          tabindex="-1"
+                        >
+                          <Trash2 class="h-3 w-3" />
+                          選択を完全削除
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div class="flex-1">
-                  <p class="font-medium text-sm mb-1">一括選択と操作</p>
-                  <p class="text-sm text-muted-foreground leading-relaxed">
-                    チェックボックスで複数のアイテムを選択し、まとめて復元や削除ができます。効率的にゴミ箱を整理できます。
-                  </p>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">一括選択と操作</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      チェックボックスで複数のアイテムを選択し、まとめて復元や削除ができます。効率的にゴミ箱を整理できます。
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- フィルター機能 -->
-          <div class="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 p-4 rounded-lg border border-purple-100 dark:border-purple-900">
-            <h3 class="font-semibold mb-3 flex items-center gap-2 text-purple-900 dark:text-purple-100">
-              <div class="w-1.5 h-5 bg-purple-600 rounded-full"></div>
-              フィルター機能
-            </h3>
+          <div class="relative pl-4 border-l-4 border-purple-500 bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-950/30 p-4 rounded-r-lg">
+            <h3 class="font-semibold mb-3 text-lg">🔍 フィルター機能</h3>
             <div class="space-y-4">
-              <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100 space-y-2">
-                  <div class="flex gap-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      class="h-8 w-8 bg-gray-100 dark:bg-gray-700"
-                      tabindex="-1"
-                    >
-                      <Filter class="h-4 w-4" />
-                    </Button>
-                    <div class="relative flex-1 min-w-[120px]">
-                      <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                      <div class="pl-8 pr-2 h-8 w-full rounded-md border border-input bg-background flex items-center text-xs text-muted-foreground">
-                        検索...
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100 space-y-2">
+                    <div class="flex gap-2 p-2 rounded-lg">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        class="h-8 w-8 bg-gray-100 dark:bg-gray-700"
+                        tabindex="-1"
+                      >
+                        <Filter class="h-4 w-4" />
+                      </Button>
+                      <div class="relative flex-1 min-w-[120px]">
+                        <Search class="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                        <div class="pl-8 pr-2 h-8 w-full rounded-md border border-input bg-background flex items-center text-xs text-muted-foreground">
+                          検索...
+                        </div>
                       </div>
                     </div>
+                    <div class="flex flex-wrap gap-1 p-2 rounded-lg">
+                      <Badge variant="outline" class="bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-[10px] px-1.5 py-0.5 gap-1">
+                        <CalendarIcon class="h-3 w-3" />
+                        共有カレンダー
+                      </Badge>
+                      <Badge variant="outline" class="bg-yellow-100 dark:bg-yellow-900/20 text-orange-600 dark:text-orange-400 border-yellow-200 dark:border-yellow-800 text-[10px] px-1.5 py-0.5 gap-1">
+                        <StickyNote class="h-3 w-3" />
+                        共有メモ
+                      </Badge>
+                    </div>
                   </div>
-                  <div class="flex flex-wrap gap-1 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
-                    <Badge variant="outline" class="bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 text-[10px] px-1.5 py-0.5 gap-1">
-                      <CalendarIcon class="h-3 w-3" />
-                      共有カレンダー
-                    </Badge>
-                    <Badge variant="outline" class="bg-yellow-100 dark:bg-yellow-900/20 text-orange-600 dark:text-orange-400 border-yellow-200 dark:border-yellow-800 text-[10px] px-1.5 py-0.5 gap-1">
-                      <StickyNote class="h-3 w-3" />
-                      共有メモ
-                    </Badge>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">検索と絞り込み</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                      タイトル検索や、種類・作成者・削除日での絞り込みが可能です。フィルターアイコンで詳細検索パネルを開けます。
+                    </p>
                   </div>
-                </div>
-                <div class="flex-1">
-                  <p class="font-medium text-sm mb-1">検索と絞り込み</p>
-                  <p class="text-sm text-muted-foreground leading-relaxed">
-                    タイトル検索や、種類・作成者・削除日での絞り込みが可能です。フィルターアイコンで詳細検索パネルを開けます。
-                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 注意事項 -->
-          <div class="bg-gradient-to-r from-red-50 to-transparent dark:from-red-950/30 dark:to-rose-950/30 p-4 rounded-lg border border-red-100 dark:border-red-900">
-            <h3 class="font-semibold mb-3 flex items-center gap-2 text-red-900 dark:text-red-100">
-              <div class="w-1.5 h-5 bg-red-600 rounded-full"></div>
-              注意事項
-            </h3>
-            <div class="flex items-start gap-4">
-              <AlertCircle class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <div class="flex-1">
-                <p class="font-medium text-sm mb-1">自動削除について</p>
-                <p class="text-sm text-muted-foreground leading-relaxed">
-                  ゴミ箱のアイテムは一定期間（例：30日）経過すると自動的に完全に削除され、復元できなくなります。重要なアイテムは早めに復元しましょう。
-                </p>
+          <div class="relative pl-4 border-l-4 border-red-500 bg-gradient-to-r from-red-50 to-transparent dark:from-red-950/30 p-4 rounded-r-lg">
+            <h3 class="font-semibold mb-3 text-lg">⚠️ 注意事項</h3>
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+              <div class="flex items-start gap-4">
+                <AlertCircle class="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div class="flex-1">
+                  <p class="font-medium text-sm mb-1">自動削除について</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    ゴミ箱のアイテムは一定期間（例：30日）経過すると自動的に完全に削除され、復元できなくなります。重要なアイテムは早めに復元しましょう。
+                  </p>
+                </div>
               </div>
             </div>
           </div>

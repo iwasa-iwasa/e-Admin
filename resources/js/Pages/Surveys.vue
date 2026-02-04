@@ -665,141 +665,144 @@ onMounted(() => {
                 </DialogHeader>
                 <div class="space-y-6 overflow-y-auto flex-1 pr-2">
                     <!-- 基本操作 -->
-                    <div class="bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30 dark:to-indigo-950/30 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
-                        <h3 class="font-semibold mb-3 flex items-center gap-2 text-blue-900 dark:text-blue-100">
-                            <div class="w-1.5 h-5 bg-blue-600 rounded-full"></div>
-                            基本操作
-                        </h3>
+                    <div class="relative pl-4 border-l-4 border-blue-500 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-950/30 p-4 rounded-r-lg">
+                        <h3 class="font-semibold mb-3 text-lg">📝 基本操作</h3>
                         <div class="space-y-4">
-                            <div class="flex items-start gap-4">
-                                <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
-                                    <Button variant="outline" class="gap-2 shadow-sm" tabindex="-1">
-                                        <Plus class="h-4 w-4" />
-                                        新規作成
-                                    </Button>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-medium text-sm mb-1">アンケート作成</p>
-                                    <p class="text-sm text-muted-foreground leading-relaxed">
-                                        「新規作成」ボタンから、新しいアンケートを作成し、質問を設定できます。複数の質問タイプ（選択式、記述式など）が利用できます。
-                                    </p>
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0 pt-1 pointer-events-none opacity-100">
+                                        <Button variant="outline" class="gap-2 shadow-sm" tabindex="-1">
+                                            <Plus class="h-4 w-4" />
+                                            新規作成
+                                        </Button>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-sm mb-1">アンケート作成</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            「新規作成」ボタンから、新しいアンケートを作成し、質問を設定できます。複数の質問タイプ（選択式、記述式など）が利用できます。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="flex items-start gap-4">
-                                <div class="flex-shrink-0 pt-1 pointer-events-none select-none">
-                                    <div class="relative bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
-                                        <Search class="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                        <Input placeholder="タイトルなどで検索" class="pl-9 h-9 w-48" readonly tabindex="-1" />
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0 pt-1 pointer-events-none select-none">
+                                        <div class="relative p-2 rounded-lg">
+                                            <Search class="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <Input placeholder="タイトルなどで検索" class="pl-9 h-9 w-48" readonly tabindex="-1" />
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-medium text-sm mb-1">検索</p>
-                                    <p class="text-sm text-muted-foreground leading-relaxed">
-                                        タイトルや説明文、作成者名でアンケートを検索できます。
-                                    </p>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-sm mb-1">検索</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            タイトルや説明文、作成者名でアンケートを検索できます。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- アクション -->
-                    <div class="bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 dark:to-emerald-950/30 p-4 rounded-lg border border-green-100 dark:border-green-900">
-                        <h3 class="font-semibold mb-3 flex items-center gap-2 text-green-900 dark:text-green-100">
-                            <div class="w-1.5 h-5 bg-green-600 rounded-full"></div>
-                            アクション
-                        </h3>
+                    <div class="relative pl-4 border-l-4 border-green-500 bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 p-4 rounded-r-lg">
+                        <h3 class="font-semibold mb-3 text-lg">⚡ アクション</h3>
                         <div class="space-y-4">
-                            <div class="flex items-start gap-4">
-                                <div class="flex-shrink-0 pt-1 pointer-events-none">
-                                    <div class="flex gap-2 flex-wrap bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
-                                        <Button variant="outline" size="sm" class="gap-2" tabindex="-1">
-                                            <Edit class="h-4 w-4" />
-                                            <span class="text-xs">編集</span>
-                                        </Button>
-                                        <Button variant="outline" size="sm" class="gap-2" tabindex="-1">
-                                            <CheckCircle2 class="h-4 w-4" />
-                                            <span class="text-xs">回答する</span>
-                                        </Button>
-                                        <Button variant="outline" size="sm" class="gap-2 text-red-600" tabindex="-1">
-                                            <Trash2 class="h-4 w-4" />
-                                            <span class="text-xs">削除</span>
-                                        </Button>
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0 pt-1 pointer-events-none">
+                                        <div class="flex gap-2 flex-wrap p-2 rounded-lg">
+                                            <Button variant="outline" size="sm" class="gap-2" tabindex="-1">
+                                                <Edit class="h-4 w-4" />
+                                                <span class="text-xs">編集</span>
+                                            </Button>
+                                            <Button variant="outline" size="sm" class="gap-2" tabindex="-1">
+                                                <CheckCircle2 class="h-4 w-4" />
+                                                <span class="text-xs">回答する</span>
+                                            </Button>
+                                            <Button variant="outline" size="sm" class="gap-2 text-red-600" tabindex="-1">
+                                                <Trash2 class="h-4 w-4" />
+                                                <span class="text-xs">削除</span>
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-medium text-sm mb-1">編集・回答・削除</p>
-                                    <p class="text-sm text-muted-foreground leading-relaxed">
-                                        アンケートの編集、回答、または不要なアンケートの削除が行えます。削除したアンケートはゴミ箱から復元できます。
-                                    </p>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-sm mb-1">編集・回答・削除</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            アンケートの編集、回答、または不要なアンケートの削除が行えます。削除したアンケートはゴミ箱から復元できます。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="flex items-start gap-4">
-                                <div class="flex-shrink-0 pt-1 pointer-events-none">
-                                    <div class="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
-                                        <Button variant="outline" size="sm" class="gap-2" tabindex="-1">
-                                            <BarChart3 class="h-4 w-4" />
-                                            <span class="text-xs">結果を見る</span>
-                                        </Button>
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0 pt-1 pointer-events-none">
+                                        <div class="p-2 rounded-lg">
+                                            <Button variant="outline" size="sm" class="gap-2" tabindex="-1">
+                                                <BarChart3 class="h-4 w-4" />
+                                                <span class="text-xs">結果を見る</span>
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-medium text-sm mb-1">結果確認</p>
-                                    <p class="text-sm text-muted-foreground leading-relaxed">
-                                        集計結果や、誰が回答済みかなどの詳細を確認できます。グラフやチャートで視覚的に表示されます。
-                                    </p>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-sm mb-1">結果確認</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            集計結果や、誰が回答済みかなどの詳細を確認できます。グラフやチャートで視覚的に表示されます。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- 状態確認 -->
-                    <div class="bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-950/30 dark:to-violet-950/30 p-4 rounded-lg border border-purple-100 dark:border-purple-900">
-                        <h3 class="font-semibold mb-3 flex items-center gap-2 text-purple-900 dark:text-purple-100">
-                            <div class="w-1.5 h-5 bg-purple-600 rounded-full"></div>
-                            状態確認
-                        </h3>
+                    <div class="relative pl-4 border-l-4 border-purple-500 bg-gradient-to-r from-purple-50 to-transparent dark:from-purple-950/30 p-4 rounded-r-lg">
+                        <h3 class="font-semibold mb-3 text-lg">📊 状態確認</h3>
                         <div class="space-y-4">
-                            <div class="flex items-start gap-4">
-                                <div class="flex-shrink-0 pt-1 pointer-events-none">
-                                    <div class="flex gap-1 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
-                                        <Badge variant="default" class="gap-1">
-                                            <Clock class="h-3 w-3" />
-                                            残り3日
-                                        </Badge>
-                                        <Badge variant="destructive" class="gap-1">
-                                            <AlertCircle class="h-3 w-3" />
-                                            期限切れ
-                                        </Badge>
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0 pt-1 pointer-events-none">
+                                        <div class="flex gap-1 p-2 rounded-lg">
+                                            <Badge variant="default" class="gap-1">
+                                                <Clock class="h-3 w-3" />
+                                                残り3日
+                                            </Badge>
+                                            <Badge variant="destructive" class="gap-1">
+                                                <AlertCircle class="h-3 w-3" />
+                                                期限切れ
+                                            </Badge>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-medium text-sm mb-1">期限表示</p>
-                                    <p class="text-sm text-muted-foreground leading-relaxed">
-                                        締め切りまでの日数や、期限切れの状態がバッジで表示されます。期限が近づくと色が変わります。
-                                    </p>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-sm mb-1">期限表示</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            締め切りまでの日数や、期限切れの状態がバッジで表示されます。期限が近づくと色が変わります。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="flex items-start gap-4">
-                                <div class="flex-shrink-0 pt-1 pointer-events-none">
-                                    <div class="flex flex-col gap-1 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
-                                        <div class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                                            <CheckCircle2 class="h-3 w-3" />
-                                            <span>回答済み (5名)</span>
-                                        </div>
-                                        <div class="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
-                                            <AlertCircle class="h-3 w-3" />
-                                            <span>未回答 (2名)</span>
+                            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                                <div class="flex items-start gap-4">
+                                    <div class="flex-shrink-0 pt-1 pointer-events-none">
+                                        <div class="flex flex-col gap-1 p-2 rounded-lg">
+                                            <div class="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                                <CheckCircle2 class="h-3 w-3" />
+                                                <span>回答済み (5名)</span>
+                                            </div>
+                                            <div class="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                                                <AlertCircle class="h-3 w-3" />
+                                                <span>未回答 (2名)</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="flex-1">
-                                    <p class="font-medium text-sm mb-1">回答状況</p>
-                                    <p class="text-sm text-muted-foreground leading-relaxed">
-                                        各カード内で、回答済み・未回答の人数やメンバーを素早く確認できます。バッジでメンバー名が表示されます。
-                                    </p>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-sm mb-1">回答状況</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            各カード内で、回答済み・未回答の人数やメンバーを素早く確認できます。バッジでメンバー名が表示されます。
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
