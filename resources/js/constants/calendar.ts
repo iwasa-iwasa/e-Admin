@@ -1,3 +1,4 @@
+import { computed } from 'vue';
 import { isDark } from '@/composables/useAppDark';
 
 export const CATEGORY_COLORS = {
@@ -29,11 +30,20 @@ export const CATEGORY_LABELS = {
     'その他': 'その他',
 } as const;
 
-export const getEventColor = (category: string): string => {
+export const getEventColor = computed(() => (category: string): string => {
     const colors = isDark.value ? DARK_CATEGORY_COLORS : CATEGORY_COLORS;
     return colors[category as Category] || colors['その他'];
-};
+});
 
+export const getCategoryItems = computed(() => {
+    const colors = isDark.value ? DARK_CATEGORY_COLORS : CATEGORY_COLORS;
+    return Object.entries(CATEGORY_LABELS).map(([key, label]) => ({
+        label,
+        color: colors[key as Category]
+    }));
+});
+
+// 後方互換性のため
 export const CATEGORY_ITEMS = Object.entries(CATEGORY_LABELS).map(([key, label]) => ({
     label,
     color: CATEGORY_COLORS[key as Category]
