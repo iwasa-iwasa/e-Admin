@@ -431,10 +431,22 @@ onMounted(() => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">すべての種類</SelectItem>
-                  <SelectItem value="event">共有カレンダー</SelectItem>
-                  <SelectItem value="shared_note">共有メモ</SelectItem>
-                  <SelectItem value="survey">アンケート</SelectItem>
-                  <SelectItem value="reminder">個人リマインダー</SelectItem>
+                  <SelectItem value="event" class="flex items-center gap-2">
+                    <CalendarIcon class="h-4 w-4 inline text-blue-700" />
+                    共有カレンダー
+                  </SelectItem>
+                  <SelectItem value="shared_note" class="flex items-center gap-2">
+                    <StickyNote class="h-4 w-4 inline text-orange-600" />
+                    共有メモ
+                  </SelectItem>
+                  <SelectItem value="survey" class="flex items-center gap-2">
+                    <BarChart3 class="h-4 w-4 inline text-purple-700" />
+                    アンケート
+                  </SelectItem>
+                  <SelectItem value="reminder" class="flex items-center gap-2">
+                    <Bell class="h-4 w-4 inline text-green-700" />
+                    個人リマインダー
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

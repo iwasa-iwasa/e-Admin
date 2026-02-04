@@ -914,8 +914,8 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                             <div class="flex items-start gap-4">
                                 <div class="flex-shrink-0 pt-1 w-32 pointer-events-none opacity-100">
                                     <div class="space-y-2 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
-                                        <div class="p-2 rounded border-2 border-red-600 bg-blue-50 dark:bg-blue-900/20 text-xs font-semibold text-center">重要な会議</div>
-                                        <div class="p-2 rounded border border-gray-300 dark:border-gray-600 bg-green-50 dark:bg-green-900/20 text-xs text-center">通常の業務</div>
+                                        <div class="p-2 rounded border-2 border-red-600 text-xs font-semibold text-center text-white" style="background-color: #42A5F5;">重要な会議</div>
+                                        <div class="p-2 rounded border border-gray-300 dark:border-gray-600 text-xs text-center text-white" style="background-color: #66BB6A;">通常の業務</div>
                                     </div>
                                 </div>
                                 <div class="flex-1">
