@@ -11,12 +11,12 @@ export const CATEGORY_COLORS = {
 } as const;
 
 export const DARK_CATEGORY_COLORS = {
-    '会議': '#2563eb',
-    '業務': '#16a34a',
-    '来客': '#ca8a04',
-    '出張': '#9333ea',
-    '休暇': '#db2777',
-    'その他': '#686f7d',
+    '会議': 'rgba(96, 165, 250, 0.5)', // blue-400/50
+    '業務': 'rgba(74, 222, 128, 0.5)', // green-400/50
+    '来客': 'rgba(251, 191, 36, 0.5)', // yellow-400/50
+    '出張': 'rgba(167, 139, 250, 0.5)', // purple-400/50
+    '休暇': 'rgba(244, 114, 182, 0.5)', // pink-400/50
+    'その他': 'rgba(156, 163, 175, 0.5)', // gray-400/50
 } as const;
 
 export type Category = keyof typeof CATEGORY_COLORS;

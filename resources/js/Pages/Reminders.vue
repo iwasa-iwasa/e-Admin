@@ -474,7 +474,7 @@ const confirmBulkDelete = () => {
                         </div>
                       </div>
                       <div class="flex flex-col items-end gap-2">
-                        <Button variant="outline" size="sm" class="gap-1 sm:gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 whitespace-nowrap" @click.stop="handleDeletePermanently(reminder)">
+                        <Button variant="outline" size="sm" class="gap-1 sm:gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-700 dark:hover:text-white dark:hover:border-red-700 whitespace-nowrap" @click.stop="handleDeletePermanently(reminder)">
                           <Trash2 class="h-4 w-4" />
                           <span class="hidden sm:inline">完全に削除</span>
                           <span class="sm:hidden">削除</span>
@@ -572,7 +572,7 @@ const confirmBulkDelete = () => {
                         </div>
                       </div>
                       <div class="flex flex-col items-end gap-2">
-                        <Button variant="outline" size="sm" class="gap-1 sm:gap-2 bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 whitespace-nowrap" @click="handleDeletePermanently(reminder)">
+                        <Button variant="outline" size="sm" class="gap-1 sm:gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-700 dark:hover:text-white dark:hover:border-red-700 whitespace-nowrap" @click="handleDeletePermanently(reminder)">
                           <Trash2 class="h-4 w-4" />
                           <span class="hidden sm:inline">完全に削除</span>
                           <span class="sm:hidden">削除</span>
@@ -613,13 +613,13 @@ const confirmBulkDelete = () => {
     />
 
     <AlertDialog :open="reminderToDelete !== null">
-      <AlertDialogContent class="bg-card text-card-foreground">
+      <AlertDialogContent class="bg-card text-card-foreground dark:bg-gray-900">
         <AlertDialogHeader>
           <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="reminderToDelete = null" class="hover:bg-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogCancel @click="reminderToDelete = null" class="hover:bg-gray-100 dark:hover:bg-gray-800">キャンセル</AlertDialogCancel>
           <AlertDialogAction @click="confirmPermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
             完全に削除
           </AlertDialogAction>
@@ -628,13 +628,13 @@ const confirmBulkDelete = () => {
     </AlertDialog>
 
     <AlertDialog :open="showBulkDeleteDialog" @update:open="(open) => showBulkDeleteDialog = open">
-      <AlertDialogContent class="bg-card text-card-foreground">
+      <AlertDialogContent class="bg-card text-card-foreground dark:bg-gray-900">
         <AlertDialogHeader>
           <AlertDialogTitle>選択した{{ selectedCompletedItems.size }}件を完全に削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>この操作は取り消せません。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>キャンセル</AlertDialogCancel>
+          <AlertDialogCancel class="dark:hover:bg-gray-800">キャンセル</AlertDialogCancel>
           <AlertDialogAction @click="confirmBulkDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
             完全に削除
           </AlertDialogAction>

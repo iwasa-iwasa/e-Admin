@@ -433,7 +433,7 @@ onUnmounted(() => {
                   <Button
                     variant="outline"
                     size="sm"
-                    class="gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600"
+                    class="gap-2 bg-red-50 text-red-700 border-red-200 hover:bg-red-600 hover:text-white hover:border-red-600 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-700 dark:hover:text-white dark:hover:border-red-700"
                     @click.stop="handlePermanentDelete(reminder)"
                   >
                     <Trash2 class="h-4 w-4" />
@@ -476,13 +476,13 @@ onUnmounted(() => {
     />
 
     <AlertDialog :open="reminderToDelete !== null">
-      <AlertDialogContent class="bg-white">
+      <AlertDialogContent class="bg-white dark:bg-gray-900">
         <AlertDialogHeader>
           <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="reminderToDelete = null" class="hover:bg-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogCancel @click="reminderToDelete = null" class="hover:bg-gray-100 dark:hover:bg-gray-800">キャンセル</AlertDialogCancel>
           <AlertDialogAction @click="confirmPermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
             完全に削除
           </AlertDialogAction>

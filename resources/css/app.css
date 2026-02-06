@@ -150,6 +150,21 @@
     filter: invert(1);
   }
 
+  /* Checkbox Dark Mode */
+  .dark input[type="checkbox"] {
+    border-color: #4b5563;
+    background-color: #374151;
+  }
+
+  .dark input[type="checkbox"]:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+  }
+
+  .dark input[type="checkbox"]:focus {
+    ring-color: #3b82f6;
+  }
+
   /* VueDatePicker Dark Mode */
   .dark .dp__theme_light {
     --dp-background-color: oklch(0.205 0 0);
