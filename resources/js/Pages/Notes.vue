@@ -4,6 +4,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { useHighlight } from '@/composables/useHighlight'
 import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2, HelpCircle, Tag } from 'lucide-vue-next'
+import { ja } from "date-fns/locale";
+import '@vuepic/vue-datepicker/dist/main.css';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -94,6 +97,7 @@ const sortOrder = ref<'asc' | 'desc'>('desc')
 const editedTitle = ref(selectedNote.value?.title || '')
 const editedContent = ref(selectedNote.value?.content || '')
 const editedDeadline = ref('')
+const deadlineDateTime = ref<Date | null>(null)
 const editedPriority = ref<Priority>(selectedNote.value?.priority as Priority || 'medium')
 const editedColor = ref(selectedNote.value?.color || 'yellow')
 const editedTags = ref<string[]>(selectedNote.value?.tags.map(tag => tag.tag_name) || [])
@@ -171,8 +175,10 @@ watch(selectedNote, (newNote) => {
     if (newNote.deadline_date) {
       const time = newNote.deadline_time || '23:59'
       editedDeadline.value = `${newNote.deadline_date}T${time}`
+      deadlineDateTime.value = new Date(`${newNote.deadline_date}T${time}`)
     } else {
       editedDeadline.value = ''
+      deadlineDateTime.value = null
     }
     editedPriority.value = newNote.priority as Priority
     editedColor.value = newNote.color
@@ -182,6 +188,14 @@ watch(selectedNote, (newNote) => {
     // タグ入力欄をクリア
     tagInput.value = ''
     showTagSuggestions.value = false
+  }
+})
+
+watch(deadlineDateTime, (newDate) => {
+  if (newDate) {
+    editedDeadline.value = newDate.toISOString().slice(0, 16)
+  } else {
+    editedDeadline.value = ''
   }
 })
 
@@ -786,11 +800,16 @@ const isHelpOpen = ref(false)
           <div class="space-y-2 mb-3">
             <div class="grid grid-cols-4 gap-2">
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">期限</label>
-                <Input
-                  type="datetime-local"
-                  v-model="editedDeadline"
-                  class="h-8 text-xs"
+                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">期限</label>
+                <VueDatePicker
+                  v-model="deadlineDateTime"
+                  :locale="ja"
+                  :week-start="0"
+                  auto-apply
+                  teleport-center
+                  enable-time-picker
+                  placeholder="期限を選択"
+                  class="h-8"
                 />
               </div>
               <div>

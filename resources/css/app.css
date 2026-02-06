@@ -173,6 +173,39 @@
     --dp-highlight-color: rgba(59, 130, 246, 0.1);
   }
 
+  /* VueDatePicker アイコンにテキストを追加 */
+  .dp__action_buttons button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* カレンダーボタン */
+  .dp__calendar_header_item:first-child button::after,
+  .dp__btn[aria-label*="Open calendar"]::after,
+  .dp__calendar_icon::after {
+    content: "カレンダー";
+    font-size: 11px;
+    margin-left: 2px;
+  }
+
+  /* 時刻ボタン */
+  .dp__calendar_header_item:last-child button::after,
+  .dp__btn[aria-label*="Open time"]::after,
+  .dp__clock_icon::after {
+    content: "時刻";
+    font-size: 11px;
+    margin-left: 2px;
+  }
+
+  .dark .dp__action_button {
+    color: oklch(0.985 0 0) !important;
+  }
+
+  .dark .dp__action_button:hover {
+    background-color: oklch(0.269 0 0) !important;
+  }
+
   /* TimePicker Dark Mode */
   .dark .time-picker-overlay {
     background-color: rgba(0, 0, 0, 0.5) !important;

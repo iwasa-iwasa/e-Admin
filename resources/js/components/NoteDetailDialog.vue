@@ -2,6 +2,9 @@
 import { ref, watch, computed } from 'vue'
 import { User, Clock, Edit2, Save, X, MapPin, Trash2, CheckCircle, Undo2 } from 'lucide-vue-next'
 import { router, usePage } from '@inertiajs/vue3'
+import { ja } from "date-fns/locale";
+import '@vuepic/vue-datepicker/dist/main.css';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
 import {
   Dialog,
   DialogContent,
@@ -80,6 +83,7 @@ const participantSelectValue = ref<string | null>(null)
 const tagInput = ref('')
 const saveMessage = ref('')
 const currentUserId = computed(() => (usePage().props as any).auth?.user?.id ?? null)
+const deadlineDateTime = ref<Date | null>(null)
 
 const isAllUsers = (participants: any[]) => {
   return participants && props.totalUsers && participants.length === props.totalUsers
@@ -123,13 +127,36 @@ watch(() => props.note, (newNote) => {
       ...newNote,
       deadline: formatDateTimeForInput(newNote.deadline_date, newNote.deadline_time)
     }
+    // Initialize deadlineDateTime
+    if (newNote.deadline_date) {
+      const time = newNote.deadline_time ? newNote.deadline_time.substring(0, 5) : '23:59'
+      deadlineDateTime.value = new Date(`${newNote.deadline_date}T${time}`)
+    } else {
+      deadlineDateTime.value = null
+    }
   } else {
     editedNote.value = null
+    deadlineDateTime.value = null
   }
   isEditing.value = false
   participantSelectValue.value = null
   tagInput.value = ''
 }, { deep: true })
+
+watch(deadlineDateTime, (newDate) => {
+  if (editedNote.value) {
+    if (newDate) {
+      editedNote.value.deadline = newDate.toISOString().slice(0, 16)
+      const [date, time] = editedNote.value.deadline.split('T')
+      editedNote.value.deadline_date = date
+      editedNote.value.deadline_time = time ? `${time}:00` : '23:59:00'
+    } else {
+      editedNote.value.deadline = null
+      editedNote.value.deadline_date = null
+      editedNote.value.deadline_time = null
+    }
+  }
+})
 
 const currentNote = computed(() => {
   const note = isEditing.value && editedNote.value ? editedNote.value : props.note
@@ -174,6 +201,13 @@ const handleEdit = () => {
     editedNote.value = { 
       ...props.note,
       deadline: formatDateTimeForInput(props.note.deadline_date, props.note.deadline_time)
+    }
+    // Initialize deadlineDateTime
+    if (props.note.deadline_date) {
+      const time = props.note.deadline_time ? props.note.deadline_time.substring(0, 5) : '23:59'
+      deadlineDateTime.value = new Date(`${props.note.deadline_date}T${time}`)
+    } else {
+      deadlineDateTime.value = null
     }
     isEditing.value = true
   }
@@ -457,13 +491,17 @@ const editedProgress = computed({
             <span class="dark:text-gray-300">{{ new Date(currentNote.updated_at ?? currentNote.created_at ?? '').toLocaleDateString() }}</span>
           </div>
           <div v-if="isEditing && editedNote" class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-            <span class="text-xs whitespace-nowrap">期限:</span>
-            <Input
-              type="datetime-local"
-              v-model="editedDeadline"
+            <span class="text-xs whitespace-nowrap dark:text-gray-300">期限:</span>
+            <VueDatePicker
+              v-model="deadlineDateTime"
+              :locale="ja"
+              :week-start="0"
+              auto-apply
+              teleport-center
+              enable-time-picker
+              placeholder="期限を選択"
               :disabled="!canEdit"
-              class="h-7 w-full sm:w-48 text-xs"
-              aria-label="期限日時"
+              class="w-full sm:w-64"
             />
             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
               <div class="flex items-center gap-1">
