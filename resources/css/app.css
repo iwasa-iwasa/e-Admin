@@ -292,6 +292,30 @@
   .dark #nprogress .bar {
     @apply bg-white;
   }
+
+  /* Scrollbar Dark Mode */
+  .dark ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: oklch(0.205 0 0);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: oklch(0.439 0 0);
+    border-radius: 6px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.5 0 0);
+  }
+
+  .dark * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.439 0 0) oklch(0.205 0 0);
+  }
 }
 
 /* vue-material-time-picker グローバルダークモード対応 */
