@@ -314,7 +314,7 @@ onMounted(() => {
     <div class="max-w-[1800px] mx-auto h-full p-6">
         <Card class="h-full overflow-hidden flex flex-col">
             <!-- ヘッダー部分 -->
-            <div class="p-4 border-b border-gray-300 shrink-0">
+            <div class="p-4 border-b border-gray-300 dark:border-gray-700 shrink-0">
                 <div class="flex items-center justify-between mb-4">
                     <!-- タイトル部分 -->
                     <div class="flex items-center gap-2">
@@ -361,19 +361,19 @@ onMounted(() => {
                 <div>
                     <Tabs v-model="activeTab">
                         <TabsList class="gap-1.5">
-                            <TabsTrigger value="all" class="gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800">
+                            <TabsTrigger value="all" class="gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800 dark:bg-blue-950/30 dark:text-blue-300 dark:hover:bg-blue-900/40 dark:data-[state=active]:bg-blue-900/60 dark:data-[state=active]:text-blue-200">
                                 <BarChart3 class="h-4 w-4" />
                                 すべて ({{ surveys.length }})
                             </TabsTrigger>
-                            <TabsTrigger value="active" class="gap-2 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-green-200 data-[state=active]:text-green-800">
+                            <TabsTrigger value="active" class="gap-2 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-green-200 data-[state=active]:text-green-800 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-900/40 dark:data-[state=active]:bg-green-900/60 dark:data-[state=active]:text-green-200">
                                 <CheckCircle2 class="h-4 w-4" />
                                 回答受付中 ({{ surveys.filter(s => s.is_active && !isExpired(s)).length }})
                             </TabsTrigger>
-                            <TabsTrigger value="unanswered" class="gap-2 bg-orange-50 text-orange-700 hover:bg-orange-100 data-[state=active]:bg-orange-200 data-[state=active]:text-orange-800">
+                            <TabsTrigger value="unanswered" class="gap-2 bg-orange-50 text-orange-700 hover:bg-orange-100 data-[state=active]:bg-orange-200 data-[state=active]:text-orange-800 dark:bg-orange-950/30 dark:text-orange-300 dark:hover:bg-orange-900/40 dark:data-[state=active]:bg-orange-900/60 dark:data-[state=active]:text-orange-200">
                                 <AlertCircle class="h-4 w-4" />
                                 未回答 ({{ surveys.filter(s => s.is_active && !s.has_responded && !isExpired(s)).length }})
                             </TabsTrigger>
-                            <TabsTrigger value="closed" class="gap-2 bg-gray-50 text-gray-700 hover:bg-gray-100 data-[state=active]:bg-gray-200 data-[state=active]:text-gray-800">
+                            <TabsTrigger value="closed" class="gap-2 bg-gray-50 text-gray-700 hover:bg-gray-100 data-[state=active]:bg-gray-200 data-[state=active]:text-gray-800 dark:bg-gray-800/30 dark:text-gray-300 dark:hover:bg-gray-700/40 dark:data-[state=active]:bg-gray-700/60 dark:data-[state=active]:text-gray-200">
                                 <Clock class="h-4 w-4" />
                                 終了済み ({{ surveys.filter(s => !s.is_active || isExpired(s)).length }})
                             </TabsTrigger>
@@ -386,8 +386,8 @@ onMounted(() => {
             <div class="flex-1 overflow-y-auto p-6 space-y-4 pb-6">
                 <!-- 空の状態 -->
                 <div v-if="filteredSurveys.length === 0" class="text-center py-12">
-                    <BarChart3 class="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p class="text-gray-500">
+                    <BarChart3 class="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                    <p class="text-gray-500 dark:text-gray-400">
                         {{ searchQuery ? "該当するアンケートが見つかりません" : "アンケートがありません" }}
                     </p>
                 </div>
@@ -435,10 +435,10 @@ onMounted(() => {
                                         }}
                                     </Badge>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-3">
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                                     {{ survey.description }}
                                 </p>
-                                <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                                <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                                     <div class="flex items-center gap-1">
                                         <CalendarIcon class="h-3 w-3" />
                                         期限:
@@ -471,7 +471,7 @@ onMounted(() => {
                                     </Button>
                                     <Button
                                         variant="outline"
-                                        class="gap-2 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                        class="gap-2 text-red-600 hover:bg-red-50 hover:border-red-300 dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:border-red-800"
                                         @click="handleDelete(survey)"
                                     >
                                         <Trash2 class="h-4 w-4" />
@@ -507,7 +507,7 @@ onMounted(() => {
                                     </Button>
                                     <Button
                                         variant="outline"
-                                        class="gap-2 text-red-600 hover:bg-red-50 hover:border-red-300"
+                                        class="gap-2 text-red-600 hover:bg-red-50 hover:border-red-300 dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:border-red-800"
                                         @click="handleDelete(survey)"
                                     >
                                         <Trash2 class="h-4 w-4" />
@@ -531,7 +531,7 @@ onMounted(() => {
                                 <div class="flex flex-wrap gap-2">
                                     <span
                                         v-if="survey.responses.length === 0"
-                                        class="text-sm text-gray-400"
+                                        class="text-sm text-gray-400 dark:text-gray-500"
                                     >
                                         まだ回答者がいません
                                     </span>
@@ -559,7 +559,7 @@ onMounted(() => {
                                 <div class="flex flex-wrap gap-1">
                                     <span
                                         v-if="!survey.unanswered_names || survey.unanswered_names.length === 0"
-                                        class="text-sm text-gray-400"
+                                        class="text-sm text-gray-400 dark:text-gray-500"
                                     >
                                         全員回答済み
                                     </span>
@@ -605,7 +605,7 @@ onMounted(() => {
         />
 
         <AlertDialog :open="surveyToDelete !== null">
-            <AlertDialogContent class="bg-white">
+            <AlertDialogContent class="bg-white dark:bg-gray-900">
                 <AlertDialogHeader>
                     <AlertDialogTitle>アンケートを削除しますか？</AlertDialogTitle>
                     <AlertDialogDescription>
