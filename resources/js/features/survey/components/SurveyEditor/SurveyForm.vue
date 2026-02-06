@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,9 @@ import QuestionEditor from './QuestionEditor.vue';
 import { useSurveyEditor } from '../../composables/useSurveyEditor';
 import { questionTemplates, QuestionTemplate } from '../../domain/factory';
 import { Survey } from '../../domain/models';
+import { ja } from "date-fns/locale";
+import '@vuepic/vue-datepicker/dist/main.css';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
 
 const props = defineProps<{
     initialData?: Survey;
@@ -39,6 +42,22 @@ const isAllSelected = computed(() => {
 });
 
 const showTemplateDialog = ref(false);
+const deadlineDateTime = ref<Date | null>(null);
+
+// Initialize deadlineDateTime from deadline
+watch(() => props.initialData, (data) => {
+    if (data?.deadline) {
+        deadlineDateTime.value = new Date(data.deadline)
+    }
+}, { immediate: true })
+
+watch(deadlineDateTime, (newDate) => {
+    if (newDate) {
+        deadline.value = newDate.toISOString().slice(0, 16)
+    } else {
+        deadline.value = ''
+    }
+})
 
 const handleAddQuestion = (template: QuestionTemplate) => {
     addQuestion(template);
@@ -87,7 +106,15 @@ defineExpose({
                     </div>
                     <div class="space-y-2">
                         <Label for="deadline">回答期限 <span class="text-red-500">*</span></Label>
-                        <Input id="deadline" type="datetime-local" v-model="deadline" />
+                        <VueDatePicker
+                            v-model="deadlineDateTime"
+                            :locale="ja"
+                            :week-start="0"
+                            auto-apply
+                            teleport-center
+                            enable-time-picker
+                            placeholder="回答期限を選択"
+                        />
                     </div>
                 </div>
                 

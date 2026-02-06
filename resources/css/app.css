@@ -150,6 +150,107 @@
     filter: invert(1);
   }
 
+  /* VueDatePicker Dark Mode */
+  .dark .dp__theme_light {
+    --dp-background-color: oklch(0.205 0 0);
+    --dp-text-color: oklch(0.985 0 0);
+    --dp-hover-color: oklch(0.269 0 0);
+    --dp-hover-text-color: oklch(0.985 0 0);
+    --dp-hover-icon-color: oklch(0.985 0 0);
+    --dp-primary-color: #3b82f6;
+    --dp-primary-text-color: #ffffff;
+    --dp-secondary-color: oklch(0.269 0 0);
+    --dp-border-color: oklch(0.269 0 0);
+    --dp-menu-border-color: oklch(0.269 0 0);
+    --dp-border-color-hover: oklch(0.439 0 0);
+    --dp-disabled-color: oklch(0.439 0 0);
+    --dp-scroll-bar-background: oklch(0.269 0 0);
+    --dp-scroll-bar-color: oklch(0.439 0 0);
+    --dp-success-color: #10b981;
+    --dp-success-color-disabled: #065f46;
+    --dp-icon-color: oklch(0.708 0 0);
+    --dp-danger-color: #ef4444;
+    --dp-highlight-color: rgba(59, 130, 246, 0.1);
+  }
+
+  /* TimePicker Dark Mode */
+  .dark .time-picker-overlay {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .dark .time-picker {
+    background-color: oklch(0.205 0 0) !important;
+    color: oklch(0.985 0 0) !important;
+    border-color: oklch(0.269 0 0) !important;
+  }
+
+  .dark .time-picker__header {
+    background-color: oklch(0.269 0 0) !important;
+    color: oklch(0.985 0 0) !important;
+  }
+
+  .dark .time-picker__body {
+    background-color: oklch(0.205 0 0) !important;
+  }
+
+  .dark .time-picker__item {
+    color: oklch(0.985 0 0) !important;
+  }
+
+  .dark .time-picker__item:hover {
+    background-color: oklch(0.269 0 0) !important;
+  }
+
+  .dark .time-picker__item--selected {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+  }
+
+  /* vue-material-time-picker Dark Mode (円形文字盤) */
+  .dark .m-clock-wrapper {
+    background-color: oklch(0.205 0 0) !important;
+  }
+
+  .dark .m-clock {
+    background-color: oklch(0.269 0 0) !important;
+  }
+
+  .dark .m-clock__number {
+    color: oklch(0.985 0 0) !important;
+  }
+
+  .dark .m-clock__number--active {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+  }
+
+  .dark .m-clock-hand {
+    background-color: #3b82f6 !important;
+  }
+
+  .dark .m-clock-hand__circle {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+  }
+
+  .dark .m-time-picker__header {
+    background-color: oklch(0.269 0 0) !important;
+    color: oklch(0.985 0 0) !important;
+  }
+
+  .dark .m-time-picker__body {
+    background-color: oklch(0.205 0 0) !important;
+  }
+
+  .dark .m-time-picker__footer {
+    background-color: oklch(0.205 0 0) !important;
+    border-top-color: oklch(0.269 0 0) !important;
+  }
+
+  .dark .m-time-picker__button {
+    color: oklch(0.985 0 0) !important;
+  }
+
   /* Progress Bar Overrides */
   #nprogress .bar {
     @apply bg-primary;
@@ -158,4 +259,65 @@
   .dark #nprogress .bar {
     @apply bg-white;
   }
+}
+
+/* vue-material-time-picker グローバルダークモード対応 */
+.dark .material-time-picker-container {
+  background-color: oklch(0.205 0 0) !important;
+}
+
+.dark .material-time-picker-container * {
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .material-time-picker-container .m-clock {
+  background-color: oklch(0.269 0 0) !important;
+}
+
+.dark .material-time-picker-container .m-clock__number {
+  color: oklch(0.985 0 0) !important;
+}
+
+.dark .material-time-picker-container .m-clock__number--active,
+.dark .material-time-picker-container .m-clock__number:hover {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.dark .material-time-picker-container .m-clock-hand,
+.dark .material-time-picker-container .m-clock-hand__circle {
+  background-color: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+}
+
+/* vue-material-time-picker 実際のクラス名でのダークモード対応 */
+.dark .time-picker-clock {
+  background-color: oklch(0.269 0 0) !important;
+}
+
+.dark .time-picker-clock__item {
+  color: #ffffff !important;
+}
+
+.dark .time-picker-clock__item--active {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.dark .time-picker-clock__hand {
+  background-color: #3b82f6 !important;
+}
+
+.dark .time-picker-clock__hand:before,
+.dark .time-picker-clock__hand:after {
+  border-color: #3b82f6 !important;
+  background-color: #3b82f6 !important;
+}
+
+.dark .picker {
+  background-color: oklch(0.205 0 0) !important;
+}
+
+.dark .picker__title {
+  background-color: #059669 !important;
 }

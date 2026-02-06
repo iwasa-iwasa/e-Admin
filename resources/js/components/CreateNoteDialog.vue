@@ -2,6 +2,9 @@
 import { ref, computed, watch } from "vue";
 import { useForm, usePage } from "@inertiajs/vue3";
 import { Save, X, CheckCircle, Pin, Info } from "lucide-vue-next";
+import { ja } from "date-fns/locale";
+import '@vuepic/vue-datepicker/dist/main.css';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
 import {
     Dialog,
     DialogContent,
@@ -56,6 +59,7 @@ const form = useForm<{
 const tagInput = ref("");
 const selectedParticipants = ref<App.Models.User[]>([]);
 const activeTab = ref("basic");
+const deadlineDateTime = ref<Date | null>(null);
 
 const { toast } = useToast();
 const currentUserId = computed(() => (usePage().props as any).auth?.user?.id ?? null)
@@ -232,6 +236,21 @@ watch(() => props.open, (isOpen) => {
             pendingDraft.value = draft
             showDraftDialog.value = true
         }
+        
+        // Initialize deadlineDateTime from form.deadline
+        if (form.deadline) {
+            deadlineDateTime.value = new Date(form.deadline)
+        } else {
+            deadlineDateTime.value = null
+        }
+    }
+})
+
+watch(deadlineDateTime, (newDate) => {
+    if (newDate) {
+        form.deadline = newDate.toISOString().slice(0, 16)
+    } else {
+        form.deadline = ''
     }
 })
 </script>
@@ -318,7 +337,15 @@ watch(() => props.open, (isOpen) => {
                     <div class="grid grid-cols-3 gap-4">
                         <div class="space-y-2">
                             <Label for="deadline">期限（任意）</Label>
-                            <Input id="deadline" type="datetime-local" v-model="form.deadline" />
+                            <VueDatePicker
+                                v-model="deadlineDateTime"
+                                :locale="ja"
+                                :week-start="0"
+                                auto-apply
+                                teleport-center
+                                enable-time-picker
+                                placeholder="期限を選択"
+                            />
                         </div>
 
                         <div class="space-y-2">

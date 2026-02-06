@@ -399,10 +399,10 @@ onUnmounted(() => {
             :id="`reminder-${reminder.reminder_id}`"
             :class="[
               'transition-all cursor-pointer border',
-              reminder.completed ? 'opacity-60' : 'hover:shadow-md',
-              reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
-              reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
-              'border-gray-300 dark:border-gray-700'
+              reminder.completed ? 'opacity-60 border-gray-300 dark:border-gray-700' : 'hover:shadow-md',
+              !reminder.completed && reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
+              !reminder.completed && reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
+              !reminder.completed ? 'border-gray-300 dark:border-gray-700' : ''
             ]"
             @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\'], button')) { selectedReminder = reminder } }"
           >
@@ -446,10 +446,10 @@ onUnmounted(() => {
                       {{ formatDate(reminder.deadline_date) }}{{ reminder.deadline_time ? ` ${reminder.deadline_time.substring(0, 5)}` : '' }}
                     </span>
                   </div>
-                  <Badge v-if="reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400">
+                  <Badge v-if="!reminder.completed && reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400">
                     期限切れ
                   </Badge>
-                  <Badge v-else-if="reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-yellow-100 text-yellow-700 border-yellow-400">
+                  <Badge v-else-if="!reminder.completed && reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-yellow-100 text-yellow-700 border-yellow-400">
                     期限間近
                   </Badge>
                 </div>
