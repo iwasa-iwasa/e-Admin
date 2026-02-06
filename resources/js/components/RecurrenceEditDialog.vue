@@ -51,18 +51,18 @@ const handleCancel = () => {
       <div class="space-y-3">
         <div 
           class="flex items-start space-x-3 p-3 rounded-lg border-2 transition-colors cursor-pointer"
-          :class="selectedScope === 'this-only' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+          :class="selectedScope === 'this-only' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30' : 'border-gray-200 dark:border-gray-700'"
           @click="selectedScope = 'this-only'"
         >
           <div class="flex items-center justify-center w-5 h-5 mt-1 rounded-full border-2 transition-colors"
-               :class="selectedScope === 'this-only' ? 'border-blue-500' : 'border-gray-300'">
+               :class="selectedScope === 'this-only' ? 'border-blue-500' : 'border-gray-300 dark:border-gray-600'">
             <div v-if="selectedScope === 'this-only'" class="w-3 h-3 rounded-full bg-blue-500"></div>
           </div>
           <div class="flex-1">
-            <Label class="font-medium cursor-pointer">
+            <Label class="font-medium cursor-pointer" :class="selectedScope === 'this-only' ? 'text-gray-900 dark:text-gray-100' : ''">
               この予定のみ{{ mode === 'edit' ? '編集' : '削除' }}
             </Label>
-            <p class="text-sm text-gray-600 mt-1">
+            <p class="text-sm mt-1" :class="selectedScope === 'this-only' ? 'text-gray-700 dark:text-gray-300' : 'text-gray-600 dark:text-gray-400'">
               {{ formattedDate }}のみ{{ mode === 'edit' ? '変更' : '削除' }}します
             </p>
           </div>
@@ -70,21 +70,21 @@ const handleCancel = () => {
 
         <div 
           class="flex items-start space-x-3 p-3 rounded-lg border-2 transition-colors cursor-pointer"
-          :class="selectedScope === 'this-and-future' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+          :class="selectedScope === 'this-and-future' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30' : 'border-gray-200 dark:border-gray-700'"
           @click="selectedScope = 'this-and-future'"
         >
           <div class="flex items-center justify-center w-5 h-5 mt-1 rounded-full border-2 transition-colors"
-               :class="selectedScope === 'this-and-future' ? 'border-blue-500' : 'border-gray-300'">
+               :class="selectedScope === 'this-and-future' ? 'border-blue-500' : 'border-gray-300 dark:border-gray-600'">
             <div v-if="selectedScope === 'this-and-future'" class="w-3 h-3 rounded-full bg-blue-500"></div>
           </div>
           <div class="flex-1">
-            <Label class="font-medium cursor-pointer">
+            <Label class="font-medium cursor-pointer" :class="selectedScope === 'this-and-future' ? 'text-gray-900 dark:text-gray-100' : ''">
               この予定以降すべて{{ mode === 'edit' ? '編集' : '削除' }}
             </Label>
-            <p class="text-sm text-gray-600 mt-1">
+            <p class="text-sm mt-1" :class="selectedScope === 'this-and-future' ? 'text-gray-700 dark:text-gray-300' : 'text-gray-600 dark:text-gray-400'">
               {{ formattedDate }}以降の予定をすべて{{ mode === 'edit' ? '変更' : '削除' }}します
             </p>
-            <p v-if="mode === 'delete'" class="text-xs text-amber-600 mt-1">
+            <p v-if="mode === 'delete'" class="text-xs text-amber-600 dark:text-amber-400 mt-1">
               ※ 過去の予定は残ります
             </p>
           </div>
@@ -92,18 +92,18 @@ const handleCancel = () => {
 
         <div 
           class="flex items-start space-x-3 p-3 rounded-lg border-2 transition-colors cursor-pointer"
-          :class="selectedScope === 'all' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+          :class="selectedScope === 'all' ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30' : 'border-gray-200 dark:border-gray-700'"
           @click="selectedScope = 'all'"
         >
           <div class="flex items-center justify-center w-5 h-5 mt-1 rounded-full border-2 transition-colors"
-               :class="selectedScope === 'all' ? 'border-blue-500' : 'border-gray-300'">
+               :class="selectedScope === 'all' ? 'border-blue-500' : 'border-gray-300 dark:border-gray-600'">
             <div v-if="selectedScope === 'all'" class="w-3 h-3 rounded-full bg-blue-500"></div>
           </div>
           <div class="flex-1">
-            <Label class="font-medium cursor-pointer">
+            <Label class="font-medium cursor-pointer" :class="selectedScope === 'all' ? 'text-gray-900 dark:text-gray-100' : ''">
               すべての予定を{{ mode === 'edit' ? '編集' : '削除' }}
             </Label>
-            <p class="text-sm text-gray-600 mt-1">
+            <p class="text-sm mt-1" :class="selectedScope === 'all' ? 'text-gray-700 dark:text-gray-300' : 'text-gray-600 dark:text-gray-400'">
               過去も含めてすべての繰り返し予定を{{ mode === 'edit' ? '変更' : '削除' }}します
             </p>
           </div>

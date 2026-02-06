@@ -539,8 +539,6 @@ const confirmBulkDelete = () => {
                     :class="[
                       'rounded-lg p-4 opacity-60 cursor-pointer border bg-muted/50 dark:bg-muted/10',
                       selectedCompletedItems.has(reminder.reminder_id) ? 'border-green-500 bg-green-50 dark:bg-green-900/20 opacity-100' : 
-                      reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'border-red-500 border-2' :
-                      reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time) ? 'border-yellow-400 border-2' :
                       'border-border'
                     ]" 
                     @click="(e) => { if (!(e.target as HTMLElement).closest('input[type=\'checkbox\']') && !(e.target as HTMLElement).closest('button')) { if (selectedCompletedItems.size > 0) { const checked = selectedCompletedItems.has(reminder.reminder_id); if (checked) { selectedCompletedItems.delete(reminder.reminder_id) } else { selectedCompletedItems.add(reminder.reminder_id) }; selectedCompletedItems = new Set(selectedCompletedItems) } } }">
@@ -579,10 +577,10 @@ const confirmBulkDelete = () => {
                           <span class="hidden sm:inline">完全に削除</span>
                           <span class="sm:hidden">削除</span>
                         </Button>
-                        <Badge v-if="reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400 opacity-60">
+                        <Badge v-if="!reminder.completed && reminder.deadline_date && isOverdue(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-red-100 text-red-700 border-red-400 opacity-60">
                           期限切れ
                         </Badge>
-                        <Badge v-else-if="reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-yellow-100 text-yellow-700 border-yellow-400 opacity-60">
+                        <Badge v-else-if="!reminder.completed && reminder.deadline_date && isUpcoming(reminder.deadline_date, reminder.deadline_time)" variant="outline" class="text-xs bg-yellow-100 text-yellow-700 border-yellow-400 opacity-60">
                           期限間近
                         </Badge>
                       </div>

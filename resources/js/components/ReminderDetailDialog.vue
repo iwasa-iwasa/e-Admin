@@ -2,6 +2,9 @@
 import { formatDate } from '@/lib/utils'
 import { ref, computed, watch } from 'vue'
 import { Clock, CheckCircle2, Edit2, Save, X, CheckCircle, Tag, Plus as PlusIcon } from 'lucide-vue-next'
+import { ja } from "date-fns/locale";
+import '@vuepic/vue-datepicker/dist/main.css';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
 import {
   Dialog,
   DialogContent,
@@ -90,6 +93,7 @@ const form = useForm({
 })
 
 const newTag = ref('')
+const deadlineDateTime = ref<Date | null>(null)
 
 const addTag = () => {
   const tag = newTag.value.trim()
@@ -139,6 +143,14 @@ watch(() => props.open, (isOpen) => {
       form.description = props.reminder.description || ''
       form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
       form.tags = props.reminder.tags?.map(t => t.tag_name) || []
+      
+      // Initialize deadlineDateTime
+      if (form.deadline) {
+        deadlineDateTime.value = new Date(form.deadline)
+      } else {
+        deadlineDateTime.value = null
+      }
+      
       clearDraft()
     } else {
       // 新規作成モード
@@ -151,6 +163,9 @@ watch(() => props.open, (isOpen) => {
         const shouldRestore = window.confirm('前回の下書きが見つかりました。復元しますか？')
         if (shouldRestore) {
           loadDraft()
+          if (form.deadline) {
+            deadlineDateTime.value = new Date(form.deadline)
+          }
         } else {
           clearDraft()
           form.reset()
@@ -158,6 +173,7 @@ watch(() => props.open, (isOpen) => {
           form.description = ''
           form.deadline = ''
           form.tags = []
+          deadlineDateTime.value = null
         }
       } else {
         // フォームをデフォルト値で初期化
@@ -166,8 +182,17 @@ watch(() => props.open, (isOpen) => {
         form.description = ''
         form.deadline = ''
         form.tags = []
+        deadlineDateTime.value = null
       }
     }
+  }
+})
+
+watch(deadlineDateTime, (newDate) => {
+  if (newDate) {
+    form.deadline = newDate.toISOString().slice(0, 16)
+  } else {
+    form.deadline = ''
   }
 })
 
@@ -463,13 +488,16 @@ const handleComplete = () => {
             <Clock class="h-4 w-4 text-gray-600 dark:text-gray-400" />
             <div class="flex-1">
               <div class="text-sm text-gray-600 dark:text-gray-300">期限（任意）</div>
-              <Input 
-                v-if="isEditing" 
-                type="datetime-local" 
-                v-model="form.deadline" 
-                class="h-8 mt-1"
+              <VueDatePicker
+                v-if="isEditing"
+                v-model="deadlineDateTime"
+                :locale="ja"
+                :week-start="0"
+                auto-apply
+                teleport-center
+                enable-time-picker
                 placeholder="期限を設定（任意）"
-                :class="{ 'border-red-500': form.errors.deadline }"
+                class="mt-1"
               />
               <div v-if="form.errors.deadline" class="text-xs text-red-500 mt-1">
                 {{ form.errors.deadline }}

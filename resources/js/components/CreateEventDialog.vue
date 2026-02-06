@@ -652,12 +652,12 @@ const updateNextOccurrences = () => {
       </DialogHeader>
       
       <!-- Draft Banner -->
-      <div v-if="showDraftBanner" class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-        <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+      <div v-if="showDraftBanner" class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 flex items-start gap-2">
+        <Info class="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
         <div class="flex-1">
-          <p class="text-sm text-blue-800">前回の下書きを復元しました</p>
+          <p class="text-sm text-blue-800 dark:text-blue-200">前回の下書きを復元しました</p>
         </div>
-        <button @click="showDraftBanner = false" class="text-blue-600 hover:text-blue-800">
+        <button @click="showDraftBanner = false" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200">
           <X class="h-4 w-4" />
         </button>
       </div>
@@ -874,7 +874,7 @@ const updateNextOccurrences = () => {
                   </Button>
                 </div>
                 <div class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
-                  <div v-for="member in teamMembers" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                  <div v-for="member in teamMembers" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer">
                     <input 
                       :id="`member-${member.id}`"
                       type="checkbox" 
@@ -882,7 +882,7 @@ const updateNextOccurrences = () => {
                       @change="(e) => (e.target as HTMLInputElement).checked ? form.participants.push(member) : handleRemoveParticipant(member.id)"
                       class="h-4 w-4 text-blue-600 rounded border-gray-300"
                     />
-                    <label :for="`member-${member.id}`" class="text-xs cursor-pointer">{{ member.name }}</label>
+                    <label :for="`member-${member.id}`" class="text-xs cursor-pointer text-gray-900 dark:text-gray-100">{{ member.name }}</label>
                   </div>
                 </div>
               </div>
@@ -982,9 +982,9 @@ const updateNextOccurrences = () => {
                   </div>
                   
                   <div v-if="nextOccurrences.length > 0" class="space-y-2 pt-2">
-                    <Label class="text-sm text-gray-700">次の予定:</Label>
-                    <div class="bg-blue-50 border border-blue-200 rounded-md p-3 space-y-1">
-                      <div v-for="(date, index) in nextOccurrences" :key="index" class="text-sm text-blue-800">
+                    <Label class="text-sm text-gray-700 dark:text-gray-300">次の予定:</Label>
+                    <div class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 space-y-1">
+                      <div v-for="(date, index) in nextOccurrences" :key="index" class="text-sm text-blue-800 dark:text-blue-200">
                         ・{{ date }}
                       </div>
                     </div>
@@ -1040,7 +1040,7 @@ const updateNextOccurrences = () => {
                 
                 <div v-if="form.attachments.existing.length > 0" class="space-y-2">
                   <p class="text-sm font-medium">既存のファイル:</p>
-                  <div v-for="file in form.attachments.existing" :key="file.attachment_id" class="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                  <div v-for="file in form.attachments.existing" :key="file.attachment_id" class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
                     <span class="text-sm truncate">{{ file.file_name }}</span>
                     <Button v-if="canEdit" variant="ghost" size="sm" @click="handleRemoveExistingFile(file.attachment_id)">
                       <X class="h-4 w-4" />
@@ -1050,7 +1050,7 @@ const updateNextOccurrences = () => {
                 
                 <div v-if="form.attachments.new_files.length > 0" class="space-y-2">
                   <p class="text-sm font-medium">新しいファイル:</p>
-                  <div v-for="(file, index) in form.attachments.new_files" :key="index" class="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                  <div v-for="(file, index) in form.attachments.new_files" :key="index" class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
                     <span class="text-sm truncate">{{ file.name }}</span>
                     <Button v-if="canEdit" variant="ghost" size="sm" @click="handleRemoveNewFile(index)">
                       <X class="h-4 w-4" />
