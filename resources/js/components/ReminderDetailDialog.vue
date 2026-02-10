@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatDate } from '@/lib/utils'
 import { ref, computed, watch } from 'vue'
-import { Clock, CheckCircle2, Edit2, Save, X, CheckCircle, Tag, Plus as PlusIcon } from 'lucide-vue-next'
+import { Clock, CheckCircle2, Edit2, Save, X, CheckCircle, Tag, Plus as PlusIcon, Copy } from 'lucide-vue-next'
 import { ja } from "date-fns/locale";
 import '@vuepic/vue-datepicker/dist/main.css';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
@@ -60,6 +60,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:open', value: boolean, completed?: boolean): void
   (e: 'update:reminder', value: Reminder): void
+  (e: 'copy'): void
 }>()
 
 const isEditing = ref(false)
@@ -156,6 +157,30 @@ watch(() => props.open, (isOpen) => {
       // 新規作成モード
       editedReminder.value = createDefaultReminder()
       isEditing.value = true
+      
+      // 複製データがあるか確認
+      const copyDataStr = sessionStorage.getItem('reminder_copy_data')
+      if (copyDataStr) {
+        try {
+          const copyData = JSON.parse(copyDataStr)
+          form.reset()
+          form.title = copyData.title
+          form.description = copyData.description
+          form.deadline = copyData.deadline
+          form.tags = copyData.tags
+          
+          if (form.deadline) {
+            deadlineDateTime.value = new Date(form.deadline)
+          } else {
+            deadlineDateTime.value = null
+          }
+          
+          sessionStorage.removeItem('reminder_copy_data')
+          return
+        } catch (e) {
+          console.error('Failed to load copy data:', e)
+        }
+      }
       
       // 下書きがあるか確認
       const hasDraft = sessionStorage.getItem(DRAFT_KEY)
@@ -381,6 +406,27 @@ const handleComplete = () => {
     }
   })
 }
+
+const handleCopy = () => {
+  if (!props.reminder) return
+  
+  // 複製元のデータを保存
+  const copyData = {
+    title: `${props.reminder.title}（コピー）`,
+    description: props.reminder.description || '',
+    deadline: formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time),
+    tags: props.reminder.tags?.map(t => t.tag_name) || []
+  }
+  
+  // sessionStorageに保存
+  sessionStorage.setItem('reminder_copy_data', JSON.stringify(copyData))
+  
+  // 複製元のダイアログを閉じる
+  emit('update:open', false)
+  
+  // 親コンポーネントに複製イベントを通知
+  emit('copy')
+}
 </script>
 
 <template>
@@ -390,8 +436,8 @@ const handleComplete = () => {
         <DialogTitle>
           {{ isCreateMode ? '新規リマインダー作成' : (props.reminder?.completed ? '完了済リマインダー' : 'リマインダー詳細') }}
         </DialogTitle>
-        <DialogDescription v-if="isCreateMode">
-          個人リマインダーを新規作成します
+        <DialogDescription>
+          {{ isCreateMode ? '個人リマインダーを新規作成します' : 'リマインダーの詳細情報を表示します' }}
         </DialogDescription>
       </DialogHeader>
       
@@ -578,6 +624,17 @@ const handleComplete = () => {
             >
               <CheckCircle class="h-4 w-4 mr-1" />
               完了
+            </Button>
+            <Button 
+              v-if="!isCreateMode && props.reminder"
+              type="button"
+              variant="outline" 
+              @click="handleCopy" 
+              size="sm"
+              class="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-700 dark:hover:text-white"
+            >
+              <Copy class="h-4 w-4 mr-1" />
+              複製
             </Button>
             <Button variant="outline" @click="handleEdit" size="sm">
               <Edit2 class="h-4 w-4 mr-1" />

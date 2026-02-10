@@ -23,7 +23,7 @@ const submit = () => {
     <GuestLayout>
         <Head title="パスワードリセット" />
 
-        <div class="mb-4 text-sm text-gray-600">
+        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
             パスワードをお忘れですか？メールアドレスを入力していただければ、パスワードリセット用のリンクをお送りします。
         </div>
 

@@ -372,7 +372,7 @@ const genreColors = computed(() => ({
     '会議': getEventColor.value('会議'),
     '業務': getEventColor.value('業務'),
     '来客': getEventColor.value('来客'),
-    '出張': getEventColor.value('出張'),
+    '出張・外出': getEventColor.value('出張・外出'),
     '休暇': getEventColor.value('休暇'),
     'その他': getEventColor.value('その他')
 }))
@@ -478,8 +478,8 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.PURPLE">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['出張'] }"></div>
-                                    {{ CATEGORY_LABELS['出張'] }}
+                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['出張・外出'] }"></div>
+                                    {{ CATEGORY_LABELS['出張・外出'] }}
                                 </div>
                             </SelectItem>
                             <SelectItem :value="GENRE_FILTERS.PINK">
@@ -686,7 +686,7 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                                 (genreFilter as string) === GENRE_FILTERS.BLUE && item.label === '会議' ||
                                 (genreFilter as string) === GENRE_FILTERS.GREEN && item.label === '業務' ||
                                 (genreFilter as string) === GENRE_FILTERS.YELLOW && item.label === '来客' ||
-                                (genreFilter as string) === GENRE_FILTERS.PURPLE && item.label === '出張' ||
+                                (genreFilter as string) === GENRE_FILTERS.PURPLE && item.label === '出張・外出' ||
                                 (genreFilter as string) === GENRE_FILTERS.PINK && item.label === '休暇' ||
                                 (genreFilter as string) === GENRE_FILTERS.OTHER && item.label === 'その他'
                         }"
@@ -901,7 +901,7 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                                 </div>
                                 <span class="font-medium text-sm">検索と絞り込み</span>
                             </div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">フィルターアイコンで特定カテゴリのみ表示、検索バーでタイトルや内容を検索できます。カテゴリは会議、業務、来客、出張、休暇、その他から選択できます。</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">フィルターアイコンで特定カテゴリのみ表示、検索バーでタイトルや内容を検索できます。カテゴリは会議、業務、来客、出張・外出、休暇、その他から選択できます。</p>
                         </div>
                     </div>
                 </div>
@@ -1153,5 +1153,62 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
 .dark .fc-timegrid-now-indicator-arrow {
     border-color: theme('colors.blue.400');
     border-bottom-color: theme('colors.blue.400');
+}
+
+/* 土曜日・日曜日・祝日の色付け */
+.fc-daygrid-day-number.text-red-600 {
+    color: #dc2626 !important;
+    font-weight: 600;
+}
+.dark .fc-daygrid-day-number.text-red-600 {
+    color: #f87171 !important;
+}
+.fc-daygrid-day-number.text-blue-600 {
+    color: #2563eb !important;
+    font-weight: 600;
+}
+.dark .fc-daygrid-day-number.text-blue-600 {
+    color: #60a5fa !important;
+}
+/* 祝日名の色 */
+.text-red-600.dark\:text-red-400 {
+    color: #dc2626;
+}
+.dark .text-red-600.dark\:text-red-400 {
+    color: #f87171;
+}
+.text-blue-600.dark\:text-blue-400 {
+    color: #2563eb;
+}
+.dark .text-blue-600.dark\:text-blue-400 {
+    color: #60a5fa;
+}
+
+/* 曜日ヘッダーの固定（月表示専用） */
+.fc-dayGridMonth-view .fc-scrollgrid-section-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: white;
+}
+
+.dark .fc-dayGridMonth-view .fc-scrollgrid-section-header {
+    background-color: theme('colors.background');
+}
+
+/* 曜日ヘッダーの色付け */
+.fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion {
+    color: #dc2626 !important;
+    font-weight: 600;
+}
+.dark .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion {
+    color: #f87171 !important;
+}
+.fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion {
+    color: #2563eb !important;
+    font-weight: 600;
+}
+.dark .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion {
+    color: #60a5fa !important;
 }
 </style>

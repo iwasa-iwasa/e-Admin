@@ -194,6 +194,12 @@ const handleCloseDetailDialog = (isOpen: boolean, completed?: boolean) => {
   }
 }
 
+const handleCopyReminder = () => {
+  // sessionStorageから複製データを読み込んで新規作成ダイアログを開く
+  selectedReminder.value = null
+  isCreateDialogOpen.value = true
+}
+
 const handleCloseCreateDialog = (isOpen: boolean) => {
   isCreateDialogOpen.value = isOpen
 }
@@ -221,6 +227,8 @@ const confirmPermanentDelete = () => {
   
   reminderToDelete.value = null
 }
+
+// 複製イベントリスナー（削除）
 
 onMounted(() => {
   if (headerRef.value) {
@@ -466,6 +474,7 @@ onUnmounted(() => {
       :open="selectedReminder !== null"
       @update:open="handleCloseDetailDialog"
       @update:reminder="handleUpdateReminder"
+      @copy="handleCopyReminder"
     />
 
     <ReminderDetailDialog

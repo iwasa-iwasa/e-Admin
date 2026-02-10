@@ -222,6 +222,7 @@ const getColorInfo = (c: string) => {
         blue: { bg: "bg-blue-100 dark:bg-blue-500", label: "会議", color: "#3b82f6" },
         green: { bg: "bg-green-100 dark:bg-green-500", label: "業務", color: "#66bb6a" },
         yellow: { bg: "bg-yellow-100 dark:bg-yellow-500", label: "来客", color: "#ffa726" },
+        purple: { bg: "bg-purple-100 dark:bg-purple-500", label: "出張・外出", color: "#9575cd" },
         purple: { bg: "bg-purple-100 dark:bg-purple-500", label: "出張", color: "#9575cd" },
         pink: { bg: "bg-pink-100 dark:bg-pink-500", label: "休暇", color: "#f06292" },
         gray: { bg: "bg-gray-100 dark:bg-gray-500", label: "その他", color: "#9e9e9e" },

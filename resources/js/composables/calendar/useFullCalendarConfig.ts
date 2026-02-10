@@ -6,6 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import multiMonthPlugin from '@fullcalendar/multimonth'
 // RRULE削除済み
 import { getEventColor } from '@/constants/calendar'
+import { getHolidayName, getDayColor } from '@/constants/holidays'
 
 export function useFullCalendarConfig(
     getUnifiedEvents: () => any[],
@@ -115,6 +116,36 @@ export function useFullCalendarConfig(
         moreLinkClassNames: handlers.moreLinkClassNames,
         moreLinkDidMount: handlers.moreLinkDidMount,
         dayCellDidMount: handlers.dayCellDidMount,
+        dayCellContent: (arg) => {
+            const date = arg.date
+            const holidayName = getHolidayName(date)
+            const dayColor = getDayColor(date)
+            const dayNumber = date.getDate()
+            
+            if (holidayName) {
+                return {
+                    html: `<div class="fc-daygrid-day-top">
+                        <a class="fc-daygrid-day-number ${dayColor}">${dayNumber}</a>
+                        <div class="text-[9px] ${dayColor} font-medium mt-0.5 leading-tight">${holidayName}</div>
+                    </div>`
+                }
+            }
+            
+            if (dayColor) {
+                return {
+                    html: `<div class="fc-daygrid-day-top">
+                        <a class="fc-daygrid-day-number ${dayColor}">${dayNumber}</a>
+                    </div>`
+                }
+            }
+            
+            // 通常の日付も表示
+            return {
+                html: `<div class="fc-daygrid-day-top">
+                    <a class="fc-daygrid-day-number">${dayNumber}</a>
+                </div>`
+            }
+        },
     }))
 
     return {

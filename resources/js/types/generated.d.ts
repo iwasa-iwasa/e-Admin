@@ -146,7 +146,7 @@ declare namespace App.Data {
   };
 }
 declare namespace App.Enums {
-  export type EventCategory = '会議' | '業務' | '来客' | '出張' | '休暇' | 'その他';
+  export type EventCategory = '会議' | '業務' | '来客' | '出張・外出' | '休暇' | 'その他';
   export type EventColor = 'blue' | 'green' | 'yellow' | 'purple' | 'pink' | 'gray';
   export type EventImportance = '重要' | '中' | '低';
 }

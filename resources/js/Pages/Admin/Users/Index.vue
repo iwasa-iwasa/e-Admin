@@ -170,7 +170,7 @@ const formatDate = (dateString: string) => {
                   </div>
                   <DropdownMenu v-else>
                     <DropdownMenuTrigger as-child>
-                       <Badge variant="outline" class="cursor-pointer hover:bg-gray-100 transition-colors">
+                       <Badge variant="outline" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100 transition-colors">
                          {{ user.role }} <ChevronDown class="h-3 w-3 ml-1" />
                        </Badge>
                     </DropdownMenuTrigger>

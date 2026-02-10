@@ -79,6 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/', 'store')->name('store');
         Route::put('/{reminder}', 'update')->name('update');
         Route::patch('/{reminder}/complete', 'completeReminder')->name('complete');
+        Route::post('/{reminder}/copy', 'copy')->name('copy');
         Route::post('/restore', 'restoreReminder')->name('restore');
         Route::post('/bulk-complete', 'bulkComplete')->name('bulkComplete');
         Route::post('/bulk-restore', 'bulkRestore')->name('bulkRestore');

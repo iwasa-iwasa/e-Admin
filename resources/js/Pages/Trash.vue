@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { VueDatePicker } from '@vuepic/vue-datepicker'
+import { ja } from 'date-fns/locale'
+import '@vuepic/vue-datepicker/dist/main.css'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
 defineOptions({
@@ -57,8 +60,8 @@ const restoreMode = ref<'selected' | 'unselected'>('selected')
 const filterType = ref<ItemType | 'all'>('all')
 const filterTitle = ref('')
 const filterCreator = ref<string | 'all'>('all')
-const filterDateFrom = ref('')
-const filterDateTo = ref('')
+const filterDateFrom = ref<Date | null>(null)
+const filterDateTo = ref<Date | null>(null)
 const showFilterDialog = ref(false)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 const isHelpOpen = ref(false)
@@ -81,6 +84,7 @@ const filteredItems = computed(() => {
       const itemDate = new Date(item.deletedAt)
       if (filterDateFrom.value) {
         const startDate = new Date(filterDateFrom.value)
+        startDate.setHours(0, 0, 0, 0)
         if (itemDate < startDate) return false
       }
       if (filterDateTo.value) {
@@ -382,7 +386,7 @@ onMounted(() => {
               variant="outline" 
               size="icon" 
               @click="showFilterDialog = !showFilterDialog" 
-              :class="showFilterDialog ? 'bg-gray-100' : ''"
+              :class="showFilterDialog ? 'bg-gray-100 dark:bg-muted' : ''"
             >
               <Filter class="h-4 w-4" />
             </Button>
@@ -465,19 +469,25 @@ onMounted(() => {
               </Select>
             </div>
             <div>
-              <label class="text-xs font-medium text-gray-700 mb-1.5 block">削除日</label>
+              <label class="text-xs font-medium text-foreground mb-1.5 block">削除日</label>
               <div class="flex gap-2">
-                <Input
-                  type="date"
+                <VueDatePicker
                   v-model="filterDateFrom"
+                  :locale="ja"
+                  :week-start="0"
+                  auto-apply
+                  teleport-center
                   placeholder="開始日"
-                  class="h-9 text-xs flex-1"
+                  class="flex-1"
                 />
-                <Input
-                  type="date"
+                <VueDatePicker
                   v-model="filterDateTo"
+                  :locale="ja"
+                  :week-start="0"
+                  auto-apply
+                  teleport-center
                   placeholder="終了日"
-                  class="h-9 text-xs flex-1"
+                  class="flex-1"
                 />
               </div>
             </div>

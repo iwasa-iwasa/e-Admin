@@ -5,7 +5,7 @@ export const CATEGORY_COLORS = {
     '会議': '#42A5F5', // 2563eb blue-500 equivalent for consistency
     '業務': '#66BB6A', // 16a34a green-500
     '来客': '#FFA726', // ca8a04 yellow-500
-    '出張': '#9575CD', // 9333ea purple-500
+    '出張・外出': '#9575CD', // 9333ea purple-500
     '休暇': '#F06292', // db2777 pink-500
     'その他': '#7F8C8D', // 686f7d gray-500
 } as const;
@@ -14,7 +14,7 @@ export const DARK_CATEGORY_COLORS = {
     '会議': 'rgba(96, 165, 250, 0.5)', // blue-400/50
     '業務': 'rgba(74, 222, 128, 0.5)', // green-400/50
     '来客': 'rgba(251, 191, 36, 0.5)', // yellow-400/50
-    '出張': 'rgba(167, 139, 250, 0.5)', // purple-400/50
+    '出張・外出': 'rgba(167, 139, 250, 0.5)', // purple-400/50
     '休暇': 'rgba(244, 114, 182, 0.5)', // pink-400/50
     'その他': 'rgba(156, 163, 175, 0.5)', // gray-400/50
 } as const;
@@ -25,7 +25,7 @@ export const CATEGORY_LABELS = {
     '会議': '会議',
     '業務': '業務',
     '来客': '来客',
-    '出張': '出張',
+    '出張・外出': '出張・外出',
     '休暇': '休暇',
     'その他': 'その他',
 } as const;

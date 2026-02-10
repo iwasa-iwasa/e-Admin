@@ -231,6 +231,7 @@ watch(() => props.open, (isOpen) => {
         form.reset()
         const now = new Date()
         const { startTime, endTime } = getDefaultTimes()
+        // 初期化時には現在の日付を設定しない
         date.value = [now, now]
         form.date_range = [now, now]
         form.start_time = startTime
@@ -244,12 +245,15 @@ watch(() => props.open, (isOpen) => {
 }, { immediate: true })
 
 watch(date, (newDates) => {
-  if (Array.isArray(newDates) &&
-      newDates[0] instanceof Date &&
-      newDates[1] instanceof Date
-  ) {
-    form.date_range = [...newDates]
-  } 
+  if (Array.isArray(newDates) && newDates[0] instanceof Date) {
+    // 開始日のみ、または両方ある場合にform.date_rangeを更新
+    if (newDates[1] instanceof Date) {
+      form.date_range = [...newDates] as [Date, Date]
+    } else {
+      // 開始日のみの場合は [Date, null] として保持
+      form.date_range = [newDates[0], null] as any
+    }
+  }
 }, { deep: true })
 
 watch(
@@ -450,6 +454,20 @@ const discardDraft = () => {
   form.date_range = [now, now]
 }
 
+// Date Range Normalization (保存時の正規化)
+const normalizeDateRange = (dateRange: [Date, Date] | [Date, null]): [Date, Date] => {
+  if (!dateRange[0]) {
+    throw new Error('開始日が設定されていません')
+  }
+  
+  // 終了日が未設定の場合、開始日と同じ日付を設定（単日予定）
+  if (!dateRange[1]) {
+    return [dateRange[0], dateRange[0]]
+  }
+  
+  return [dateRange[0], dateRange[1]]
+}
+
 // Main Actions
 const handleSave = () => {
   if (!form.title?.trim()) {
@@ -457,9 +475,15 @@ const handleSave = () => {
     return
   }
   
-  if (!form.date_range || !Array.isArray(form.date_range) || 
-      !form.date_range[0] || !form.date_range[1] ||
-      !(form.date_range[0] instanceof Date) || !(form.date_range[1] instanceof Date)) {
+  if (!form.date_range || !Array.isArray(form.date_range) || !form.date_range[0]) {
+    showMessage('開始日を選択してください', 'error')
+    return
+  }
+  
+  // 保存時に日付範囲を正規化
+  try {
+    form.date_range = normalizeDateRange(form.date_range as [Date, Date] | [Date, null])
+  } catch (error) {
     showMessage('日付が正しく設定されていません', 'error')
     return
   }
@@ -552,6 +576,7 @@ const getCategoryColor = (cat: string) => {
     case "会議": return "bg-[#3b82f6]"
     case "業務": return "bg-[#66bb6a]"
     case "来客": return "bg-[#ffa726]"
+    case "出張・外出": return "bg-[#9575cd]"
     case "出張": return "bg-[#9575cd]"
     case "休暇": return "bg-[#f06292]"
     default: return "bg-gray-500"
@@ -713,6 +738,12 @@ const updateNextOccurrences = () => {
                         <span>来客</span>
                       </div>
                     </SelectItem>
+                    <SelectItem value="出張・外出">
+                      <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-[#9575cd]"></div>
+                        <span>出張・外出</span>
+                      </div>
+                    </SelectItem>
                     <SelectItem value="出張">
                       <div class="flex items-center gap-2">
                         <div class="w-3 h-3 rounded-full bg-[#9575cd]"></div>
@@ -818,7 +849,6 @@ const updateNextOccurrences = () => {
                     :time-config="{ enableTimePicker: false }"
                     placeholder="期間を選択"
                     :locale="ja"
-                    :format="format"
                     :week-start="0"
                     auto-apply
                     teleport-center

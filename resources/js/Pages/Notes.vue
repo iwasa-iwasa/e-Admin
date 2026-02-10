@@ -483,6 +483,7 @@ const getColorInfo = (c: string) => {
     blue: { bg: 'bg-blue-100', label: '会議', color: '#3b82f6' },
     green: { bg: 'bg-green-100', label: '業務', color: '#66bb6a' },
     yellow: { bg: 'bg-yellow-100', label: '来客', color: '#ffa726' },
+    purple: { bg: 'bg-purple-100', label: '出張・外出', color: '#9575cd' },
     purple: { bg: 'bg-purple-100', label: '出張', color: '#9575cd' },
     pink: { bg: 'bg-pink-100', label: '休暇', color: '#f06292' },
     gray: { bg: 'bg-gray-100', label: 'その他', color: '#9e9e9e' },
@@ -555,17 +556,17 @@ const isHelpOpen = ref(false)
       <div class="w-full md:w-96 lg:w-[420px] flex flex-col h-full overflow-hidden border-r border-border bg-background">
       <div class="p-4 border-b border-border">
         <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))" class="mr-1">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))" class="mr-1 flex-shrink-0">
               <ArrowLeft class="h-5 w-5" />
             </Button>
-            <StickyNote class="h-6 w-6 text-orange-600" />
-            <CardTitle class="flex items-center gap-2">
-              共有メモ
+            <StickyNote class="h-6 w-6 text-orange-600 flex-shrink-0" />
+            <CardTitle class="flex items-center gap-2 min-w-0">
+              <span class="truncate">共有メモ</span>
               <Button
                 variant="ghost"
                 size="icon"
-                class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700"
+                class="h-5 w-5 p-0 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex-shrink-0"
                 @click="isHelpOpen = true"
                 title="共有メモの使い方"
               >
@@ -573,9 +574,9 @@ const isHelpOpen = ref(false)
               </Button>
             </CardTitle>
           </div>
-          <Button variant="outline" @click="handleCreateNote" class="gap-2">
+          <Button variant="outline" @click="handleCreateNote" class="gap-2 flex-shrink-0">
             <Plus class="h-4 w-4" />
-            新規作成
+            <span class="hidden sm:inline">新規作成</span>
           </Button>
         </div>
 
@@ -813,7 +814,7 @@ const isHelpOpen = ref(false)
                 />
               </div>
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">重要度</label>
+                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">重要度</label>
                 <Select v-model="editedPriority">
                   <SelectTrigger class="h-8 text-xs border-gray-300 dark:border-input">
                     <div class="flex items-center gap-2">
@@ -836,7 +837,7 @@ const isHelpOpen = ref(false)
                 </Select>
               </div>
               <div>
-                <label class="text-xs font-medium text-gray-700 mb-1 block">ジャンル</label>
+                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">ジャンル</label>
                 <Select v-model="editedColor">
                   <SelectTrigger class="h-8 text-xs border-gray-300 dark:border-input">
                     <div class="flex items-center gap-2">
@@ -855,7 +856,7 @@ const isHelpOpen = ref(false)
                 </Select>
               </div>
               <div class="relative">
-                <label class="text-xs font-medium text-gray-700 mb-1 block">タグ</label>
+                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">タグ</label>
                 <div class="flex gap-1">
                   <Input
                     placeholder="タグを追加"
@@ -876,12 +877,12 @@ const isHelpOpen = ref(false)
                     追加
                   </Button>
                 </div>
-                <div v-if="showTagSuggestions && suggestedTags.length > 0" class="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                <div v-if="showTagSuggestions && suggestedTags.length > 0" class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
                   <button
                     v-for="tag in suggestedTags"
                     :key="tag"
                     @click="handleAddTag(tag)"
-                    class="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors"
+                    class="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-gray-100"
                   >
                     {{ tag }}
                   </button>
@@ -901,7 +902,7 @@ const isHelpOpen = ref(false)
           
           <!-- メンバー追加UI -->
           <div class="space-y-2">
-            <label class="text-xs font-medium text-gray-700 block">共有メンバー</label>
+            <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">共有メンバー</label>
             <template v-if="!canEditParticipants">
               <div class="text-xs text-muted-foreground p-2 bg-muted/50 rounded border border-border">
                 共有メンバーの変更は作成者または参加者のみ可能です
@@ -924,7 +925,7 @@ const isHelpOpen = ref(false)
                     @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
                     class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
                   />
-                  <span class="text-xs">{{ member.name }}</span>
+                  <span class="text-xs text-gray-900 dark:text-gray-100">{{ member.name }}</span>
                 </label>
               </div>
             </template>

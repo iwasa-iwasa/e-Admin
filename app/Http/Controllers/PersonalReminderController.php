@@ -373,5 +373,36 @@ class PersonalReminderController extends Controller
             return redirect()->back()->withErrors(['error' => '一括削除に失敗しました']);
         }
     }
+
+    /**
+     * Copy a reminder.
+     */
+    public function copy($id)
+    {
+        $original = Reminder::with('tags')
+            ->where('reminder_id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+        
+        try {
+            $copy = Reminder::create([
+                'user_id' => Auth::id(),
+                'title' => $original->title . ' (コピー)',
+                'description' => $original->description,
+                'deadline_date' => $original->deadline_date,
+                'deadline_time' => $original->deadline_time,
+                'completed' => false,
+            ]);
+            
+            if ($original->tags->isNotEmpty()) {
+                $copy->tags()->sync($original->tags->pluck('tag_id'));
+            }
+            
+            return Redirect::back();
+        } catch (\Exception $e) {
+            \Log::error('Copy reminder error: ' . $e->getMessage());
+            return Redirect::back()->withErrors(['error' => 'コピーに失敗しました']);
+        }
+    }
 }
 

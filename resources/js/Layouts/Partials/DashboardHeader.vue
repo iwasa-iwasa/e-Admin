@@ -637,12 +637,12 @@ onUnmounted(() => {
                         </div>
                         <div>
                           <label class="text-xs font-medium text-gray-700 block mb-2">共有メモ</label>
-                          <div class="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                          <div class="flex gap-1 p-1 bg-muted rounded-lg">
                             <Button 
                               variant="ghost" 
                               size="sm" 
                               class="flex-1 h-7 text-xs"
-                              :class="showNotesFilter === 'mine' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'"
+                              :class="showNotesFilter === 'mine' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
                               :disabled="isLoadingNotifications"
                               @click="toggleNotesFilter"
                             >
@@ -652,7 +652,7 @@ onUnmounted(() => {
                               variant="ghost" 
                               size="sm" 
                               class="flex-1 h-7 text-xs"
-                              :class="showNotesFilter === 'all' ? 'bg-white shadow-sm' : 'hover:bg-gray-50'"
+                              :class="showNotesFilter === 'all' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
                               :disabled="isLoadingNotifications"
                               @click="toggleNotesFilter"
                             >
