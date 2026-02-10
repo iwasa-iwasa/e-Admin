@@ -44,7 +44,7 @@ const handleUpdate = (value: any, checked: boolean) => {
             <label 
                 class="flex items-center gap-2 p-2 rounded transition-colors"
                 :class="{
-                    'cursor-pointer hover:bg-gray-50': mode !== 'read' && mode !== 'preview',
+                    'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800': mode !== 'read' && mode !== 'preview',
                     'opacity-70': mode === 'preview'
                 }"
             >
@@ -55,7 +55,7 @@ const handleUpdate = (value: any, checked: boolean) => {
                 />
                 <span 
                     class="text-sm cursor-pointer select-none"
-                    :class="{'font-medium text-gray-900': isSelected(opt.value), 'text-gray-700': !isSelected(opt.value)}"                >
+                    :class="{'font-medium text-gray-900 dark:text-gray-100': isSelected(opt.value), 'text-gray-700 dark:text-gray-300': !isSelected(opt.value)}"                >
                     {{ opt.label }}
                 </span>
             </label>
