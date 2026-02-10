@@ -1,0 +1,59 @@
+# Exported from Render on 2026-02-10T06:49:29Z
+version: "1"
+services:
+- type: web
+  name: e-Admin
+  runtime: docker
+  repo: https://github.com/iwasa-iwasa/e-Admin
+  plan: free
+  envVars:
+  - key: DB_USERNAME
+    sync: false
+  - key: DB_PORT
+    sync: false
+  - key: DB_PASSWORD
+    sync: false
+  - key: DB_HOST
+    sync: false
+  - key: DB_DATABASE
+    sync: false
+  - key: DB_CONNECTION
+    sync: false
+  - key: DATABASE_URL
+    sync: false
+  - key: APP_URL
+    sync: false
+  - key: MAIL_HOST
+    sync: false
+  - key: MAIL_FROM_NAME
+    sync: false
+  - key: MAIL_FROM_ADDRESS
+    sync: false
+  - key: MAIL_ENCRYPTION
+    sync: false
+  - key: MAIL_USERNAME
+    sync: false
+  - key: MAIL_PORT
+    sync: false
+  - key: MAIL_PASSWORD
+    sync: false
+  - key: APP_DEBUG
+    sync: false
+  - key: APP_ENV
+    sync: false
+  - key: SESSION_DRIVER
+    sync: false
+  - key: MAIL_MAILER
+    sync: false
+  - key: APP_NAME
+    sync: false
+  - key: APP_KEY
+    sync: false
+  - key: LOG_CHANNEL
+    sync: false
+  - key: isrgrootx1.pem
+    sync: false
+  region: oregon
+  dockerContext: .
+  dockerfilePath: ./Dockerfile
+  autoDeployTrigger: commit
