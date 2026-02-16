@@ -29,7 +29,7 @@ const isSelected = (value: any) => {
             <label 
                 class="flex items-center gap-2 p-2 rounded transition-colors"
                 :class="{
-                    'cursor-pointer hover:bg-gray-50': mode !== 'read' && mode !== 'preview',
+                    'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800': mode !== 'read' && mode !== 'preview',
                     'opacity-70': mode === 'preview'
                 }"
             >
@@ -43,9 +43,9 @@ const isSelected = (value: any) => {
                         :disabled="mode === 'preview' || mode === 'read'"
                         class="peer sr-only" 
                     />
-                    <div class="w-4 h-4 rounded-full border border-gray-400 peer-checked:border-blue-600 peer-checked:border-4 transition-all bg-white"></div>
+                    <div class="w-4 h-4 rounded-full border border-gray-400 dark:border-gray-600 peer-checked:border-blue-600 peer-checked:border-4 transition-all bg-white dark:bg-gray-700"></div>
                 </div>
-                <span :class="{'font-medium text-gray-900': isSelected(opt.value), 'text-gray-700': !isSelected(opt.value)}">
+                <span :class="{'font-medium text-gray-900 dark:text-gray-100': isSelected(opt.value), 'text-gray-700 dark:text-gray-300': !isSelected(opt.value)}">
                     {{ opt.label }}
                 </span>
             </label>

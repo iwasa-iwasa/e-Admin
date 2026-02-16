@@ -181,6 +181,11 @@ const handleUpdateReminder = (updatedReminder: ReminderModel) => {
   window.dispatchEvent(new CustomEvent('notification-updated'))
 }
 
+const handleCopyReminder = () => {
+  selectedReminder.value = null
+  isCreateDialogOpen.value = true
+}
+
 
 
 const allTags = computed(() => {
@@ -602,7 +607,8 @@ const confirmBulkDelete = () => {
       :reminder="selectedReminder" 
       :open="selectedReminder !== null" 
       @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); } selectedReminder = null; } }" 
-      @update:reminder="handleUpdateReminder" 
+      @update:reminder="handleUpdateReminder"
+      @copy="handleCopyReminder"
     />
 
     <ReminderDetailDialog
