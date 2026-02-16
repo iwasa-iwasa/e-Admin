@@ -9,6 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { VueDatePicker } from '@vuepic/vue-datepicker'
+import { ja } from 'date-fns/locale'
+import '@vuepic/vue-datepicker/dist/main.css'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
@@ -41,8 +44,6 @@ const dateFrom = ref<string>('')
 const dateTo = ref<string>('')
 const dateType = ref('updated')
 const allUsers = ref<Array<{id: number, name: string}>>([])
-const dateFromInput = ref<HTMLInputElement | null>(null)
-const dateToInput = ref<HTMLInputElement | null>(null)
 
 const selectedEvent = ref<App.Models.Event | null>(null)
 const isEventDialogOpen = ref(false)
@@ -306,7 +307,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                 <button
                     v-if="searchQuery"
                     @click="clearSearch"
-                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                     <X class="h-4 w-4" />
                 </button>
@@ -398,7 +399,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         </Badge>
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent class="w-64" align="end">
+                <PopoverContent class="w-64 z-[100]" align="end" @interact-outside="(e) => { if (e.target?.closest?.('.dp__menu')) e.preventDefault() }">
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
                             <h4 class="font-medium text-sm">検索フィルター</h4>
@@ -407,7 +408,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                     v-if="activeFilterCount > 0"
                                     variant="ghost"
                                     size="sm"
-                                    class="h-auto p-1 text-xs hover:bg-gray-100"
+                                    class="h-auto p-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                                     @click="clearFilters"
                                 >
                                     <X class="h-3 w-3" />
@@ -416,7 +417,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    class="h-auto p-1 text-xs hover:bg-gray-100"
+                                    class="h-auto p-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                                     @click="isFilterOpen = false"
                                 >
                                     閉じる
@@ -446,16 +447,16 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                 <Label class="text-xs font-medium text-foreground">検索範囲</Label>
                                 <div class="space-y-2">
                                     <div class="flex items-center space-x-2">
-                                        <input type="radio" id="field-all" value="all" v-model="searchField" class="cursor-pointer" />
-                                        <Label for="field-all" class="text-sm cursor-pointer">すべて</Label>
+                                        <input type="radio" id="field-all" value="all" v-model="searchField" class="w-4 h-4 cursor-pointer text-blue-600 bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600" />
+                                        <Label for="field-all" class="text-sm cursor-pointer text-foreground">すべて</Label>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <input type="radio" id="field-title" value="title" v-model="searchField" class="cursor-pointer" />
-                                        <Label for="field-title" class="text-sm cursor-pointer">タイトルのみ</Label>
+                                        <input type="radio" id="field-title" value="title" v-model="searchField" class="w-4 h-4 cursor-pointer text-blue-600 bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600" />
+                                        <Label for="field-title" class="text-sm cursor-pointer text-foreground">タイトルのみ</Label>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <input type="radio" id="field-description" value="description" v-model="searchField" class="cursor-pointer" />
-                                        <Label for="field-description" class="text-sm cursor-pointer">詳細のみ</Label>
+                                        <input type="radio" id="field-description" value="description" v-model="searchField" class="w-4 h-4 cursor-pointer text-blue-600 bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600" />
+                                        <Label for="field-description" class="text-sm cursor-pointer text-foreground">詳細のみ</Label>
                                     </div>
                                 </div>
                             </div>
@@ -494,16 +495,16 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                 <Label class="text-xs font-medium text-foreground">日付種類</Label>
                                 <div class="space-y-2">
                                     <div class="flex items-center space-x-2">
-                                        <input type="radio" id="date-updated" value="updated" v-model="dateType" class="cursor-pointer" />
-                                        <Label for="date-updated" class="text-sm cursor-pointer">編集日</Label>
+                                        <input type="radio" id="date-updated" value="updated" v-model="dateType" class="w-4 h-4 cursor-pointer text-blue-600 bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600" />
+                                        <Label for="date-updated" class="text-sm cursor-pointer text-foreground">編集日</Label>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <input type="radio" id="date-created" value="created" v-model="dateType" class="cursor-pointer" />
-                                        <Label for="date-created" class="text-sm cursor-pointer">作成日</Label>
+                                        <input type="radio" id="date-created" value="created" v-model="dateType" class="w-4 h-4 cursor-pointer text-blue-600 bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600" />
+                                        <Label for="date-created" class="text-sm cursor-pointer text-foreground">作成日</Label>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <input type="radio" id="date-deleted" value="deleted" v-model="dateType" class="cursor-pointer" />
-                                        <Label for="date-deleted" class="text-sm cursor-pointer">削除日</Label>
+                                        <input type="radio" id="date-deleted" value="deleted" v-model="dateType" class="w-4 h-4 cursor-pointer text-blue-600 bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600" />
+                                        <Label for="date-deleted" class="text-sm cursor-pointer text-foreground">削除日</Label>
                                     </div>
                                 </div>
                             </div>
@@ -511,26 +512,32 @@ const canEditNote = (note: App.Models.SharedNote) => {
                             <div class="space-y-2">
                                 <Label class="text-xs font-medium text-foreground">日付範囲</Label>
                                 <div class="space-y-2">
-                                    <div @click="dateFromInput?.showPicker?.()" class="cursor-pointer">
-                                        <Label for="date-from" class="text-xs text-muted-foreground cursor-pointer">開始日（この日以降）</Label>
-                                        <Input
-                                            ref="dateFromInput"
-                                            id="date-from"
-                                            type="date"
+                                    <div>
+                                        <Label for="date-from" class="text-xs text-muted-foreground">開始日（この日以降）</Label>
+                                        <VueDatePicker
                                             v-model="dateFrom"
-                                            placeholder="開始日"
-                                            class="h-8 text-sm cursor-pointer"
+                                            :enable-time-picker="false"
+                                            placeholder="開始日を選択"
+                                            :locale="ja"
+                                            :week-start="0"
+                                            auto-apply
+                                            :clearable="true"
+                                            model-type="yyyy-MM-dd"
+                                            :teleport="true"
                                         />
                                     </div>
-                                    <div @click="dateToInput?.showPicker?.()" class="cursor-pointer">
-                                        <Label for="date-to" class="text-xs text-muted-foreground cursor-pointer">終了日（この日まで）</Label>
-                                        <Input
-                                            ref="dateToInput"
-                                            id="date-to"
-                                            type="date"
+                                    <div>
+                                        <Label for="date-to" class="text-xs text-muted-foreground">終了日（この日まで）</Label>
+                                        <VueDatePicker
                                             v-model="dateTo"
-                                            placeholder="終了日"
-                                            class="h-8 text-sm cursor-pointer"
+                                            :enable-time-picker="false"
+                                            placeholder="終了日を選択"
+                                            :locale="ja"
+                                            :week-start="0"
+                                            auto-apply
+                                            :clearable="true"
+                                            model-type="yyyy-MM-dd"
+                                            :teleport="true"
                                         />
                                     </div>
                                 </div>
