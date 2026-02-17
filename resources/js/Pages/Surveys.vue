@@ -89,6 +89,7 @@ interface SurveyWithResponse extends SurveyModel {
     has_responded?: boolean;
     respondent_names?: string[];
     unanswered_names?: string[];
+    can_respond?: boolean;
 }
 
 const props = defineProps<{
@@ -492,6 +493,7 @@ onMounted(() => {
                                         v-if="survey.is_active"
                                         variant="outline"
                                         class="gap-2"
+                                        :disabled="!survey.can_respond"
                                         @click="handleAnswer(survey)"
                                     >
                                         <CheckCircle2 class="h-4 w-4" />
