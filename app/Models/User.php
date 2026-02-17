@@ -29,7 +29,9 @@ class User extends Authenticatable
         'email',
         'password',
         'department',
+        'department_id',
         'role',
+        'role_type',
         'is_active',
         'deactivated_at',
         'reason',
@@ -56,7 +58,9 @@ class User extends Authenticatable
         'email' => 'string',
         'email_verified_at' => 'datetime',
         'department' => 'string',
+        'department_id' => 'integer',
         'role' => 'string',
+        'role_type' => 'string',
         'is_active' => 'boolean',
         'deactivated_at' => 'datetime',
         'password' => 'hashed',
@@ -124,5 +128,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserLog::class)->orderBy('created_at', 'desc')->with('changer');
     }
-}
 
+    /**
+     * Get the department that the user belongs to.
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+}
