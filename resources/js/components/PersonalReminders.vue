@@ -421,7 +421,7 @@ onUnmounted(() => {
                     type="checkbox"
                     :checked="reminder.completed"
                     @change="handleToggleComplete(reminder.reminder_id, ($event.target as HTMLInputElement).checked)"
-                    class="mt-1 h-4 w-4 text-blue-600 rounded"
+                    class="mt-1 h-6 w-6 text-blue-600 rounded cursor-pointer"
                   />
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2">

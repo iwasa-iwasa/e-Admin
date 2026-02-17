@@ -53,82 +53,34 @@
       flash?: any
   }>()
   
-  const form = useForm({
-      answers: props.existingAnswers ? JSON.parse(JSON.stringify(props.existingAnswers)) : {} as Record<number, any>,
-      status: 'submitted'
-  })
-  
-  // 全ての回答を初期化
-const initializeAnswers = () => {
-    props.questions.forEach(question => {
-        // 既に値がある場合はスキップ
-        if (form.answers[question.question_id] !== undefined) return
-
+  // 全ての回答を初期化（一度だけ実行）
+const initialAnswers: Record<number, any> = {}
+props.questions.forEach(question => {
+    // 既存の回答がある場合はそれを使用
+    if (props.existingAnswers && props.existingAnswers[question.question_id] !== undefined) {
+        initialAnswers[question.question_id] = props.existingAnswers[question.question_id]
+    } else {
         switch (question.question_type) {
             case 'multiple_choice':
-                form.answers[question.question_id] = []
+                initialAnswers[question.question_id] = []
                 break
             case 'dropdown':
-                form.answers[question.question_id] = ''
+                initialAnswers[question.question_id] = ''
                 break
             default:
-                form.answers[question.question_id] = null
+                initialAnswers[question.question_id] = null
         }
-    })
-}
+    }
+})
 
-// コンポーネントマウント時に初期化
-initializeAnswers()
+const form = useForm({
+    answers: initialAnswers,
+    status: 'submitted'
+})
   
   const displayQuestions = computed(() => {
       return props.questions.map((q, index) => convertQuestionFromBackend(q, index));
   });
-
-  // 既存回答を初期化
-  if (props.existingAnswers) {
-      console.log('existingAnswers:', props.existingAnswers)
-      Object.keys(props.existingAnswers).forEach(key => {
-          const questionId = Number(key)
-          const answer = props.existingAnswers![questionId]
-          const question = props.questions.find(q => q.question_id === questionId)
-          
-          if (question?.question_type === 'multiple_choice') {
-              if (Array.isArray(answer)) {
-                  form.answers[questionId] = [...answer]
-              } else if (typeof answer === 'string') {
-                  const optionTexts = answer.includes(',') ? answer.split(', ') : [answer]
-                  const optionIds: number[] = []
-                  for (const text of optionTexts) {
-                      const option = question.options?.find(o => o.option_text === text.trim())
-                      if (option) {
-                          optionIds.push(option.option_id)
-                      }
-                  }
-                  form.answers[questionId] = optionIds
-              }
-          } else if (question?.question_type === 'single_choice') {
-              if (answer && typeof answer === 'object') {
-                  if (answer.option_id) {
-                      form.answers[questionId] = answer.option_id
-                  } else if (answer.answer_text) {
-                      const option = question.options?.find(o => o.option_text === answer.answer_text.trim())
-                      form.answers[questionId] = option ? option.option_id : null
-                  }
-              } else if (typeof answer === 'number') {
-                  form.answers[questionId] = answer
-              } else if (typeof answer === 'string') {
-                  const option = question.options?.find(o => o.option_text === answer.trim())
-                  form.answers[questionId] = option ? option.option_id : null
-              } else {
-                  form.answers[questionId] = null
-              }
-          } else if (question?.question_type === 'scale' && answer) {
-              form.answers[questionId] = Number(answer)
-          } else {
-              form.answers[questionId] = answer
-          }
-      })
-  }
   const clientValidationErrors = ref<Record<number, string>>({})
   
   const validateAnswers = () => {

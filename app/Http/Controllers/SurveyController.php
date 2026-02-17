@@ -55,6 +55,9 @@ class SurveyController extends Controller
                     ->pluck('name')
                     ->values();
                 
+                // 回答者IDの配列を追加
+                $survey->respondents = $survey->designatedUsers->pluck('id')->toArray();
+                
                 return $survey;
             });
 
@@ -82,6 +85,21 @@ class SurveyController extends Controller
 
             return redirect()->route('surveys')
                 ->with('success', $message);
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Survey store database error', [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            
+            if (str_contains($e->getMessage(), 'categories')) {
+                return redirect()->back()
+                    ->withErrors(['error' => 'データベースの更新が必要です。管理者にお問い合わせください。'])
+                    ->withInput();
+            }
+            
+            return redirect()->back()
+                ->withErrors(['error' => 'アンケートの保存に失敗しました。もう一度お試しください。'])
+                ->withInput();
         } catch (\Exception $e) {
             Log::error('Survey store error', [
                 'message' => $e->getMessage(),
@@ -90,7 +108,7 @@ class SurveyController extends Controller
             ]);
 
             return redirect()->back()
-                ->withErrors(['error' => 'アンケートの保存中にエラーが発生しました: ' . $e->getMessage()])
+                ->withErrors(['error' => 'アンケートの保存中にエラーが発生しました。'])
                 ->withInput();
         }
     }
@@ -100,6 +118,7 @@ class SurveyController extends Controller
         $survey->load([
             'questions' => fn($query) => $query->orderBy('display_order'),
             'questions.options' => fn($query) => $query->orderBy('display_order'),
+            'designatedUsers'
         ]);
 
         $deadline = null;
@@ -111,6 +130,7 @@ class SurveyController extends Controller
             'survey_id' => $survey->survey_id,
             'title' => $survey->title,
             'description' => $survey->description,
+            'categories' => $survey->categories ?? [],
             'deadline' => $deadline,
             'questions' => $survey->questions->map(fn($question) => [
                 'question_id' => $question->question_id,
@@ -124,9 +144,10 @@ class SurveyController extends Controller
                 'options' => $question->options->map(fn($option) => [
                     'option_id' => $option->option_id,
                     'text' => $option->option_text,
-                    'option_text' => $option->option_text, // For compatibility
+                    'option_text' => $option->option_text,
                 ])->toArray(),
             ])->toArray(),
+            'respondents' => $survey->designatedUsers->pluck('id')->toArray(),
         ];
 
         $userId = Auth::id();
@@ -154,16 +175,15 @@ class SurveyController extends Controller
     public function update(UpdateSurveyRequest $request, Survey $survey)
     {
         try {
-            // 既存回答の確認と警告ロジックはServiceに移譲するか、ここでチェック
-            // 警告表示はViewへの返却が必要なため、Controllerに残すかServiceから例外/戻り値で制御
+            if ($survey->created_by !== Auth::id()) {
+                return back()->withErrors(['error' => 'このアンケートを編集する権限がありません。作成者のみが編集できます。']);
+            }
             
-            // Serviceのヘルパーを利用
             $hasResponses = $survey->responses()->exists();
             $questionsChanged = $this->surveyService->questionsChanged($survey, $request->questions);
             $onlyDeadlineChanged = $this->surveyService->onlyDeadlineChanged($survey, $request->validated());
             $responseCount = $survey->responses()->count();
             
-            // 既存回答があり、質問が変更され、確認が取れていない場合
             if ($hasResponses && $questionsChanged && !$onlyDeadlineChanged && !$request->boolean('confirm_reset')) {
                 return back()->withErrors([
                     'requires_confirmation' => true,
@@ -172,7 +192,6 @@ class SurveyController extends Controller
                 ]);
             }
 
-            // 確認済みでリセットが要求された場合、既存の回答を全て削除
             if ($request->boolean('reset_responses') && $hasResponses) {
                 Log::info("Survey {$survey->survey_id} responses reset by user " . Auth::id());
                 $survey->responses()->delete();
@@ -181,9 +200,17 @@ class SurveyController extends Controller
             $this->surveyService->updateSurvey($survey, $request->validated());
 
             return redirect()->route('surveys')->with('success', 'アンケートを更新しました');
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Survey update database error', ['error' => $e->getMessage()]);
+            
+            if (str_contains($e->getMessage(), 'categories')) {
+                return back()->withErrors(['error' => 'データベースの更新が必要です。管理者にお問い合わせください。']);
+            }
+            
+            return back()->withErrors(['error' => 'アンケートの更新に失敗しました。もう一度お試しください。']);
         } catch (\Exception $e) {
             Log::error('Survey update error', ['error' => $e->getMessage()]);
-            return back()->withErrors(['error' => 'アンケートの更新中にエラーが発生しました']);
+            return back()->withErrors(['error' => 'アンケートの更新中にエラーが発生しました。']);
         }
     }
 

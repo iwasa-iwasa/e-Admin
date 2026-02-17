@@ -35,7 +35,9 @@ class StoreSurveyRequest extends FormRequest
             'questions.*.scaleMax' => ['nullable', 'integer'],
             'questions.*.scaleMinLabel' => ['nullable', 'string'],
             'questions.*.scaleMaxLabel' => ['nullable', 'string'],
-            'respondents' => ['array'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['string'],
+            'respondents' => ['nullable', 'array'],
             'respondents.*' => ['integer', 'exists:users,id'],
             'isDraft' => ['boolean'],
         ];

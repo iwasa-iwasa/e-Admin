@@ -311,7 +311,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                 >
                     <X class="h-4 w-4" />
                 </button>
-                <div v-if="isResultsOpen" class="search-results-container absolute top-full left-0 mt-2 w-[600px] p-0 max-h-[500px] overflow-hidden flex flex-col z-50 rounded-md border border-gray-300 dark:border-border bg-background shadow-md">
+                <div v-if="isResultsOpen" class="search-results-container absolute top-full left-0 mt-2 w-[600px] p-0 max-h-[500px] overflow-hidden flex flex-col z-50 rounded-md border-4 border-border dark:border-gray-600 bg-background shadow-md">
                     <div v-if="isSearching" class="p-8 text-center text-muted-foreground">
                         <div class="animate-pulse">検索中...</div>
                     </div>
@@ -325,13 +325,13 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         <div class="text-xs mt-2">アイテムを作成するとここに表示されます</div>
                     </div>
                     <div v-else-if="searchQuery.length < 2 && recentItems.length > 0" class="overflow-y-auto">
-                        <div class="p-3 border-b bg-muted/50">
+                        <div class="p-3 border-b-2 border-border dark:border-gray-600 bg-muted/50">
                             <div class="text-xs font-medium text-muted-foreground">最近作成・編集したアイテム ({{ recentItems.length }}件)</div>
                         </div>
                         <div
                             v-for="result in recentItems"
                             :key="`${result.type}-${result.id}`"
-                            class="p-3 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 dark:border-border"
+                            class="p-3 hover:bg-muted/50 cursor-pointer border-b-2 last:border-b-0 border-border dark:border-gray-600"
                             @mousedown.prevent="handleItemClick(result)"
                         >
                             <div class="flex items-start gap-3">
@@ -361,7 +361,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         <div
                             v-for="result in searchResults"
                             :key="`${result.type}-${result.id}`"
-                            class="p-3 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 dark:border-border"
+                            class="p-3 hover:bg-muted/50 cursor-pointer border-b-2 last:border-b-0 border-border dark:border-gray-600"
                             @mousedown.prevent="handleItemClick(result)"
                         >
                             <div class="flex items-start gap-3">

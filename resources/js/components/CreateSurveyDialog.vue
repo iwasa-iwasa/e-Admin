@@ -30,10 +30,12 @@ const confirmReset = ref<{
     isOpen: boolean;
     message: string;
     onConfirm: () => void;
+    originalData?: any;
 }>({
     isOpen: false,
     message: '',
     onConfirm: () => {},
+    originalData: undefined,
 });
 
 const props = defineProps<{
@@ -226,8 +228,9 @@ const handleSave = (isDraft: boolean, force = false, resetResponses = false) => 
         if (isDestructive) {
              confirmReset.value = {
                 isOpen: true,
-                message: '以下の変更により、既存の回答データに影響が出る可能性があります：\n\n' + reasons.map(r => '・' + r).join('\n') + '\n\n変更を保存しますか？',
-                onConfirm: () => handleSave(isDraft, true, true)
+                message: '以下の変更を行うと、既に回答されたデータが削除される可能性があります：\n\n' + reasons.map(r => '・' + r).join('\n') + '\n\nこのまま保存してもよろしいですか？',
+                onConfirm: () => handleSave(isDraft, true, true),
+                originalData: data // Store current data for cancel restoration
             };
             return;
         }
@@ -254,12 +257,16 @@ const handleSave = (isDraft: boolean, force = false, resetResponses = false) => 
     }));
 
     const formData = {
-        ...data,
+        title: data.title,
+        description: data.description,
+        deadline: data.deadline,
+        categories: data.categories || [],
+        respondents: data.respondents || [],
         questions: preparedQuestions,
         is_draft: isDraft, 
         isDraft: isDraft, 
-        confirm_reset: force, // 強制更新フラグ (Allow Update)
-        reset_responses: resetResponses // 回答削除フラグ (Delete Data)
+        confirm_reset: force,
+        reset_responses: resetResponses
     };
 
     const form = useForm(formData);
@@ -281,9 +288,9 @@ const handleSave = (isDraft: boolean, force = false, resetResponses = false) => 
         form.put(`/surveys/${props.survey.survey_id}`, {
             preserveScroll: true,
             onSuccess: () => {
-                showMessage('更新しました', 'success');
+                emit('update:open', false);
+                window.dispatchEvent(new CustomEvent('survey-saved', { detail: { message: 'アンケートを更新しました' } }));
                 window.dispatchEvent(new CustomEvent('notification-updated'));
-                handleClose();
             },
             onError: handleError
         });
@@ -292,9 +299,9 @@ const handleSave = (isDraft: boolean, force = false, resetResponses = false) => 
             preserveScroll: true,
             onSuccess: () => {
                 if (!isDraft) clearDraft();
-                showMessage('作成しました', 'success');
+                emit('update:open', false);
+                window.dispatchEvent(new CustomEvent('survey-saved', { detail: { message: 'アンケートを作成しました' } }));
                 window.dispatchEvent(new CustomEvent('notification-updated'));
-                handleClose();
             },
             onError: handleError
         });
@@ -305,7 +312,10 @@ const handleSave = (isDraft: boolean, force = false, resetResponses = false) => 
 watch(() => props.open, (isOpen) => {
     if (isOpen) {
         if (props.survey) {
+            console.log('CreateSurveyDialog: Converting survey', props.survey)
             initialFormData.value = convertFromBackend(props.survey);
+            console.log('CreateSurveyDialog: Converted data', initialFormData.value)
+            formKey.value++; // Force remount for edit mode
         } else {
             initialFormData.value = null;
             // check draft
@@ -326,6 +336,16 @@ watch(() => props.open, (isOpen) => {
     } else {
         initialFormData.value = null;
         saveMessage.value = '';
+    }
+});
+
+// Watch survey prop changes
+watch(() => props.survey, (survey) => {
+    if (survey && props.open) {
+        console.log('CreateSurveyDialog: Survey prop changed', survey)
+        initialFormData.value = convertFromBackend(survey);
+        console.log('CreateSurveyDialog: Converted data', initialFormData.value)
+        formKey.value++;
     }
 });
 
@@ -396,23 +416,29 @@ const formatSavedTime = (date: Date | null) => {
 
         <!-- Confirmation Dialog -->
         <AlertDialog :open="confirmReset.isOpen">
-            <AlertDialogContent class="bg-white">
+            <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>確認が必要です</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogTitle>変更内容の確認</AlertDialogTitle>
+                    <AlertDialogDescription class="whitespace-pre-line">
                         {{ confirmReset.message }}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel @click="confirmReset.isOpen = false">キャンセル</AlertDialogCancel>
+                    <AlertDialogCancel @click="() => {
+                        // Restore original respondents if available
+                        if (confirmReset.originalData && formRef && initialFormData) {
+                            formRef.restoreRespondents(initialFormData.respondents || []);
+                        }
+                        confirmReset.isOpen = false;
+                    }">キャンセル</AlertDialogCancel>
                     <AlertDialogAction 
                         @click="() => { 
                             confirmReset.isOpen = false; 
                             confirmReset.onConfirm(); 
                         }" 
-                        class="bg-red-600 hover:bg-red-700"
+                        class="bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
                     >
-                        続行する
+                        保存する
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

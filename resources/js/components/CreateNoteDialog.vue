@@ -396,7 +396,7 @@ watch(deadlineDateTime, (newDate) => {
 
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
-                            <Label for="participants">共有範囲</Label>
+                            <Label for="participants">共有メンバー</Label>
                             <div class="text-xs text-gray-500">
                                 利用可能メンバー: {{ props.teamMembers?.length || 0 }}人
                             </div>
