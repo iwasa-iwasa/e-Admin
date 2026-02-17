@@ -60,6 +60,11 @@
   
   // 全ての回答を初期化
 const initializeAnswers = () => {
+    // answersがオブジェクトであることを確認
+    if (Array.isArray(form.answers)) {
+        form.answers = {}
+    }
+    
     props.questions.forEach(question => {
         // 既に値がある場合はスキップ
         if (form.answers[question.question_id] !== undefined) return
@@ -86,10 +91,12 @@ initializeAnswers()
 
   // 既存回答を初期化
   if (props.existingAnswers) {
-      console.log('existingAnswers:', props.existingAnswers)
-      Object.keys(props.existingAnswers).forEach(key => {
+      // existingAnswersが配列の場合はオブジェクトに変換
+      const answersObj = Array.isArray(props.existingAnswers) ? {} : props.existingAnswers
+      
+      Object.keys(answersObj).forEach(key => {
           const questionId = Number(key)
-          const answer = props.existingAnswers![questionId]
+          const answer = answersObj[questionId]
           const question = props.questions.find(q => q.question_id === questionId)
           
           if (question?.question_type === 'multiple_choice') {
@@ -134,18 +141,53 @@ initializeAnswers()
   const validateAnswers = () => {
       clientValidationErrors.value = {}
       
+      console.log('=== Validation Debug ===')
+      console.log('form.answers type:', typeof form.answers, 'isArray:', Array.isArray(form.answers))
+      console.log('form.answers keys:', Object.keys(form.answers))
+      console.log('form.answers values:', Object.values(form.answers))
+      console.log('form.answers full:', JSON.parse(JSON.stringify(form.answers)))
+      console.log('questions:', props.questions)
+      
       for (const question of props.questions) {
-          if (!question.is_required) continue
+          console.log(`\nChecking question ${question.question_id}:`, question.question_text)
+          console.log('  is_required:', question.is_required)
+          console.log('  question_type:', question.question_type)
+          
+          if (!question.is_required) {
+              console.log('  -> Skipping (not required)')
+              continue
+          }
           
           const answer = form.answers[question.question_id]
+          console.log('  answer:', answer, 'type:', typeof answer)
+          
           if (question.question_type === 'multiple_choice') {
               if (!answer || (Array.isArray(answer) && answer.length === 0)) {
+                  console.log('  -> ERROR: empty multiple choice')
                   clientValidationErrors.value[question.question_id] = '少なくとも1つ選択してください'
               }
-          } else if (!answer || (typeof answer === 'string' && answer.trim() === '')) {
-              clientValidationErrors.value[question.question_id] = 'この項目は必須です'
+          } else if (question.question_type === 'single_choice' || question.question_type === 'dropdown') {
+              if (answer === null || answer === undefined || answer === '') {
+                  console.log('  -> ERROR: empty single choice/dropdown')
+                  clientValidationErrors.value[question.question_id] = 'この項目は必須です'
+              }
+          } else if (question.question_type === 'rating' || question.question_type === 'scale') {
+              if (answer === null || answer === undefined) {
+                  console.log('  -> ERROR: empty rating/scale')
+                  clientValidationErrors.value[question.question_id] = 'この項目は必須です'
+              }
+          } else {
+              // text, textarea, date など
+              if (answer === null || answer === undefined || (typeof answer === 'string' && answer.trim() === '')) {
+                  console.log('  -> ERROR: empty text field')
+                  clientValidationErrors.value[question.question_id] = 'この項目は必須です'
+              }
           }
       }
+      
+      console.log('\nValidation errors:', clientValidationErrors.value)
+      console.log('Error count:', Object.keys(clientValidationErrors.value).length)
+      console.log('=== End Validation ====')
       
       if (Object.keys(clientValidationErrors.value).length > 0) {
           nextTick(() => {
@@ -159,20 +201,33 @@ initializeAnswers()
   }
   
   const submitAnswer = (status: 'draft' | 'submitted' = 'submitted') => {
+      console.log('\n>>> submitAnswer called, status:', status)
+      
       // 一時保存の場合はバリデーションをスキップ
-      if (status === 'submitted' && !validateAnswers()) {
-          return
+      if (status === 'submitted') {
+          console.log('Running validation...')
+          const isValid = validateAnswers()
+          console.log('Validation result:', isValid)
+          if (!isValid) {
+              console.log('>>> BLOCKED: Validation failed!')
+              return
+          }
       }
 
       form.status = status
+      console.log('>>> Proceeding with submission...')
       
       form.post(route('surveys.submit', props.survey.survey_id), {
           preserveScroll: true,
           onSuccess: () => {
-              // 成功時の処理(オプション)
+              console.log('>>> Submission successful')
           },
           onError: (errors) => {
               console.error('送信エラー:', errors);
+              // サーバーエラーを表示
+              if (errors.error) {
+                  alert(errors.error);
+              }
           },
       });
   }
