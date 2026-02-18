@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus } from 'lucide-vue-next';
+import { Plus, X } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
 import QuestionEditor from './QuestionEditor.vue';
 import { useSurveyEditor } from '../../composables/useSurveyEditor';
 import { questionTemplates, QuestionTemplate } from '../../domain/factory';
@@ -34,7 +35,8 @@ const {
     validate,
     toSurveyData,
     toggleRespondent,
-    toggleAllRespondents
+    toggleAllRespondents,
+    initializeRespondents
 } = useSurveyEditor(props.initialData);
 
 const isAllSelected = computed(() => {
@@ -43,11 +45,33 @@ const isAllSelected = computed(() => {
 
 const showTemplateDialog = ref(false);
 const deadlineDateTime = ref<Date | null>(null);
+const categoryInput = ref('');
+const categories = ref<string[]>([]);
 
-// Initialize deadlineDateTime from deadline
+// Initialize categories from initialData
 watch(() => props.initialData, (data) => {
+    console.log('SurveyForm: initialData changed', data)
     if (data?.deadline) {
         deadlineDateTime.value = new Date(data.deadline)
+    }
+    if (data?.categories && Array.isArray(data.categories)) {
+        categories.value = [...data.categories]
+    } else if (data?.category) {
+        categories.value = [data.category]
+    }
+    // 回答者を更新
+    if (data?.respondents && Array.isArray(data.respondents) && data.respondents.length > 0) {
+        console.log('SurveyForm: Setting respondents to', data.respondents)
+        respondents.value = [...data.respondents]
+    } else {
+        console.log('SurveyForm: No respondents in initialData', data?.respondents)
+    }
+}, { immediate: true })
+
+// Initialize respondents with all team members if creating new survey
+watch(() => props.teamMembers, (members) => {
+    if (members && members.length > 0 && !props.initialData) {
+        initializeRespondents(members.map(m => m.id))
     }
 }, { immediate: true })
 
@@ -59,6 +83,17 @@ watch(deadlineDateTime, (newDate) => {
     }
 })
 
+const handleAddCategory = () => {
+    if (categoryInput.value.trim() && !categories.value.includes(categoryInput.value.trim())) {
+        categories.value.push(categoryInput.value.trim());
+        categoryInput.value = '';
+    }
+};
+
+const handleRemoveCategory = (catToRemove: string) => {
+    categories.value = categories.value.filter((cat) => cat !== catToRemove);
+};
+
 const handleAddQuestion = (template: QuestionTemplate) => {
     addQuestion(template);
     showTemplateDialog.value = false;
@@ -67,7 +102,13 @@ const handleAddQuestion = (template: QuestionTemplate) => {
 // Expose methods for the parent (Dialog) to call
 defineExpose({
     validate,
-    getData: toSurveyData
+    getData: () => ({
+        ...toSurveyData(),
+        categories: categories.value
+    }),
+    restoreRespondents: (originalRespondents: number[]) => {
+        respondents.value = [...originalRespondents];
+    }
 });
 </script>
 
@@ -90,19 +131,37 @@ defineExpose({
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <Label for="category">カテゴリ</Label>
-                        <Select v-model="category">
-                            <SelectTrigger id="category">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="イベント">イベント</SelectItem>
-                                <SelectItem value="備品">備品</SelectItem>
-                                <SelectItem value="システム">システム</SelectItem>
-                                <SelectItem value="オフィス環境">オフィス環境</SelectItem>
-                                <SelectItem value="会議">会議</SelectItem>
-                                <SelectItem value="その他">その他</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div class="flex gap-2">
+                            <Input
+                                id="category"
+                                placeholder="カテゴリを追加"
+                                v-model="categoryInput"
+                                @keypress.enter.prevent="handleAddCategory"
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                @click="handleAddCategory"
+                            >
+                                追加
+                            </Button>
+                        </div>
+                        <div
+                            v-if="categories.length > 0"
+                            class="flex flex-wrap gap-2 mt-2"
+                        >
+                            <Badge
+                                v-for="cat in categories"
+                                :key="cat"
+                                variant="secondary"
+                                class="gap-2"
+                            >
+                                {{ cat }}
+                                <button @click="handleRemoveCategory(cat)">
+                                    <X class="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        </div>
                     </div>
                     <div class="space-y-2">
                         <Label for="deadline">回答期限 <span class="text-red-500">*</span></Label>
@@ -144,8 +203,8 @@ defineExpose({
                                 :class="[
                                     'text-xs',
                                     respondents.includes(member.id)
-                                        ? 'bg-blue-100 text-blue-700 border-blue-300'
-                                        : 'hover:bg-gray-50'
+                                        ? 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100'
                                 ]"
                             >
                                 {{ member.name }}
@@ -198,7 +257,7 @@ defineExpose({
                     <Card v-for="template in questionTemplates" :key="template.type" class="cursor-pointer hover:shadow-md hover:border-blue-500 transition-all border-2 border-transparent" @click="handleAddQuestion(template)">
                         <CardContent class="p-6">
                             <div class="flex items-start gap-4">
-                                <div class="p-3 bg-blue-50 rounded-lg text-blue-600">
+                                <div class="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
                                     <component :is="template.icon" class="h-6 w-6" />
                                 </div>
                                 <div class="flex-1">

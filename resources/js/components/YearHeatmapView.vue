@@ -115,7 +115,10 @@ const handleDateClick = (date: Date) => {
                         v-for="day in getDaysInMonth(month)"
                         :key="day.dateStr"
                         class="day-cell"
-                        :class="{ 'inactive-day': !day.isCurrentMonth }"
+                        :class="{ 
+                            'inactive-day': !day.isCurrentMonth,
+                            'today-cell': day.isCurrentMonth && day.dateStr === new Date().toISOString().split('T')[0]
+                        }"
                         :style="{ 
                             backgroundColor: day.isCurrentMonth ? (getDayLevel(day.dateStr)?.color || 'var(--heatmap-level-0)') : 'var(--heatmap-inactive-bg)'
                         }"
@@ -285,6 +288,17 @@ const handleDateClick = (date: Date) => {
 .day-cell.inactive-day {
     cursor: default;
     opacity: 0.4;
+}
+
+.day-cell.today-cell {
+    border: 3px solid #3b82f6 !important;
+    box-shadow: 0 0 0 1px #3b82f6;
+    font-weight: 700;
+}
+
+.dark .day-cell.today-cell {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 1px #60a5fa;
 }
 
 .day-cell:not(.inactive-day):hover {

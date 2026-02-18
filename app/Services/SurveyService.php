@@ -33,6 +33,7 @@ class SurveyService
             $survey = Survey::create([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
+                'categories' => !empty($data['categories']) ? $data['categories'] : null,
                 'created_by' => Auth::id(),
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
@@ -80,6 +81,7 @@ class SurveyService
             $survey->update([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
+                'categories' => !empty($data['categories']) ? $data['categories'] : null,
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
             ]);
@@ -92,6 +94,27 @@ class SurveyService
             // 質問の更新（Reconciliation）
             if (! $onlyDeadlineChanged) {
                 $this->reconcileQuestions($survey, $data['questions']);
+            }
+
+            // 回答者の更新（完全同期）
+            if (isset($data['respondents'])) {
+                $existingRespondents = $survey->respondents()->pluck('user_id')->toArray();
+                $newRespondents = $data['respondents'];
+                
+                // 削除する回答者
+                $toRemove = array_diff($existingRespondents, $newRespondents);
+                if (!empty($toRemove)) {
+                    $survey->respondents()->whereIn('user_id', $toRemove)->delete();
+                }
+                
+                // 追加する回答者
+                $toAdd = array_diff($newRespondents, $existingRespondents);
+                foreach ($toAdd as $userId) {
+                    SurveyRespondent::create([
+                        'survey_id' => $survey->survey_id,
+                        'user_id' => $userId,
+                    ]);
+                }
             }
 
             return $survey;

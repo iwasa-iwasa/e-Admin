@@ -67,7 +67,7 @@ const updateField = (field: keyof Question, val: any) => {
                 <CardTitle class="text-base flex items-center gap-2 drag-handle cursor-grab active:cursor-grabbing">
                     <GripVertical class="h-4 w-4 text-gray-400" />
                     質問 {{ index + 1 }}
-                    <span class="text-xs font-normal text-gray-500 ml-2 py-1 px-2 bg-gray-100 rounded">
+                    <span class="text-xs font-normal text-gray-700 dark:text-gray-300 ml-2 py-1 px-2 bg-gray-200 dark:bg-gray-700 rounded">
                         {{ typeLabel }}
                     </span>
                 </CardTitle>

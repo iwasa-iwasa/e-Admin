@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, usePage } from "@inertiajs/vue3";
-import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, nextTick, onUnmounted } from "vue";
 import { router } from "@inertiajs/vue3";
 import {
     BarChart3,
@@ -89,7 +89,8 @@ interface SurveyWithResponse extends SurveyModel {
     has_responded?: boolean;
     respondent_names?: string[];
     unanswered_names?: string[];
-    can_respond?: boolean;
+    categories?: string[];
+    category?: string;
 }
 
 const props = defineProps<{
@@ -118,6 +119,19 @@ const messageTimer = ref<number | null>(null);
 const lastDeletedSurvey = ref<SurveyWithResponse | null>(null);
 const scrollAreaRef = ref<any>(null);
 const isHelpOpen = ref(false);
+
+// 全タグを取得
+const allCategories = computed(() => {
+    const categories = new Set<string>()
+    props.surveys.forEach(survey => {
+        if (survey.categories && Array.isArray(survey.categories)) {
+            survey.categories.forEach((cat: string) => categories.add(cat))
+        } else if (survey.category) {
+            categories.add(survey.category)
+        }
+    })
+    return Array.from(categories).sort()
+});
 
 // メッセージ表示関数
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
@@ -149,7 +163,14 @@ const filteredSurveys = computed(() => {
                     .toLowerCase()
                     .includes(searchQuery.value.toLowerCase()));
 
-        const matchesCategory = true;
+        const matchesCategory = categoryFilter.value === 'all' || (() => {
+            if (survey.categories && Array.isArray(survey.categories)) {
+                return survey.categories.includes(categoryFilter.value)
+            } else if (survey.category) {
+                return survey.category === categoryFilter.value
+            }
+            return false
+        })();
         
         const surveyExpired = isExpired(survey);
 
@@ -306,6 +327,14 @@ onMounted(() => {
             }, 500)
         })
     }
+    
+    window.addEventListener('survey-saved', (e: any) => {
+        showMessage(e.detail.message, 'success')
+    })
+});
+
+onUnmounted(() => {
+    window.removeEventListener('survey-saved', () => {})
 });
 </script>
 
@@ -343,6 +372,22 @@ onMounted(() => {
                     
                     <!-- 検索・作成ボタン -->
                     <div class="flex items-center gap-2">
+                        <Select v-model="categoryFilter">
+                            <SelectTrigger class="w-[180px]">
+                                <SelectValue>
+                                    <div class="flex items-center gap-2">
+                                        <Filter class="h-4 w-4" />
+                                        <span>{{ categoryFilter === 'all' ? 'カテゴリ絞り込み' : categoryFilter }}</span>
+                                    </div>
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">すべてのカテゴリ</SelectItem>
+                                <SelectItem v-for="cat in allCategories" :key="cat" :value="cat">
+                                    {{ cat }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                         <div class="relative">
                             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
@@ -455,6 +500,14 @@ onMounted(() => {
                                     <Badge variant="secondary" class="text-xs">
                                         {{ survey.questions.length }}問
                                     </Badge>
+                                    <Badge
+                                        v-for="(cat, index) in survey.categories"
+                                        :key="index"
+                                        variant="secondary"
+                                        class="text-xs"
+                                    >
+                                        {{ cat }}
+                                    </Badge>
                                 </div>
                             </div>
 
@@ -482,6 +535,7 @@ onMounted(() => {
                                 <template v-else>
                                     <!-- アクティブ・未回答の場合は全ボタン表示 -->
                                     <Button
+                                        v-if="survey.created_by === auth?.user?.id"
                                         variant="outline"
                                         class="gap-2"
                                         @click="handleEdit(survey)"

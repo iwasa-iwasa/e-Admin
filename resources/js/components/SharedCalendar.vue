@@ -970,6 +970,20 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
 }
 .fc-day-today {
     background-color: hsl(var(--primary) / 0.1) !important;
+    border: 3px solid #3b82f6 !important;
+}
+.dark .fc-day-today {
+    border-color: #60a5fa !important;
+}
+/* 年表示での今日の日付を強調 */
+.fc-multiMonthYear-view .fc-day-today {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    border: 3px solid #3b82f6 !important;
+    font-weight: 700 !important;
+}
+.dark .fc-multiMonthYear-view .fc-day-today {
+    background-color: rgba(96, 165, 250, 0.2) !important;
+    border-color: #60a5fa !important;
 }
 .fc-event {
     cursor: pointer;

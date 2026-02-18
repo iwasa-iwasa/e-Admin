@@ -454,7 +454,7 @@ const confirmBulkDelete = () => {
                         type="checkbox"
                         :checked="selectedActiveItems.has(reminder.reminder_id)"
                         @change="(e) => { const checked = (e.target as HTMLInputElement).checked; if (checked) { selectedActiveItems.add(reminder.reminder_id) } else { selectedActiveItems.delete(reminder.reminder_id) }; selectedActiveItems = new Set(selectedActiveItems) }"
-                        class="mt-1 h-4 w-4 text-blue-600 rounded"
+                        class="mt-1 h-6 w-6 text-blue-600 rounded cursor-pointer"
                       />
                       <div class="flex-1">
                         <h3 class="mb-2">{{ reminder.title }}</h3>
@@ -552,7 +552,7 @@ const confirmBulkDelete = () => {
                         type="checkbox"
                         :checked="selectedCompletedItems.has(reminder.reminder_id)"
                         @change="(e) => { const checked = (e.target as HTMLInputElement).checked; if (checked) { selectedCompletedItems.add(reminder.reminder_id) } else { selectedCompletedItems.delete(reminder.reminder_id) }; selectedCompletedItems = new Set(selectedCompletedItems) }"
-                        class="mt-1 h-4 w-4 text-blue-600 rounded"
+                        class="mt-1 h-6 w-6 text-blue-600 rounded cursor-pointer"
                       />
                       <div class="flex-1">
                         <h3 class="mb-2 line-through text-muted-foreground">{{ reminder.title }}</h3>
