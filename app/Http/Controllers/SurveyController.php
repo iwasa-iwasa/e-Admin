@@ -45,6 +45,10 @@ class SurveyController extends Controller
             ->map(function ($survey) use ($userId) {
                 $survey->has_responded = $survey->responses()->where('respondent_id', $userId)->exists();
                 
+                // 回答権限チェック
+                $designatedUserIds = $survey->designatedUsers->pluck('id')->toArray();
+                $survey->can_respond = empty($designatedUserIds) || in_array($userId, $designatedUserIds);
+                
                 // 回答済み者の名前
                 $survey->respondent_names = $survey->responses->pluck('respondent.name')->filter()->values();
                 
@@ -216,6 +220,13 @@ class SurveyController extends Controller
 
     public function answer(Survey $survey)
     {
+        // 回答者が指定されている場合、権限チェック
+        $designatedUserIds = $survey->designatedUsers()->pluck('users.id')->toArray();
+        if (!empty($designatedUserIds) && !in_array(Auth::id(), $designatedUserIds)) {
+            return redirect()->route('surveys')
+                ->with('error', 'このアンケートに回答する権限がありません。');
+        }
+        
         // 既存の回答を取得
         $existingResponse = $survey->responses()
             ->where('respondent_id', Auth::id())
@@ -265,6 +276,13 @@ class SurveyController extends Controller
 
     public function submitAnswer(Request $request, Survey $survey)
     {
+        // 回答者が指定されている場合、権限チェック
+        $designatedUserIds = $survey->designatedUsers()->pluck('users.id')->toArray();
+        if (!empty($designatedUserIds) && !in_array(Auth::id(), $designatedUserIds)) {
+            return redirect()->route('surveys')
+                ->with('error', 'このアンケートに回答する権限がありません。');
+        }
+        
         $validated = $request->validate([
             'answers' => 'required|array',
             'status' => 'nullable|in:draft,submitted',

@@ -243,18 +243,25 @@ const handleSave = (isDraft: boolean, force = false, resetResponses = false) => 
     // Transform data for backend if needed
     
     // Convert Question Structure slightly if backend expects specific structure?
-    const preparedQuestions = data.questions.map((q: any) => ({
-        ...q,
-        question_id: q.id, // Map frontend 'id' to backend 'question_id'
-        options: q.options.map((o: any) => {
-            if (typeof o === 'string') return o;
-            // Return object with option_id if available, otherwise just text structure
-            return {
-                option_id: o.option_id,
-                text: o.text || o.option_text
-            };
-        })
-    }));
+    const preparedQuestions = data.questions.map((q: any) => {
+        console.log('Question before prepare:', JSON.parse(JSON.stringify(q)));
+        const prepared = {
+            ...q,
+            question_id: q.id, // Map frontend 'id' to backend 'question_id'
+            options: q.options.map((o: any) => {
+                if (typeof o === 'string') return o;
+                // Return object with option_id if available, otherwise just text structure
+                return {
+                    option_id: o.option_id,
+                    text: o.text || o.option_text
+                };
+            })
+        };
+        console.log('Question after prepare:', JSON.parse(JSON.stringify(prepared)));
+        return prepared;
+    });
+    
+    console.log('Prepared questions:', JSON.parse(JSON.stringify(preparedQuestions)));
 
     const formData = {
         title: data.title,

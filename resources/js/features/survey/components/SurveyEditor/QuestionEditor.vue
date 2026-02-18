@@ -53,7 +53,10 @@ const isScale = computed(() => question.value.type === 'scale');
 
 // Safe update helpers
 const updateField = (field: keyof Question, val: any) => {
-    emit('update:modelValue', { ...question.value, [field]: val });
+    console.log(`QuestionEditor: updateField called - field: ${field}, value:`, val);
+    const updated = { ...question.value, [field]: val };
+    console.log('QuestionEditor: emitting updated question:', updated);
+    emit('update:modelValue', updated);
 };
 </script>
 
@@ -157,14 +160,21 @@ const updateField = (field: keyof Question, val: any) => {
 
                  <!-- Basic Settings -->
                  <div class="flex items-center space-x-2 pt-6">
-                    <Checkbox
-                        :id="`req-${question.id}`"
-                        :checked="question.required"
-                        @update:checked="updateField('required', $event)"
-                    />
-                    <Label :for="`req-${question.id}`" class="text-sm cursor-pointer whitespace-nowrap">
-                        必須にする
-                    </Label>
+                    <div 
+                        class="flex items-center space-x-2 cursor-pointer"
+                        @click="() => {
+                            console.log('Container clicked, toggling required from:', question.required);
+                            updateField('required', !question.required);
+                        }"
+                    >
+                        <Checkbox
+                            :id="`req-${question.id}`"
+                            :checked="question.required"
+                        />
+                        <Label :for="`req-${question.id}`" class="text-sm whitespace-nowrap">
+                            必須にする
+                        </Label>
+                    </div>
                  </div>
             </div>
         </CardContent>
