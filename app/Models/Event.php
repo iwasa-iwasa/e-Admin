@@ -57,6 +57,9 @@ class Event extends Model
         'parent_event_id',
         'original_date',
         'is_exception',
+        'visibility_type',
+        'owner_department_id',
+        'version',
     ];
 
     /**
@@ -73,6 +76,8 @@ class Event extends Model
         'end_time' => 'datetime:H:i',
         'is_all_day' => 'boolean',
         'created_by' => 'integer',
+        'owner_department_id' => 'integer',
+        'version' => 'integer',
         'is_deleted' => 'boolean',
         'deleted_at' => 'datetime',
         'category' => EventCategory::class,
@@ -197,5 +202,21 @@ class Event extends Model
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Get the owner department of the event.
+     */
+    public function ownerDepartment()
+    {
+        return $this->belongsTo(Department::class, 'owner_department_id');
+    }
+
+    /**
+     * Get the calendars this event is shared to.
+     */
+    public function sharedCalendars()
+    {
+        return $this->belongsToMany(Calendar::class, 'calendar_event_shares', 'event_id', 'calendar_id', 'event_id', 'calendar_id');
     }
 }
