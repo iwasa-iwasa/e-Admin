@@ -553,6 +553,7 @@ onUnmounted(() => {
                                         v-if="survey.is_active"
                                         variant="outline"
                                         class="gap-2"
+                                        :disabled="!survey.can_respond"
                                         @click="handleAnswer(survey)"
                                     >
                                         <CheckCircle2 class="h-4 w-4" />

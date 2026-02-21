@@ -1,4 +1,4 @@
-  <script setup lang="ts">
+<script setup lang="ts">
   import { ref, nextTick, computed, watch, onMounted } from 'vue'
   import { Head, useForm, router, usePage } from '@inertiajs/vue3'
   import { route } from 'ziggy-js'
@@ -55,24 +55,72 @@
   
   // 全ての回答を初期化（一度だけ実行）
 const initialAnswers: Record<number, any> = {}
+
 props.questions.forEach(question => {
-    // 既存の回答がある場合はそれを使用
-    if (props.existingAnswers && props.existingAnswers[question.question_id] !== undefined) {
-        initialAnswers[question.question_id] = props.existingAnswers[question.question_id]
-    } else {
-        switch (question.question_type) {
-            case 'multiple_choice':
-                initialAnswers[question.question_id] = []
-                break
-            case 'dropdown':
-                initialAnswers[question.question_id] = ''
-                break
-            default:
-                initialAnswers[question.question_id] = null
-        }
+    switch (question.question_type) {
+        case 'multiple_choice':
+            initialAnswers[question.question_id] = []
+            break
+        case 'dropdown':
+            initialAnswers[question.question_id] = ''
+            break
+        default:
+            initialAnswers[question.question_id] = null
     }
 })
 
+// 2. 既存の回答がある場合、データ型を調整して initialAnswers に上書き
+// (mainブランチのロジックを採用：文字列パースやオブジェクト変換処理)
+if (props.existingAnswers) {
+    // existingAnswersが配列の場合はオブジェクトに変換
+    const answersObj = Array.isArray(props.existingAnswers) ? {} : props.existingAnswers
+
+    Object.keys(answersObj).forEach(key => {
+        const questionId = Number(key)
+        const answer = answersObj[questionId]
+        const question = props.questions.find(q => q.question_id === questionId)
+
+        // 該当する質問が存在しない場合はスキップ
+        if (!question) return
+
+        if (question.question_type === 'multiple_choice') {
+            if (Array.isArray(answer)) {
+                initialAnswers[questionId] = [...answer]
+            } else if (typeof answer === 'string') {
+                const optionTexts = answer.includes(',') ? answer.split(', ') : [answer]
+                const optionIds: number[] = []
+                for (const text of optionTexts) {
+                    const option = question.options?.find(o => o.option_text === text.trim())
+                    if (option) {
+                        optionIds.push(option.option_id)
+                    }
+                }
+                initialAnswers[questionId] = optionIds
+            }
+        } else if (question.question_type === 'single_choice') {
+            if (answer && typeof answer === 'object') {
+                if (answer.option_id) {
+                    initialAnswers[questionId] = answer.option_id
+                } else if (answer.answer_text) {
+                    const option = question.options?.find(o => o.option_text === answer.answer_text.trim())
+                    initialAnswers[questionId] = option ? option.option_id : null
+                }
+            } else if (typeof answer === 'number') {
+                initialAnswers[questionId] = answer
+            } else if (typeof answer === 'string') {
+                const option = question.options?.find(o => o.option_text === answer.trim())
+                initialAnswers[questionId] = option ? option.option_id : null
+            }
+        } else if (question.question_type === 'scale' && answer) {
+            initialAnswers[questionId] = Number(answer)
+        } else {
+            // text, textarea, date など
+            initialAnswers[questionId] = answer
+        }
+    })
+}
+
+// 3. フォームの初期化
 const form = useForm({
     answers: initialAnswers,
     status: 'submitted'
@@ -161,49 +209,44 @@ const form = useForm({
   
   <template>
     <Head :title="`${survey.title} - 回答`" />
-    
-    <!-- 画面いっぱいに広がるコンテナ -->
+
     <div class="h-full p-6">
-      <!-- カードを画面高さいっぱいに -->
-      <Card class="h-full flex flex-col overflow-hidden">
-          <!-- カードヘッダー (固定) -->
-          <div class="p-4 border-b border-border shrink-0">
-            <div class="flex items-center gap-3 mb-2">
-              <Button variant="ghost" size="icon" @click="cancel">
-                <ArrowLeft class="h-5 w-5" />
-              </Button>
-              <CardTitle>{{ survey.title }}</CardTitle>
+        <Card class="h-full flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-border shrink-0">
+                <div class="flex items-center gap-3 mb-2">
+                    <Button variant="ghost" size="icon" @click="cancel">
+                        <ArrowLeft class="h-5 w-5" />
+                    </Button>
+                    <CardTitle>{{ survey.title }}</CardTitle>
+                </div>
+                <p class="text-sm text-muted-foreground">{{ survey.description }}</p>
             </div>
-            <p class="text-sm text-muted-foreground">{{ survey.description }}</p>
-          </div>
-          
-          <!-- 質問リスト (スクロール可能) -->
-          <div class="flex-1 overflow-y-auto p-6 space-y-6">
-              <QuestionViewer
-                  v-for="(q, index) in displayQuestions"
-                  :key="q.id"
-                  :question="q"
-                  :model-value="form.answers[q.id]"
-                  @update:model-value="form.answers[q.id] = $event"
-                  mode="answer"
-                  :error="clientValidationErrors[Number(q.id)]"
-                  :question-number="index + 1"
-                  :id="`question_${q.id}`"
-              />
-          </div>
-          
-          <!-- カードフッター (固定) -->
-          <div class="p-4 border-t border-border shrink-0 bg-background">
-            <div class="flex justify-end gap-4">
-              <Button variant="outline" @click="cancel">キャンセル</Button>
-              <Button variant="outline" :disabled="form.processing" @click="submitAnswer('draft')">
-                  一時保存
-              </Button>
-              <Button :disabled="form.processing" @click="submitAnswer('submitted')">
-                {{ isEditing ? '回答を更新' : '回答を送信' }}
-              </Button>
+
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <QuestionViewer
+                    v-for="(q, index) in displayQuestions"
+                    :key="q.id"
+                    :question="q"
+                    :model-value="form.answers[q.id]"
+                    @update:model-value="form.answers[q.id] = $event"
+                    mode="answer"
+                    :error="clientValidationErrors[Number(q.id)]"
+                    :question-number="index + 1"
+                    :id="`question_${q.id}`"
+                />
             </div>
-          </div>
+
+            <div class="p-4 border-t border-border shrink-0 bg-background">
+                <div class="flex justify-end gap-4">
+                    <Button variant="outline" @click="cancel">キャンセル</Button>
+                    <Button variant="outline" :disabled="form.processing" @click="submitAnswer('draft')">
+                        一時保存
+                    </Button>
+                    <Button :disabled="form.processing" @click="submitAnswer('submitted')">
+                        {{ isEditing ? '回答を更新' : '回答を送信' }}
+                    </Button>
+                </div>
+            </div>
         </Card>
       </div>
       
