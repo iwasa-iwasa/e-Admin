@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2, Filter, Search, HelpCircle, AlertCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -202,6 +202,8 @@ const handleRestore = (id: string) => {
       trashItems.value = trashItems.value.filter((i) => i.id !== id)
       const itemTypeLabel = getItemTypeInfo(item.type).label
       showMessage(`${itemTypeLabel}が元に戻されました。`, 'success')
+      // 通知センターを更新
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: (errors) => {
       console.error('Restore error:', errors)
@@ -306,6 +308,8 @@ const confirmRestoreSelected = () => {
       trashItems.value = trashItems.value.filter(item => !restoredIds.includes(item.id))
       selectedItems.value.clear()
       showMessage(`${itemsToRestore.length}件のアイテムを復元しました`, 'success')
+      // 通知センターを更新
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: (errors) => {
       console.error('Restore error:', errors)
@@ -346,7 +350,18 @@ onMounted(() => {
       }, 500)
     })
   }
+  
+  // 通知センターからの削除を検知してゴミ箱を更新
+  window.addEventListener('trash-updated', handleTrashUpdate)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('trash-updated', handleTrashUpdate)
+})
+
+const handleTrashUpdate = () => {
+  router.reload({ only: ['trashItems'], preserveScroll: true })
+}
 </script>
 
 <template>

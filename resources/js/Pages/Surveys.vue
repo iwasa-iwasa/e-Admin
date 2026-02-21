@@ -328,6 +328,12 @@ onMounted(() => {
         })
     }
     
+    // flashメッセージの表示
+    const flash = (page.props as any).flash?.success
+    if (flash) {
+        showMessage(flash, 'success')
+    }
+    
     window.addEventListener('survey-saved', (e: any) => {
         showMessage(e.detail.message, 'success')
     })

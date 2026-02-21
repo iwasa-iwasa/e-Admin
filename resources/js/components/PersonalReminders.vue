@@ -180,24 +180,32 @@ const handleUndoDelete = () => {
   })
 }
 const handleUpdateReminder = (updatedReminder: ReminderModel) => {}
-const isCreateDialogOpen = ref(false)
 const isHelpOpen = ref(false)
 
-const handleCloseDetailDialog = (isOpen: boolean, completed?: boolean) => {
-  if (!isOpen) {
-    if (completed && selectedReminder.value) {
-      lastDeletedReminder.value = selectedReminder.value
-      showMessage('リマインダーを完了しました。', 'delete')
-      window.dispatchEvent(new CustomEvent('notification-updated'))
-    }
-    selectedReminder.value = null
-  }
-}
-
 const handleCopyReminder = () => {
-  // sessionStorageから複製データを読み込んで新規作成ダイアログを開く
-  selectedReminder.value = null
-  isCreateDialogOpen.value = true
+  console.log('[PersonalReminders] handleCopyReminder called')
+  const copyData = sessionStorage.getItem('reminder_copy_data')
+  if (copyData) {
+    const data = JSON.parse(copyData)
+    console.log('[PersonalReminders] Copy data from sessionStorage:', data)
+    selectedReminder.value = {
+      reminder_id: 0,
+      user_id: 0,
+      title: data.title,
+      description: data.description,
+      deadline_date: data.deadline ? data.deadline.split('T')[0] : null,
+      deadline_time: data.deadline ? data.deadline.split('T')[1] : null,
+      completed: false,
+      is_deleted: false,
+      tags: data.tags?.map((name: string, index: number) => ({ tag_id: index, tag_name: name })) || [],
+      created_at: null,
+      updated_at: null,
+      category: '',
+      completed_at: null,
+      deleted_at: null
+    } as any
+    console.log('[PersonalReminders] selectedReminder set to:', selectedReminder.value)
+  }
 }
 
 const handleCloseCreateDialog = (isOpen: boolean) => {
@@ -379,7 +387,7 @@ onUnmounted(() => {
               variant="outline"
               class="transition-all duration-300 ease-in-out flex-shrink-0"
               :class="headerStage === 'normal' ? 'gap-1' : ''"
-              @click="isCreateDialogOpen = true"
+              @click="selectedReminder = { reminder_id: 0, user_id: 0, title: '', description: '', deadline_date: null, deadline_time: null, completed: false, is_deleted: false, tags: [], created_at: null, updated_at: null, category: '', completed_at: null, deleted_at: null }"
               :title="headerStage !== 'normal' ? '新規作成' : undefined"
             >
               <Plus class="h-3 w-3" />
@@ -472,16 +480,9 @@ onUnmounted(() => {
     <ReminderDetailDialog
       :reminder="selectedReminder"
       :open="selectedReminder !== null"
-      @update:open="handleCloseDetailDialog"
+      @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); window.dispatchEvent(new CustomEvent('notification-updated')); } selectedReminder = null; } }"
       @update:reminder="handleUpdateReminder"
       @copy="handleCopyReminder"
-    />
-
-    <ReminderDetailDialog
-      :reminder="null"
-      :open="isCreateDialogOpen"
-      @update:open="handleCloseCreateDialog"
-      @update:reminder="handleUpdateReminder"
     />
 
     <AlertDialog :open="reminderToDelete !== null">

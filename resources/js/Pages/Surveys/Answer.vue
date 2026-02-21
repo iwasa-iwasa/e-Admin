@@ -1,13 +1,13 @@
   <script setup lang="ts">
-  import { ref, nextTick, computed } from 'vue'
-  import { Head, useForm, router } from '@inertiajs/vue3'
+  import { ref, nextTick, computed, watch, onMounted } from 'vue'
+  import { Head, useForm, router, usePage } from '@inertiajs/vue3'
   import { route } from 'ziggy-js'
   import { Button } from '@/components/ui/button'
   import { Input } from '@/components/ui/input'
   import { Textarea } from '@/components/ui/textarea'
   import { Label } from '@/components/ui/label'
   import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-  import { ArrowLeft, Star, AlertCircle, Save } from 'lucide-vue-next'
+  import { ArrowLeft, Star, AlertCircle, Save, CheckCircle } from 'lucide-vue-next'
   import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
   import QuestionViewer from '@/features/survey/components/SurveyRespondent/QuestionViewer.vue'
   import { convertQuestionFromBackend } from '@/features/survey/domain/factory'
@@ -84,7 +84,7 @@ const form = useForm({
   const clientValidationErrors = ref<Record<number, string>>({})
   
   const validateAnswers = () => {
-      clientValidationErrors.value = {}
+      const errors: Record<number, string> = {}
       
       for (const question of props.questions) {
           if (!question.is_required) continue
@@ -92,16 +92,18 @@ const form = useForm({
           const answer = form.answers[question.question_id]
           if (question.question_type === 'multiple_choice') {
               if (!answer || (Array.isArray(answer) && answer.length === 0)) {
-                  clientValidationErrors.value[question.question_id] = '少なくとも1つ選択してください'
+                  errors[question.question_id] = '少なくとも1つ選択してください'
               }
           } else if (!answer || (typeof answer === 'string' && answer.trim() === '')) {
-              clientValidationErrors.value[question.question_id] = 'この項目は必須です'
+              errors[question.question_id] = 'この項目は必須です'
           }
       }
       
-      if (Object.keys(clientValidationErrors.value).length > 0) {
+      clientValidationErrors.value = errors
+      
+      if (Object.keys(errors).length > 0) {
           nextTick(() => {
-              const firstErrorId = Object.keys(clientValidationErrors.value)[0]
+              const firstErrorId = Object.keys(errors)[0]
               const element = document.getElementById(`question_${firstErrorId}`)
               element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           })
@@ -120,9 +122,6 @@ const form = useForm({
       
       form.post(route('surveys.submit', props.survey.survey_id), {
           preserveScroll: true,
-          onSuccess: () => {
-              // 成功時の処理(オプション)
-          },
           onError: (errors) => {
               console.error('送信エラー:', errors);
           },
@@ -132,6 +131,32 @@ const form = useForm({
   const cancel = () => {
       router.get(route('surveys'))
   }
+  
+  const saveMessage = ref('')
+  const saveMessageType = ref<'success' | 'error'>('success')
+  const saveMessageTimer = ref<number | null>(null)
+  
+  const showSaveMessage = (message: string, type: 'success' | 'error' = 'success') => {
+      if (saveMessageTimer.value) {
+          clearTimeout(saveMessageTimer.value)
+      }
+      
+      saveMessage.value = message
+      saveMessageType.value = type
+      
+      saveMessageTimer.value = setTimeout(() => {
+          saveMessage.value = ''
+      }, 4000)
+  }
+  
+  const page = usePage()
+  
+  onMounted(() => {
+    const flash = (page.props as any).flash?.success
+    if (flash) {
+      showSaveMessage(flash, 'success')
+    }
+  })
   </script>
   
   <template>
@@ -181,4 +206,26 @@ const form = useForm({
           </div>
         </Card>
       </div>
+      
+      <!-- 保存メッセージ -->
+      <Transition
+        enter-active-class="transition ease-out duration-300"
+        enter-from-class="transform opacity-0 translate-y-full"
+        enter-to-class="transform opacity-100 translate-y-0"
+        leave-active-class="transition ease-in duration-200"
+        leave-from-class="transform opacity-100 translate-y-0"
+        leave-to-class="transform opacity-0 translate-y-full"
+      >
+        <div 
+          v-if="saveMessage"
+          :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 p-3 text-white rounded-lg shadow-lg',
+            saveMessageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+        >
+          <div class="flex items-center gap-2">
+            <CheckCircle v-if="saveMessageType === 'success'" class="h-5 w-5" />
+            <AlertCircle v-else class="h-5 w-5" />
+            <span class="font-medium">{{ saveMessage }}</span>
+          </div>
+        </div>
+      </Transition>
   </template>

@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3'
 import { ref, computed, onMounted, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { useHighlight } from '@/composables/useHighlight'
-import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Share2, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2, HelpCircle, Tag } from 'lucide-vue-next'
+import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Copy, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2, HelpCircle, Tag, ExternalLink } from 'lucide-vue-next'
 import { ja } from "date-fns/locale";
 import '@vuepic/vue-datepicker/dist/main.css';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
+import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 
 defineOptions({
@@ -48,6 +49,8 @@ interface SharedNoteModel {
   participants?: UserModel[]
   tags: Array<{ tag_id: number; tag_name: string }>
   is_pinned?: boolean
+  progress?: number | null
+  linked_event_id?: number | null
 }
 
 const props = defineProps<{
@@ -109,6 +112,9 @@ const tagDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const isCreateDialogOpen = ref(false)
 const isSaving = ref(false)
 const saveMessage = ref('')
+const editedProgress = ref<number>(selectedNote.value?.progress ?? 0)
+const linkedEvent = ref<any>(null)
+const isEventDialogOpen = ref(false)
 
 // メッセージとUndoロジック
 const messageType = ref<'success' | 'delete'>('success')
@@ -185,9 +191,17 @@ watch(selectedNote, (newNote) => {
     editedTags.value = newNote.tags.map(tag => tag.tag_name)
     editedParticipants.value = newNote.participants || []
     participantSelectValue.value = null
+    editedProgress.value = newNote.progress ?? 0
     // タグ入力欄をクリア
     tagInput.value = ''
     showTagSuggestions.value = false
+    
+    // リンクされたイベントを取得
+    if (newNote.linked_event_id) {
+      fetchLinkedEvent(newNote.linked_event_id)
+    } else {
+      linkedEvent.value = null
+    }
   }
 })
 
@@ -339,27 +353,69 @@ const handleSaveNote = () => {
     priority: editedPriority.value,
     color: editedColor.value,
     tags: editedTags.value,
-    participants: editedParticipants.value.map(p => p.id)
+    participants: editedParticipants.value.map(p => p.id),
+    progress: editedProgress.value
   }
   
-  router.put(route('shared-notes.update', selectedNote.value.note_id), updateData, {
-    preserveScroll: true,
-    onSuccess: () => {
-      showMessage('メモが保存されました。', 'success')
-      window.dispatchEvent(new CustomEvent('notification-updated'))
-    },
-    onError: () => {
-      showMessage('保存に失敗しました。', 'success')
-    },
-    onFinish: () => {
-      isSaving.value = false
+  // note_idが0の場合は新規作成
+  if (selectedNote.value.note_id === 0) {
+    router.post(route('shared-notes.store'), updateData, {
+      preserveScroll: true,
+      onSuccess: () => {
+        showMessage('メモが作成されました。', 'success')
+        window.dispatchEvent(new CustomEvent('notification-updated'))
+      },
+      onError: () => {
+        showMessage('作成に失敗しました。', 'success')
+      },
+      onFinish: () => {
+        isSaving.value = false
+      }
+    })
+  } else {
+    // 更新の場合
+    router.put(route('shared-notes.update', selectedNote.value.note_id), updateData, {
+      preserveScroll: true,
+      onSuccess: () => {
+        showMessage('メモが保存されました。', 'success')
+        window.dispatchEvent(new CustomEvent('notification-updated'))
+      },
+      onError: () => {
+        showMessage('保存に失敗しました。', 'success')
+      },
+      onFinish: () => {
+        isSaving.value = false
+      }
+    })
+  }
+}
+
+const fetchLinkedEvent = async (eventId: number) => {
+  try {
+    const response = await fetch(`/api/events/${eventId}`)
+    if (response.ok) {
+      linkedEvent.value = await response.json()
     }
-  })
+  } catch (error) {
+    console.error('Failed to fetch linked event:', error)
+  }
+}
+
+const openEventDialog = () => {
+  if (linkedEvent.value) {
+    isEventDialogOpen.value = true
+  }
 }
 
 // 削除処理
 const handleDeleteNote = () => {
   if (!selectedNote.value) return
+  
+  // note_idが0の場合は新規作成モードなので削除できない
+  if (selectedNote.value.note_id === 0) {
+    selectedNote.value = null
+    return
+  }
   
   const currentIndex = selectedNote.value ? filteredNotes.value.findIndex(note => note.note_id === selectedNote.value?.note_id) : -1
   const nextNote = filteredNotes.value[currentIndex + 1] || filteredNotes.value[currentIndex - 1] || null
@@ -484,11 +540,29 @@ const getColorInfo = (c: string) => {
     green: { bg: 'bg-green-100', label: '業務', color: '#66bb6a' },
     yellow: { bg: 'bg-yellow-100', label: '来客', color: '#ffa726' },
     purple: { bg: 'bg-purple-100', label: '出張・外出', color: '#9575cd' },
-    purple: { bg: 'bg-purple-100', label: '出張', color: '#9575cd' },
     pink: { bg: 'bg-pink-100', label: '休暇', color: '#f06292' },
     gray: { bg: 'bg-gray-100', label: 'その他', color: '#9e9e9e' },
   }
   return colorMap[c] || colorMap.yellow
+}
+
+const handleCopyNote = () => {
+  if (!selectedNote.value) return
+  
+  const copyData = {
+    title: `${selectedNote.value.title}（コピー）`,
+    content: selectedNote.value.content || '',
+    color: selectedNote.value.color || 'yellow',
+    priority: selectedNote.value.priority || 'medium',
+    deadline_date: selectedNote.value.deadline_date,
+    deadline_time: selectedNote.value.deadline_time,
+    tags: selectedNote.value.tags.map(tag => tag.tag_name),
+    participants: selectedNote.value.participants || [],
+    progress: selectedNote.value.progress ?? 0,
+  }
+  
+  sessionStorage.setItem('note_copy_data', JSON.stringify(copyData))
+  isCreateDialogOpen.value = true
 }
 
 const suggestedTags = computed(() => {
@@ -805,6 +879,7 @@ const isHelpOpen = ref(false)
                 <VueDatePicker
                   v-model="deadlineDateTime"
                   :locale="ja"
+                  format="yyyy-MM-dd HH:mm"
                   :week-start="0"
                   auto-apply
                   teleport-center
@@ -889,6 +964,47 @@ const isHelpOpen = ref(false)
                 </div>
               </div>
             </div>
+            
+            <!-- 進捗バー（休暇以外） -->
+            <div v-if="editedColor !== 'pink'" class="mt-2">
+              <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                <span>進捗</span>
+                <span class="text-xs text-gray-600 dark:text-gray-400">{{ editedProgress }}%</span>
+              </label>
+              <div class="relative w-full h-4 flex items-center">
+                <div 
+                  class="absolute w-full h-2 rounded-lg overflow-hidden pointer-events-none"
+                  :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editedProgress}%, #e5e7eb ${editedProgress}%, #e5e7eb 100%)` }"
+                ></div>
+                <input 
+                  type="range" 
+                  v-model="editedProgress" 
+                  min="0" 
+                  max="100" 
+                  class="relative w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider m-0 z-10 focus:outline-none"
+                />
+              </div>
+            </div>
+            
+            <!-- リンクされたカレンダー情報 -->
+            <div v-if="selectedNote?.linked_event_id && linkedEvent" class="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <Calendar class="h-4 w-4 text-blue-600" />
+                  <span class="text-xs font-medium text-blue-800 dark:text-blue-200">共有カレンダーとリンク</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  class="h-6 px-2 text-xs gap-1"
+                  @click="openEventDialog"
+                >
+                  <ExternalLink class="h-3 w-3" />
+                  詳細を表示
+                </Button>
+              </div>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ linkedEvent.title }}</p>
+            </div>
           </div>
           
           <div v-if="editedTags.length > 0" class="flex flex-wrap gap-1 mb-2">
@@ -954,9 +1070,9 @@ const isHelpOpen = ref(false)
                 <Trash2 class="h-4 w-4" />
                 削除
               </Button>
-              <Button variant="outline" class="gap-2" disabled>
-                <Share2 class="h-4 w-4" />
-                共有
+              <Button variant="outline" class="gap-2" @click="handleCopyNote">
+                <Copy class="h-4 w-4" />
+                複製
               </Button>
             </div>
             <Button variant="outline" class="gap-2" @click="handleSaveNote" :disabled="isSaving">
@@ -1006,6 +1122,14 @@ const isHelpOpen = ref(false)
       </div>
     </Transition>
   </div>
+
+  <!-- イベント詳細ダイアログ -->
+  <CreateEventDialog
+    v-if="linkedEvent"
+    :event="linkedEvent"
+    :open="isEventDialogOpen"
+    @update:open="isEventDialogOpen = $event"
+  />
 
   <!-- ヘルプダイアログ -->
   <Dialog :open="isHelpOpen" @update:open="isHelpOpen = $event">

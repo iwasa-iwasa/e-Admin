@@ -135,7 +135,7 @@ const createDefaultReminder = (): Reminder => ({
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
     isSaving.value = false
-    if (props.reminder) {
+    if (props.reminder && props.reminder.reminder_id !== 0) {
       editedReminder.value = { ...props.reminder }
       isEditing.value = false
       // フォームを既存のリマインダーデータで初期化
@@ -154,11 +154,27 @@ watch(() => props.open, (isOpen) => {
       
       clearDraft()
     } else {
-      // 新規作成モード
+      // 新規作成モードまたは複製モード
       editedReminder.value = createDefaultReminder()
       isEditing.value = true
       
-      // 複製データがあるか確認
+      // 複製データがあるか確認（reminder_id=0の場合）
+      if (props.reminder && props.reminder.reminder_id === 0) {
+        form.reset()
+        form.title = props.reminder.title
+        form.description = props.reminder.description || ''
+        form.deadline = formatDateTimeForInput(props.reminder.deadline_date, props.reminder.deadline_time)
+        form.tags = props.reminder.tags?.map(t => t.tag_name) || []
+        
+        if (form.deadline) {
+          deadlineDateTime.value = new Date(form.deadline)
+        } else {
+          deadlineDateTime.value = null
+        }
+        return
+      }
+      
+      // sessionStorageから複製データを確認
       const copyDataStr = sessionStorage.getItem('reminder_copy_data')
       if (copyDataStr) {
         try {
@@ -210,6 +226,9 @@ watch(() => props.open, (isOpen) => {
         deadlineDateTime.value = null
       }
     }
+  } else {
+    // ダイアログが閉じられたときに複製データをクリア
+    sessionStorage.removeItem('reminder_copy_data')
   }
 })
 
@@ -222,9 +241,18 @@ watch(deadlineDateTime, (newDate) => {
 })
 
 watch(() => props.reminder, (newReminder) => {
-  if (newReminder) {
+  if (newReminder && newReminder.reminder_id !== 0) {
     editedReminder.value = { ...newReminder }
     isEditing.value = false
+    form.reset()
+    form.title = newReminder.title
+    form.description = newReminder.description || ''
+    form.deadline = formatDateTimeForInput(newReminder.deadline_date, newReminder.deadline_time)
+    form.tags = newReminder.tags?.map(t => t.tag_name) || []
+  } else if (newReminder && newReminder.reminder_id === 0) {
+    // 複製モード
+    editedReminder.value = createDefaultReminder()
+    isEditing.value = true
     form.reset()
     form.title = newReminder.title
     form.description = newReminder.description || ''
@@ -255,7 +283,7 @@ const currentReminder = computed(() => {
   return editedReminder.value || props.reminder || createDefaultReminder()
 })
 
-const isCreateMode = computed(() => !props.reminder && props.open)
+const isCreateMode = computed(() => (!props.reminder || props.reminder.reminder_id === 0) && props.open)
 
 const handleEdit = () => {
   if (props.reminder) {
@@ -335,6 +363,7 @@ const handleSave = () => {
       onSuccess: () => {
         clearDraft()
         emit('update:open', false)
+        window.dispatchEvent(new CustomEvent('notification-updated'))
       },
       onError: () => {
         showMessage('リマインダーの作成に失敗しました。', 'success')
@@ -350,6 +379,7 @@ const handleSave = () => {
         onSuccess: () => {
           clearDraft()
           emit('update:open', false)
+          window.dispatchEvent(new CustomEvent('notification-updated'))
         },
         onError: () => {
           showMessage('リマインダーの更新に失敗しました。', 'success')
@@ -400,6 +430,7 @@ const handleComplete = () => {
     preserveScroll: true,
     onSuccess: () => {
       emit('update:open', false, true)
+      window.dispatchEvent(new CustomEvent('trash-updated'))
     },
     onError: () => {
       showMessage('リマインダーの完了に失敗しました。', 'success')
@@ -426,6 +457,9 @@ const handleCopy = () => {
   
   // 親コンポーネントに複製イベントを通知
   emit('copy')
+  
+  // 通知センターを更新
+  window.dispatchEvent(new CustomEvent('notification-updated'))
 }
 </script>
 
@@ -538,6 +572,7 @@ const handleCopy = () => {
                 v-if="isEditing"
                 v-model="deadlineDateTime"
                 :locale="ja"
+                format="yyyy-MM-dd HH:mm"
                 :week-start="0"
                 auto-apply
                 teleport-center

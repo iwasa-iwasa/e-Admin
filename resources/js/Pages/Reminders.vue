@@ -60,8 +60,6 @@ const props = defineProps<{
 }>()
 
 const page = usePage()
-const isCreateDialogOpen = ref(false)
-const isCreatingNew = ref(false)
 const selectedReminder = ref<ReminderModel | null>(null)
 const showCompleted = ref(false)
 const saveMessage = ref('')
@@ -175,15 +173,30 @@ const confirmPermanentDelete = () => {
 }
 const handleUpdateReminder = (updatedReminder: ReminderModel) => {
   // メッセージ表示はReminderDetailDialog内で処理される
-  if (isCreatingNew.value) {
-    isCreatingNew.value = false
-  }
   window.dispatchEvent(new CustomEvent('notification-updated'))
 }
 
 const handleCopyReminder = () => {
-  selectedReminder.value = null
-  isCreateDialogOpen.value = true
+  const copyData = sessionStorage.getItem('reminder_copy_data')
+  if (copyData) {
+    const data = JSON.parse(copyData)
+    selectedReminder.value = {
+      reminder_id: 0,
+      user_id: 0,
+      title: data.title,
+      description: data.description,
+      deadline_date: data.deadline ? data.deadline.split('T')[0] : null,
+      deadline_time: data.deadline ? data.deadline.split('T')[1] : null,
+      completed: false,
+      is_deleted: false,
+      tags: data.tags?.map((name: string, index: number) => ({ tag_id: index, tag_name: name })) || [],
+      created_at: null,
+      updated_at: null,
+      category: '',
+      completed_at: null,
+      deleted_at: null
+    } as any
+  }
 }
 
 
@@ -402,7 +415,7 @@ const confirmBulkDelete = () => {
                 class="pl-9 pr-4 w-[280px] flex h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
-            <Button variant="outline" @click="() => { isCreateDialogOpen = true; isCreatingNew = true }" class="gap-2">
+            <Button variant="outline" @click="selectedReminder = { reminder_id: 0, user_id: 0, title: '', description: '', deadline_date: null, deadline_time: null, completed: false, is_deleted: false, tags: [], created_at: null, updated_at: null, category: '', completed_at: null, deleted_at: null }" class="gap-2">
               <Plus class="h-4 w-4" />
               新規作成
             </Button>
@@ -609,13 +622,6 @@ const confirmBulkDelete = () => {
       @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); } selectedReminder = null; } }" 
       @update:reminder="handleUpdateReminder"
       @copy="handleCopyReminder"
-    />
-
-    <ReminderDetailDialog
-      :reminder="null"
-      :open="isCreateDialogOpen"
-      @update:open="(open) => { isCreateDialogOpen = open; if (!open) isCreatingNew = false }"
-      @update:reminder="handleUpdateReminder"
     />
 
     <AlertDialog :open="reminderToDelete !== null">

@@ -1,7 +1,7 @@
 import { ref, computed, nextTick, watch } from 'vue'
 
-export function useCalendarView(fullCalendarRef: any) {
-    const viewMode = ref('dayGridMonth')
+export function useCalendarView(fullCalendarRef: any, initialView?: string) {
+    const viewMode = ref(initialView || 'dayGridMonth')
     const currentDayViewDate = ref(new Date())
     const currentWeekStart = ref(new Date())
     const currentYearViewYear = ref(new Date().getFullYear())
@@ -87,15 +87,20 @@ export function useCalendarView(fullCalendarRef: any) {
 
         if (viewStr === 'yearView') {
             currentYearViewYear.value = new Date().getFullYear()
+            updateCalendarTitle()
         } else if (viewStr === 'timeGridWeek') {
             currentWeekStart.value = getWeekStart(new Date())
+            updateCalendarTitle()
         } else if (viewStr === 'timeGridDay') {
             currentDayViewDate.value = new Date()
+            updateCalendarTitle()
         } else {
-            const api = fullCalendarRef.value?.getApi()
-            if (api) {
-                api.changeView(viewStr)
-            }
+            nextTick(() => {
+                const api = fullCalendarRef.value?.getApi()
+                if (api) {
+                    api.changeView(viewStr)
+                }
+            })
         }
     }
 

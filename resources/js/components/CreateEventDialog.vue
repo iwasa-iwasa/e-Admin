@@ -101,6 +101,8 @@ const isAllUsers = computed(() => {
 })
 
 const canEdit = computed(() => {
+  // event_idが0の場合は新規作成なので常に編集可能
+  if (props.event && props.event.event_id === 0) return true
   if (props.readonly) return false
   if (!isEditMode.value || !props.event) return true
   
@@ -118,6 +120,8 @@ const canEdit = computed(() => {
 })
 
 const canEditParticipants = computed(() => {
+  // event_idが0の場合は新規作成なので常に編集可能
+  if (props.event && props.event.event_id === 0) return true
   if (!isEditMode.value || !props.event) return true
   
   const isCreator = props.event.created_by === currentUserId.value
@@ -504,8 +508,8 @@ const handleSave = () => {
       participants: data.participants.map((p: App.Models.User) => p.id)
     }
     
-    // 繰り返し編集のスコープを追加
-    if (isEditMode.value && props.event) {
+    // 繰り返し編集のスコープを追加（更新時のみ）
+    if (isEditMode.value && props.event && props.event.event_id !== 0) {
       const editScope = (props.event as any).editScope
       const originalDate = (props.event as any).originalDate
       
@@ -538,7 +542,7 @@ const handleSave = () => {
     }
   }
 
-  if (isEditMode.value && props.event) {
+  if (isEditMode.value && props.event && props.event.event_id !== 0) {
     form.transform(transformData).post(route('events.update', { event: props.event.event_id }), options)
   } else {
     form.transform(transformData).post(route('events.store'), options)
@@ -846,6 +850,7 @@ const updateNextOccurrences = () => {
                   <VueDatePicker
                     v-model="date"
                     range
+                    format="yyyy-MM-dd"
                     :time-config="{ enableTimePicker: false }"
                     placeholder="期間を選択"
                     :locale="ja"
@@ -1001,6 +1006,7 @@ const updateNextOccurrences = () => {
                     <Label for="recurrence_end_date">繰り返し終了日</Label>
                     <VueDatePicker
                       v-model="form.recurrence.end_date"
+                      format="yyyy-MM-dd"
                       placeholder="終了日を選択"
                       :locale="ja"
                       :week-start="0"

@@ -8,7 +8,7 @@ import PersonalReminders, { ReminderModel } from '@/components/PersonalReminders
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { X, GripVertical } from 'lucide-vue-next'
+import { X, GripVertical, CheckCircle } from 'lucide-vue-next'
 
 defineOptions({
   layout: AuthenticatedLayout,
@@ -21,6 +21,7 @@ const props = defineProps<{
   filteredMemberId?: number | null
   teamMembers: UserModel[]
   totalUsers: number
+  defaultView?: string
 }>()
 
 const filteredMember = computed(() => {
@@ -36,6 +37,19 @@ const clearFilter = () => {
 }
 
 const isCalendarHelpOpen = ref(false)
+
+const saveMessage = ref('')
+const messageTimer = ref<number | null>(null)
+
+const showMessage = (message: string) => {
+  if (messageTimer.value) {
+    clearTimeout(messageTimer.value)
+  }
+  saveMessage.value = message
+  messageTimer.value = window.setTimeout(() => {
+    saveMessage.value = ''
+  }, 4000)
+}
 
 //iPad判定ロジック
 const isIPad = ref(false)
@@ -125,6 +139,13 @@ onMounted(() => {
   if (isIPadLayout.value) {
     setTimeout(() => window.dispatchEvent(new Event('resize')), 100)
   }
+  
+  // flashメッセージの表示
+  const page = usePage()
+  const flash = (page.props as any).flash?.success
+  if (flash) {
+    showMessage(flash)
+  }
 })
 
 onUnmounted(() => {
@@ -149,6 +170,7 @@ onUnmounted(() => {
                             <SharedCalendar 
                                 :events="events" 
                                 :filtered-member-id="filteredMemberId"
+                                :default-view="props.defaultView"
                                 :is-help-open="isCalendarHelpOpen"
                                 @update:is-help-open="isCalendarHelpOpen = $event"
                             />
@@ -180,6 +202,7 @@ onUnmounted(() => {
           <SharedCalendar 
               :events="events" 
               :filtered-member-id="filteredMemberId"
+              :default-view="props.defaultView"
               :is-help-open="isCalendarHelpOpen"
               @update:is-help-open="isCalendarHelpOpen = $event"
           />
@@ -188,11 +211,11 @@ onUnmounted(() => {
         <!-- 横リサイズバー -->
         <div class="relative flex items-center justify-center" style="width: 16px; margin: 0 -8px;">
           <div
-            class="absolute inset-0 cursor-col-resize z-10 hover:bg-blue-100 hover:bg-opacity-50 rounded transition-colors"
+            class="absolute inset-0 cursor-col-resize z-10 hover:bg-blue-100 dark:hover:bg-gray-700 hover:bg-opacity-50 rounded transition-colors"
             @mousedown="startDragH"
           />
-          <div class="w-1 h-full bg-gray-300 pointer-events-none relative">
-            <GripVertical class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <div class="w-1 h-full bg-gray-300 dark:bg-gray-600 pointer-events-none relative">
+            <GripVertical class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
           </div>
         </div>
 
@@ -219,11 +242,11 @@ onUnmounted(() => {
           <!-- 縦リサイズバー -->
           <div class="relative flex items-center justify-center" style="height: 16px; margin: -8px 0;">
             <div
-              class="absolute inset-0 cursor-row-resize z-10 hover:bg-blue-100 hover:bg-opacity-50 rounded transition-colors"
+              class="absolute inset-0 cursor-row-resize z-10 hover:bg-blue-100 dark:hover:bg-gray-700 hover:bg-opacity-50 rounded transition-colors"
               @mousedown="startDragV"
             />
-            <div class="h-1 w-full bg-gray-300 pointer-events-none relative">
-              <GripVertical class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 rotate-90" />
+            <div class="h-1 w-full bg-gray-300 dark:bg-gray-600 pointer-events-none relative">
+              <GripVertical class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500 rotate-90" />
             </div>
           </div>
 
@@ -240,4 +263,24 @@ onUnmounted(() => {
       </div>
 
     </div>
+    
+    <!-- メッセージ表示 -->
+    <Transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="transform opacity-0 translate-y-full"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 translate-y-full"
+    >
+      <div 
+        v-if="saveMessage"
+        class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 p-3 text-white rounded-lg shadow-lg bg-green-500"
+      >
+        <div class="flex items-center gap-2">
+          <CheckCircle class="h-5 w-5" />
+          <span class="font-medium">{{ saveMessage }}</span>
+        </div>
+      </div>
+    </Transition>
 </template>
