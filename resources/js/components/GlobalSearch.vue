@@ -65,7 +65,6 @@ const typeOptions = [
 ]
 
 const loadRecentItems = async () => {
-    if (recentItemsLoaded.value) return
     try {
         const response = await fetch('/api/search?q=')
         const data = await response.json()
@@ -125,6 +124,9 @@ const handleClickOutside = (event: MouseEvent) => {
         return
     }
     const target = event.target as HTMLElement
+    const isDialogClick = target.closest('[role="dialog"]')
+    if (isDialogClick) return
+    
     if (!target.closest('.search-results-container') && target !== searchInputRef.value && !searchInputRef.value?.contains(target)) {
         isResultsOpen.value = false
     }
@@ -166,6 +168,9 @@ watch(searchQuery, () => {
         searchTimeout.value = setTimeout(performSearch, 300)
     } else {
         searchResults.value = []
+        if (isResultsOpen.value) {
+            loadRecentItems()
+        }
     }
 })
 
@@ -251,11 +256,9 @@ const handleCopyEvent = () => {
 }
 
 const handleCopyNote = () => {
-  console.log('[GlobalSearch] handleCopyNote called')
-  isNoteDialogOpen.value = false
-  isResultsOpen.value = true
+  isCreateNoteDialogOpen.value = true
   setTimeout(() => {
-    isCreateNoteDialogOpen.value = true
+    isNoteDialogOpen.value = false
   }, 50)
 }
 
@@ -658,7 +661,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
         v-if="selectedNote"
         :note="selectedNote"
         :open="isNoteDialogOpen"
-        @update:open="(val) => { isNoteDialogOpen = val; isResultsOpen.value = true; if (!val && !isCreateNoteDialogOpen) selectedNote = null }"
+        @update:open="(val) => { isNoteDialogOpen = val; if (!val && !isCreateNoteDialogOpen) selectedNote = null }"
         :teamMembers="(usePage().props as any).teamMembers"
         :totalUsers="(usePage().props as any).totalUsers"
         @copy="handleCopyNote"
