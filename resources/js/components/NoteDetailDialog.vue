@@ -267,6 +267,7 @@ const handleSave = () => {
         closeDialog()
         setTimeout(() => {
           showMessage('メモが保存されました。', 'success')
+          window.dispatchEvent(new CustomEvent('notification-updated'))
         }, 100)
       },
       onError: () => {
