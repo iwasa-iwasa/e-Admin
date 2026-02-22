@@ -180,55 +180,73 @@ const isUpcoming = (deadlineDate: string, deadlineTime?: string) => {
   return deadline >= now && deadline <= threeDaysLater
 }
 
-const getItemColor = (type: string, priority?: string, deadlineDate?: string, deadlineTime?: string, color?: string) => {
+const getItemColor = (type: string, priority?: string, deadlineDate?: string, deadlineTime?: string, color?: string, category?: string) => {
   if (type === 'event') {
+    let baseBg = 'bg-blue-50 dark:bg-[rgba(96,165,250,0.2)]'
+    
+    // カテゴリー別の背景色（ダークモード対応）
+    if (category === '会議') baseBg = 'bg-blue-50 dark:bg-[rgba(96,165,250,0.2)]'
+    else if (category === '業務') baseBg = 'bg-green-50 dark:bg-[rgba(74,222,128,0.2)]'
+    else if (category === '来客') baseBg = 'bg-orange-50 dark:bg-[rgba(251,191,36,0.2)]'
+    else if (category === '出張' || category === '出張・外出') baseBg = 'bg-purple-50 dark:bg-[rgba(167,139,250,0.2)]'
+    else if (category === '休暇') baseBg = 'bg-pink-50 dark:bg-[rgba(244,114,182,0.2)]'
+    
     if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
-      return 'bg-blue-50 border-red-500 border-2 dark:bg-card dark:border-red-500'
+      return `${baseBg} border-red-500 border-2 dark:border-red-500`
     }
     if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
-      return 'bg-blue-50 border-yellow-400 border-2 dark:bg-card dark:border-yellow-400'
+      return `${baseBg} border-yellow-400 border-2 dark:border-yellow-400`
     }
-    return 'bg-blue-50 border-blue-200 dark:bg-card dark:border-blue-800'
+    return `${baseBg} border-blue-200 dark:border-blue-800`
   }
   if (type === 'note') {
-    const baseBorder = color ? `border-${color}-200 dark:border-${color}-700` : 'border-orange-200 dark:border-orange-700'
+    let baseBg = 'bg-orange-50 dark:bg-[rgba(251,191,36,0.2)]'
+    let darkBorder = 'dark:border-orange-800'
     
-    // Map color names to semantic colors if needed, or rely on Tailwind utility classes if they exist.
-    // Assuming color is one of: yellow, blue, green, pink, purple.
-    // We need to handle the dynamic class properly or map it.
-    let darkBorder = 'dark:border-orange-800';
-    if (color === 'yellow') darkBorder = 'dark:border-yellow-600';
-    else if (color === 'blue') darkBorder = 'dark:border-blue-600';
-    else if (color === 'green') darkBorder = 'dark:border-green-600';
-    else if (color === 'pink') darkBorder = 'dark:border-pink-600';
-    else if (color === 'purple') darkBorder = 'dark:border-purple-600';
+    // 色別の背景色とボーダー
+    if (color === 'yellow') {
+      baseBg = 'bg-yellow-50 dark:bg-[rgba(251,191,36,0.2)]'
+      darkBorder = 'dark:border-yellow-600'
+    } else if (color === 'blue') {
+      baseBg = 'bg-blue-50 dark:bg-[rgba(96,165,250,0.2)]'
+      darkBorder = 'dark:border-blue-600'
+    } else if (color === 'green') {
+      baseBg = 'bg-green-50 dark:bg-[rgba(74,222,128,0.2)]'
+      darkBorder = 'dark:border-green-600'
+    } else if (color === 'pink') {
+      baseBg = 'bg-pink-50 dark:bg-[rgba(244,114,182,0.2)]'
+      darkBorder = 'dark:border-pink-600'
+    } else if (color === 'purple') {
+      baseBg = 'bg-purple-50 dark:bg-[rgba(167,139,250,0.2)]'
+      darkBorder = 'dark:border-purple-600'
+    }
 
     if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
-      return 'bg-orange-50 border-red-500 border-2 dark:bg-card dark:border-red-500'
+      return `${baseBg} border-red-500 border-2 dark:border-red-500`
     }
     if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
-      return 'bg-orange-50 border-yellow-400 border-2 dark:bg-card dark:border-yellow-400'
+      return `${baseBg} border-yellow-400 border-2 dark:border-yellow-400`
     }
-    return `bg-orange-50 border-orange-200 ${darkBorder} dark:bg-card`
+    return `${baseBg} border-orange-200 ${darkBorder}`
   }
   if (type === 'reminder') {
     if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
-      return 'bg-green-50 border-red-500 border-2 dark:bg-card dark:border-red-500'
+      return 'bg-green-50 dark:bg-[rgba(74,222,128,0.2)] border-red-500 border-2 dark:border-red-500'
     }
     if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
-      return 'bg-green-50 border-yellow-400 border-2 dark:bg-card dark:border-yellow-400'
+      return 'bg-green-50 dark:bg-[rgba(74,222,128,0.2)] border-yellow-400 border-2 dark:border-yellow-400'
     }
-    return 'bg-green-50 border-green-200 dark:bg-card dark:border-green-800'
+    return 'bg-green-50 dark:bg-[rgba(74,222,128,0.2)] border-green-200 dark:border-green-800'
   }
   if (type === 'survey') {
     if (deadlineDate && isOverdue(deadlineDate, deadlineTime)) {
-      return 'bg-purple-50 border-red-500 border-2 dark:bg-card dark:border-red-500'
+      return 'bg-purple-50 dark:bg-[rgba(167,139,250,0.2)] border-red-500 border-2 dark:border-red-500'
     }
     if (deadlineDate && isUpcoming(deadlineDate, deadlineTime)) {
-      return 'bg-purple-50 border-yellow-400 border-2 dark:bg-card dark:border-yellow-400'
+      return 'bg-purple-50 dark:bg-[rgba(167,139,250,0.2)] border-yellow-400 border-2 dark:border-yellow-400'
     }
   }
-  return 'bg-purple-50 border-purple-200 dark:bg-card dark:border-purple-800'
+  return 'bg-purple-50 dark:bg-[rgba(167,139,250,0.2)] border-purple-200 dark:border-purple-800'
 }
 
 const formatDate = (date: string) => {
@@ -755,7 +773,7 @@ onUnmounted(() => {
                 </div>
                 <div class="space-y-2">
                   <div v-for="event in notifications.events" :key="event.event_id"
-                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('event', undefined, event.end_date || event.start_date, event.end_time || event.start_time)}`"
+                    :class="`p-2 rounded-lg hover:opacity-80 cursor-pointer transition-colors border ${getItemColor('event', undefined, event.end_date || event.start_date, event.end_time || event.start_time, undefined, (event as any).category)}`"
                     @click="handleClick('event', event)">
                     <div class="flex items-start justify-between gap-2">
                       <div class="flex-1">

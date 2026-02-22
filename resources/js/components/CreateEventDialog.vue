@@ -580,8 +580,8 @@ const getCategoryColor = (cat: string) => {
     case "会議": return "bg-[#3b82f6]"
     case "業務": return "bg-[#66bb6a]"
     case "来客": return "bg-[#ffa726]"
+    case "出張":
     case "出張・外出": return "bg-[#9575cd]"
-    case "出張": return "bg-[#9575cd]"
     case "休暇": return "bg-[#f06292]"
     default: return "bg-gray-500"
   }
@@ -742,16 +742,10 @@ const updateNextOccurrences = () => {
                         <span>来客</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="出張・外出">
-                      <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-[#9575cd]"></div>
-                        <span>出張・外出</span>
-                      </div>
-                    </SelectItem>
                     <SelectItem value="出張">
                       <div class="flex items-center gap-2">
                         <div class="w-3 h-3 rounded-full bg-[#9575cd]"></div>
-                        <span>出張</span>
+                        <span>出張・外出</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="休暇">
