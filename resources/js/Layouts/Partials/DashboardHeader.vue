@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
+import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
@@ -322,12 +323,43 @@ const handleEventEdit = () => {
   isEventEditOpen.value = true
 }
 
+const handleCopyEvent = () => {
+  const copyData = sessionStorage.getItem('event_copy_data')
+  if (copyData) {
+    const data = JSON.parse(copyData)
+    const currentUserId = (page.props as any).auth?.user?.id ?? null
+    const me = teamMembers.value.find((m: any) => m.id === currentUserId)
+    
+    isEventDetailOpen.value = false
+    
+    selectedEvent.value = {
+      event_id: 0,
+      title: data.title,
+      category: data.category,
+      importance: data.importance,
+      location: data.location,
+      description: data.description,
+      url: data.url,
+      progress: data.progress,
+      participants: me ? [me] : [],
+      start_date: data.date_range[0],
+      end_date: data.date_range[1],
+      is_all_day: data.is_all_day,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      creator: { name: '' }
+    } as any
+    isEventEditOpen.value = true
+  }
+}
+
 const handleNoteDelete = (note: any) => {
   router.delete(`/notes/${note.note_id}`, {
     onSuccess: () => {
       fetchNotifications()
       selectedNote.value = null
       window.dispatchEvent(new CustomEvent('notification-updated'))
+      window.dispatchEvent(new CustomEvent('trash-updated'))
     }
   })
 }
@@ -349,6 +381,17 @@ const handleNoteTogglePin = (note: any) => {
     })
   }
 }
+
+const handleCopyNote = () => {
+  console.log('[DashboardHeader] handleCopyNote called')
+  selectedNote.value = null
+  setTimeout(() => {
+    console.log('[DashboardHeader] Opening CreateNoteDialog')
+    isCreateNoteDialogOpen.value = true
+  }, 100)
+}
+
+const isCreateNoteDialogOpen = ref(false)
 
 const showMessage = (message: string, type: 'success' | 'delete' = 'success') => {
   if (messageTimer.value) {
@@ -534,10 +577,43 @@ const fetchNotifications = async () => {
   }
 }
 
+const handleCopyReminder = () => {
+  const copyData = sessionStorage.getItem('reminder_copy_data')
+  if (copyData) {
+    const data = JSON.parse(copyData)
+    selectedReminder.value = {
+      reminder_id: 0,
+      user_id: 0,
+      title: data.title,
+      description: data.description,
+      deadline_date: data.deadline ? data.deadline.split('T')[0] : null,
+      deadline_time: data.deadline ? data.deadline.split('T')[1] : null,
+      completed: false,
+      is_deleted: false,
+      tags: data.tags?.map((name: string, index: number) => ({ tag_id: index, tag_name: name })) || [],
+      created_at: null,
+      updated_at: null,
+      category: '',
+      completed_at: null,
+      deleted_at: null
+    } as any
+  } else {
+    selectedReminder.value = null
+  }
+}
+
 
 onMounted(() => {
   fetchNotifications()
   window.addEventListener('notification-updated', fetchNotifications)
+  
+  // Inertiaのページ読み込み後に通知更新フラグをチェック
+  router.on('success', (event) => {
+    const pageProps = event.detail.page.props as any
+    if (pageProps.notification_updated || pageProps.flash?.notification_updated) {
+      fetchNotifications()
+    }
+  })
 })
 
 onUnmounted(() => {
@@ -858,6 +934,9 @@ onUnmounted(() => {
             <DropdownMenuItem as-child>
               <Link :href="route('trash.auto-delete')">ゴミ箱自動削除設定</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem as-child>
+              <Link :href="route('calendar.settings')">カレンダー表示設定</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem @click="toggleDark()">
               <div class="flex items-center justify-between w-full">
                 <span>ダークモード</span>
@@ -888,6 +967,7 @@ onUnmounted(() => {
       :open="isEventDetailOpen"
       @update:open="(isOpen) => { isEventDetailOpen = isOpen; if (!isOpen) selectedEvent = null; }"
       @edit="handleEventEdit"
+      @copy="handleCopyEvent"
     />
 
     <!-- イベント編集/確認ダイアログ -->
@@ -907,6 +987,7 @@ onUnmounted(() => {
       @save="handleNoteSave"
       @delete="handleNoteDelete"
       @toggle-pin="handleNoteTogglePin"
+      @copy="handleCopyNote"
     />
 
 
@@ -917,6 +998,7 @@ onUnmounted(() => {
       :open="selectedReminder !== null"
       @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); fetchNotifications(); } selectedReminder = null; } }"
       @update:reminder="fetchNotifications"
+      @copy="handleCopyReminder"
     />
     
     <!-- ヘルプダイアログ -->
@@ -1015,7 +1097,13 @@ onUnmounted(() => {
       </DialogContent>
     </Dialog>
 
+    <!-- 共有メモ作成ダイアログ -->
+    <CreateNoteDialog
+      :open="isCreateNoteDialogOpen"
+      :team-members="teamMembers"
+      @update:open="isCreateNoteDialogOpen = $event"
+      @save="() => { fetchNotifications(); isCreateNoteDialogOpen = false; }"
+    />
 
   </header>
 </template>
-

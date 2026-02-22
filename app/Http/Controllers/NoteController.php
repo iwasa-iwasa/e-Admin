@@ -213,6 +213,7 @@ class NoteController extends Controller
                     'description' => $validated['content'],
                     'category' => $colorCategoryMap[$validated['color']] ?? '会議',
                     'importance' => $validated['priority'] === 'high' ? '重要' : ($validated['priority'] === 'medium' ? '中' : '低'),
+                    'progress' => $validated['progress'] ?? 0,
                 ];
                 
                 // deadlineが設定されているかどうかに関わらず、常に更新する
@@ -284,6 +285,6 @@ class NoteController extends Controller
                 ->delete();
         });
         
-        return back()->with('success', 'メモを復元しました。');
+        return back()->with(['success' => 'メモを復元しました。', 'notification_updated' => true]);
     }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { User, Clock, Edit2, Save, X, MapPin, Trash2, CheckCircle, Undo2 } from 'lucide-vue-next'
+import { User, Clock, Edit2, Save, X, MapPin, Trash2, CheckCircle, Undo2, Copy } from 'lucide-vue-next'
 import { router, usePage } from '@inertiajs/vue3'
 import { ja } from "date-fns/locale";
 import '@vuepic/vue-datepicker/dist/main.css';
@@ -75,6 +75,7 @@ const emit = defineEmits<{
   'save': [value: SharedNoteModel]
   'toggle-pin': [value: SharedNoteModel]
   'delete': [value: SharedNoteModel]
+  'copy': []
 }>()
 
 const isEditing = ref(false)
@@ -134,11 +135,13 @@ watch(() => props.note, (newNote) => {
     } else {
       deadlineDateTime.value = null
     }
+    // 新規作成モード（note_id: 0）の場合は編集モードで開く
+    isEditing.value = newNote.note_id === 0
   } else {
     editedNote.value = null
     deadlineDateTime.value = null
+    isEditing.value = false
   }
-  isEditing.value = false
   participantSelectValue.value = null
   tagInput.value = ''
 }, { deep: true })
@@ -171,6 +174,8 @@ const getPriorityInfo = (priority: Priority) => {
       return { className: 'bg-yellow-500 text-white border-yellow-500', label: '中' }
     case 'low':
       return { className: 'bg-gray-400 text-white border-gray-400', label: '低' }
+    default:
+      return { className: 'bg-yellow-500 text-white border-yellow-500', label: '中' }
   }
 }
 
@@ -187,11 +192,11 @@ const getColorClass = (color: string) => {
 
 const getColorInfo = (c: string) => {
   const colorMap: Record<string, { bg: string; label: string }> = {
-    blue: { bg: 'bg-blue-100 dark:bg-blue-500', label: 'ブルー' },
-    green: { bg: 'bg-green-100 dark:bg-green-500', label: 'グリーン' },
-    yellow: { bg: 'bg-yellow-100 dark:bg-yellow-500', label: 'オレンジ' },
-    purple: { bg: 'bg-purple-100 dark:bg-purple-500', label: 'パープル' },
-    pink: { bg: 'bg-pink-100 dark:bg-pink-500', label: 'ピンク' },
+    blue: { bg: 'bg-blue-100 dark:bg-blue-500', label: '会議' },
+    green: { bg: 'bg-green-100 dark:bg-green-500', label: '業務' },
+    yellow: { bg: 'bg-yellow-100 dark:bg-yellow-500', label: '来客' },
+    purple: { bg: 'bg-purple-100 dark:bg-purple-500', label: '出張・外出' },
+    pink: { bg: 'bg-pink-100 dark:bg-pink-500', label: '休暇' },
   }
   return colorMap[c] || colorMap.yellow
 }
@@ -229,25 +234,46 @@ const handleSave = () => {
     deadline: editedNote.value.deadline || null,
     priority: editedNote.value.priority,
     color: editedNote.value.color,
+    progress: editedNote.value.progress ?? 0,
     tags: editedNote.value.tags?.map(tag => tag.tag_name) || [],
     participants: editedNote.value.participants?.map(p => p.id) || []
   }
   
-  router.put(route('shared-notes.update', editedNote.value.note_id), updateData, {
-    preserveScroll: true,
-    preserveState: true,
-    onSuccess: () => {
-      emit('save', editedNote.value!)
-      isEditing.value = false
-      closeDialog()
-      setTimeout(() => {
-        showMessage('メモが保存されました。', 'success')
-      }, 100)
-    },
-    onError: () => {
-      showMessage('保存に失敗しました。', 'success')
-    }
-  })
+  // 新規作成の場合
+  if (editedNote.value.note_id === 0) {
+    router.post(route('shared-notes.store'), updateData, {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => {
+        isEditing.value = false
+        closeDialog()
+        setTimeout(() => {
+          showMessage('メモが作成されました。', 'success')
+          window.dispatchEvent(new CustomEvent('notification-updated'))
+        }, 100)
+      },
+      onError: () => {
+        showMessage('作成に失敗しました。', 'success')
+      }
+    })
+  } else {
+    // 更新の場合
+    router.put(route('shared-notes.update', editedNote.value.note_id), updateData, {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => {
+        emit('save', editedNote.value!)
+        isEditing.value = false
+        closeDialog()
+        setTimeout(() => {
+          showMessage('メモが保存されました。', 'success')
+        }, 100)
+      },
+      onError: () => {
+        showMessage('保存に失敗しました。', 'success')
+      }
+    })
+  }
 }
 
 const handleTogglePin = () => {
@@ -356,8 +382,42 @@ const showMessage = (message: string, type: 'success' | 'delete' = 'success') =>
   }, 4000)
 }
 
+const handleCopy = () => {
+  console.log('[NoteDetailDialog] handleCopy called')
+  if (!props.note) return
+  
+  const copyData = {
+    title: `${props.note.title}（コピー）`,
+    content: props.note.content || '',
+    color: props.note.color,
+    priority: props.note.priority,
+    deadline_date: props.note.deadline_date,
+    deadline_time: props.note.deadline_time,
+    tags: props.note.tags?.map(t => t.tag_name) || [],
+    progress: props.note.progress ?? 0
+  }
+  
+  console.log('[NoteDetailDialog] Saving copy data to sessionStorage:', copyData)
+  sessionStorage.setItem('note_copy_data', JSON.stringify(copyData))
+  console.log('[NoteDetailDialog] Emitting copy event')
+  emit('copy')
+  
+  // nextTickで親コンポーネントが処理する時間を与える
+  setTimeout(() => {
+    emit('update:open', false)
+  }, 0)
+  
+  window.dispatchEvent(new CustomEvent('notification-updated'))
+}
+
 const handleDeleteNote = () => {
   if (!props.note) return
+  
+  // note_idが0の場合は新規作成モードなので削除できない
+  if (props.note.note_id === 0) {
+    closeDialog()
+    return
+  }
   
   lastDeletedNote.value = props.note
   
@@ -458,7 +518,7 @@ const editedProgress = computed({
                 variant="outline"
                 size="sm"
                 @click="handleTogglePin"
-                :class="currentNote.is_pinned ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100' : 'hover:bg-gray-50'"
+                :class="currentNote.is_pinned ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800'"
                 aria-label="ピン留めの切り替え"
                 class="gap-1"
               >
@@ -495,6 +555,7 @@ const editedProgress = computed({
             <VueDatePicker
               v-model="deadlineDateTime"
               :locale="ja"
+              format="yyyy-MM-dd HH:mm"
               :week-start="0"
               auto-apply
               teleport-center
@@ -673,6 +734,10 @@ const editedProgress = computed({
             <X class="h-4 w-4 mr-1" />
             閉じる
           </Button>
+          <Button v-if="canEdit" variant="outline" @click="handleDeleteNote" size="sm" class="text-red-600 hover:text-red-700">
+            <Trash2 class="h-4 w-4 mr-1" />
+            削除
+          </Button>
           <Button v-if="canEdit" variant="outline" @click="handleSave" size="sm">
             <Save class="h-4 w-4 mr-1" />
             保存
@@ -686,13 +751,13 @@ const editedProgress = computed({
           <Button variant="outline" @click="closeDialog" size="sm">
             閉じる
           </Button>
+          <Button variant="outline" @click="handleCopy" size="sm" class="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-700 dark:hover:text-white">
+            <Copy class="h-4 w-4 mr-1" />
+            複製
+          </Button>
           <Button variant="outline" @click="handleEdit" size="sm">
             <Edit2 class="h-4 w-4 mr-1" />
             {{ canEdit ? '編集' : '確認' }}
-          </Button>
-          <Button v-if="canEdit" variant="outline" @click="handleDeleteNote" size="sm" class="text-red-600 hover:text-red-700">
-            <Trash2 class="h-4 w-4 mr-1" />
-            削除
           </Button>
         </template>
       </DialogFooter>

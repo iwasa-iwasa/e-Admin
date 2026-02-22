@@ -289,14 +289,18 @@ class SurveyController extends Controller
         ]);
         
         $status = $validated['status'] ?? 'submitted';
+        $isEditing = $survey->responses()->where('respondent_id', Auth::id())->exists();
         
         try {
             $this->surveyService->saveAnswer($survey, $validated['answers'], Auth::id(), $status);
             
-            $message = ($status === 'draft') ? '回答を一時保存しました' : '回答を送信しました';
+            if ($status === 'draft') {
+                $message = $isEditing ? '回答を一時保存しました' : '回答を一時保存しました';
+            } else {
+                $message = $isEditing ? '回答を更新しました' : '回答を送信しました';
+            }
             
-            return redirect()->route('surveys')
-                ->with('success', $message);
+            return redirect()->route('surveys')->with('success', $message);
         } catch (\Exception $e) {
             Log::error('Survey answer submission failed', [
                 'survey_id' => $survey->survey_id,

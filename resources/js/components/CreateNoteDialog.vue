@@ -52,7 +52,7 @@ const form = useForm<{
     deadline: "",
     tags: [] as string[],
     color: "yellow",
-    participants: [] as number[],
+    participants: [],
     pinned: false,
 });
 
@@ -116,8 +116,8 @@ const restoreDraft = () => {
         form.deadline = pendingDraft.value.deadline
         form.tags = pendingDraft.value.tags
         form.color = pendingDraft.value.color
-        form.participants = pendingDraft.value.participants
-        selectedParticipants.value = pendingDraft.value.selectedParticipants
+        form.participants = pendingDraft.value.participants || []
+        selectedParticipants.value = pendingDraft.value.selectedParticipants || []
         form.pinned = pendingDraft.value.pinned
         showDraftBanner.value = true
     }
@@ -179,6 +179,12 @@ const handleClose = () => {
     emit("update:open", false);
 };
 
+const handleDialogClose = (isOpen: boolean) => {
+    if (!isOpen) {
+        handleClose();
+    }
+};
+
 const handleAddTag = () => {
     if (tagInput.value.trim() && !form.tags.includes(tagInput.value.trim())) {
         form.tags.push(tagInput.value.trim());
@@ -206,6 +212,17 @@ const handleRemoveParticipant = (participantId: number) => {
     form.participants = form.participants.filter((id) => id !== participantId)
 }
 
+const handleSelectAll = () => {
+    if (!props.teamMembers) return
+    selectedParticipants.value = [...props.teamMembers.filter(m => m.id !== currentUserId.value)]
+    form.participants = selectedParticipants.value.map(p => p.id)
+}
+
+const handleDeselectAll = () => {
+    selectedParticipants.value = []
+    form.participants = []
+}
+
 const getPriorityInfo = (p: Priority) => {
     switch (p) {
         case "high":
@@ -223,7 +240,6 @@ const getColorInfo = (c: string) => {
         green: { bg: "bg-green-100 dark:bg-green-500", label: "業務", color: "#66bb6a" },
         yellow: { bg: "bg-yellow-100 dark:bg-yellow-500", label: "来客", color: "#ffa726" },
         purple: { bg: "bg-purple-100 dark:bg-purple-500", label: "出張・外出", color: "#9575cd" },
-        purple: { bg: "bg-purple-100 dark:bg-purple-500", label: "出張", color: "#9575cd" },
         pink: { bg: "bg-pink-100 dark:bg-pink-500", label: "休暇", color: "#f06292" },
         gray: { bg: "bg-gray-100 dark:bg-gray-500", label: "その他", color: "#9e9e9e" },
     };
@@ -231,18 +247,60 @@ const getColorInfo = (c: string) => {
 };
 
 watch(() => props.open, (isOpen) => {
+    console.log('[CreateNoteDialog] watch props.open:', isOpen)
     if (isOpen) {
-        const draft = loadDraft()
-        if (draft) {
-            pendingDraft.value = draft
-            showDraftDialog.value = true
-        }
-        
-        // Initialize deadlineDateTime from form.deadline
-        if (form.deadline) {
-            deadlineDateTime.value = new Date(form.deadline)
+        // 複製データをチェック
+        const copyData = sessionStorage.getItem('note_copy_data')
+        console.log('[CreateNoteDialog] note_copy_data from sessionStorage:', copyData)
+        if (copyData) {
+            const data = JSON.parse(copyData)
+            console.log('[CreateNoteDialog] Parsed copy data:', data)
+            
+            form.title = data.title
+            form.content = data.content
+            form.color = data.color
+            form.priority = data.priority
+            form.tags = data.tags || []
+            form.pinned = false
+            
+            // 全員を選択
+            if (props.teamMembers) {
+                selectedParticipants.value = [...props.teamMembers.filter(m => m.id !== currentUserId.value)]
+                form.participants = selectedParticipants.value.map(p => p.id)
+                console.log('[CreateNoteDialog] Selected all participants:', selectedParticipants.value.length)
+            }
+            
+            if (data.deadline_date) {
+                const time = data.deadline_time ? data.deadline_time.substring(0, 5) : '23:59'
+                form.deadline = `${data.deadline_date}T${time}`
+                deadlineDateTime.value = new Date(`${data.deadline_date}T${time}`)
+            } else {
+                form.deadline = ''
+                deadlineDateTime.value = null
+            }
+            
+            sessionStorage.removeItem('note_copy_data')
+            console.log('[CreateNoteDialog] Copy data loaded and removed from sessionStorage')
         } else {
-            deadlineDateTime.value = null
+            const draft = loadDraft()
+            if (draft) {
+                pendingDraft.value = draft
+                showDraftDialog.value = true
+            } else {
+                // 新規作成時は全員を選択
+                if (props.teamMembers) {
+                    selectedParticipants.value = [...props.teamMembers.filter(m => m.id !== currentUserId.value)]
+                    form.participants = selectedParticipants.value.map(p => p.id)
+                    console.log('[CreateNoteDialog] New note - Selected all participants:', selectedParticipants.value.length)
+                }
+                
+                // Initialize deadlineDateTime from form.deadline
+                if (form.deadline) {
+                    deadlineDateTime.value = new Date(form.deadline)
+                } else {
+                    deadlineDateTime.value = null
+                }
+            }
         }
     }
 })
@@ -257,7 +315,7 @@ watch(deadlineDateTime, (newDate) => {
 </script>
 
 <template>
-    <Dialog :open="open" @update:open="handleClose">
+    <Dialog :open="open" @update:open="handleDialogClose">
         <DialogContent class="max-w-4xl md:max-w-5xl lg:max-w-6xl w-[95vw] md:w-[66vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>新しい共有メモを作成</DialogTitle>
@@ -266,12 +324,12 @@ watch(deadlineDateTime, (newDate) => {
                 </DialogDescription>
             </DialogHeader>
             
-            <div v-if="showDraftBanner" class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div v-if="showDraftBanner" class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2 dark:bg-blue-900/20 dark:border-blue-800">
+              <Info class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5 dark:text-blue-400" />
               <div class="flex-1">
-                <p class="text-sm text-blue-800">前回の下書きを復元しました</p>
+                <p class="text-sm text-blue-800 dark:text-blue-300">下書きから復元されました</p>
               </div>
-              <button @click="showDraftBanner = false" class="text-blue-600 hover:text-blue-800">
+              <button @click="showDraftBanner = false" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">
                 <X class="h-4 w-4" />
               </button>
             </div>
@@ -341,6 +399,7 @@ watch(deadlineDateTime, (newDate) => {
                             <VueDatePicker
                                 v-model="deadlineDateTime"
                                 :locale="ja"
+                                format="yyyy-MM-dd HH:mm"
                                 :week-start="0"
                                 auto-apply
                                 teleport-center
@@ -397,17 +456,19 @@ watch(deadlineDateTime, (newDate) => {
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
                             <Label for="participants">共有メンバー</Label>
-                            <div class="text-xs text-gray-500">
-                                利用可能メンバー: {{ props.teamMembers?.length || 0 }}人
+                            <div class="flex items-center gap-2">
+                                <Button type="button" variant="outline" size="sm" @click="handleSelectAll" class="h-7 text-xs">
+                                    全員選択
+                                </Button>
+                                <Button type="button" variant="outline" size="sm" @click="handleDeselectAll" class="h-7 text-xs">
+                                    選択解除
+                                </Button>
                             </div>
                         </div>
                         <div class="text-xs text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
                             💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
                         </div>
-                        <div v-if="selectedParticipants.length === (props.teamMembers?.length || 0)" class="text-xs text-blue-600 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-900/30 rounded border dark:border-blue-800">
-                            全員が選択されています。
-                        </div>
-                        <div v-else class="max-h-[200px] overflow-y-auto border dark:border-gray-700 rounded p-2 space-y-1">
+                        <div class="max-h-[200px] overflow-y-auto border dark:border-gray-700 rounded p-2 space-y-1">
                             <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
                                 <input 
                                     type="checkbox" 

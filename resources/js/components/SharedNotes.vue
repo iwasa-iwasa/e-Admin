@@ -175,6 +175,10 @@ const handleCreateSave = () => {
   window.dispatchEvent(new CustomEvent('notification-updated'))
 }
 
+const handleCopyNote = () => {
+  isCreateDialogOpen.value = true
+}
+
 
 const showMessage = (message: string) => {
   if (messageTimer.value) {
@@ -436,7 +440,7 @@ const sortedNotes = computed(() => {
             <div class="flex items-start justify-between mb-2 flex-wrap gap-2">
               <div class="flex-1 min-w-0">
                 <h4 class="mb-1 truncate">{{ note.title }}</h4>
-                <div v-if="note.progress !== undefined && note.progress !== null" class="flex items-center gap-2">
+                <div v-if="note.progress !== undefined && note.progress !== null && note.color !== 'pink'" class="flex items-center gap-2">
                   <div class="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                     <div 
                       class="h-full bg-blue-500 transition-all duration-300" 
@@ -503,6 +507,7 @@ const sortedNotes = computed(() => {
       @save="handleSaveNote"
       @delete="handleDeleteNote"
       @toggle-pin="handleTogglePin"
+      @copy="handleCopyNote"
       :teamMembers="teamMembers"
       :totalUsers="totalUsers"
     />

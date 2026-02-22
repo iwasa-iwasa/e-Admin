@@ -1,59 +1,59 @@
 <script setup lang="ts">
-import { ref, nextTick, computed } from 'vue'
-import { Head, useForm, router } from '@inertiajs/vue3'
-import { route } from 'ziggy-js'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Star, AlertCircle, Save } from 'lucide-vue-next'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import QuestionViewer from '@/features/survey/components/SurveyRespondent/QuestionViewer.vue'
-import { convertQuestionFromBackend } from '@/features/survey/domain/factory'
-
-defineOptions({
-    layout: AuthenticatedLayout
-})
-
-interface Option {
-    option_id: number
-    option_text: string
-}
-
-interface Question {
-    question_id: number
-    question_text: string
-    question_type: string
-    is_required: boolean
-    options: Option[]
-    scale_min?: number
-    scale_max?: number
-    scale_min_label?: string
-    scale_max_label?: string
-}
-
-interface Survey {
-    survey_id: number
-    title: string
-    description: string
-    deadline?: string
-    deadline_date?: string
-    deadline_time?: string
-}
-
-const props = defineProps<{
-    survey: Survey
-    questions: Question[]
-    existingAnswers?: any
-    isEditing?: boolean
-    errors?: any
-    auth?: any
-    ziggy?: any
-    flash?: any
-}>()
-
-// 1. 全ての回答の初期値を設定（コンテナの準備）
+  import { ref, nextTick, computed, watch, onMounted } from 'vue'
+  import { Head, useForm, router, usePage } from '@inertiajs/vue3'
+  import { route } from 'ziggy-js'
+  import { Button } from '@/components/ui/button'
+  import { Input } from '@/components/ui/input'
+  import { Textarea } from '@/components/ui/textarea'
+  import { Label } from '@/components/ui/label'
+  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+  import { ArrowLeft, Star, AlertCircle, Save, CheckCircle } from 'lucide-vue-next'
+  import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+  import QuestionViewer from '@/features/survey/components/SurveyRespondent/QuestionViewer.vue'
+  import { convertQuestionFromBackend } from '@/features/survey/domain/factory'
+  
+  defineOptions({
+      layout: AuthenticatedLayout
+  })
+  
+  interface Option {
+      option_id: number
+      option_text: string
+  }
+  
+  interface Question {
+      question_id: number
+      question_text: string
+      question_type: string
+      is_required: boolean
+      options: Option[]
+      scale_min?: number
+      scale_max?: number
+      scale_min_label?: string
+      scale_max_label?: string
+  }
+  
+  interface Survey {
+      survey_id: number
+      title: string
+      description: string
+      deadline?: string
+      deadline_date?: string
+      deadline_time?: string
+  }
+  
+  const props = defineProps<{
+      survey: Survey
+      questions: Question[]
+      existingAnswers?: any
+      isEditing?: boolean
+      errors?: any
+      auth?: any
+      ziggy?: any
+      flash?: any
+  }>()
+  
+  // 全ての回答を初期化（一度だけ実行）
 const initialAnswers: Record<number, any> = {}
 
 props.questions.forEach(question => {
@@ -125,94 +125,89 @@ const form = useForm({
     answers: initialAnswers,
     status: 'submitted'
 })
+  
+  const displayQuestions = computed(() => {
+      return props.questions.map((q, index) => convertQuestionFromBackend(q, index));
+  });
+  const clientValidationErrors = ref<Record<number, string>>({})
+  
+  const validateAnswers = () => {
+      const errors: Record<number, string> = {}
+      
+      for (const question of props.questions) {
+          if (!question.is_required) continue
+          
+          const answer = form.answers[question.question_id]
+          if (question.question_type === 'multiple_choice') {
+              if (!answer || (Array.isArray(answer) && answer.length === 0)) {
+                  errors[question.question_id] = '少なくとも1つ選択してください'
+              }
+          } else if (!answer || (typeof answer === 'string' && answer.trim() === '')) {
+              errors[question.question_id] = 'この項目は必須です'
+          }
+      }
+      
+      clientValidationErrors.value = errors
+      
+      if (Object.keys(errors).length > 0) {
+          nextTick(() => {
+              const firstErrorId = Object.keys(errors)[0]
+              const element = document.getElementById(`question_${firstErrorId}`)
+              element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          })
+          return false
+      }
+      return true
+  }
+  
+  const submitAnswer = (status: 'draft' | 'submitted' = 'submitted') => {
+      // 一時保存の場合はバリデーションをスキップ
+      if (status === 'submitted' && !validateAnswers()) {
+          return
+      }
 
-const displayQuestions = computed(() => {
-    return props.questions.map((q, index) => convertQuestionFromBackend(q, index));
-});
-
-const clientValidationErrors = ref<Record<number, string>>({})
-
-const validateAnswers = () => {
-    clientValidationErrors.value = {}
-
-    console.log('=== Validation Debug ===')
-    // デバッグログ
-    // console.log(...) 
-
-    for (const question of props.questions) {
-        if (!question.is_required) {
-            continue
-        }
-
-        const answer = form.answers[question.question_id]
-
-        if (question.question_type === 'multiple_choice') {
-            if (!answer || (Array.isArray(answer) && answer.length === 0)) {
-                clientValidationErrors.value[question.question_id] = '少なくとも1つ選択してください'
-            }
-        } else if (question.question_type === 'single_choice' || question.question_type === 'dropdown') {
-            if (answer === null || answer === undefined || answer === '') {
-                clientValidationErrors.value[question.question_id] = 'この項目は必須です'
-            }
-        } else if (question.question_type === 'rating' || question.question_type === 'scale') {
-            if (answer === null || answer === undefined) {
-                clientValidationErrors.value[question.question_id] = 'この項目は必須です'
-            }
-        } else {
-            // text, textarea, date など
-            if (answer === null || answer === undefined || (typeof answer === 'string' && answer.trim() === '')) {
-                clientValidationErrors.value[question.question_id] = 'この項目は必須です'
-            }
-        }
+      form.status = status
+      
+      form.post(route('surveys.submit', props.survey.survey_id), {
+          preserveScroll: true,
+          onError: (errors) => {
+              console.error('送信エラー:', errors);
+          },
+      });
+  }
+  
+  const cancel = () => {
+      router.get(route('surveys'))
+  }
+  
+  const saveMessage = ref('')
+  const saveMessageType = ref<'success' | 'error'>('success')
+  const saveMessageTimer = ref<number | null>(null)
+  
+  const showSaveMessage = (message: string, type: 'success' | 'error' = 'success') => {
+      if (saveMessageTimer.value) {
+          clearTimeout(saveMessageTimer.value)
+      }
+      
+      saveMessage.value = message
+      saveMessageType.value = type
+      
+      saveMessageTimer.value = setTimeout(() => {
+          saveMessage.value = ''
+      }, 4000)
+  }
+  
+  const page = usePage()
+  
+  onMounted(() => {
+    const flash = (page.props as any).flash?.success
+    if (flash) {
+      showSaveMessage(flash, 'success')
     }
-
-    if (Object.keys(clientValidationErrors.value).length > 0) {
-        nextTick(() => {
-            const firstErrorId = Object.keys(clientValidationErrors.value)[0]
-            const element = document.getElementById(`question_${firstErrorId}`)
-            element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        })
-        return false
-    }
-    return true
-}
-
-const submitAnswer = (status: 'draft' | 'submitted' = 'submitted') => {
-    console.log('\n>>> submitAnswer called, status:', status)
-
-    // 一時保存の場合はバリデーションをスキップ
-    if (status === 'submitted') {
-        const isValid = validateAnswers()
-        if (!isValid) {
-            console.log('>>> BLOCKED: Validation failed!')
-            return
-        }
-    }
-
-    form.status = status
-    console.log('>>> Proceeding with submission...')
-
-    form.post(route('surveys.submit', props.survey.survey_id), {
-        preserveScroll: true,
-        onSuccess: () => {
-            console.log('>>> Submission successful')
-        },
-        onError: (errors) => {
-            console.error('送信エラー:', errors);
-            // サーバーエラーを表示
-            if (errors.error) {
-                alert(errors.error);
-            }
-        },
-    });
-}
-
-const cancel = () => {
-    router.get(route('surveys'))
-}
-</script>
-
-<template>
+  })
+  </script>
+  
+  <template>
     <Head :title="`${survey.title} - 回答`" />
 
     <div class="h-full p-6">
@@ -253,5 +248,27 @@ const cancel = () => {
                 </div>
             </div>
         </Card>
-    </div>
-</template>
+      </div>
+      
+      <!-- 保存メッセージ -->
+      <Transition
+        enter-active-class="transition ease-out duration-300"
+        enter-from-class="transform opacity-0 translate-y-full"
+        enter-to-class="transform opacity-100 translate-y-0"
+        leave-active-class="transition ease-in duration-200"
+        leave-from-class="transform opacity-100 translate-y-0"
+        leave-to-class="transform opacity-0 translate-y-full"
+      >
+        <div 
+          v-if="saveMessage"
+          :class="['fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 p-3 text-white rounded-lg shadow-lg',
+            saveMessageType === 'success' ? 'bg-green-500' : 'bg-red-500']"
+        >
+          <div class="flex items-center gap-2">
+            <CheckCircle v-if="saveMessageType === 'success'" class="h-5 w-5" />
+            <AlertCircle v-else class="h-5 w-5" />
+            <span class="font-medium">{{ saveMessage }}</span>
+          </div>
+        </div>
+      </Transition>
+  </template>
