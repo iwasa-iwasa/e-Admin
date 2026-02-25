@@ -261,7 +261,7 @@
               <template v-for="member in teamMembers" :key="member.id">
                 <div 
                   v-if="selectedMember === member.id" 
-                  class="px-2 py-1 mb-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                  class="px-2 py-2 my-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40"
                   @click="handleMemberClick(member.id, currentURL)"
                 >
                   <div class="text-xs text-blue-700 dark:text-blue-300 font-medium">{{ member.name }} フィルター中</div>

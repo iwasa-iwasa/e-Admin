@@ -166,17 +166,17 @@ const formatDate = (dateString: string) => {
                 <TableCell>{{ user.department }}</TableCell>
                 <TableCell>
                   <div v-if="user.id === page.props.auth.user.id">
-                     <Badge variant="outline">{{ user.role }}</Badge>
+                     <Badge variant="outline">{{ user.role === 'admin' ? '管理者' : 'メンバー' }}</Badge>
                   </div>
                   <DropdownMenu v-else>
                     <DropdownMenuTrigger as-child>
                        <Badge variant="outline" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100 transition-colors">
-                         {{ user.role }} <ChevronDown class="h-3 w-3 ml-1" />
+                         {{ user.role === 'admin' ? '管理者' : 'メンバー' }} <ChevronDown class="h-3 w-3 ml-1" />
                        </Badge>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem @click="updateRole(user, 'member')">member</DropdownMenuItem>
-                      <DropdownMenuItem @click="updateRole(user, 'admin')">admin</DropdownMenuItem>
+                      <DropdownMenuItem @click="updateRole(user, 'member')">メンバー</DropdownMenuItem>
+                      <DropdownMenuItem @click="updateRole(user, 'admin')">管理者</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -253,7 +253,7 @@ const formatDate = (dateString: string) => {
           <DialogTitle>権限の変更確認</DialogTitle>
           <DialogDescription>
             {{ pendingRoleUpdate?.user.name }} さんの権限を 
-            <span class="font-bold">{{ pendingRoleUpdate?.role }}</span> に変更しますか？
+            <span class="font-bold">{{ pendingRoleUpdate?.role === 'admin' ? '管理者' : 'メンバー' }}</span> に変更しますか？
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
