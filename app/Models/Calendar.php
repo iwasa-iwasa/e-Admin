@@ -39,6 +39,8 @@ class Calendar extends Model
     protected $fillable = [
         'calendar_name',
         'calendar_type',
+        'owner_type',
+        'owner_id',
     ];
 
     /**
@@ -48,6 +50,7 @@ class Calendar extends Model
      */
     protected $casts = [
         'calendar_id' => 'integer',
+        'owner_id' => 'integer',
         'created_at' => 'datetime',
     ];
 
@@ -57,5 +60,21 @@ class Calendar extends Model
     public function events()
     {
         return $this->hasMany(Event::class, 'calendar_id');
+    }
+
+    /**
+     * Get the owner department (if owner_type is 'department').
+     */
+    public function ownerDepartment()
+    {
+        return $this->belongsTo(Department::class, 'owner_id');
+    }
+
+    /**
+     * Get the shared events for this calendar.
+     */
+    public function sharedEvents()
+    {
+        return $this->belongsToMany(Event::class, 'calendar_event_shares', 'calendar_id', 'event_id', 'calendar_id', 'event_id');
     }
 }

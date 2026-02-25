@@ -59,6 +59,8 @@ class Survey extends Model
         'is_active',
         'is_deleted',
         'deleted_at',
+        'visibility_type',
+        'owner_department_id',
         'version',
     ];
 
@@ -70,6 +72,8 @@ class Survey extends Model
     protected $casts = [
         'survey_id' => 'integer',
         'created_by' => 'integer',
+        'owner_department_id' => 'integer',
+        'version' => 'integer',
         'deadline_date' => 'date:Y-m-d',
         'is_active' => 'boolean',
         'is_deleted' => 'boolean',
@@ -128,5 +132,13 @@ class Survey extends Model
         
         $time = $this->deadline_time ?? '23:59:59';
         return $this->deadline_date . ' ' . $time;
+    }
+
+    /**
+     * Get the owner department of the survey.
+     */
+    public function ownerDepartment()
+    {
+        return $this->belongsTo(Department::class, 'owner_department_id');
     }
 }

@@ -61,6 +61,9 @@ class SharedNote extends Model
         'deadline_time',
         'progress',
         'is_deleted',
+        'visibility_type',
+        'owner_department_id',
+        'version',
     ];
 
     /**
@@ -71,6 +74,8 @@ class SharedNote extends Model
     protected $casts = [
         'note_id' => 'integer',
         'author_id' => 'integer',
+        'owner_department_id' => 'integer',
+        'version' => 'integer',
         'deadline' => 'date',
         'is_deleted' => 'boolean',
         'deleted_at' => 'datetime',
@@ -130,5 +135,13 @@ class SharedNote extends Model
     public function linkedEvent()
     {
         return $this->belongsTo(Event::class, 'linked_event_id', 'event_id');
+    }
+
+    /**
+     * Get the owner department of the note.
+     */
+    public function ownerDepartment()
+    {
+        return $this->belongsTo(Department::class, 'owner_department_id');
     }
 }
