@@ -7,9 +7,8 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 
-// 子コンポーネントのインポートパスを修正（画面構成を崩さない最小限の修正）
-import CreateNoteDialog from './Notes/CreateNoteDialog.vue' 
-import NoteDetailDialog from './Notes/NoteDetailDialog.vue' 
+import CreateNoteDialog from './CreateNoteDialog.vue' 
+import NoteDetailDialog from './NoteDetailDialog.vue' 
 
 type Priority = 'high' | 'medium' | 'low'
 type SortOrder = 'priority' | 'deadline'

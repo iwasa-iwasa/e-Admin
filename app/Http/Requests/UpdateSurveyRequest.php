@@ -36,6 +36,10 @@ class UpdateSurveyRequest extends FormRequest
             'questions.*.scaleMax' => ['nullable', 'integer'],
             'questions.*.scaleMinLabel' => ['nullable', 'string'],
             'questions.*.scaleMaxLabel' => ['nullable', 'string'],
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['string'],
+            'respondents' => ['nullable', 'array'],
+            'respondents.*' => ['integer', 'exists:users,id'],
             'confirm_reset' => ['boolean'],
         ];
     }

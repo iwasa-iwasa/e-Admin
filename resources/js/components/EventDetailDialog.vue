@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { formatDate } from '@/lib/utils'
-import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2, Clock, User, Tag, AlertCircle, Save, X } from 'lucide-vue-next'
+import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2, Clock, User, Tag, AlertCircle, Save, X, Copy } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,7 @@ const props = defineProps<{
     event: App.Models.ExpandedEvent | null,
     open: boolean 
 }>()
-const emit = defineEmits(['update:open', 'edit'])
+const emit = defineEmits(['update:open', 'edit', 'copy'])
 
 const page = usePage()
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
@@ -252,6 +252,40 @@ const handleEditOrView = () => {
 const closeDialog = () => {
   isEditMode.value = false
   emit('update:open', false)
+}
+
+const handleCopy = () => {
+  console.log('[EventDetailDialog] handleCopy called')
+  if (!props.event) return
+  
+  const copyData = {
+    title: `${props.event.title}（コピー）`,
+    category: props.event.category,
+    importance: props.event.importance,
+    location: props.event.location || '',
+    description: props.event.description || '',
+    url: props.event.url || '',
+    progress: props.event.progress ?? 0,
+    participants: props.event.participants?.map(p => p.id) || [],
+    date_range: [props.event.start_date, props.event.end_date],
+    is_all_day: props.event.is_all_day,
+    start_time: props.event.start_time?.slice(0, 5) || '09:00',
+    end_time: props.event.end_time?.slice(0, 5) || '10:00',
+  }
+  
+  console.log('[EventDetailDialog] Copy data:', copyData)
+  sessionStorage.setItem('event_copy_data', JSON.stringify(copyData))
+  
+  // 先にイベントを発火してからダイアログを閉じる
+  emit('copy')
+  console.log('[EventDetailDialog] copy event emitted')
+  
+  // nextTickで親コンポーネントが処理する時間を与える
+  setTimeout(() => {
+    emit('update:open', false)
+  }, 0)
+  
+  window.dispatchEvent(new CustomEvent('notification-updated'))
 }
 
 const handleDelete = () => {
@@ -1081,18 +1115,22 @@ const getNextOccurrence = (offset: number) => {
       </div>
 
       <DialogFooter class="flex-row justify-between gap-2">
-        <Button variant="outline" @click="isEditMode ? handleCancelEdit() : closeDialog()">
+        <Button variant="outline" size="sm" @click="isEditMode ? handleCancelEdit() : closeDialog()">
           {{ isEditMode ? 'キャンセル' : '閉じる' }}
         </Button>
         <div class="flex gap-2">
-          <Button v-if="!isEditMode" variant="outline" @click="handleEditOrView">
+          <Button v-if="!isEditMode" variant="outline" @click="handleCopy" size="sm" class="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-700 dark:hover:text-white">
+            <Copy class="h-4 w-4 mr-1" />
+            複製
+          </Button>
+          <Button v-if="!isEditMode" variant="outline" size="sm" @click="handleEditOrView">
             {{ canEdit ? '編集' : '確認完了' }}
           </Button>
-          <Button v-if="!isEditMode && canEdit" variant="outline" @click="handleDelete" size="sm" class="text-red-600 hover:text-red-700">
+          <Button v-if="isEditMode && canEdit" variant="outline" @click="handleDelete" size="sm" class="text-red-600 hover:text-red-700">
             <Trash2 class="h-4 w-4 mr-1" />
             削除
           </Button>
-          <Button v-if="isEditMode && canEdit" @click="handleSave" :disabled="form.processing" class="gap-2">
+          <Button v-if="isEditMode && canEdit" variant="outline" @click="handleSave" :disabled="form.processing" size="sm" class="gap-2">
             <Save class="h-4 w-4" />
             {{ form.processing ? '保存中...' : '保存' }}
           </Button>
