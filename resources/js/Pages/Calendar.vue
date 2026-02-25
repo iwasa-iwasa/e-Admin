@@ -16,6 +16,7 @@ const props = defineProps<{
   events: App.Models.ExpandedEvent[]
   filteredMemberId?: number | null
   teamMembers: App.Models.User[]
+  defaultView?: string
 }>()
 
 const filteredMember = computed(() => {
@@ -41,6 +42,7 @@ const isHelpOpen = ref(false)
                 :events="props.events" 
                 :show-back-button="true" 
                 :filtered-member-id="props.filteredMemberId"
+                :default-view="props.defaultView"
                 :is-help-open="isHelpOpen"
                 @update:is-help-open="isHelpOpen = $event"
             />

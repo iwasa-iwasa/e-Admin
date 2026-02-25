@@ -139,7 +139,8 @@ export const convertFromBackend = (survey: any): any => {
             ? `${survey.deadline_date}T${(survey.deadline_time || '23:59:00').slice(0, 5)}`
             : "",
         category: survey.category || "その他",
+        categories: survey.categories || [],
         questions: survey.questions?.map((q: any, index: number) => convertQuestionFromBackend(q, index)) || [],
-        respondents: survey.targeted_respondents?.map((r: any) => r.id) || []
+        respondents: survey.respondents || []
     };
 };

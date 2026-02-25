@@ -13,6 +13,8 @@ import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { ja } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
+import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
+import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import NoteDetailDialog from '@/components/NoteDetailDialog.vue'
 import ReminderDetailDialog from '@/components/ReminderDetailDialog.vue'
 
@@ -46,9 +48,11 @@ const dateType = ref('updated')
 const allUsers = ref<Array<{id: number, name: string}>>([])
 
 const selectedEvent = ref<App.Models.Event | null>(null)
+const isEventDetailDialogOpen = ref(false)
 const isEventDialogOpen = ref(false)
 const selectedNote = ref<App.Models.SharedNote | null>(null)
 const isNoteDialogOpen = ref(false)
+const isCreateNoteDialogOpen = ref(false)
 const selectedReminder = ref<any>(null)
 const isReminderDialogOpen = ref(false)
 
@@ -61,7 +65,6 @@ const typeOptions = [
 ]
 
 const loadRecentItems = async () => {
-    if (recentItemsLoaded.value) return
     try {
         const response = await fetch('/api/search?q=')
         const data = await response.json()
@@ -115,12 +118,28 @@ const handleNotificationUpdate = () => {
     }
 }
 
+const handleClickOutside = (event: MouseEvent) => {
+    if (!isResultsOpen.value) return
+    if (isEventDetailDialogOpen.value || isEventDialogOpen.value || isNoteDialogOpen.value || isReminderDialogOpen.value || isCreateNoteDialogOpen.value) {
+        return
+    }
+    const target = event.target as HTMLElement
+    const isDialogClick = target.closest('[role="dialog"]')
+    if (isDialogClick) return
+    
+    if (!target.closest('.search-results-container') && target !== searchInputRef.value && !searchInputRef.value?.contains(target)) {
+        isResultsOpen.value = false
+    }
+}
+
 onMounted(() => {
     window.addEventListener('notification-updated', handleNotificationUpdate)
+    document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
     window.removeEventListener('notification-updated', handleNotificationUpdate)
+    document.removeEventListener('click', handleClickOutside)
 })
 
 const loadUsersOnce = async () => {
@@ -149,6 +168,9 @@ watch(searchQuery, () => {
         searchTimeout.value = setTimeout(performSearch, 300)
     } else {
         searchResults.value = []
+        if (isResultsOpen.value) {
+            loadRecentItems()
+        }
     }
 })
 
@@ -178,7 +200,7 @@ const handleItemClick = async (item: SearchResult) => {
         const response = await fetch(`/api/events/${item.id}`)
         const event = await response.json()
         selectedEvent.value = event
-        isEventDialogOpen.value = true
+        isEventDetailDialogOpen.value = true
     } else if (item.type === 'note') {
         const response = await fetch(`/api/notes/${item.id}`)
         const note = await response.json()
@@ -196,6 +218,69 @@ const handleItemClick = async (item: SearchResult) => {
         isResultsOpen.value = false
         router.get(route('trash'), { highlight: item.id })
     }
+}
+
+const handleCopyEvent = () => {
+  console.log('[GlobalSearch] handleCopyEvent called')
+  const copyData = sessionStorage.getItem('event_copy_data')
+  console.log('[GlobalSearch] event_copy_data from sessionStorage:', copyData)
+  if (copyData) {
+    const data = JSON.parse(copyData)
+    const currentUserId = (usePage().props as any).auth?.user?.id ?? null
+    const teamMembers = (usePage().props as any).teamMembers || []
+    const me = teamMembers.find((m: any) => m.id === currentUserId)
+    
+    isEventDetailDialogOpen.value = false
+    isResultsOpen.value = true
+    
+    selectedEvent.value = {
+      event_id: 0,
+      title: data.title,
+      category: data.category,
+      importance: data.importance,
+      location: data.location,
+      description: data.description,
+      url: data.url,
+      progress: data.progress,
+      participants: me ? [me] : [],
+      start_date: data.date_range[0],
+      end_date: data.date_range[1],
+      is_all_day: data.is_all_day,
+      start_time: data.start_time,
+      end_time: data.end_time,
+    } as any
+    console.log('[GlobalSearch] selectedEvent set to:', selectedEvent.value)
+    isEventDialogOpen.value = true
+    console.log('[GlobalSearch] isEventDialogOpen set to true')
+  }
+}
+
+const handleCopyNote = () => {
+  isCreateNoteDialogOpen.value = true
+  setTimeout(() => {
+    isNoteDialogOpen.value = false
+  }, 50)
+}
+
+const handleCopyReminder = () => {
+  console.log('[GlobalSearch] handleCopyReminder called')
+  const copyData = sessionStorage.getItem('reminder_copy_data')
+  console.log('[GlobalSearch] reminder_copy_data from sessionStorage:', copyData)
+  if (copyData) {
+    const data = JSON.parse(copyData)
+    isResultsOpen.value = true
+    selectedReminder.value = {
+      reminder_id: 0,
+      title: data.title,
+      description: data.description,
+      deadline_date: data.deadline ? data.deadline.split('T')[0] : null,
+      deadline_time: data.deadline ? data.deadline.split('T')[1] : null,
+      tags: data.tags.map((name: string) => ({ tag_name: name })),
+    } as any
+    console.log('[GlobalSearch] selectedReminder set to:', selectedReminder.value)
+    isReminderDialogOpen.value = true
+    console.log('[GlobalSearch] isReminderDialogOpen set to true')
+  }
 }
 
 const clearSearch = () => {
@@ -249,7 +334,7 @@ const activeFiltersText = computed(() => {
 
 const handleBlur = (event: FocusEvent) => {
     setTimeout(() => {
-        if (isEventDialogOpen.value || isNoteDialogOpen.value || isReminderDialogOpen.value) {
+        if (isEventDetailDialogOpen.value || isEventDialogOpen.value || isNoteDialogOpen.value || isReminderDialogOpen.value || isCreateNoteDialogOpen.value) {
             return
         }
         const relatedTarget = event.relatedTarget as HTMLElement
@@ -311,7 +396,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                 >
                     <X class="h-4 w-4" />
                 </button>
-                <div v-if="isResultsOpen" class="search-results-container absolute top-full left-0 mt-2 w-[600px] p-0 max-h-[500px] overflow-hidden flex flex-col z-50 rounded-md border border-gray-300 dark:border-border bg-background shadow-md">
+                <div v-if="isResultsOpen" class="search-results-container absolute top-full left-0 mt-2 w-[600px] p-0 max-h-[500px] overflow-hidden flex flex-col z-[40] rounded-md border-4 border-border dark:border-gray-600 bg-background shadow-md">
                     <div v-if="isSearching" class="p-8 text-center text-muted-foreground">
                         <div class="animate-pulse">検索中...</div>
                     </div>
@@ -325,13 +410,13 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         <div class="text-xs mt-2">アイテムを作成するとここに表示されます</div>
                     </div>
                     <div v-else-if="searchQuery.length < 2 && recentItems.length > 0" class="overflow-y-auto">
-                        <div class="p-3 border-b bg-muted/50">
+                        <div class="p-3 border-b-2 border-border dark:border-gray-600 bg-muted/50">
                             <div class="text-xs font-medium text-muted-foreground">最近作成・編集したアイテム ({{ recentItems.length }}件)</div>
                         </div>
                         <div
                             v-for="result in recentItems"
                             :key="`${result.type}-${result.id}`"
-                            class="p-3 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 dark:border-border"
+                            class="p-3 hover:bg-muted/50 cursor-pointer border-b-2 last:border-b-0 border-border dark:border-gray-600"
                             @mousedown.prevent="handleItemClick(result)"
                         >
                             <div class="flex items-start gap-3">
@@ -361,7 +446,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         <div
                             v-for="result in searchResults"
                             :key="`${result.type}-${result.id}`"
-                            class="p-3 hover:bg-muted/50 cursor-pointer border-b last:border-b-0 dark:border-border"
+                            class="p-3 hover:bg-muted/50 cursor-pointer border-b-2 last:border-b-0 border-border dark:border-gray-600"
                             @mousedown.prevent="handleItemClick(result)"
                         >
                             <div class="flex items-start gap-3">
@@ -399,7 +484,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         </Badge>
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent class="w-64 z-[100]" align="end" @interact-outside="(e) => { if (e.target?.closest?.('.dp__menu')) e.preventDefault() }">
+                <PopoverContent class="w-64 z-[45]" align="end" @interact-outside="(e) => { if (e.target?.closest?.('.dp__menu')) e.preventDefault() }">
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
                             <h4 class="font-medium text-sm">検索フィルター</h4>
@@ -431,7 +516,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                     <SelectTrigger class="h-8">
                                         <SelectValue placeholder="種類を選択" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent class="z-[46]">
                                         <SelectItem value="_all_">すべて</SelectItem>
                                         <SelectItem v-for="option in typeOptions" :key="option.value" :value="option.value">
                                             <div class="flex items-center gap-2">
@@ -467,7 +552,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                     <SelectTrigger class="h-8">
                                         <SelectValue placeholder="作成者を選択" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent class="z-[46]">
                                         <SelectItem value="_all_">すべて</SelectItem>
                                         <SelectItem v-for="user in allUsers" :key="user.id" :value="String(user.name)">
                                             {{ user.name }}
@@ -482,7 +567,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                     <SelectTrigger class="h-8">
                                         <SelectValue placeholder="参加者を選択" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent class="z-[46]">
                                         <SelectItem value="_all_">すべて</SelectItem>
                                         <SelectItem v-for="user in allUsers" :key="user.id" :value="String(user.name)">
                                             {{ user.name }}
@@ -516,6 +601,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         <Label for="date-from" class="text-xs text-muted-foreground">開始日（この日以降）</Label>
                                         <VueDatePicker
                                             v-model="dateFrom"
+                                            format="yyyy-MM-dd"
                                             :enable-time-picker="false"
                                             placeholder="開始日を選択"
                                             :locale="ja"
@@ -530,6 +616,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         <Label for="date-to" class="text-xs text-muted-foreground">終了日（この日まで）</Label>
                                         <VueDatePicker
                                             v-model="dateTo"
+                                            format="yyyy-MM-dd"
                                             :enable-time-picker="false"
                                             placeholder="終了日を選択"
                                             :locale="ja"
@@ -549,28 +636,49 @@ const canEditNote = (note: App.Models.SharedNote) => {
         </div>
     </div>
     
-    <CreateEventDialog
+    <EventDetailDialog
         v-if="selectedEvent"
         :key="selectedEvent.event_id"
+        :open="isEventDetailDialogOpen"
+        @update:open="isEventDetailDialogOpen = $event"
+        :event="selectedEvent"
+        @edit="() => { isEventDetailDialogOpen = false; isEventDialogOpen = true }"
+        @copy="handleCopyEvent"
+    />
+    
+    <CreateEventDialog
+        v-if="selectedEvent"
+        :key="`edit-${selectedEvent.event_id}`"
         :open="isEventDialogOpen"
         @update:open="isEventDialogOpen = $event"
         :event="selectedEvent"
-        :readonly="!canEditEvent(selectedEvent)"
+        :readonly="selectedEvent.event_id !== 0 && !canEditEvent(selectedEvent)"
     />
+    
+    <!-- Debug: {{ selectedEvent?.event_id }}, readonly: {{ selectedEvent && selectedEvent.event_id !== 0 && !canEditEvent(selectedEvent) }} -->
     
     <NoteDetailDialog
         v-if="selectedNote"
         :note="selectedNote"
         :open="isNoteDialogOpen"
-        @update:open="isNoteDialogOpen = $event"
+        @update:open="(val) => { isNoteDialogOpen = val; if (!val && !isCreateNoteDialogOpen) selectedNote = null }"
         :teamMembers="(usePage().props as any).teamMembers"
         :totalUsers="(usePage().props as any).totalUsers"
+        @copy="handleCopyNote"
     />
     
+    <CreateNoteDialog
+        v-if="selectedNote"
+        :open="isCreateNoteDialogOpen"
+        @update:open="(val) => { isCreateNoteDialogOpen = val; if (!val && !isNoteDialogOpen) selectedNote = null }"
+        :team-members="(usePage().props as any).teamMembers"
+    />
+
     <ReminderDetailDialog
         v-if="selectedReminder"
         :reminder="selectedReminder"
         :open="isReminderDialogOpen"
         @update:open="isReminderDialogOpen = $event"
+        @copy="handleCopyReminder"
     />
 </template>

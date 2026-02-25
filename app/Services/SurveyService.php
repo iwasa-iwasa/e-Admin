@@ -33,6 +33,7 @@ class SurveyService
             $survey = Survey::create([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
+                'categories' => !empty($data['categories']) ? $data['categories'] : null,
                 'created_by' => Auth::id(),
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
@@ -80,6 +81,7 @@ class SurveyService
             $survey->update([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
+                'categories' => !empty($data['categories']) ? $data['categories'] : null,
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
             ]);
@@ -92,6 +94,27 @@ class SurveyService
             // 質問の更新（Reconciliation）
             if (! $onlyDeadlineChanged) {
                 $this->reconcileQuestions($survey, $data['questions']);
+            }
+
+            // 回答者の更新（完全同期）
+            if (isset($data['respondents'])) {
+                $existingRespondents = $survey->respondents()->pluck('user_id')->toArray();
+                $newRespondents = $data['respondents'];
+                
+                // 削除する回答者
+                $toRemove = array_diff($existingRespondents, $newRespondents);
+                if (!empty($toRemove)) {
+                    $survey->respondents()->whereIn('user_id', $toRemove)->delete();
+                }
+                
+                // 追加する回答者
+                $toAdd = array_diff($newRespondents, $existingRespondents);
+                foreach ($toAdd as $userId) {
+                    SurveyRespondent::create([
+                        'survey_id' => $survey->survey_id,
+                        'user_id' => $userId,
+                    ]);
+                }
             }
 
             return $survey;
@@ -129,6 +152,11 @@ class SurveyService
      */
     public function saveAnswer(Survey $survey, array $answers, int $userId, string $status = 'submitted')
     {
+        // 送信時のみ必須項目をバリデーション
+        if ($status === 'submitted') {
+            $this->validateRequiredAnswers($survey, $answers);
+        }
+        
         return DB::transaction(function () use ($survey, $answers, $userId, $status) {
             // 回答データを整形 (question_id => value)
             // 必要であれば質問テキストなどのメタデータもここで付与できるが、
@@ -153,6 +181,38 @@ class SurveyService
 
             return $response;
         });
+    }
+
+    /**
+     * Validate required answers.
+     */
+    private function validateRequiredAnswers(Survey $survey, array $answers)
+    {
+        $requiredQuestions = $survey->questions()->where('is_required', true)->get();
+        
+        foreach ($requiredQuestions as $question) {
+            $answer = $answers[$question->question_id] ?? null;
+            
+            // 回答が空かチェック
+            if ($question->question_type === 'multiple_choice') {
+                if (empty($answer) || (is_array($answer) && count($answer) === 0)) {
+                    throw new \Exception("必須項目「{$question->question_text}」に回答してください。");
+                }
+            } elseif (in_array($question->question_type, ['single_choice', 'dropdown'])) {
+                if ($answer === null || $answer === '') {
+                    throw new \Exception("必須項目「{$question->question_text}」に回答してください。");
+                }
+            } elseif (in_array($question->question_type, ['rating', 'scale'])) {
+                if ($answer === null) {
+                    throw new \Exception("必須項目「{$question->question_text}」に回答してください。");
+                }
+            } else {
+                // text, textarea, date など
+                if ($answer === null || (is_string($answer) && trim($answer) === '')) {
+                    throw new \Exception("必須項目「{$question->question_text}」に回答してください。");
+                }
+            }
+        }
     }
 
     /**
@@ -335,7 +395,15 @@ class SurveyService
      */
     private function saveQuestions(Survey $survey, array $questionsData)
     {
+        \Log::info('saveQuestions called', ['questionsData' => $questionsData]);
+        
         foreach ($questionsData as $index => $questionData) {
+            \Log::info('Processing question', [
+                'index' => $index,
+                'questionData' => $questionData,
+                'required' => $questionData['required'] ?? 'NOT SET'
+            ]);
+            
             $questionType = $this->mapQuestionType($questionData['type']);
 
             $question = SurveyQuestion::create([
@@ -349,6 +417,8 @@ class SurveyService
                 'scale_min_label' => $questionData['scaleMinLabel'] ?? null,
                 'scale_max_label' => $questionData['scaleMaxLabel'] ?? null,
             ]);
+            
+            \Log::info('Question created', ['question_id' => $question->question_id, 'is_required' => $question->is_required]);
 
             if (in_array($questionData['type'], ['single', 'multiple', 'dropdown']) && ! empty($questionData['options'])) {
                 foreach ($questionData['options'] as $optionIndex => $optionData) {

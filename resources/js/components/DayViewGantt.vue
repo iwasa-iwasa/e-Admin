@@ -47,16 +47,16 @@ const scopeRanges = computed(() => {
             const currentHour = nowRef.value.getHours()
             const start = Math.max(DAY_START_MIN, currentHour * 60)
             const end = Math.min(DAY_END_MIN, start + 240)
-            return { start, end }
+            return { start, end, label: '現在の4時間' }
         }
         case 'before':
-            return { start: DAY_START_MIN, end: 11 * 60 }
+            return { start: DAY_START_MIN, end: 11 * 60, label: '前 (7:00-11:00)' }
         case 'middle':
-            return { start: 11 * 60, end: 15 * 60 }
+            return { start: 11 * 60, end: 15 * 60, label: '中 (11:00-15:00)' }
         case 'after':
-            return { start: 15 * 60, end: DAY_END_MIN }
+            return { start: 15 * 60, end: DAY_END_MIN, label: '後 (15:00-19:00)' }
         default:
-            return { start: DAY_START_MIN, end: DAY_END_MIN }
+            return { start: DAY_START_MIN, end: DAY_END_MIN, label: '全体' }
     }
 })
 
@@ -529,9 +529,18 @@ type StackedEvent = DisplayEvent & {
         <div class="summary-table">
             <div class="summary-header">
                 <div class="summary-cell">メンバー</div>
-                <div class="summary-cell clickable" @click="emit('select-scope','before')">前</div>
-                <div class="summary-cell clickable" @click="emit('select-scope','middle')">中</div>
-                <div class="summary-cell clickable" @click="emit('select-scope','after')">後</div>
+                <div class="summary-cell clickable" @click="emit('select-scope','before')">
+                    <div class="font-medium">前</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">7:00-11:00</div>
+                </div>
+                <div class="summary-cell clickable" @click="emit('select-scope','middle')">
+                    <div class="font-medium">中</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">11:00-15:00</div>
+                </div>
+                <div class="summary-cell clickable" @click="emit('select-scope','after')">
+                    <div class="font-medium">後</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">15:00-19:00</div>
+                </div>
             </div>
             <div v-for="{ member, before, middle, after } in summaryByMember" :key="member.id" class="summary-row">
                 <div class="summary-cell">{{ member.name }}</div>
@@ -548,13 +557,13 @@ type StackedEvent = DisplayEvent & {
             </div>
             <div class="summary-row summary-total-row">
                 <div class="summary-cell total">合計</div>
-                <div class="summary-cell total">
+                <div class="summary-cell total clickable" @click="emit('select-scope','before')" :title="scopeRanges.label">
                     {{ formatCount(totalSummary.beforeEvents) }}
                 </div>
-                <div class="summary-cell total">
+                <div class="summary-cell total clickable" @click="emit('select-scope','middle')" :title="scopeRanges.label">
                     {{ formatCount(totalSummary.middleEvents) }}
                 </div>
-                <div class="summary-cell total">
+                <div class="summary-cell total clickable" @click="emit('select-scope','after')" :title="scopeRanges.label">
                     {{ formatCount(totalSummary.afterEvents) }}
                 </div>
             </div>

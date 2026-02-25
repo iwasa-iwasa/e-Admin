@@ -952,6 +952,7 @@ class EventService
                 'color' => $color,
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
+                'progress' => $data['progress'] ?? $sharedNote->progress,
             ]);
             
             if (isset($data['participants'])) {
@@ -968,6 +969,7 @@ class EventService
                 'linked_event_id' => $event->event_id,
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
+                'progress' => $data['progress'] ?? 0,
             ]);
             
             if (isset($data['participants'])) {

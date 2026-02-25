@@ -183,7 +183,7 @@ class PersonalReminderController extends Controller
                 ]);
             });
             
-            return Redirect::back();
+            return Redirect::back()->with('notification_updated', true);
         } catch (\Exception $e) {
             \Log::error('Complete reminder error: ' . $e->getMessage());
             return Redirect::back()->withErrors(['error' => 'リマインダーの完了に失敗しました']);
@@ -227,9 +227,9 @@ class PersonalReminderController extends Controller
             });
             
             if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'message' => 'リマインダーが元に戻されました']);
+                return response()->json(['success' => true, 'message' => 'リマインダーが元に戻されました', 'notification_updated' => true]);
             }
-            return redirect()->back();
+            return redirect()->back()->with(['success' => 'リマインダーが元に戻されました', 'notification_updated' => true]);
         } catch (\Exception $e) {
             \Log::error('Restore reminder error: ' . $e->getMessage());
             if ($request->expectsJson()) {
@@ -304,7 +304,7 @@ class PersonalReminderController extends Controller
                 }
             });
             
-            return redirect()->back();
+            return redirect()->back()->with('notification_updated', true);
         } catch (\Exception $e) {
             \Log::error('Bulk complete error: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => '一括完了に失敗しました']);
@@ -337,7 +337,7 @@ class PersonalReminderController extends Controller
                 }
             });
             
-            return redirect()->back();
+            return redirect()->back()->with('notification_updated', true);
         } catch (\Exception $e) {
             \Log::error('Bulk restore error: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => '一括復元に失敗しました']);
@@ -367,7 +367,7 @@ class PersonalReminderController extends Controller
                 }
             });
             
-            return redirect()->back();
+            return redirect()->back()->with('notification_updated', true);
         } catch (\Exception $e) {
             \Log::error('Bulk delete error: ' . $e->getMessage());
             return redirect()->back()->withErrors(['error' => '一括削除に失敗しました']);

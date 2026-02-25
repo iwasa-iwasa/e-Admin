@@ -102,6 +102,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
          Route::get('/', 'index')->name('');
          Route::post('/', 'update')->name('.update');
     });
+    
+    // Calendar Settings
+    Route::get('/calendar/settings', [CalendarController::class, 'settings'])->name('calendar.settings');
+    Route::post('/calendar/settings', [CalendarController::class, 'updateSettings'])->name('calendar.settings.update');
 
     // Member Calendar Route Removed
 

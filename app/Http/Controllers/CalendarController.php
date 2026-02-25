@@ -33,14 +33,15 @@ class CalendarController extends Controller
     public function index(Request $request)
     {
         $memberId = $request->query('member_id');
-        // Initial load does not fetch events, they are fetched via API
         $events = []; 
         $teamMembers = \App\Models\User::where('is_active', true)->get();
+        $user = auth()->user();
 
         return Inertia::render('Calendar', [
             'events' => $events,
             'filteredMemberId' => $memberId ? (int)$memberId : null,
             'teamMembers' => $teamMembers,
+            'defaultView' => $user->calendar_default_view ?? 'dayGridMonth',
         ]);
     }
 
@@ -227,6 +228,42 @@ class CalendarController extends Controller
     public function restore($eventId)
     {
         $this->eventService->restoreEvent($eventId);
-        return redirect()->back();
+        return redirect()->back()->with(['success' => '予定を復元しました。', 'notification_updated' => true]);
+    }
+    
+    /**
+     * Show calendar settings page.
+     *
+     * @return \Inertia\Response
+     */
+    public function settings()
+    {
+        $user = auth()->user();
+        $settings = [
+            'default_view' => $user->calendar_default_view ?? 'dayGridMonth',
+        ];
+        
+        return inertia('Calendar/Settings', [
+            'settings' => $settings,
+        ]);
+    }
+    
+    /**
+     * Update calendar settings.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'default_view' => 'required|in:yearView,dayGridMonth,timeGridWeek,timeGridDay',
+        ]);
+        
+        $user = auth()->user();
+        $user->calendar_default_view = $validated['default_view'];
+        $user->save();
+        
+        return redirect()->route('dashboard')->with('success', '設定を保存しました');
     }
 }

@@ -79,6 +79,7 @@ class DashboardController extends Controller
             'filteredMemberId' => $memberId ? (int)$memberId : null,
             'teamMembers' => $teamMembers,
             'totalUsers' => $teamMembers->count(),
+            'defaultView' => auth()->user()->calendar_default_view ?? 'dayGridMonth',
         ]);
     }
 }

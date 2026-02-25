@@ -52,6 +52,7 @@ class Survey extends Model
     protected $fillable = [
         'title',
         'description',
+        'categories',
         'created_by',
         'deadline_date',
         'deadline_time',
@@ -77,6 +78,7 @@ class Survey extends Model
         'is_active' => 'boolean',
         'is_deleted' => 'boolean',
         'deleted_at' => 'datetime',
+        'categories' => 'array',
     ];
 
     /**

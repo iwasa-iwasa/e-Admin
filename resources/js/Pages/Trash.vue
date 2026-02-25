@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { Trash2, ArrowLeft, RotateCcw, X, Calendar as CalendarIcon, StickyNote, BarChart3, ArrowUp, ArrowDown, Bell, CheckCircle, Undo2, Filter, Search, HelpCircle, AlertCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -202,6 +202,8 @@ const handleRestore = (id: string) => {
       trashItems.value = trashItems.value.filter((i) => i.id !== id)
       const itemTypeLabel = getItemTypeInfo(item.type).label
       showMessage(`${itemTypeLabel}が元に戻されました。`, 'success')
+      // 通知センターを更新
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: (errors) => {
       console.error('Restore error:', errors)
@@ -306,6 +308,8 @@ const confirmRestoreSelected = () => {
       trashItems.value = trashItems.value.filter(item => !restoredIds.includes(item.id))
       selectedItems.value.clear()
       showMessage(`${itemsToRestore.length}件のアイテムを復元しました`, 'success')
+      // 通知センターを更新
+      window.dispatchEvent(new CustomEvent('notification-updated'))
     },
     onError: (errors) => {
       console.error('Restore error:', errors)
@@ -346,7 +350,18 @@ onMounted(() => {
       }, 500)
     })
   }
+  
+  // 通知センターからの削除を検知してゴミ箱を更新
+  window.addEventListener('trash-updated', handleTrashUpdate)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('trash-updated', handleTrashUpdate)
+})
+
+const handleTrashUpdate = () => {
+  router.reload({ only: ['trashItems'], preserveScroll: true })
+}
 </script>
 
 <template>
@@ -649,14 +664,14 @@ onMounted(() => {
 
     <!-- ダイアログ（元のまま） -->
     <AlertDialog :open="itemToDelete !== null">
-      <AlertDialogContent class="bg-background">
+      <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>完全に削除しますか？</AlertDialogTitle>
+          <AlertDialogTitle>完全に削除しますか?</AlertDialogTitle>
           <AlertDialogDescription>このアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="itemToDelete = null" class="hover:bg-gray-100">キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="handlePermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
+          <AlertDialogCancel @click="itemToDelete = null" class="hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="handlePermanentDelete" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 dark:bg-red-700 dark:hover:bg-red-800">
             完全に削除
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -664,16 +679,16 @@ onMounted(() => {
     </AlertDialog>
 
     <AlertDialog :open="showRestoreSelectedDialog" @update:open="(open) => showRestoreSelectedDialog = open">
-      <AlertDialogContent class="bg-background">
+      <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {{ restoreMode === 'selected' ? `選択した${selectedItems.size}件を復元しますか？` : `選択以外の${sortedItems.length - selectedItems.size}件を復元しますか？` }}
+            {{ restoreMode === 'selected' ? `選択した${selectedItems.size}件を復元しますか?` : `選択以外の${sortedItems.length - selectedItems.size}件を復元しますか?` }}
           </AlertDialogTitle>
           <AlertDialogDescription>復元されたアイテムは元の場所に戻ります。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="confirmRestoreSelected" class="bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700">
+          <AlertDialogCancel class="hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="confirmRestoreSelected" class="bg-green-600 text-white border-green-600 hover:bg-green-700 hover:border-green-700 dark:bg-green-700 dark:hover:bg-green-800">
             復元
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -681,16 +696,16 @@ onMounted(() => {
     </AlertDialog>
 
     <AlertDialog :open="showDeleteSelectedDialog" @update:open="(open) => showDeleteSelectedDialog = open">
-      <AlertDialogContent class="bg-background">
+      <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {{ deleteMode === 'selected' ? `選択した${selectedItems.size}件を削除しますか？` : `選択以外の${sortedItems.length - selectedItems.size}件を削除しますか？` }}
+            {{ deleteMode === 'selected' ? `選択した${selectedItems.size}件を削除しますか?` : `選択以外の${sortedItems.length - selectedItems.size}件を削除しますか?` }}
           </AlertDialogTitle>
           <AlertDialogDescription>この操作は取り消せません。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="confirmDeleteSelected" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
+          <AlertDialogCancel class="hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="confirmDeleteSelected" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 dark:bg-red-700 dark:hover:bg-red-800">
             削除
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -698,14 +713,14 @@ onMounted(() => {
     </AlertDialog>
 
     <AlertDialog :open="showEmptyTrashDialog" @update:open="(open) => showEmptyTrashDialog = open">
-      <AlertDialogContent class="bg-background">
+      <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>ゴミ箱を空にしますか？</AlertDialogTitle>
+          <AlertDialogTitle>ゴミ箱を空にしますか?</AlertDialogTitle>
           <AlertDialogDescription>すべてのアイテムを完全に削除します。この操作は取り消せません。</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction @click="handleEmptyTrash" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700">
+          <AlertDialogCancel class="hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100">キャンセル</AlertDialogCancel>
+          <AlertDialogAction @click="handleEmptyTrash" class="bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 dark:bg-red-700 dark:hover:bg-red-800">
             ゴミ箱を空にする
           </AlertDialogAction>
         </AlertDialogFooter>

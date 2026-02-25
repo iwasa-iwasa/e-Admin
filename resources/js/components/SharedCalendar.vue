@@ -34,6 +34,7 @@ const props = defineProps<{
     events: App.Models.ExpandedEvent[]
     showBackButton?: boolean
     filteredMemberId?: number | null
+    defaultView?: string
     isHelpOpen?: boolean
 }>()
 
@@ -75,7 +76,7 @@ const {
     handleDateClickFromWeek,
     handleDateClick: handleDateClickFromCalendar,
     updateCalendarTitle 
-} = useCalendarView(fullCalendar)
+} = useCalendarView(fullCalendar, props.defaultView)
 
 // FullCalendar の現在表示中の日付を追跡
 const fullCalendarCurrentDate = ref(new Date())
@@ -268,6 +269,11 @@ let resizeObserver: ResizeObserver | null = null
 let removeInertiaListener: (() => void) | null = null
 
 onMounted(() => {
+    // 初期ビューを設定
+    if (props.defaultView) {
+        changeView(props.defaultView)
+    }
+    
     // Resize handler
     resizeHandler = () => {
         const api = fullCalendar.value?.getApi()
@@ -386,6 +392,36 @@ const openEditDialog = (eventId: number) => {
     const event = unifiedEventData.value.find(e => e.event_id === eventId)
     if (event) {
         editingEvent.value = event as any
+        isEventFormOpen.value = true
+    }
+}
+
+const handleCopyEvent = () => {
+    const copyData = sessionStorage.getItem('event_copy_data')
+    if (copyData) {
+        const data = JSON.parse(copyData)
+        const currentUserId = (page.props as any).auth?.user?.id ?? null
+        const teamMembers = (page.props as any).teamMembers || []
+        const me = teamMembers.find((m: any) => m.id === currentUserId)
+        
+        selectedEvent.value = null
+        
+        editingEvent.value = {
+            event_id: 0,
+            title: data.title,
+            category: data.category,
+            importance: data.importance,
+            location: data.location,
+            description: data.description,
+            url: data.url,
+            progress: data.progress,
+            participants: me ? [me] : [],
+            start_date: data.date_range[0],
+            end_date: data.date_range[1],
+            is_all_day: data.is_all_day,
+            start_time: data.start_time,
+            end_time: data.end_time,
+        } as any
         isEventFormOpen.value = true
     }
 }
@@ -705,8 +741,8 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                         @click="handleScopeButtonClick(s.value)"
                         class="px-2 py-1 rounded transition whitespace-nowrap"
                         :class="activeScope === s.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                        ? 'bg-blue-600 text-white dark:bg-blue-500'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'"
                     >
                         {{ s.label }}
                     </Button>
@@ -718,6 +754,8 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
             :event="selectedEvent"
             :open="selectedEvent !== null"
             @update:open="(isOpen) => !isOpen && (selectedEvent = null)"
+            @edit="() => { selectedEvent = null; isEventFormOpen = true }"
+            @copy="handleCopyEvent"
         />
 
         <CreateEventDialog
@@ -762,7 +800,7 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                             'text-gray-600': hoveredEvent.importance === '低'
                         }">{{ hoveredEvent.importance }}</span>
                     </div>
-                    <div v-if="hoveredEvent.progress !== undefined && hoveredEvent.progress !== null" class="flex items-center gap-2">
+                    <div v-if="hoveredEvent.progress !== undefined && hoveredEvent.progress !== null && hoveredEvent.category !== '休暇'" class="flex items-center gap-2">
                         <span class="text-xs text-gray-500">進捗:</span>
                         <div 
                             class="flex-1 h-1.5 rounded-full overflow-hidden"
@@ -970,6 +1008,20 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
 }
 .fc-day-today {
     background-color: hsl(var(--primary) / 0.1) !important;
+    border: 3px solid #3b82f6 !important;
+}
+.dark .fc-day-today {
+    border-color: #60a5fa !important;
+}
+/* 年表示での今日の日付を強調 */
+.fc-multiMonthYear-view .fc-day-today {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    border: 3px solid #3b82f6 !important;
+    font-weight: 700 !important;
+}
+.dark .fc-multiMonthYear-view .fc-day-today {
+    background-color: rgba(96, 165, 250, 0.2) !important;
+    border-color: #60a5fa !important;
 }
 .fc-event {
     cursor: pointer;
