@@ -515,7 +515,7 @@ const editedProgress = computed({
                 {{ getPriorityInfo(currentNote.priority as Priority).label }}
               </Badge>
               <Button
-                v-if="currentNote.is_pinned !== undefined"
+                v-if="currentNote.is_pinned !== undefined && !isEditing"
                 variant="outline"
                 size="sm"
                 @click="handleTogglePin"
