@@ -435,8 +435,8 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         {{ result.description }}
                                     </div>
                                     <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span>{{ result.creator }}</span>
-                                        <span v-if="result.date">• {{ new Date(result.date).toLocaleDateString('ja-JP') }}</span>
+                                        <span>作成者: {{ result.creator }}</span>
+                                        <span v-if="result.date">• 作成日: {{ new Date(result.date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/') }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -465,8 +465,8 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         {{ result.description }}
                                     </div>
                                     <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span>{{ result.creator }}</span>
-                                        <span v-if="result.date">• {{ new Date(result.date).toLocaleDateString('ja-JP') }}</span>
+                                        <span>作成者: {{ result.creator }}</span>
+                                        <span v-if="result.date">• 作成日: {{ new Date(result.date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/') }}</span>
                                     </div>
                                 </div>
                             </div>

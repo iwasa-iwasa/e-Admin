@@ -363,6 +363,25 @@ const handleEventHover = (event: App.Models.ExpandedEvent | null, mouseEvent: Mo
     }
 }
 
+const formatEventTime = (event: App.Models.ExpandedEvent) => {
+    const startDate = event.start_date?.split('T')[0] || ''
+    const endDate = event.end_date?.split('T')[0] || ''
+    const startTime = event.start_time ? event.start_time.substring(0, 5) : ''
+    const endTime = event.end_time ? event.end_time.substring(0, 5) : ''
+    
+    const startYear = startDate.substring(0, 4)
+    const endYear = endDate.substring(0, 4)
+    const startMonth = parseInt(startDate.substring(5, 7))
+    const startDay = parseInt(startDate.substring(8, 10))
+    const endMonth = parseInt(endDate.substring(5, 7))
+    const endDay = parseInt(endDate.substring(8, 10))
+    
+    if (startYear === endYear) {
+        return `${startMonth}/${startDay} ${startTime}〜${endMonth}/${endDay} ${endTime}`
+    }
+    return `${startDate} ${startTime}〜${endDate} ${endTime}`
+}
+
 watch(
   () => props.timeScope,
   (scope) => {
@@ -658,8 +677,8 @@ type StackedEvent = DisplayEvent & {
                             >
                                 <div class="event-content">
                                     <div class="event-title">{{ event.original.title }}</div>
-                                    <div class="event-creator" v-if="event.original.creator?.name">
-                                        作成者: {{ event.original.creator.name }}
+                                    <div class="event-time">
+                                        {{ formatEventTime(event.original) }}
                                     </div>
                                 </div>
                             </div>
@@ -726,8 +745,8 @@ type StackedEvent = DisplayEvent & {
                             >
                                 <div class="event-content">
                                     <div class="event-title">{{ event.original.title }}</div>
-                                    <div class="event-participants" v-if="event.original.participants && event.original.participants.length > 0">
-                                        {{ event.original.participants.map(p => p.name).join(', ') }}
+                                    <div class="event-time">
+                                        {{ formatEventTime(event.original) }}
                                     </div>
                                 </div>
                             </div>
@@ -1142,7 +1161,7 @@ type StackedEvent = DisplayEvent & {
     text-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.2);
 }
 
-.event-creator {
+.event-time {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
