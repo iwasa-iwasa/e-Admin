@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { formatDate } from '@/lib/utils'
 import { Calendar as CalendarIcon, Users, MapPin, Info, Link as LinkIcon, Paperclip, Repeat, Trash2, CheckCircle, Undo2, Clock, User, Tag, AlertCircle, Save, X, Copy } from 'lucide-vue-next'
+import { CATEGORY_LABELS, CATEGORY_COLORS, loadCategoryLabels } from '@/constants/calendar'
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,12 @@ const emit = defineEmits(['update:open', 'edit', 'copy'])
 const page = usePage()
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
 const teamMembers = computed(() => (page.props as any).teamMembers || [])
+
+onMounted(() => {
+  loadCategoryLabels()
+  const handleCategoryUpdate = () => loadCategoryLabels()
+  window.addEventListener('category-labels-updated', handleCategoryUpdate)
+})
 
 // 編集権限チェック
 const canEdit = computed(() => {
@@ -598,16 +605,16 @@ const recurrenceText = computed(() => {
 });
 
 const getCategoryColor = (cat: string) => {
-  switch (cat) {
-    case '会議': return 'bg-[#3b82f6]'
-    case '業務': return 'bg-[#66bb6a]'
-    case '来客': return 'bg-[#ffa726]'
-    case '出張・外出': return 'bg-[#9575cd]'
-    case '出張': return 'bg-[#9575cd]'
-    case '休暇': return 'bg-[#f06292]'
-    case 'その他': return 'bg-gray-500'
-    default: return 'bg-gray-500'
+  const categoryMap: Record<string, string> = {
+    '会議': CATEGORY_COLORS['会議'],
+    '業務': CATEGORY_COLORS['業務'],
+    '来客': CATEGORY_COLORS['来客'],
+    '出張': CATEGORY_COLORS['出張・外出'],
+    '出張・外出': CATEGORY_COLORS['出張・外出'],
+    '休暇': CATEGORY_COLORS['休暇'],
+    'その他': CATEGORY_COLORS['その他'],
   }
+  return categoryMap[cat] || CATEGORY_COLORS['その他']
 }
 
 const getImportanceColor = (imp: string) => {
@@ -728,8 +735,8 @@ const getNextOccurrence = (offset: number) => {
               <div class="flex gap-4 pl-4 border-l border-gray-300 dark:border-gray-600">
                 <div>
                   <Label class="text-xs text-gray-500 dark:text-gray-400 mb-1">ジャンル</Label>
-                  <Badge :class="[getCategoryColor(event.category), 'text-white']">
-                    {{ event.category }}
+                  <Badge :style="{ backgroundColor: getCategoryColor(event.category) }" class="text-white">
+                    {{ CATEGORY_LABELS[event.category] || event.category }}
                   </Badge>
                 </div>
                 <div>
@@ -752,51 +759,51 @@ const getNextOccurrence = (offset: number) => {
               <Select v-model="form.category">
                 <SelectTrigger>
                   <div class="flex items-center gap-2">
-                    <div :class="['w-3 h-3 rounded-full', getCategoryColor(form.category)]"></div>
+                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryColor(form.category) }"></div>
                     <SelectValue />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="会議">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
-                      <span>会議</span>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryColor('会議') }"></div>
+                      <span>{{ CATEGORY_LABELS['会議'] || '会議' }}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="業務">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-[#66bb6a]"></div>
-                      <span>業務</span>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryColor('業務') }"></div>
+                      <span>{{ CATEGORY_LABELS['業務'] || '業務' }}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="来客">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-[#ffa726]"></div>
-                      <span>来客</span>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryColor('来客') }"></div>
+                      <span>{{ CATEGORY_LABELS['来客'] || '来客' }}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="出張・外出">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-[#9575cd]"></div>
-                      <span>出張・外出</span>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryColor('出張・外出') }"></div>
+                      <span>{{ CATEGORY_LABELS['出張・外出'] || '出張・外出' }}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="出張">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-[#9575cd]"></div>
-                      <span>出張</span>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryColor('出張') }"></div>
+                      <span>{{ CATEGORY_LABELS['出張・外出'] || '出張' }}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="休暇">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-[#f06292]"></div>
-                      <span>休暇</span>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryColor('休暇') }"></div>
+                      <span>{{ CATEGORY_LABELS['休暇'] || '休暇' }}</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="その他">
                     <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full bg-gray-500"></div>
-                      <span>その他</span>
+                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: getCategoryColor('その他') }"></div>
+                      <span>{{ CATEGORY_LABELS['その他'] || 'その他' }}</span>
                     </div>
                   </SelectItem>
                 </SelectContent>

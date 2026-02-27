@@ -14,7 +14,7 @@ import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import RecurrenceEditScopeDialog from '@/components/RecurrenceEditScopeDialog.vue'
 import ScrollArea from './ui/scroll-area/ScrollArea.vue'
-import { CATEGORY_COLORS, CATEGORY_LABELS, GENRE_FILTERS, getEventColor, getCategoryItems } from '@/constants/calendar'
+import { CATEGORY_COLORS, CATEGORY_LABELS, GENRE_FILTERS, getEventColor, getCategoryItems, loadCategoryLabels } from '@/constants/calendar'
 
 const DayViewGantt = defineAsyncComponent(() => import('@/components/DayViewGantt.vue'))
 const WeekSummaryView = defineAsyncComponent(() => import('@/components/WeekSummaryView.vue'))
@@ -269,6 +269,13 @@ let resizeObserver: ResizeObserver | null = null
 let removeInertiaListener: (() => void) | null = null
 
 onMounted(() => {
+    // カテゴリーラベルを読み込む
+    loadCategoryLabels()
+    
+    // カテゴリーラベル更新イベントをリッスン
+    const handleCategoryUpdate = () => loadCategoryLabels()
+    window.addEventListener('category-labels-updated', handleCategoryUpdate)
+    
     // 初期ビューを設定
     if (props.defaultView) {
         changeView(props.defaultView)
@@ -719,12 +726,12 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                     <div v-for="item in displayCategoryItems" :key="item.label" class="flex items-center gap-1.5 transition-all duration-200"
                         :class="{
                             'ring-2 ring-blue-500 ring-offset-1 rounded px-1 py-0.5': 
-                                (genreFilter as string) === GENRE_FILTERS.BLUE && item.label === '会議' ||
-                                (genreFilter as string) === GENRE_FILTERS.GREEN && item.label === '業務' ||
-                                (genreFilter as string) === GENRE_FILTERS.YELLOW && item.label === '来客' ||
-                                (genreFilter as string) === GENRE_FILTERS.PURPLE && item.label === '出張・外出' ||
-                                (genreFilter as string) === GENRE_FILTERS.PINK && item.label === '休暇' ||
-                                (genreFilter as string) === GENRE_FILTERS.OTHER && item.label === 'その他'
+                                (genreFilter as string) === GENRE_FILTERS.BLUE && item.label === CATEGORY_LABELS['会議'] ||
+                                (genreFilter as string) === GENRE_FILTERS.GREEN && item.label === CATEGORY_LABELS['業務'] ||
+                                (genreFilter as string) === GENRE_FILTERS.YELLOW && item.label === CATEGORY_LABELS['来客'] ||
+                                (genreFilter as string) === GENRE_FILTERS.PURPLE && item.label === CATEGORY_LABELS['出張・外出'] ||
+                                (genreFilter as string) === GENRE_FILTERS.PINK && item.label === CATEGORY_LABELS['休暇'] ||
+                                (genreFilter as string) === GENRE_FILTERS.OTHER && item.label === CATEGORY_LABELS['その他']
                         }"
                     >
                         <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>

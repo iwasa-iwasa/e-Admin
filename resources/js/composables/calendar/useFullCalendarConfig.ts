@@ -124,9 +124,9 @@ export function useFullCalendarConfig(
             
             if (holidayName) {
                 return {
-                    html: `<div class="fc-daygrid-day-top">
+                    html: `<div class="fc-daygrid-day-top" style="flex-direction: column; align-items: flex-start;">
                         <a class="fc-daygrid-day-number ${dayColor}">${dayNumber}</a>
-                        <div class="text-[9px] ${dayColor} font-medium mt-0.5 leading-tight">${holidayName}</div>
+                        <div class="text-[9px] ${dayColor} font-medium leading-tight" style="margin-top: 2px;">${holidayName}</div>
                     </div>`
                 }
             }

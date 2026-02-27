@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { User, Clock, Edit2, Save, X, MapPin, Trash2, CheckCircle, Undo2, Copy } from 'lucide-vue-next'
 import { router, usePage } from '@inertiajs/vue3'
 import { ja } from "date-fns/locale";
 import '@vuepic/vue-datepicker/dist/main.css';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
+import { CATEGORY_LABELS, CATEGORY_COLORS, loadCategoryLabels } from '@/constants/calendar'
 import {
   Dialog,
   DialogContent,
@@ -192,14 +193,21 @@ const getColorClass = (color: string) => {
 
 const getColorInfo = (c: string) => {
   const colorMap: Record<string, { bg: string; label: string }> = {
-    blue: { bg: 'bg-blue-100 dark:bg-blue-500', label: '会議' },
-    green: { bg: 'bg-green-100 dark:bg-green-500', label: '業務' },
-    yellow: { bg: 'bg-yellow-100 dark:bg-yellow-500', label: '来客' },
-    purple: { bg: 'bg-purple-100 dark:bg-purple-500', label: '出張・外出' },
-    pink: { bg: 'bg-pink-100 dark:bg-pink-500', label: '休暇' },
+    blue: { bg: 'bg-blue-100 dark:bg-blue-500', label: CATEGORY_LABELS.value['会議'] || '会議' },
+    green: { bg: 'bg-green-100 dark:bg-green-500', label: CATEGORY_LABELS.value['業務'] || '業務' },
+    yellow: { bg: 'bg-yellow-100 dark:bg-yellow-500', label: CATEGORY_LABELS.value['来客'] || '来客' },
+    purple: { bg: 'bg-purple-100 dark:bg-purple-500', label: CATEGORY_LABELS.value['出張・外出'] || '出張・外出' },
+    pink: { bg: 'bg-pink-100 dark:bg-pink-500', label: CATEGORY_LABELS.value['休暇'] || '休暇' },
+    gray: { bg: 'bg-gray-100 dark:bg-gray-500', label: CATEGORY_LABELS.value['その他'] || 'その他' },
   }
   return colorMap[c] || colorMap.yellow
 }
+
+onMounted(() => {
+  loadCategoryLabels()
+  const handleCategoryUpdate = () => loadCategoryLabels()
+  window.addEventListener('category-labels-updated', handleCategoryUpdate)
+})
 
 const handleEdit = () => {
   if (props.note) {
@@ -618,22 +626,52 @@ const editedProgress = computed({
                 </SelectItem>
               </SelectContent>
             </Select>
-            <Select v-model="editedNote.color" :disabled="!canEdit">
-              <SelectTrigger class="w-full sm:w-32 h-8 text-xs" aria-label="色選択">
-                <div class="flex items-center gap-2">
-                  <div :class="['w-3 h-3 rounded', getColorInfo(editedNote.color).bg]"></div>
-                  <span>{{ getColorInfo(editedNote.color).label }}</span>
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="c in ['yellow', 'blue', 'green', 'pink', 'purple']" :key="c" :value="c">
+              <Select v-model="editedNote.color" :disabled="!canEdit">
+                <SelectTrigger class="w-full sm:w-32 h-8 text-xs" aria-label="色選択">
                   <div class="flex items-center gap-2">
-                    <div :class="['w-3 h-3 rounded', getColorInfo(c).bg]"></div>
-                    <span>{{ getColorInfo(c).label }}</span>
+                    <div :class="['w-3 h-3 rounded', getColorInfo(editedNote.color).bg]"></div>
+                    <span>{{ getColorInfo(editedNote.color).label }}</span>
                   </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="blue">
+                    <div class="flex items-center gap-2">
+                      <div :class="['w-3 h-3 rounded', getColorInfo('blue').bg]"></div>
+                      <span>{{ getColorInfo('blue').label }}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="green">
+                    <div class="flex items-center gap-2">
+                      <div :class="['w-3 h-3 rounded', getColorInfo('green').bg]"></div>
+                      <span>{{ getColorInfo('green').label }}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="yellow">
+                    <div class="flex items-center gap-2">
+                      <div :class="['w-3 h-3 rounded', getColorInfo('yellow').bg]"></div>
+                      <span>{{ getColorInfo('yellow').label }}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="purple">
+                    <div class="flex items-center gap-2">
+                      <div :class="['w-3 h-3 rounded', getColorInfo('purple').bg]"></div>
+                      <span>{{ getColorInfo('purple').label }}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="pink">
+                    <div class="flex items-center gap-2">
+                      <div :class="['w-3 h-3 rounded', getColorInfo('pink').bg]"></div>
+                      <span>{{ getColorInfo('pink').label }}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="gray">
+                    <div class="flex items-center gap-2">
+                      <div :class="['w-3 h-3 rounded', getColorInfo('gray').bg]"></div>
+                      <span>{{ getColorInfo('gray').label }}</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             <div v-if="canEdit" class="flex gap-1 flex-1 min-w-[200px]">
               <Input
                 placeholder="タグを追加"

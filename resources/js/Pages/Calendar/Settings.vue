@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { ArrowLeft, Calendar, CheckCircle } from 'lucide-vue-next'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import { CATEGORY_COLORS } from '@/constants/calendar'
 
 defineOptions({
   layout: AuthenticatedLayout,
@@ -16,21 +18,29 @@ defineOptions({
 const props = defineProps<{
   settings: {
     default_view: string
+    category_labels: Record<string, string>
   }
 }>()
 
 const form = useForm({
   default_view: props.settings.default_view,
+  category_labels: { ...props.settings.category_labels },
 })
 
 const saveMessage = ref('')
 const saveMessageTimer = ref<number | null>(null)
+
+const getCategoryColor = (key: string) => {
+  return CATEGORY_COLORS[key as keyof typeof CATEGORY_COLORS] || '#7F8C8D'
+}
 
 const submit = () => {
   form.post(route('calendar.settings.update'), {
     preserveScroll: true,
     onSuccess: () => {
       showMessage('設定を保存しました')
+      // カテゴリーラベルを再読み込み
+      window.dispatchEvent(new CustomEvent('category-labels-updated'))
     },
   })
 }
@@ -51,7 +61,7 @@ const showMessage = (message: string) => {
 <template>
   <Head title="カレンダー表示設定" />
   
-  <div class="h-full p-6">
+  <div class="h-full p-6 overflow-y-auto">
     <Card class="max-w-2xl mx-auto">
       <CardHeader>
         <div class="flex items-center gap-3">
@@ -84,9 +94,36 @@ const showMessage = (message: string) => {
               カレンダーを開いた時の初期表示モードを設定します
             </p>
           </div>
+          
+          <div v-if="$page.props.auth.user.role === 'admin'" class="space-y-4 pt-4 border-t">
+            <div class="space-y-2">
+              <Label class="text-base font-semibold">カレンダージャンル名称（管理者のみ）</Label>
+              <p class="text-sm text-muted-foreground">
+                カレンダーのジャンル名称をカスタマイズできます（色は変更できません）
+              </p>
+            </div>
+            
+            <div class="space-y-3">
+              <div v-for="(label, key) in form.category_labels" :key="key" class="flex items-center gap-3">
+                <div class="w-6 h-6 rounded-full flex-shrink-0" :style="{ backgroundColor: getCategoryColor(key) }"></div>
+                <div class="flex-1 space-y-1">
+                  <Label :for="`category_${key}`" class="text-sm text-muted-foreground">
+                    {{ key }}
+                  </Label>
+                  <Input
+                    :id="`category_${key}`"
+                    v-model="form.category_labels[key]"
+                    type="text"
+                    :placeholder="key"
+                    maxlength="100"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <div class="flex justify-end gap-3">
+        <div class="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" @click="router.get(route('dashboard'))">
             キャンセル
           </Button>
