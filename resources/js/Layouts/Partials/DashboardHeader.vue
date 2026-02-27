@@ -944,7 +944,7 @@ onUnmounted(() => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>総務部 アカウント</DropdownMenuLabel>
+            <DropdownMenuLabel>アカウント管理</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem as-child>
               <Link :href="route('profile.edit')">プロフィール設定</Link>

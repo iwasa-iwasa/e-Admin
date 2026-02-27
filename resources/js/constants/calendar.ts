@@ -1,5 +1,6 @@
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { isDark } from '@/composables/useAppDark';
+import axios from 'axios';
 
 export const CATEGORY_COLORS = {
     '会議': '#42A5F5', // 2563eb blue-500 equivalent for consistency
@@ -21,14 +22,27 @@ export const DARK_CATEGORY_COLORS = {
 
 export type Category = keyof typeof CATEGORY_COLORS;
 
-export const CATEGORY_LABELS = {
+// カテゴリーラベルを動的に取得
+export const categoryLabels = ref<Record<string, string>>({
     '会議': '会議',
     '業務': '業務',
     '来客': '来客',
     '出張・外出': '出張・外出',
     '休暇': '休暇',
     'その他': 'その他',
-} as const;
+});
+
+// カテゴリーラベルを読み込む
+export const loadCategoryLabels = async () => {
+    try {
+        const response = await axios.get('/api/calendar/category-labels');
+        categoryLabels.value = response.data;
+    } catch (error) {
+        console.error('Failed to load category labels:', error);
+    }
+};
+
+export const CATEGORY_LABELS = computed(() => categoryLabels.value);
 
 export const getEventColor = computed(() => (category: string): string => {
     const colors = isDark.value ? DARK_CATEGORY_COLORS : CATEGORY_COLORS;
@@ -37,17 +51,20 @@ export const getEventColor = computed(() => (category: string): string => {
 
 export const getCategoryItems = computed(() => {
     const colors = isDark.value ? DARK_CATEGORY_COLORS : CATEGORY_COLORS;
-    return Object.entries(CATEGORY_LABELS).map(([key, label]) => ({
+    return Object.entries(CATEGORY_LABELS.value).map(([key, label]) => ({
         label,
         color: colors[key as Category]
     }));
 });
 
 // 後方互換性のため
-export const CATEGORY_ITEMS = Object.entries(CATEGORY_LABELS).map(([key, label]) => ({
-    label,
-    color: CATEGORY_COLORS[key as Category]
-}));
+export const CATEGORY_ITEMS = computed(() => {
+    const colors = CATEGORY_COLORS;
+    return Object.entries(CATEGORY_LABELS.value).map(([key, label]) => ({
+        label,
+        color: colors[key as Category]
+    }));
+});
 
 export const IMPORTANCE_LABELS = {
     '重要': { label: '重要', color: '#dc2626' }, // red-600

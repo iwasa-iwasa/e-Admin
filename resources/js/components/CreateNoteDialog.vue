@@ -2,7 +2,8 @@
 import { ref, computed, watch } from "vue";
 import { useForm, usePage } from "@inertiajs/vue3";
 import { Save, X, CheckCircle, Pin, Info } from "lucide-vue-next";
-import { ja } from "date-fns/locale";
+import { CATEGORY_LABELS, CATEGORY_COLORS, loadCategoryLabels } from '@/constants/calendar'
+import { onMounted } from 'vue'
 import '@vuepic/vue-datepicker/dist/main.css';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import {
@@ -236,15 +237,21 @@ const getPriorityInfo = (p: Priority) => {
 
 const getColorInfo = (c: string) => {
     const colorMap: Record<string, { bg: string; label: string; color: string }> = {
-        blue: { bg: "bg-blue-100 dark:bg-blue-500", label: "会議", color: "#3b82f6" },
-        green: { bg: "bg-green-100 dark:bg-green-500", label: "業務", color: "#66bb6a" },
-        yellow: { bg: "bg-yellow-100 dark:bg-yellow-500", label: "来客", color: "#ffa726" },
-        purple: { bg: "bg-purple-100 dark:bg-purple-500", label: "出張・外出", color: "#9575cd" },
-        pink: { bg: "bg-pink-100 dark:bg-pink-500", label: "休暇", color: "#f06292" },
-        gray: { bg: "bg-gray-100 dark:bg-gray-500", label: "その他", color: "#9e9e9e" },
+        blue: { bg: "bg-blue-100 dark:bg-blue-500", label: CATEGORY_LABELS.value['会議'] || '会議', color: CATEGORY_COLORS['会議'] },
+        green: { bg: "bg-green-100 dark:bg-green-500", label: CATEGORY_LABELS.value['業務'] || '業務', color: CATEGORY_COLORS['業務'] },
+        yellow: { bg: "bg-yellow-100 dark:bg-yellow-500", label: CATEGORY_LABELS.value['来客'] || '来客', color: CATEGORY_COLORS['来客'] },
+        purple: { bg: "bg-purple-100 dark:bg-purple-500", label: CATEGORY_LABELS.value['出張・外出'] || '出張・外出', color: CATEGORY_COLORS['出張・外出'] },
+        pink: { bg: "bg-pink-100 dark:bg-pink-500", label: CATEGORY_LABELS.value['休暇'] || '休暇', color: CATEGORY_COLORS['休暇'] },
+        gray: { bg: "bg-gray-100 dark:bg-gray-500", label: CATEGORY_LABELS.value['その他'] || 'その他', color: CATEGORY_COLORS['その他'] },
     };
     return colorMap[c] || colorMap.yellow;
 };
+
+onMounted(() => {
+    loadCategoryLabels()
+    const handleCategoryUpdate = () => loadCategoryLabels()
+    window.addEventListener('category-labels-updated', handleCategoryUpdate)
+})
 
 watch(() => props.open, (isOpen) => {
     console.log('[CreateNoteDialog] watch props.open:', isOpen)
@@ -418,21 +425,40 @@ watch(deadlineDateTime, (newDate) => {
                                     </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem
-                                        v-for="c in [
-                                            'blue',
-                                            'green',
-                                            'yellow',
-                                            'purple',
-                                            'pink',
-                                            'gray',
-                                        ]"
-                                        :key="c"
-                                        :value="c"
-                                    >
+                                    <SelectItem value="blue">
                                         <div class="flex items-center gap-2">
-                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo(c).color }"></div>
-                                            <span>{{ getColorInfo(c).label }}</span>
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo('blue').color }"></div>
+                                            <span>{{ getColorInfo('blue').label }}</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="green">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo('green').color }"></div>
+                                            <span>{{ getColorInfo('green').label }}</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="yellow">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo('yellow').color }"></div>
+                                            <span>{{ getColorInfo('yellow').label }}</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="purple">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo('purple').color }"></div>
+                                            <span>{{ getColorInfo('purple').label }}</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="pink">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo('pink').color }"></div>
+                                            <span>{{ getColorInfo('pink').label }}</span>
+                                        </div>
+                                    </SelectItem>
+                                    <SelectItem value="gray">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-4 h-4 rounded-full" :style="{ backgroundColor: getColorInfo('gray').color }"></div>
+                                            <span>{{ getColorInfo('gray').label }}</span>
                                         </div>
                                     </SelectItem>
                                 </SelectContent>

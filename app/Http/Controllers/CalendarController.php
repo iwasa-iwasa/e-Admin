@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Enums\EventCategory;
 use App\Enums\EventColor;
 use App\Services\EventService;
-use Carbon\Carbon;
+use App\Models\CalendarCategoryLabel;
 
 class CalendarController extends Controller
 {
@@ -206,6 +206,17 @@ class CalendarController extends Controller
     }
 
     /**
+     * Get calendar category labels API.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getCategoryLabels()
+    {
+        $labels = CalendarCategoryLabel::all()->pluck('label', 'category_key');
+        return response()->json($labels);
+    }
+
+    /**
      * Get year busy summary API.
      */
     public function getYearSummary(Request $request)
@@ -239,8 +250,11 @@ class CalendarController extends Controller
     public function settings()
     {
         $user = auth()->user();
+        $categoryLabels = CalendarCategoryLabel::all()->pluck('label', 'category_key');
+        
         $settings = [
             'default_view' => $user->calendar_default_view ?? 'dayGridMonth',
+            'category_labels' => $categoryLabels,
         ];
         
         return inertia('Calendar/Settings', [
@@ -258,11 +272,20 @@ class CalendarController extends Controller
     {
         $validated = $request->validate([
             'default_view' => 'required|in:yearView,dayGridMonth,timeGridWeek,timeGridDay',
+            'category_labels' => 'sometimes|array',
+            'category_labels.*' => 'string|max:100',
         ]);
         
         $user = auth()->user();
         $user->calendar_default_view = $validated['default_view'];
         $user->save();
+        
+        // 管理者のみカテゴリーラベルを更新可能
+        if ($user->role === 'admin' && isset($validated['category_labels'])) {
+            foreach ($validated['category_labels'] as $key => $label) {
+                CalendarCategoryLabel::where('category_key', $key)->update(['label' => $label]);
+            }
+        }
         
         return redirect()->route('dashboard')->with('success', '設定を保存しました');
     }

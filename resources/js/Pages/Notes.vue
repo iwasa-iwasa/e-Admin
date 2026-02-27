@@ -5,6 +5,7 @@ import { router, usePage } from '@inertiajs/vue3'
 import { useHighlight } from '@/composables/useHighlight'
 import { StickyNote, Plus, Search, Pin, User, Calendar, Save, Trash2, Copy, Filter, X, Clock, ArrowLeft, AlertCircle, ArrowUp, ArrowDown, CheckCircle, Undo2, HelpCircle, Tag, ExternalLink } from 'lucide-vue-next'
 import { ja } from "date-fns/locale";
+import { CATEGORY_LABELS, CATEGORY_COLORS, loadCategoryLabels } from '@/constants/calendar'
 import '@vuepic/vue-datepicker/dist/main.css';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import { Button } from '@/components/ui/button'
@@ -122,6 +123,10 @@ const messageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 const lastDeletedNote = ref<SharedNoteModel | null>(null)
 
 onMounted(() => {
+  loadCategoryLabels()
+  const handleCategoryUpdate = () => loadCategoryLabels()
+  window.addEventListener('category-labels-updated', handleCategoryUpdate)
+  
   const url = new URL(window.location.href)
   if (url.searchParams.get('create') === 'true') {
     isCreateDialogOpen.value = true
@@ -536,12 +541,12 @@ const getPriorityInfo = (priority: Priority) => {
 
 const getColorInfo = (c: string) => {
   const colorMap: Record<string, { bg: string; label: string; color: string }> = {
-    blue: { bg: 'bg-blue-100', label: '会議', color: '#3b82f6' },
-    green: { bg: 'bg-green-100', label: '業務', color: '#66bb6a' },
-    yellow: { bg: 'bg-yellow-100', label: '来客', color: '#ffa726' },
-    purple: { bg: 'bg-purple-100', label: '出張・外出', color: '#9575cd' },
-    pink: { bg: 'bg-pink-100', label: '休暇', color: '#f06292' },
-    gray: { bg: 'bg-gray-100', label: 'その他', color: '#9e9e9e' },
+    blue: { bg: 'bg-blue-100', label: CATEGORY_LABELS.value['会議'] || '会議', color: CATEGORY_COLORS['会議'] },
+    green: { bg: 'bg-green-100', label: CATEGORY_LABELS.value['業務'] || '業務', color: CATEGORY_COLORS['業務'] },
+    yellow: { bg: 'bg-yellow-100', label: CATEGORY_LABELS.value['来客'] || '来客', color: CATEGORY_COLORS['来客'] },
+    purple: { bg: 'bg-purple-100', label: CATEGORY_LABELS.value['出張・外出'] || '出張・外出', color: CATEGORY_COLORS['出張・外出'] },
+    pink: { bg: 'bg-pink-100', label: CATEGORY_LABELS.value['休暇'] || '休暇', color: CATEGORY_COLORS['休暇'] },
+    gray: { bg: 'bg-gray-100', label: CATEGORY_LABELS.value['その他'] || 'その他', color: CATEGORY_COLORS['その他'] },
   }
   return colorMap[c] || colorMap.yellow
 }

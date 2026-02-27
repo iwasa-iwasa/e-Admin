@@ -369,6 +369,11 @@ const formatEventTime = (event: App.Models.ExpandedEvent) => {
     const startTime = event.start_time ? event.start_time.substring(0, 5) : ''
     const endTime = event.end_time ? event.end_time.substring(0, 5) : ''
     
+    // 同日内の予定
+    if (startDate === endDate) {
+        return `${startTime}〜${endTime}`
+    }
+    
     const startYear = startDate.substring(0, 4)
     const endYear = endDate.substring(0, 4)
     const startMonth = parseInt(startDate.substring(5, 7))
@@ -376,9 +381,12 @@ const formatEventTime = (event: App.Models.ExpandedEvent) => {
     const endMonth = parseInt(endDate.substring(5, 7))
     const endDay = parseInt(endDate.substring(8, 10))
     
+    // 同年内で日を跨ぐ
     if (startYear === endYear) {
         return `${startMonth}/${startDay} ${startTime}〜${endMonth}/${endDay} ${endTime}`
     }
+    
+    // 年を跨ぐ
     return `${startDate} ${startTime}〜${endDate} ${endTime}`
 }
 
