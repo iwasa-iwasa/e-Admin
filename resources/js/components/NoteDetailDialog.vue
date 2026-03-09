@@ -506,9 +506,9 @@ const editedProgress = computed({
   <Dialog :open="open" @update:open="closeDialog" :modal="true">
     <DialogContent v-if="currentNote" class="max-w-2xl md:max-w-3xl lg:max-w-4xl w-[95vw] md:w-[66vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
       <DialogHeader class="p-6 pb-2 shrink-0">
-        <div class="flex flex-col items-start gap-4">
-          <div class="flex items-center justify-between w-full flex-wrap gap-2">
-            <DialogTitle class="flex-1 min-w-[200px]">
+        <div class="flex flex-col items-start gap-2">
+          <div class="flex items-center w-full gap-2 pr-12">
+            <DialogTitle class="flex-1 min-w-0">
               <Input
                 v-if="isEditing && editedNote"
                 v-model="editedNote.title"
@@ -518,23 +518,18 @@ const editedProgress = computed({
               />
               <template v-else>{{ currentNote.title }}</template>
             </DialogTitle>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
-                {{ getPriorityInfo(currentNote.priority as Priority).label }}
-              </Badge>
-              <Button
-                v-if="currentNote.is_pinned !== undefined && !isEditing"
-                variant="outline"
-                size="sm"
-                @click="handleTogglePin"
-                :class="currentNote.is_pinned ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800'"
-                aria-label="ピン留めの切り替え"
-                class="gap-1"
-              >
-                <MapPin class="h-4 w-4" :class="{ 'fill-yellow-500 text-yellow-500': currentNote.is_pinned }" />
-                <span class="text-xs">{{ currentNote.is_pinned ? 'ピン解除' : 'ピン留め' }}</span>
-              </Button>
-            </div>
+            <Button
+              v-if="currentNote.is_pinned !== undefined && !isEditing"
+              variant="outline"
+              size="sm"
+              @click="handleTogglePin"
+              :class="currentNote.is_pinned ? 'bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800'"
+              aria-label="ピン留めの切り替え"
+              class="gap-1 flex-shrink-0"
+            >
+              <MapPin class="h-4 w-4" :class="{ 'fill-yellow-500 text-yellow-500': currentNote.is_pinned }" />
+              <span class="text-xs">{{ currentNote.is_pinned ? 'ピン解除' : 'ピン留め' }}</span>
+            </Button>
           </div>
         </div>
         <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 pt-2 flex-wrap">
@@ -598,6 +593,9 @@ const editedProgress = computed({
           <div v-else class="flex items-center gap-2">
             <Badge variant="outline" class="text-xs">
               {{ currentNote.deadline_date ? '期限' : '作成日' }}: {{ currentNote.deadline_date ? `${new Date(currentNote.deadline_date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} ${(currentNote.deadline_time || '23:59:00').substring(0, 5)}` : new Date(currentNote.created_at ?? '').toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}
+            </Badge>
+            <Badge :class="getPriorityInfo(currentNote.priority as Priority).className">
+              {{ getPriorityInfo(currentNote.priority as Priority).label }}
             </Badge>
           </div>
         </div>
