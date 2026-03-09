@@ -286,9 +286,14 @@ class CalendarController extends Controller
         $user = auth()->user();
         $categoryLabels = CalendarCategoryLabel::all()->pluck('label', 'category_key');
         
+        $heatmapSettings = $user->heatmap_settings 
+            ? json_decode($user->heatmap_settings, true)
+            : null;
+        
         $settings = [
             'default_view' => $user->calendar_default_view ?? 'dayGridMonth',
             'category_labels' => $categoryLabels,
+            'heatmap_settings' => $heatmapSettings,
         ];
         
         return inertia('Calendar/Settings', [
@@ -308,10 +313,21 @@ class CalendarController extends Controller
             'default_view' => 'required|in:yearView,dayGridMonth,timeGridWeek,timeGridDay',
             'category_labels' => 'sometimes|array',
             'category_labels.*' => 'string|max:100',
+            'heatmap_settings' => 'sometimes|array',
+            'heatmap_settings.genre_weights' => 'sometimes|array',
+            'heatmap_settings.genre_weights.*' => 'integer|min:0|max:10',
+            'heatmap_settings.importance_weights' => 'sometimes|array',
+            'heatmap_settings.importance_weights.*' => 'integer|min:0|max:10',
+            'heatmap_settings.time_weight_enabled' => 'sometimes|boolean',
         ]);
         
         $user = auth()->user();
         $user->calendar_default_view = $validated['default_view'];
+        
+        if (isset($validated['heatmap_settings'])) {
+            $user->heatmap_settings = json_encode($validated['heatmap_settings']);
+        }
+        
         $user->save();
         
         // 管理者のみカテゴリーラベルを更新可能

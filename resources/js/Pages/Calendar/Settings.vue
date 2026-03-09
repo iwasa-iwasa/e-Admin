@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Calendar, CheckCircle } from 'lucide-vue-next'
+import { Switch } from '@/components/ui/switch'
+import { ArrowLeft, Calendar, CheckCircle, RotateCcw } from 'lucide-vue-next'
 import { router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { CATEGORY_COLORS } from '@/constants/calendar'
 
@@ -19,13 +20,57 @@ const props = defineProps<{
   settings: {
     default_view: string
     category_labels: Record<string, string>
+    heatmap_settings: {
+      genre_weights: Record<string, number>
+      importance_weights: Record<string, number>
+      time_weight_enabled: boolean
+    } | null
   }
 }>()
+
+const defaultHeatmapSettings = {
+  genre_weights: {
+    '来客': 4,
+    '出張': 3,
+    '業務': 3,
+    '会議': 2,
+    'その他': 1,
+    '休暇': 0,
+  },
+  importance_weights: {
+    '重要': 3,
+    '中': 2,
+    '低': 1,
+  },
+  time_weight_enabled: true,
+}
+
+const genreOrder = ['来客', '出張', '業務', '会議', 'その他', '休暇']
+const importanceOrder = ['重要', '中', '低']
+
+const sortedGenreWeights = computed(() => {
+  return genreOrder.map(genre => ({
+    genre,
+    weight: form.heatmap_settings.genre_weights[genre]
+  }))
+})
+
+const sortedImportanceWeights = computed(() => {
+  return importanceOrder.map(importance => ({
+    importance,
+    weight: form.heatmap_settings.importance_weights[importance]
+  }))
+})
 
 const form = useForm({
   default_view: props.settings.default_view,
   category_labels: { ...props.settings.category_labels },
+  heatmap_settings: props.settings.heatmap_settings 
+    ? { ...props.settings.heatmap_settings }
+    : { ...defaultHeatmapSettings },
 })
+
+const timeWeightEnabled = ref(form.heatmap_settings.time_weight_enabled)
 
 const saveMessage = ref('')
 const saveMessageTimer = ref<number | null>(null)
@@ -34,7 +79,16 @@ const getCategoryColor = (key: string) => {
   return CATEGORY_COLORS[key as keyof typeof CATEGORY_COLORS] || '#7F8C8D'
 }
 
+const resetHeatmapSettings = () => {
+  form.heatmap_settings = { ...defaultHeatmapSettings }
+}
+
+const isDefaultSettings = computed(() => {
+  return JSON.stringify(form.heatmap_settings) === JSON.stringify(defaultHeatmapSettings)
+})
+
 const submit = () => {
+  form.heatmap_settings.time_weight_enabled = timeWeightEnabled.value
   form.post(route('calendar.settings.update'), {
     preserveScroll: true,
     onSuccess: () => {
@@ -62,7 +116,7 @@ const showMessage = (message: string) => {
   <Head title="カレンダー表示設定" />
   
   <div class="h-full p-6 overflow-y-auto">
-    <Card class="max-w-2xl mx-auto">
+    <Card class="max-w-4xl mx-auto">
       <CardHeader>
         <div class="flex items-center gap-3">
           <Button variant="ghost" size="icon" @click="router.get(route('dashboard'))">
@@ -93,6 +147,102 @@ const showMessage = (message: string) => {
             <p class="text-sm text-muted-foreground">
               カレンダーを開いた時の初期表示モードを設定します
             </p>
+          </div>
+          
+          <!-- ヒートマップ設定 -->
+          <div class="space-y-4 pt-4 border-t">
+            <div class="flex items-center justify-between">
+              <div class="space-y-1">
+                <Label class="text-base font-semibold">年間ヒートマップの重み付け</Label>
+                <p class="text-sm text-muted-foreground">
+                  年間表示の忙しさ表示（ヒートマップ）の計算方法をカスタマイズできます
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                @click="resetHeatmapSettings"
+                :disabled="isDefaultSettings"
+              >
+                <RotateCcw class="h-4 w-4 mr-2" />
+                デフォルトに戻す
+              </Button>
+            </div>
+            
+            <!-- ジャンルの重み -->
+            <div class="space-y-3">
+              <Label class="text-sm font-medium">ジャンルの重み</Label>
+              <div class="grid grid-cols-2 gap-3">
+                <div v-for="item in sortedGenreWeights" :key="item.genre" class="flex items-center gap-2">
+                  <div class="w-4 h-4 rounded-full flex-shrink-0" :style="{ backgroundColor: getCategoryColor(item.genre) }"></div>
+                  <span class="text-sm flex-shrink-0 w-16">{{ item.genre }}</span>
+                  <Select 
+                    :model-value="String(item.weight)"
+                    @update:model-value="(val) => form.heatmap_settings.genre_weights[item.genre] = Number(val)"
+                  >
+                    <SelectTrigger class="h-8 w-16">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0</SelectItem>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                      <SelectItem value="4">4</SelectItem>
+                      <SelectItem value="5">5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 重要度の重み -->
+            <div class="space-y-3 pt-2">
+              <Label class="text-sm font-medium">重要度の重み</Label>
+              <div class="grid grid-cols-3 gap-3">
+                <div v-for="item in sortedImportanceWeights" :key="item.importance" class="flex items-center gap-2">
+                  <span class="text-sm flex-shrink-0 w-12">{{ item.importance }}</span>
+                  <Select 
+                    :model-value="String(item.weight)"
+                    @update:model-value="(val) => form.heatmap_settings.importance_weights[item.importance] = Number(val)"
+                  >
+                    <SelectTrigger class="h-8 w-16">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                      <SelectItem value="4">4</SelectItem>
+                      <SelectItem value="5">5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 時間重み付け -->
+            <div class="flex items-center justify-between pt-2 p-3 rounded-lg border">
+              <div class="space-y-1">
+                <Label class="text-sm font-medium">時間の重み付けを有効化</Label>
+                <p class="text-xs text-muted-foreground">
+                  オフにすると、時間に関係なくイベント数で評価します
+                </p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div @click="timeWeightEnabled = !timeWeightEnabled" class="cursor-pointer">
+                  <Switch 
+                    :checked="timeWeightEnabled"
+                  />
+                </div>
+                <span 
+                  class="text-sm font-medium px-3 py-1 rounded transition-colors duration-200"
+                  :class="timeWeightEnabled ? 'bg-blue-500 text-white dark:bg-blue-600' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'"
+                >
+                  {{ timeWeightEnabled ? 'オン' : 'オフ' }}
+                </span>
+              </div>
+            </div>
           </div>
           
           <div v-if="$page.props.auth.user.role === 'admin'" class="space-y-4 pt-4 border-t">

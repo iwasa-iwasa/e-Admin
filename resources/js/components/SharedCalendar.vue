@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import RecurrenceEditScopeDialog from '@/components/RecurrenceEditScopeDialog.vue'
+import CalendarDateJump from '@/components/CalendarDateJump.vue'
 import ScrollArea from './ui/scroll-area/ScrollArea.vue'
 import { CATEGORY_COLORS, CATEGORY_LABELS, GENRE_FILTERS, getEventColor, getCategoryItems, loadCategoryLabels } from '@/constants/calendar'
 
@@ -452,6 +453,24 @@ const handleRecurrenceEditScope = () => {
 
 const currentEventsComputed = computed(() => unifiedEventData.value)
 
+const handleDateJump = (date: Date) => {
+    if (viewMode.value === 'yearView') {
+        currentYearViewYear.value = date.getFullYear()
+    } else if (viewMode.value === 'dayGridMonth') {
+        const api = fullCalendar.value?.getApi()
+        if (api) {
+            api.gotoDate(date)
+        }
+    } else if (viewMode.value === 'timeGridWeek') {
+        const weekStart = new Date(date)
+        const day = weekStart.getDay()
+        weekStart.setDate(weekStart.getDate() - day)
+        currentWeekStart.value = weekStart
+    } else if (viewMode.value === 'timeGridDay') {
+        currentDayViewDate.value = date
+    }
+}
+
 
 </script>
 
@@ -690,11 +709,18 @@ const currentEventsComputed = computed(() => unifiedEventData.value)
                     <Button variant="outline" size="sm" @click="previousPeriod" class="flex-shrink-0 border-gray-300 dark:border-input">
                         <ChevronLeft class="h-4 w-4" />
                     </Button>
-                    <div 
-                        class="text-center font-semibold truncate transition-all duration-300 ease-in-out flex-shrink-0 w-[240px]"
+                    <CalendarDateJump
+                        :view-mode="viewMode"
+                        :current-date="viewMode === 'timeGridDay' ? currentDayViewDate : viewMode === 'timeGridWeek' ? currentWeekStart : fullCalendarCurrentDate"
+                        :current-year="currentYearViewYear"
+                        @jump="handleDateJump"
                     >
-                        {{ compactCalendarTitle }}
-                    </div>
+                        <div 
+                            class="text-center font-semibold truncate transition-all duration-300 ease-in-out flex-shrink-0"
+                        >
+                            {{ compactCalendarTitle }}
+                        </div>
+                    </CalendarDateJump>
                     <Button variant="outline" size="sm" @click="nextPeriod" class="flex-shrink-0 border-gray-300 dark:border-input">
                         <ChevronRight class="h-4 w-4" />
                     </Button>
