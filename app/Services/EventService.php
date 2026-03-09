@@ -363,6 +363,12 @@ class EventService
         $startDate = Carbon::create($year, 1, 1)->format('Y-m-d');
         $endDate = Carbon::create($year, 12, 31)->format('Y-m-d');
         
+        // ユーザーのヒートマップ設定を取得
+        $user = auth()->user();
+        $heatmapSettings = $user && $user->heatmap_settings 
+            ? json_decode($user->heatmap_settings, true) 
+            : $this->getDefaultHeatmapSettings();
+        
         // 展開済みイベントを取得
         $expandedEvents = $this->getExpandedEvents($startDate, $endDate, $memberId);
         $days = [];
@@ -388,7 +394,11 @@ class EventService
                 $importance = EventImportance::tryFrom($event['importance']);
                 
                 if ($category && $importance) {
-                    $eventScore = $duration * $category->busyWeight() * $importance->busyWeight();
+                    $categoryWeight = $this->getCategoryWeight($category, $heatmapSettings);
+                    $importanceWeight = $this->getImportanceWeight($importance, $heatmapSettings);
+                    $timeWeight = $heatmapSettings['time_weight_enabled'] ? $duration : 1;
+                    
+                    $eventScore = $timeWeight * $categoryWeight * $importanceWeight;
                     $days[$date]['busyScore'] += $eventScore;
                 }
                 
@@ -417,6 +427,38 @@ class EventService
             'calendar_id' => $calendarId,
             'days' => $days,
         ];
+    }
+    
+    private function getDefaultHeatmapSettings(): array
+    {
+        return [
+            'genre_weights' => [
+                '来客' => 4,
+                '出張' => 3,
+                '業務' => 3,
+                '会議' => 2,
+                'その他' => 1,
+                '休暇' => 0,
+            ],
+            'importance_weights' => [
+                '重要' => 3,
+                '中' => 2,
+                '低' => 1,
+            ],
+            'time_weight_enabled' => true,
+        ];
+    }
+    
+    private function getCategoryWeight(EventCategory $category, array $settings): int
+    {
+        $key = $category->value;
+        return $settings['genre_weights'][$key] ?? $category->busyWeight();
+    }
+    
+    private function getImportanceWeight(EventImportance $importance, array $settings): int
+    {
+        $key = $importance->value;
+        return $settings['importance_weights'][$key] ?? $importance->busyWeight();
     }
     
     /**
