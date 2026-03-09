@@ -124,8 +124,8 @@ const handleDateClick = (date: Date) => {
                         }"
                         @click="day.isCurrentMonth && handleDateClick(day.date)"
                     >
-                        <div class="day-number" :class="{ 'inactive-number': !day.isCurrentMonth, 'white-text': day.isCurrentMonth && getDayLevel(day.dateStr)?.level === 4 }">{{ day.day }}</div>
-                        <div v-if="day.isCurrentMonth && getDaySummary(day.dateStr)" class="day-info" :class="{ 'white-text': getDayLevel(day.dateStr)?.level >= 3 }">
+                        <div class="day-number" :class="{ 'inactive-number': !day.isCurrentMonth, 'white-text': day.isCurrentMonth && (getDayLevel(day.dateStr)?.level ?? 0) === 4 }">{{ day.day }}</div>
+                        <div v-if="day.isCurrentMonth && getDaySummary(day.dateStr)" class="day-info" :class="{ 'white-text': (getDayLevel(day.dateStr)?.level ?? 0) >= 3 }">
                             <div v-if="getDaySummary(day.dateStr)!.totalHours > 0" class="hours ">{{ Math.round(getDaySummary(day.dateStr)!.totalHours) }}h</div>
                             <div v-if="getDaySummary(day.dateStr)!.eventCount > 0 || getDaySummary(day.dateStr)!.importantCount > 0" class="dots">
                                 <div v-if="getDaySummary(day.dateStr)!.alldayCount > 0" class="allday-dot"></div>

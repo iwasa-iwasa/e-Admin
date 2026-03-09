@@ -5,10 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 
-#[TypeScript]
 class SharedNote extends Model
 {
     use HasFactory;
@@ -114,16 +112,14 @@ class SharedNote extends Model
     }
 
     /**
-     * この共有ノートをピン留めしたユーザーを取得します。
-     */
+     * 縺薙・蜈ｱ譛峨ヮ繝ｼ繝医ｒ繝斐Φ逡吶ａ縺励◆繝ｦ繝ｼ繧ｶ繝ｼ繧貞叙蠕励＠縺ｾ縺吶・     */
     public function pinnedByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'pinned_notes', 'note_id', 'user_id')->withTimestamps();
     }
 
     /**
-     * この共有ノートの参加者を取得します。
-     */
+     * 縺薙・蜈ｱ譛峨ヮ繝ｼ繝医・蜿ょ刈閠・ｒ蜿門ｾ励＠縺ｾ縺吶・     */
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'shared_note_participants', 'note_id', 'user_id')->withTimestamps();

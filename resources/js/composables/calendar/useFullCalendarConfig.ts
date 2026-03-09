@@ -1,4 +1,4 @@
-import { computed, Ref } from 'vue'
+import { computed, Ref, ComputedRef } from 'vue'
 import { CalendarOptions } from '@fullcalendar/core'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -13,7 +13,7 @@ export function useFullCalendarConfig(
     memberId: Ref<number | null | undefined>,
     viewMode: Ref<string>,
     fullCalendarRef: Ref<any>,
-    categoryColorGetter: typeof getEventColor,
+    categoryColorGetter: ComputedRef<(category: string) => string>,
     handlers: {
         eventClick: (info: any) => void
         dateClick: (info: any) => void
@@ -44,11 +44,11 @@ export function useFullCalendarConfig(
         events: (info, successCallback, failureCallback) => {
             try {
                 const allEvents = getUnifiedEvents()
-                
+
                 // 期間フィルタリング
                 const startDate = new Date(info.startStr)
                 const endDate = new Date(info.endStr)
-                
+
                 const filteredEvents = allEvents.filter(event => {
                     const eventStart = new Date(event.start_date || event.start)
                     const eventEnd = new Date(event.end_date || event.end)
@@ -59,8 +59,8 @@ export function useFullCalendarConfig(
                     const commonProps = {
                         id: String(event.id),
                         title: event.title,
-                        backgroundColor: categoryColorGetter(event.category),
-                        borderColor: event.importance === '重要' ? '#dc2626' : categoryColorGetter(event.category),
+                        backgroundColor: categoryColorGetter.value(event.category),
+                        borderColor: event.importance === '重要' ? '#dc2626' : categoryColorGetter.value(event.category),
                         extendedProps: event,
                         allDay: event.isAllDay || event.is_all_day,
                         classNames: (event.importance === '重要' || event.isImportant) ? ['important-event'] : [],
@@ -121,7 +121,7 @@ export function useFullCalendarConfig(
             const holidayName = getHolidayName(date)
             const dayColor = getDayColor(date)
             const dayNumber = date.getDate()
-            
+
             if (holidayName) {
                 return {
                     html: `<div class="fc-daygrid-day-top" style="flex-direction: column; align-items: flex-start;">
@@ -130,7 +130,7 @@ export function useFullCalendarConfig(
                     </div>`
                 }
             }
-            
+
             if (dayColor) {
                 return {
                     html: `<div class="fc-daygrid-day-top">
@@ -138,7 +138,7 @@ export function useFullCalendarConfig(
                     </div>`
                 }
             }
-            
+
             // 通常の日付も表示
             return {
                 html: `<div class="fc-daygrid-day-top">

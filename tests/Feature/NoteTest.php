@@ -23,6 +23,7 @@ class NoteTest extends TestCase
             'content' => 'This is a test note.',
             'color' => 'yellow',
             'priority' => 'medium',
+            'visibility_type' => 'public',
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -60,6 +61,7 @@ class NoteTest extends TestCase
             'author_id' => $user->id,
             'color' => 'yellow',
             'priority' => 'medium',
+            'visibility_type' => 'public',
         ]);
 
         $response = $this->actingAs($user, 'web')->put(route('shared-notes.update', $note), [
@@ -67,6 +69,7 @@ class NoteTest extends TestCase
             'content' => 'Updated Content',
             'color' => 'blue',
             'priority' => 'high',
+            'visibility_type' => 'public',
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -78,6 +81,7 @@ class NoteTest extends TestCase
             'content' => 'Updated Content',
             'color' => 'blue',
             'priority' => 'high',
+            'visibility_type' => 'public',
         ]);
     }
 
@@ -111,6 +115,7 @@ class NoteTest extends TestCase
         $response = $this->actingAs($user, 'web')->post(route('shared-notes.store'), [
             'title' => 'Test Note',
             'color' => 'rainbow', // Invalid color
+            'visibility_type' => 'public',
         ]);
 
         $response->assertSessionHasErrors(['color']);

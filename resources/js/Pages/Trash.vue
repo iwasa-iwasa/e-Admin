@@ -32,6 +32,9 @@ interface TrashItem {
   item_id: string
   permanent_delete_at: string
   creatorName?: string
+  department_id?: number | null
+  owner_department_id?: number | null
+  is_mine?: boolean
 }
 
 type SortField = 'title' | 'deletedAt' | 'type' | 'creatorName'
@@ -57,6 +60,7 @@ const deleteMode = ref<'selected' | 'unselected'>('selected')
 const restoreMode = ref<'selected' | 'unselected'>('selected')
 
 // フィルター
+const filterScope = ref<'all' | 'mine' | 'department'>('all')
 const filterType = ref<ItemType | 'all'>('all')
 const filterTitle = ref('')
 const filterCreator = ref<string | 'all'>('all')
@@ -77,6 +81,9 @@ const uniqueCreators = computed(() => {
 
 const filteredItems = computed(() => {
   return trashItems.value.filter(item => {
+    if (filterScope.value === 'mine' && !item.is_mine) return false
+    if (filterScope.value === 'department' && item.is_mine) return false // 自部署（他者のアイテム）のみ
+
     if (filterType.value !== 'all' && item.type !== filterType.value) return false
     if (filterTitle.value && !item.title.toLowerCase().includes(filterTitle.value.toLowerCase())) return false
     if (filterCreator.value !== 'all' && item.creatorName !== filterCreator.value) return false
@@ -360,7 +367,7 @@ onUnmounted(() => {
 })
 
 const handleTrashUpdate = () => {
-  router.reload({ only: ['trashItems'], preserveScroll: true })
+  router.reload({ only: ['trashItems'], preserveScroll: true } as any)
 }
 </script>
 
@@ -441,7 +448,20 @@ const handleTrashUpdate = () => {
         
         <!-- フィルターパネル -->
         <div v-if="showFilterDialog" class="space-y-3 p-4 bg-muted/50 rounded-lg border border-border mb-4">
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-4 gap-4">
+            <div>
+              <label class="text-xs font-medium text-gray-700 mb-1.5 block">対象スコープ</label>
+              <Select v-model="filterScope">
+                <SelectTrigger class="h-9 border-gray-300">
+                  <SelectValue placeholder="すべてのアイテム" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">すべてのアイテム</SelectItem>
+                  <SelectItem value="mine">自分が削除したアイテム</SelectItem>
+                  <SelectItem value="department">自部署のアイテム（他者）</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <label class="text-xs font-medium text-gray-700 mb-1.5 block">種類</label>
               <Select v-model="filterType">
@@ -580,8 +600,8 @@ const handleTrashUpdate = () => {
                   </div>
                 </div>
                 
-                <!-- バッジ（種類） -->
-                <div class="col-span-2 flex items-center justify-center">
+                <!-- バッジ（種類）と（所有属性） -->
+                <div class="col-span-2 flex flex-col items-center justify-center gap-1">
                   <Badge 
                     v-if="item" 
                     variant="outline" 
@@ -589,6 +609,13 @@ const handleTrashUpdate = () => {
                   >
                     <component :is="getItemTypeInfo(item.type).icon" class="h-4 w-4" />
                     <span class="text-xs font-medium ml-1">{{ getItemTypeInfo(item.type).label }}</span>
+                  </Badge>
+                  <Badge 
+                    v-if="item" 
+                    :variant="item.is_mine ? 'default' : 'secondary'"
+                    class="text-[0.65rem] px-1 py-0 h-4"
+                  >
+                    {{ item.is_mine ? '自分のアイテム' : '自部署（共有）' }}
                   </Badge>
                 </div>
                 

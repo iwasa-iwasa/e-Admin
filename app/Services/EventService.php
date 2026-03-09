@@ -342,6 +342,8 @@ class EventService
             'url' => $event->url,
             'category' => $event->category->value ?? $event->category,
             'importance' => $event->importance->value ?? $event->importance,
+            'visibility_type' => $event->visibility_type->value ?? $event->visibility_type ?? 'public',
+            'owner_department_id' => $event->owner_department_id,
             'start_date' => is_string($startDate) ? $startDate : $startDate->format('Y-m-d'),
             'start_time' => $event->start_time ? (is_string($event->start_time) ? $event->start_time : $event->start_time->format('H:i:s')) : null,
             'end_date' => is_string($endDate) ? $endDate : $endDate->format('Y-m-d'),
@@ -580,6 +582,8 @@ class EventService
             'url' => $data['url'] ?? null,
             'category' => $data['category'],
             'importance' => $data['importance'],
+            'visibility_type' => $data['visibility_type'] ?? 'public',
+            'owner_department_id' => ($data['visibility_type'] ?? 'public') === 'department' ? (auth()->user()->department_id ?? null) : null,
             'progress' => $data['progress'] ?? 0,
             'created_by' => auth()->id(),
         ]);
@@ -622,12 +626,15 @@ class EventService
             'is_all_day' => $data['is_all_day'],
             'start_time' => $data['is_all_day'] ? null : $data['start_time'],
             'end_time' => $data['is_all_day'] ? null : $data['end_time'],
-            'location' => $data['location'],
-            'description' => $data['description'],
+            'location' => $data['location'] ?? null,
+            'description' => $data['description'] ?? null,
             'url' => $data['url'] ?? null,
-            'category' => $data['category'],
-            'importance' => $data['importance'],
+            'category' => $data['category'] ?? '一般',
+            'importance' => $data['importance'] ?? '中',
+            'visibility_type' => $data['visibility_type'] ?? 'public',
+            'owner_department_id' => ($data['visibility_type'] ?? 'public') === 'department' ? (auth()->user()->department_id ?? null) : null,
             'progress' => $data['progress'] ?? 0,
+            'version' => (int)$event->version + 1,
         ]);
         
         \Log::info('[EventService] Event updated', [

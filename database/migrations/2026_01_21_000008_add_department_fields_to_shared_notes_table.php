@@ -9,27 +9,30 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $columns = DB::select("SHOW COLUMNS FROM shared_notes WHERE Field IN ('visibility_type', 'owner_department_id', 'version')");
-        $existingColumns = collect($columns)->pluck('Field')->toArray();
-        
-        Schema::table('shared_notes', function (Blueprint $table) use ($existingColumns) {
-            if (!in_array('visibility_type', $existingColumns)) {
+        Schema::table('shared_notes', function (Blueprint $table) {
+            if (!Schema::hasColumn('shared_notes', 'visibility_type')) {
                 $table->enum('visibility_type', ['public', 'department', 'custom', 'private'])
                     ->default('custom')->after('content');
             }
-            if (!in_array('owner_department_id', $existingColumns)) {
+            if (!Schema::hasColumn('shared_notes', 'owner_department_id')) {
                 $table->foreignId('owner_department_id')->nullable()->after('visibility_type')
                     ->constrained('departments')->onDelete('set null');
             }
-            if (!in_array('version', $existingColumns)) {
+            if (!Schema::hasColumn('shared_notes', 'version')) {
                 $table->integer('version')->default(0)->after('author_id');
             }
         });
         
-        $indexes = DB::select("SHOW INDEX FROM shared_notes WHERE Key_name = 'idx_notes_visibility_dept'");
-        if (empty($indexes)) {
-            Schema::table('shared_notes', function (Blueprint $table) {
-                $table->index(['visibility_type', 'owner_department_id'], 'idx_notes_visibility_dept');
+        if (DB::getDriverName() !== 'sqlite') {
+            $indexesFound = [];
+            if (DB::getDriverName() === 'mysql') {
+                $indexesFound = collect(DB::select('SHOW INDEX FROM shared_notes'))->pluck('Key_name')->toArray();
+            }
+
+            Schema::table('shared_notes', function (Blueprint $table) use ($indexesFound) {
+                if (!in_array('idx_notes_visibility_dept', $indexesFound)) {
+                    $table->index(['visibility_type', 'owner_department_id'], 'idx_notes_visibility_dept');
+                }
             });
         }
     }

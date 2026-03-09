@@ -49,6 +49,7 @@ interface SharedNoteModel {
   is_deleted: boolean
   created_at: string | null
   updated_at: string | null
+  deleted_at: string | null
   author?: UserModel
   participants?: UserModel[]
   tags?: Array<{ tag_id: number; tag_name: string }>

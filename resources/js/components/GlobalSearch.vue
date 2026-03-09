@@ -47,7 +47,7 @@ const dateTo = ref<string>('')
 const dateType = ref('updated')
 const allUsers = ref<Array<{id: number, name: string}>>([])
 
-const selectedEvent = ref<App.Models.Event | null>(null)
+const selectedEvent = ref<App.Models.ExpandedEvent | null>(null)
 const isEventDetailDialogOpen = ref(false)
 const isEventDialogOpen = ref(false)
 const selectedNote = ref<App.Models.SharedNote | null>(null)
@@ -484,7 +484,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         </Badge>
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent class="w-64 z-[45]" align="end" @interact-outside="(e) => { if (e.target?.closest?.('.dp__menu')) e.preventDefault() }">
+                <PopoverContent class="w-64 z-[45]" align="end" @interact-outside="(e) => { if ((e.target as HTMLElement)?.closest?.('.dp__menu')) e.preventDefault() }">
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
                             <h4 class="font-medium text-sm">検索フィルター</h4>
@@ -651,8 +651,8 @@ const canEditNote = (note: App.Models.SharedNote) => {
         :key="`edit-${selectedEvent.event_id}`"
         :open="isEventDialogOpen"
         @update:open="isEventDialogOpen = $event"
-        :event="selectedEvent"
-        :readonly="selectedEvent.event_id !== 0 && !canEditEvent(selectedEvent)"
+        :event="(selectedEvent as any)"
+        :readonly="selectedEvent.event_id !== 0 && !canEditEvent(selectedEvent as any)"
     />
     
     <!-- Debug: {{ selectedEvent?.event_id }}, readonly: {{ selectedEvent && selectedEvent.event_id !== 0 && !canEditEvent(selectedEvent) }} -->

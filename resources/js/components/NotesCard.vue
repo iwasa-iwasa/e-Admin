@@ -298,9 +298,9 @@ const sortedNotes = computed(() => {
             :note="selectedNote"
             :open="selectedNote !== null"
             @update:open="(isOpen) => !isOpen && (selectedNote = null)"
-            @save="handleSaveNote"
-            @toggle-pin="togglePin"
-            @delete="handleDeleteNote"
+            @save="($event: any) => handleSaveNote($event)"
+            @toggle-pin="($event: any) => togglePin($event)"
+            @delete="($event: any) => handleDeleteNote($event)"
         />
     </Card>
 </template>

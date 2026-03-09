@@ -52,6 +52,7 @@ class CalendarTest extends TestCase
             'location' => 'Meeting Room A',
             'category' => EventCategory::MEETING->value,
             'importance' => EventImportance::HIGH->value,
+            'visibility_type' => 'public',
         ];
 
         $response = $this->actingAs($user)->post('/events', $eventData);
@@ -105,6 +106,7 @@ class CalendarTest extends TestCase
             'importance' => EventImportance::MEDIUM->value,
             'location' => 'New Location',
             'description' => 'New Description',
+            'visibility_type' => 'public',
             'progress' => 50,
         ];
 

@@ -22,6 +22,7 @@ import { Switch } from '@/components/ui/switch'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { router, usePage, useForm } from '@inertiajs/vue3'
 import RecurrenceEditDialog from '@/components/RecurrenceEditDialog.vue'
+import ConflictResolutionDialog from '@/components/ConflictResolutionDialog.vue'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { TimePicker } from 'vue-material-time-picker'
 import { ja } from 'date-fns/locale'
@@ -71,6 +72,9 @@ const lastDeletedEvent = ref<App.Models.ExpandedEvent | null>(null)
 const showRecurrenceDialog = ref(false)
 const recurrenceMode = ref<'edit' | 'delete'>('delete')
 const isEditMode = ref(false)
+const showConflictDialog = ref(false)
+const conflictData = ref<any>(null)
+const isForceUpdate = ref(false)
 
 // 編集用フォームデータ
 const form = useForm({
@@ -80,7 +84,7 @@ const form = useForm({
   location: '',
   description: '',
   url: '',
-  progress: 0,
+  event_progress: 0,
   participants: [] as App.Models.User[],
   date_range: [new Date(), new Date()] as [Date, Date],
   is_all_day: false,
@@ -98,7 +102,8 @@ const form = useForm({
     by_day: [] as string[],
     by_set_pos: null as number | null,
     end_date: null as Date | null
-  }
+  },
+  version: 0
 })
 
 const date = ref<[Date, Date]>([new Date(), new Date()])
@@ -133,7 +138,7 @@ watch(() => props.event, (newEvent) => {
     form.location = newEvent.location || ''
     form.description = newEvent.description || ''
     form.url = newEvent.url || ''
-    form.progress = newEvent.progress ?? 0
+    form.event_progress = newEvent.progress ?? 0
     form.participants = newEvent.participants || []
     form.date_range = [new Date(newEvent.start_date), new Date(newEvent.end_date)]
     form.is_all_day = newEvent.is_all_day
@@ -152,6 +157,7 @@ watch(() => props.event, (newEvent) => {
     } else {
       form.recurrence.is_recurring = false
     }
+    form.version = newEvent.version || 0
     date.value = form.date_range
   }
 }, { immediate: true })
@@ -168,7 +174,7 @@ watch(isEditMode, (editing) => {
     form.location = props.event.location || ''
     form.description = props.event.description || ''
     form.url = props.event.url || ''
-    form.progress = props.event.progress ?? 0
+    form.event_progress = props.event.progress ?? 0
     form.participants = props.event.participants || []
     form.date_range = [new Date(props.event.start_date), new Date(props.event.end_date)]
     form.is_all_day = props.event.is_all_day
@@ -192,6 +198,7 @@ watch(isEditMode, (editing) => {
       form.recurrence.by_set_pos = null
       form.recurrence.end_date = null
     }
+    form.version = props.event.version || 0
     date.value = form.date_range
     
     // 初期化完了後にwatcherを有効化
@@ -344,6 +351,18 @@ const handleRecurrenceConfirm = (scope: 'this-only' | 'this-and-future' | 'all')
   }
 }
 
+const resolveConflict = (option: 'force_update' | 'cancel') => {
+  showConflictDialog.value = false
+  if (option === 'force_update') {
+    isForceUpdate.value = true
+    executeSave()
+  } else {
+    router.reload({ only: ['events'] })
+    handleCancelEdit()
+    closeDialog()
+  }
+}
+
 const handleSave = () => {
   if (!props.event) return
   
@@ -368,7 +387,7 @@ const executeSave = (scope?: 'this-only' | 'this-and-future' | 'all') => {
   formData.append('location', form.location || '')
   formData.append('description', form.description || '')
   formData.append('url', form.url || '')
-  formData.append('progress', String(form.progress))
+  formData.append('progress', String(form.event_progress))
   
   // 日時
   formData.append('date_range[0]', form.date_range[0].toLocaleDateString('sv-SE'))
@@ -413,10 +432,23 @@ const executeSave = (scope?: 'this-only' | 'this-and-future' | 'all') => {
     formData.append('original_date', props.event.start_date)
   }
   
+  formData.append('version', String(form.version))
+  if (isForceUpdate.value) {
+    formData.append('force_update', '1')
+  }
+  
   formData.append('_method', 'PUT')
   
   router.post(route('events.update', props.event.event_id), formData, {
-    onSuccess: () => {
+    onSuccess: (page: any) => {
+      const conflict = page.props.flash?.conflict
+      if (conflict) {
+        conflictData.value = conflict
+        showConflictDialog.value = true
+        return
+      }
+
+      isForceUpdate.value = false
       isEditMode.value = false
       closeDialog()
       setTimeout(() => {
@@ -968,7 +1000,7 @@ const getNextOccurrence = (offset: number) => {
           <div class="flex-1">
             <Label class="text-sm text-gray-500 dark:text-gray-400">URL</Label>
             <Input v-if="isEditMode && canEdit" v-model="form.url" type="url" placeholder="https://..." class="mt-1" />
-            <a v-else :href="event.url" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline break-all dark:text-blue-400 mt-1 block">{{ event.url }}</a>
+            <a v-else :href="event.url || undefined" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline break-all dark:text-blue-400 mt-1 block">{{ event.url }}</a>
           </div>
         </div>
 
@@ -1011,11 +1043,11 @@ const getNextOccurrence = (offset: number) => {
             <div class="w-3 h-3 rounded-full border-2 border-current"></div>
           </div>
           <div class="flex-1">
-            <Label class="text-sm text-gray-500 mb-2 dark:text-gray-400">進捗状況 ({{ isEditMode ? form.progress : event.progress }}%)</Label>
+            <Label class="text-sm text-gray-500 mb-2 dark:text-gray-400">進捗状況 ({{ isEditMode ? form.event_progress : event.progress }}%)</Label>
             <div class="relative">
               <div 
                 class="w-full h-2 rounded-lg overflow-hidden mb-2"
-                :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${isEditMode ? form.progress : event.progress}%, #e5e7eb ${isEditMode ? form.progress : event.progress}%, #e5e7eb 100%)` }"
+                :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${isEditMode ? form.event_progress : event.progress}%, #e5e7eb ${isEditMode ? form.event_progress : event.progress}%, #e5e7eb 100%)` }"
               >
               </div>
               <input 
@@ -1023,7 +1055,7 @@ const getNextOccurrence = (offset: number) => {
                 type="range" 
                 min="0" 
                 max="100" 
-                v-model.number="form.progress" 
+                v-model.number="form.event_progress" 
                 class="w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider absolute top-0"
               />
               <div class="flex justify-between text-xs text-gray-500 mt-1 dark:text-gray-400">
@@ -1187,6 +1219,11 @@ const getNextOccurrence = (offset: number) => {
       :mode="recurrenceMode"
       :event-date="event?.start_date || ''"
       @confirm="handleRecurrenceConfirm"
+    />
+    <ConflictResolutionDialog
+      v-model:show="showConflictDialog"
+      :conflict-data="conflictData"
+      @resolve="resolveConflict"
     />
   </Teleport>
 </template>

@@ -13,6 +13,7 @@ export interface UnifiedEvent extends App.Models.ExpandedEvent {
 interface EventFilters {
   searchQuery?: string
   genreFilter?: string
+  departmentFilter?: string | null
   memberId?: number | null
 }
 
@@ -34,7 +35,7 @@ export function useUnifiedEvents(
   const error = ref<string | null>(null)
   const initialized = ref(false)
 
-  const { searchQuery, genreFilter, fetchEvents } = useCalendarEvents()
+  const { searchQuery, genreFilter, departmentFilter, fetchEvents } = useCalendarEvents()
 
   const loadEvents = async (forceRefresh = false) => {
     loading.value = true
@@ -51,6 +52,9 @@ export function useUnifiedEvents(
       }
       if (filterValues.genreFilter !== undefined) {
         genreFilter.value = filterValues.genreFilter
+      }
+      if (filterValues.departmentFilter !== undefined) {
+        departmentFilter.value = filterValues.departmentFilter
       }
 
       const cacheKey = getCacheKey(start, end, filterValues)

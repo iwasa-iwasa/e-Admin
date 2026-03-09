@@ -40,6 +40,8 @@ class UpdateSurveyRequest extends FormRequest
             'categories.*' => ['string'],
             'respondents' => ['nullable', 'array'],
             'respondents.*' => ['integer', 'exists:users,id'],
+            'visibility_type' => ['required', 'string', 'in:public,department,custom,private'],
+            'owner_department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'confirm_reset' => ['boolean'],
         ];
     }

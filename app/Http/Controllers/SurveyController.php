@@ -37,10 +37,56 @@ class SurveyController extends Controller
     public function index(Request $request)
     {
         $userId = Auth::id();
+        $user = Auth::user();
+        $userDepartmentId = $user->department_id;
         
-        $surveys = Survey::with(['creator', 'questions.options', 'responses.respondent', 'designatedUsers'])
+        $departmentFilter = $request->query('department_filter', 'all');
+
+        $surveysQuery = Survey::with(['creator', 'questions.options', 'responses.respondent', 'designatedUsers'])
             ->where('is_deleted', false)
-            ->orderBy('created_at', 'desc')
+            ->where(function ($query) use ($userId, $userDepartmentId) {
+                // 自分が作成したものは常に見える
+                $query->where('created_by', $userId)
+                
+                // 全社公開
+                ->orWhere('visibility_type', 'public')
+                
+                // 自部署公開
+                ->orWhere(function ($q) use ($userDepartmentId) {
+                    if ($userDepartmentId) {
+                        $q->where('visibility_type', 'department')
+                          ->where('owner_department_id', $userDepartmentId);
+                    }
+                })
+                
+                // 共有されている（指定ユーザーに含まれる）
+                ->orWhere(function ($q) use ($userId) {
+                    $q->where('visibility_type', 'custom')
+                      ->whereHas('designatedUsers', function ($q2) use ($userId) {
+                          $q2->where('users.id', $userId);
+                      });
+                });
+            });
+
+        // UIフィルターの適用
+        if ($departmentFilter === 'public') {
+            $surveysQuery->where('visibility_type', 'public');
+        } elseif ($departmentFilter === 'private') {
+            $surveysQuery->where('visibility_type', 'private')
+                         ->where('created_by', $userId);
+        } elseif (str_starts_with($departmentFilter, 'dept_')) {
+            $deptId = (int) str_replace('dept_', '', $departmentFilter);
+            $surveysQuery->where(function ($q) use ($userId, $deptId) {
+                $q->where('visibility_type', 'department')
+                  ->where('owner_department_id', $deptId)
+                  ->orWhere(function ($q2) use ($userId) {
+                      $q2->where('visibility_type', 'private')
+                         ->where('created_by', $userId);
+                  });
+            });
+        }
+
+        $surveys = $surveysQuery->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($survey) use ($userId) {
                 $survey->has_responded = $survey->responses()->where('respondent_id', $userId)->exists();
@@ -72,6 +118,8 @@ class SurveyController extends Controller
             'surveys' => $surveys,
             'teamMembers' => $teamMembers,
             'highlight' => $request->query('highlight'),
+            'currentDepartmentFilter' => $departmentFilter,
+            'userDepartmentId' => $userDepartmentId,
         ]);
     }
 
