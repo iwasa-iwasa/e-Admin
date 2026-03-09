@@ -17,6 +17,10 @@ const props = defineProps<{
   filteredMemberId?: number | null
   teamMembers: App.Models.User[]
   defaultView?: string
+  departments?: App.Models.Department[]
+  calendars?: App.Models.Calendar[]
+  userDepartmentId?: number | null
+  userRoleType?: string
 }>()
 
 const filteredMember = computed(() => {
@@ -43,6 +47,10 @@ const isHelpOpen = ref(false)
                 :show-back-button="true" 
                 :filtered-member-id="props.filteredMemberId"
                 :default-view="props.defaultView"
+                :departments="props.departments"
+                :calendars="props.calendars"
+                :user-department-id="props.userDepartmentId"
+                :user-role-type="props.userRoleType"
                 :is-help-open="isHelpOpen"
                 @update:is-help-open="isHelpOpen = $event"
             />

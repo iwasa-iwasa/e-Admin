@@ -7,8 +7,10 @@ export function useSurveyEditor(initialData?: Partial<Survey>) {
     const description = ref(initialData?.description || '');
     const deadline = ref(initialData?.deadline || '');
     const questions = ref<Question[]>(initialData?.questions ? JSON.parse(JSON.stringify(initialData.questions)) : []);
-    const category = ref('その他');
+    const category = ref(initialData?.category || 'その他');
     const respondents = ref<number[]>(initialData?.respondents && initialData.respondents.length > 0 ? [...initialData.respondents] : []);
+    const visibility_type = ref(initialData?.visibility_type || 'public');
+    const owner_department_id = ref(initialData?.owner_department_id || null);
 
     const addQuestion = (template: QuestionTemplate) => {
         questions.value.push(createQuestionFromTemplate(template));
@@ -58,7 +60,7 @@ export function useSurveyEditor(initialData?: Partial<Survey>) {
             respondents.value = [...allIds];
         }
     };
-    
+
     const initializeRespondents = (allIds: number[]) => {
         if (respondents.value.length === 0 && (!initialData?.respondents || initialData.respondents.length === 0)) {
             respondents.value = [...allIds];
@@ -75,6 +77,8 @@ export function useSurveyEditor(initialData?: Partial<Survey>) {
         })),
         category: category.value,
         respondents: respondents.value,
+        visibility_type: visibility_type.value,
+        owner_department_id: owner_department_id.value,
     });
 
     return {
@@ -91,6 +95,8 @@ export function useSurveyEditor(initialData?: Partial<Survey>) {
         toSurveyData,
         toggleRespondent,
         toggleAllRespondents,
-        initializeRespondents
+        initializeRespondents,
+        visibility_type,
+        owner_department_id
     };
 }

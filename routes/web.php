@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\UserController as ApiUserController;
 use App\Http\Controllers\Api\VisitorEventController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NotificationController;
@@ -138,6 +139,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/surveys/{id}', [SurveyController::class, 'show']);
         Route::post('/track-activity', [ActivityController::class, 'track']);
         Route::get('/visitor-events/check', [VisitorEventController::class, 'checkUpcoming'])->name('visitor-events.check');
+
+        // 部署API（認証ユーザーが利用可能）
+        Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
+        Route::get('/departments/{department}/members', [DepartmentController::class, 'members'])->name('departments.members');
     });
 
     Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -148,8 +153,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::patch('/{user}/role', 'updateRole')->name('update-role');
             Route::get('/{user}/logs', 'logs')->name('logs');
         });
+
+        // 部署管理（管理者のみ）
+        Route::controller(DepartmentController::class)->prefix('departments')->name('departments.')->group(function () {
+            Route::get('/', 'all')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{department}', 'update')->name('update');
+            Route::delete('/{department}', 'destroy')->name('destroy');
+            Route::post('/merge', 'merge')->name('merge');
+            Route::post('/users/{user}/transfer', 'transferUser')->name('transfer-user');
+            Route::post('/users/{user}/confirm-transfer', 'confirmTransferUser')->name('confirm-transfer-user');
+            Route::post('/users/{user}/deactivate', 'deactivateUser')->name('deactivate-user');
+        });
     });
 });
 
 // Laravel Breeze/Jetstreamのデフォルト認証ルート
 require __DIR__ . '/auth.php';
+

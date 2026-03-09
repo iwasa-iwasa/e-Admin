@@ -66,7 +66,8 @@ const lastDeletedReminder = ref<ReminderModel | null>(null)
 const showCompleted = ref(false)
 const reminderToDelete = ref<ReminderModel | null>(null)
 const headerRef = ref<HTMLElement | null>(null)
-const headerStage = ref<'normal' | 'compact' | 'titleCut' | 'iconOnly'>('normal')
+const headerStage = ref<string>('normal')
+const isCreateDialogOpen = ref(false)
 let resizeObserver: ResizeObserver | null = null
 
 const completedCount = computed(() => props.reminders.filter((r) => r.completed).length)
@@ -210,6 +211,17 @@ const handleCopyReminder = () => {
 
 const handleCloseCreateDialog = (isOpen: boolean) => {
   isCreateDialogOpen.value = isOpen
+}
+
+const handleDialogClose = (isOpen: boolean, completed?: boolean) => {
+  if (!isOpen) {
+    if (completed && selectedReminder.value) {
+      lastDeletedReminder.value = selectedReminder.value;
+      showMessage('リマインダーを完了しました。', 'delete');
+      window.dispatchEvent(new CustomEvent('notification-updated'));
+    }
+    selectedReminder.value = null;
+  }
 }
 
 const handlePermanentDelete = (reminder: ReminderModel) => {
@@ -480,7 +492,7 @@ onUnmounted(() => {
     <ReminderDetailDialog
       :reminder="selectedReminder"
       :open="selectedReminder !== null"
-      @update:open="(isOpen, completed) => { if (!isOpen) { if (completed && selectedReminder) { lastDeletedReminder = selectedReminder; showMessage('リマインダーを完了しました。', 'delete'); window.dispatchEvent(new CustomEvent('notification-updated')); } selectedReminder = null; } }"
+      @update:open="handleDialogClose"
       @update:reminder="handleUpdateReminder"
       @copy="handleCopyReminder"
     />

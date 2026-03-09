@@ -31,4 +31,8 @@ export interface Survey {
     version?: number
     questions: Question[]
     respondents: number[] // user ids
+    categories?: string[]
+    category?: string
+    visibility_type?: 'public' | 'department' | 'custom' | 'private'
+    owner_department_id?: number | null
 }

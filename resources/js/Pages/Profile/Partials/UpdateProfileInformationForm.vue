@@ -4,10 +4,12 @@ import InputLabel from '@/components/InputLabel.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 defineProps<{
     mustVerifyEmail?: Boolean;
     status?: String;
+    departments?: App.Models.Department[];
 }>();
 
 const user = usePage().props.auth.user;
@@ -69,16 +71,23 @@ const form = useForm({
             <div>
                 <InputLabel for="department" value="部署" />
 
-                <TextInput
-                    id="department"
-                    type="text"
-                    class="mt-1 block w-full"
-                    v-model="form.department"
-                    required
-                    autocomplete="organization-unit"
-                />
+                <Select v-model="form.department" :disabled="user.role !== 'admin'">
+                    <SelectTrigger class="w-full mt-1" id="department">
+                        <SelectValue placeholder="部署を選択してください" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem 
+                            v-for="dept in departments" 
+                            :key="dept.id" 
+                            :value="dept.name"
+                        >
+                            {{ dept.name }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
 
                 <InputError class="mt-2" :message="form.errors.department" />
+                <p v-if="user.role !== 'admin'" class="text-xs text-gray-500 mt-1">部署の変更は管理者にお問い合わせください。</p>
             </div>
 
             <div>

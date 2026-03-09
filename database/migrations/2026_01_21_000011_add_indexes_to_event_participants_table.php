@@ -9,18 +9,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 既存のインデックスをチェック
-        $indexes = DB::select("SHOW INDEX FROM event_participants WHERE Key_name IN ('idx_participants_user', 'idx_participants_event')");
-        $existingIndexes = collect($indexes)->pluck('Key_name')->unique()->toArray();
-        
-        Schema::table('event_participants', function (Blueprint $table) use ($existingIndexes) {
-            if (!in_array('idx_participants_user', $existingIndexes)) {
-                $table->index('user_id', 'idx_participants_user');
+        if (DB::getDriverName() !== 'sqlite') {
+            $indexesFound = [];
+            if (DB::getDriverName() === 'mysql') {
+                $indexesFound = collect(DB::select('SHOW INDEX FROM event_participants'))->pluck('Key_name')->toArray();
             }
-            if (!in_array('idx_participants_event', $existingIndexes)) {
-                $table->index('event_id', 'idx_participants_event');
-            }
-        });
+
+            Schema::table('event_participants', function (Blueprint $table) use ($indexesFound) {
+                if (!in_array('idx_participants_user', $indexesFound)) {
+                    $table->index('user_id', 'idx_participants_user');
+                }
+                if (!in_array('idx_participants_event', $indexesFound)) {
+                    $table->index('event_id', 'idx_participants_event');
+                }
+            });
+        }
     }
 
     public function down(): void

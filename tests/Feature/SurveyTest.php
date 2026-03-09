@@ -44,6 +44,7 @@ class SurveyTest extends TestCase
                 ]
             ],
             'respondents' => [$user->id],
+            'visibility_type' => 'public',
         ];
 
         $response = $this->actingAs($user)->post(route('surveys.store'), $surveyData);
@@ -80,6 +81,7 @@ class SurveyTest extends TestCase
                 ]
             ],
             'respondents' => [$user->id],
+            'visibility_type' => 'public',
         ];
 
         $response = $this->actingAs($user)->put(route('surveys.update', $survey), $updateData);

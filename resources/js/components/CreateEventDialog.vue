@@ -162,6 +162,7 @@ const form = useForm({
   url: '',
   category: '会議',
   importance: '中',
+  visibility_type: 'public',
   event_progress: 0,
   recurrence: {
     is_recurring: false,
@@ -211,6 +212,7 @@ watch(() => props.open, (isOpen) => {
       form.url = eventData.url || ''
       form.category = eventData.category || '会議'
       form.importance = eventData.importance || '中'
+      form.visibility_type = (eventData as any).visibility_type || 'public'
       form.event_progress = (eventData.progress ?? 0) as number
 
       if (eventData.recurrence) {
@@ -417,6 +419,7 @@ const saveDraft = () => {
     url: form.url,
     category: form.category,
     importance: form.importance,
+    visibility_type: form.visibility_type,
     progress: form.event_progress,
     recurrence: form.recurrence,
   }
@@ -446,6 +449,7 @@ const restoreDraft = () => {
     form.url = pendingDraft.value.url
     form.category = pendingDraft.value.category
     form.importance = pendingDraft.value.importance
+    form.visibility_type = pendingDraft.value.visibility_type || 'public'
     form.event_progress = pendingDraft.value.progress
     form.recurrence = pendingDraft.value.recurrence
     date.value = form.date_range as [Date, Date]
@@ -791,6 +795,20 @@ const updateNextOccurrences = () => {
                     <SelectItem value="低">
                       <Badge class="bg-gray-400 text-white">低</Badge>
                     </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div class="space-y-2">
+                <Label for="visibility">公開範囲</Label>
+                <Select v-model="form.visibility_type" :disabled="!canEdit">
+                  <SelectTrigger id="visibility">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">全社公開</SelectItem>
+                    <SelectItem value="department">自部署のみ</SelectItem>
+                    <SelectItem value="private">非公開（参加者のみ）</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

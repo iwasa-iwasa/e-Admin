@@ -105,16 +105,16 @@ const showMessage = (message: string) => {
             
             <div class="space-y-3">
               <div v-for="(label, key) in form.category_labels" :key="key" class="flex items-center gap-3">
-                <div class="w-6 h-6 rounded-full flex-shrink-0" :style="{ backgroundColor: getCategoryColor(key) }"></div>
+                <div class="w-6 h-6 rounded-full flex-shrink-0" :style="{ backgroundColor: getCategoryColor(String(key)) }"></div>
                 <div class="flex-1 space-y-1">
-                  <Label :for="`category_${key}`" class="text-sm text-muted-foreground">
-                    {{ key }}
+                  <Label :for="`category_${String(key)}`" class="text-sm text-muted-foreground">
+                    {{ String(key) }}
                   </Label>
                   <Input
-                    :id="`category_${key}`"
+                    :id="`category_${String(key)}`"
                     v-model="form.category_labels[key]"
                     type="text"
-                    :placeholder="key"
+                    :placeholder="String(key)"
                     maxlength="100"
                   />
                 </div>

@@ -91,6 +91,7 @@ interface SurveyWithResponse extends SurveyModel {
     unanswered_names?: string[];
     categories?: string[];
     category?: string;
+    can_respond?: boolean;
 }
 
 const props = defineProps<{
@@ -103,11 +104,14 @@ const props = defineProps<{
     flash?: any;
     totalUsers?: number;
     unansweredSurveysCount?: number;
+    currentDepartmentFilter?: string;
+    userDepartmentId?: number;
 }>();
 
 // リアクティブ変数
 const searchQuery = ref("");
 const categoryFilter = ref("all");
+const departmentFilter = ref(props.currentDepartmentFilter || 'all');
 const activeTab = ref("active");
 const isCreateSurveyDialogOpen = ref(false);
 const showCreateDialog = ref(false);
@@ -232,6 +236,13 @@ watch(
     },
     { immediate: true }
 );
+
+watch(departmentFilter, (newVal) => {
+    router.get('/surveys', { department_filter: newVal }, {
+        preserveState: true,
+        replace: true,
+    });
+});
 
 watch(
     () => surveyToDelete.value,
@@ -392,6 +403,17 @@ onUnmounted(() => {
                                 <SelectItem v-for="cat in allCategories" :key="cat" :value="cat">
                                     {{ cat }}
                                 </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select v-model="departmentFilter">
+                            <SelectTrigger class="w-[140px]">
+                                <SelectValue placeholder="公開範囲" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">すべて</SelectItem>
+                                <SelectItem value="public">🌐 全社公開</SelectItem>
+                                <SelectItem :value="`dept_${props.userDepartmentId}`">🏢 自部署</SelectItem>
+                                <SelectItem value="private">🔒 非公開</SelectItem>
                             </SelectContent>
                         </Select>
                         <div class="relative">

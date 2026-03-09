@@ -4,6 +4,7 @@ import { useForm, usePage } from "@inertiajs/vue3";
 import { Save, X, CheckCircle, Pin, Info } from "lucide-vue-next";
 import { CATEGORY_LABELS, CATEGORY_COLORS, loadCategoryLabels } from '@/constants/calendar'
 import { onMounted } from 'vue'
+import { ja } from 'date-fns/locale';
 import '@vuepic/vue-datepicker/dist/main.css';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import {
@@ -33,7 +34,7 @@ type Priority = "high" | "medium" | "low";
 
 const props = defineProps<{
     open: boolean;
-    teamMembers?: App.Models.User[];
+    teamMembers?: { id: number; name: string; profile_photo_url?: string }[];
 }>();
 const emit = defineEmits(["update:open"]);
 
@@ -46,6 +47,7 @@ const form = useForm<{
     color: string;
     participants: number[];
     pinned: boolean;
+    visibility_type: string;
 }>({
     title: "",
     content: "",
@@ -55,10 +57,11 @@ const form = useForm<{
     color: "yellow",
     participants: [],
     pinned: false,
+    visibility_type: "public",
 });
 
 const tagInput = ref("");
-const selectedParticipants = ref<App.Models.User[]>([]);
+const selectedParticipants = ref<{ id: number; name: string }[]>([]);
 const activeTab = ref("basic");
 const deadlineDateTime = ref<Date | null>(null);
 
@@ -95,6 +98,7 @@ const saveDraft = () => {
         participants: form.participants,
         selectedParticipants: selectedParticipants.value,
         pinned: form.pinned,
+        visibility_type: form.visibility_type,
     }
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
 }
@@ -120,6 +124,7 @@ const restoreDraft = () => {
         form.participants = pendingDraft.value.participants || []
         selectedParticipants.value = pendingDraft.value.selectedParticipants || []
         form.pinned = pendingDraft.value.pinned
+        form.visibility_type = pendingDraft.value.visibility_type || "public"
         showDraftBanner.value = true
     }
     showDraftDialog.value = false
@@ -134,6 +139,7 @@ const discardDraft = () => {
     form.tags = []
     form.participants = []
     form.pinned = false
+    form.visibility_type = "public"
     selectedParticipants.value = []
     tagInput.value = ""
 }
@@ -174,6 +180,7 @@ const handleClose = () => {
     form.tags = [];
     form.participants = [];
     form.pinned = false;
+    form.visibility_type = "public";
     selectedParticipants.value = [];
     tagInput.value = "";
     activeTab.value = "basic";
@@ -269,6 +276,7 @@ watch(() => props.open, (isOpen) => {
             form.priority = data.priority
             form.tags = data.tags || []
             form.pinned = false
+            form.visibility_type = data.visibility_type || "public"
             
             // 全員を選択
             if (props.teamMembers) {
@@ -480,7 +488,22 @@ watch(deadlineDateTime, (newDate) => {
                     </div>
 
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between">
+                        <div class="space-y-2">
+                            <Label for="visibility">公開範囲</Label>
+                            <Select v-model="form.visibility_type">
+                                <SelectTrigger id="visibility" class="bg-white dark:bg-gray-800">
+                                    <SelectValue placeholder="公開範囲を選択" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="public">🌐 全社公開</SelectItem>
+                                    <SelectItem value="department">🏢 自部署のみ</SelectItem>
+                                    <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
+                                    <SelectItem value="private">🔒 非公開（自分のみ）</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div class="flex items-center justify-between mt-4">
                             <Label for="participants">共有メンバー</Label>
                             <div class="flex items-center gap-2">
                                 <Button type="button" variant="outline" size="sm" @click="handleSelectAll" class="h-7 text-xs">
