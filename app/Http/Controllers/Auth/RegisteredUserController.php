@@ -20,7 +20,11 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Register');
+        return Inertia::render('Auth/Register', [
+            'departments' => \App\Models\Department::where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+        ]);
     }
 
     /**
@@ -34,12 +38,16 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'department_id' => 'required|exists:departments,id',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'department_id' => $request->department_id,
+            'role' => 'user',
+            'role_type' => 'member',
         ]);
 
         event(new Registered($user));

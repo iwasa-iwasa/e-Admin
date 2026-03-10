@@ -17,7 +17,7 @@ const user = usePage().props.auth.user;
 const form = useForm({
     name: user.name,
     email: user.email,
-    department: user.department,
+    department_id: user.department_id ? String(user.department_id) : '',
 });
 </script>
 
@@ -71,7 +71,7 @@ const form = useForm({
             <div>
                 <InputLabel for="department" value="部署" />
 
-                <Select v-model="form.department" :disabled="user.role !== 'admin'">
+                <Select v-model="form.department_id" :disabled="user.role !== 'admin'">
                     <SelectTrigger class="w-full mt-1" id="department">
                         <SelectValue placeholder="部署を選択してください" />
                     </SelectTrigger>
@@ -79,14 +79,14 @@ const form = useForm({
                         <SelectItem 
                             v-for="dept in departments" 
                             :key="dept.id" 
-                            :value="dept.name"
+                            :value="String(dept.id)"
                         >
                             {{ dept.name }}
                         </SelectItem>
                     </SelectContent>
                 </Select>
 
-                <InputError class="mt-2" :message="form.errors.department" />
+                <InputError class="mt-2" :message="form.errors.department_id" />
                 <p v-if="user.role !== 'admin'" class="text-xs text-gray-500 mt-1">部署の変更は管理者にお問い合わせください。</p>
             </div>
 

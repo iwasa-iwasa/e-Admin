@@ -30,15 +30,34 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $validated = $request->validated();
+        $oldDepartmentId = $user->department_id;
+        $newDepartmentId = $validated['department_id'];
+        
+        // 部署変更の場合は異動処理を実行
+        if ($oldDepartmentId != $newDepartmentId) {
+            $transferService = app(\App\Services\UserDepartmentTransferService::class);
+            $result = $transferService->transferDepartment($user, $newDepartmentId);
+            
+            if (isset($result['requires_confirmation'])) {
+                return back()->with('transfer_confirmation', $result);
+            }
+        }
+        
+        $user->fill([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'department_id' => $newDepartmentId,
+        ]);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
 
-        return Redirect::route('profile.edit');
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**

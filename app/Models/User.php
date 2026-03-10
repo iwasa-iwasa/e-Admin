@@ -133,4 +133,12 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Department::class, 'department_id');
     }
+
+    /**
+     * Get the user's preferences.
+     */
+    public function preferences()
+    {
+        return $this->hasOne(UserPreference::class);
+    }
 }

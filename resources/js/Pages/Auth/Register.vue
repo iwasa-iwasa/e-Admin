@@ -6,9 +6,21 @@ import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
+interface Department {
+    id: number;
+    name: string;
+}
+
+interface Props {
+    departments: Department[];
+}
+
+const props = defineProps<Props>();
+
 const form = useForm({
     name: '',
     email: '',
+    department_id: '',
     password: '',
     password_confirmation: '',
 });
@@ -58,6 +70,29 @@ const submit = () => {
                 />
 
                 <InputError class="mt-2" :message="form.errors.email" />
+            </div>
+
+            <div class="mt-4">
+                <InputLabel for="department_id" value="所属部署" />
+                <span class="text-red-500 ml-1">*</span>
+
+                <select
+                    id="department_id"
+                    v-model="form.department_id"
+                    class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm"
+                    required
+                >
+                    <option value="" disabled>部署を選択してください</option>
+                    <option
+                        v-for="dept in departments"
+                        :key="dept.id"
+                        :value="dept.id"
+                    >
+                        {{ dept.name }}
+                    </option>
+                </select>
+
+                <InputError class="mt-2" :message="form.errors.department_id" />
             </div>
 
             <div class="mt-4">

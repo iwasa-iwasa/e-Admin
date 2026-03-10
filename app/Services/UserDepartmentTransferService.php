@@ -134,8 +134,12 @@ class UserDepartmentTransferService
     /**
      * 過去の予定の所有権を部署管理者に移譲
      */
-    private function transferPastEvents(User $user, int $oldDepartmentId, Carbon $today): void
+    private function transferPastEvents(User $user, ?int $oldDepartmentId, Carbon $today): void
     {
+        if (!$oldDepartmentId) {
+            return;
+        }
+
         $departmentAdmin = $this->getDepartmentAdmin($oldDepartmentId);
         if (!$departmentAdmin) {
             return;
@@ -150,8 +154,12 @@ class UserDepartmentTransferService
     /**
      * 繰り返し予定を元の部署に残す（所有権移譲）
      */
-    private function keepRecurringEvents(User $user, int $oldDepartmentId): void
+    private function keepRecurringEvents(User $user, ?int $oldDepartmentId): void
     {
+        if (!$oldDepartmentId) {
+            return;
+        }
+
         $departmentAdmin = $this->getDepartmentAdmin($oldDepartmentId);
         if (!$departmentAdmin) {
             return;
@@ -166,8 +174,12 @@ class UserDepartmentTransferService
     /**
      * 本人のみが参加者の未来の単発予定を取得
      */
-    private function checkSoloEvents(User $user, int $oldDepartmentId, Carbon $today)
+    private function checkSoloEvents(User $user, ?int $oldDepartmentId, Carbon $today)
     {
+        if (!$oldDepartmentId) {
+            return collect();
+        }
+
         return Event::where('created_by', $user->id)
             ->where('owner_department_id', $oldDepartmentId)
             ->where('start_date', '>=', $today)
@@ -184,8 +196,12 @@ class UserDepartmentTransferService
     /**
      * 複数参加者がいる未来の予定を新部署に移動
      */
-    private function transferFutureEvents(User $user, int $oldDepartmentId, int $newDepartmentId, Carbon $today): void
+    private function transferFutureEvents(User $user, ?int $oldDepartmentId, int $newDepartmentId, Carbon $today): void
     {
+        if (!$oldDepartmentId) {
+            return;
+        }
+
         Event::where('created_by', $user->id)
             ->where('owner_department_id', $oldDepartmentId)
             ->where('start_date', '>=', $today)
