@@ -6,6 +6,7 @@ import { Head } from '@inertiajs/vue3';
 defineProps<{
     mustVerifyEmail?: boolean;
     status?: string;
+    departments?: App.Models.Department[];
 }>();
 </script>
 
@@ -20,6 +21,7 @@ defineProps<{
                     <UpdateProfileInformationForm
                         :must-verify-email="mustVerifyEmail"
                         :status="status"
+                        :departments="departments"
                     />
                 </div>
 

@@ -7,13 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * @property string|null $reason
  * @property string|null $deactivated_at
  */
-#[TypeScript]
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -99,8 +97,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ユーザーがピン留めした共有ノートを取得します。
-     */
+     * 繝ｦ繝ｼ繧ｶ繝ｼ縺後ヴ繝ｳ逡吶ａ縺励◆蜈ｱ譛峨ヮ繝ｼ繝医ｒ蜿門ｾ励＠縺ｾ縺吶・     */
     public function pinnedNotes(): BelongsToMany
     {
         return $this->belongsToMany(SharedNote::class, 'pinned_notes', 'user_id', 'note_id')->withTimestamps();

@@ -22,23 +22,48 @@ class NoteController extends Controller
     {
         $user = Auth::user();
         $memberId = $request->query('member_id');
+        $departmentFilter = $request->query('department_filter', 'all');
 
-        $notesQuery = SharedNote::with(['author', 'tags', 'participants', 'linkedEvent'])
+        $notesQuery = SharedNote::with(['author', 'tags', 'participants', 'linkedEvent', 'ownerDepartment'])
             ->active()
             ->where(function($query) use ($user) {
+                // 基本アクセス権: 自分が作成者、参加者、全社公開、自部署公開
                 $query->where('author_id', $user->id)
                       ->orWhereHas('participants', function($q) use ($user) {
                           $q->where('users.id', $user->id);
                       })
-                      ->orWhereDoesntHave('participants');
+                      ->orWhereNull('visibility_type')
+                      ->orWhere('visibility_type', 'public')
+                      ->orWhere(function($q) use ($user) {
+                          $q->where('visibility_type', 'department')
+                            ->where('owner_department_id', $user->department_id);
+                      });
             });
 
         if ($memberId) {
             $notesQuery->where(function($query) use ($memberId) {
                 $query->whereHas('participants', function ($q) use ($memberId) {
                     $q->where('users.id', $memberId);
-                })->orWhereDoesntHave('participants');
+                });
             });
+        }
+
+        if ($departmentFilter && $departmentFilter !== 'all') {
+            if ($departmentFilter === 'private') {
+                $notesQuery->where('visibility_type', 'private')
+                           ->where('author_id', $user->id);
+            } elseif ($departmentFilter === 'public') {
+                $notesQuery->where(function($q) {
+                    $q->whereNull('visibility_type')
+                      ->orWhere('visibility_type', 'public');
+                });
+            } elseif (str_starts_with($departmentFilter, 'dept_')) {
+                $deptId = (int)str_replace('dept_', '', $departmentFilter);
+                $notesQuery->where('visibility_type', 'department')
+                           ->where('owner_department_id', $deptId);
+            } elseif ($departmentFilter === 'custom') {
+                $notesQuery->where('visibility_type', 'custom');
+            }
         }
 
         $notes = $notesQuery->orderBy('updated_at', 'desc')->get();
@@ -69,6 +94,8 @@ class NoteController extends Controller
             'teamMembers' => $teamMembers,
             'allTags' => $allTags,
             'filteredMemberId' => $memberId ? (int)$memberId : null,
+            'currentDepartmentFilter' => $departmentFilter,
+            'userDepartmentId' => $user->department_id,
         ]);
     }
 
@@ -106,6 +133,8 @@ class NoteController extends Controller
             'author_id' => Auth::id(),
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
+            'visibility_type' => $validated['visibility_type'] ?? 'public',
+            'owner_department_id' => ($validated['visibility_type'] ?? 'public') === 'department' ? Auth::user()->department_id : null,
             'deadline_date' => $deadlineDate,
             'deadline_time' => $deadlineTime,
             'progress' => $validated['progress'] ?? 0,
@@ -175,6 +204,8 @@ class NoteController extends Controller
             'content' => $validated['content'],
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
+            'visibility_type' => $validated['visibility_type'] ?? 'public',
+            'owner_department_id' => ($validated['visibility_type'] ?? 'public') === 'department' ? (auth()->user()->department_id ?? null) : null,
             'deadline_date' => $deadlineDate,
             'deadline_time' => $deadlineTime,
             'progress' => $validated['progress'] ?? 0,

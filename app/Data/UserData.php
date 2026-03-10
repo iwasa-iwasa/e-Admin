@@ -13,6 +13,8 @@ class UserData extends Data
         public string $email,
         public ?Carbon $email_verified_at,
         public string $department,
+        public ?int $department_id,
+        public ?string $role_type,
         public string $role,
         public bool $is_active,
         public ?Carbon $created_at,

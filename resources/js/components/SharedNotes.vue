@@ -31,6 +31,7 @@ export interface SharedNoteModel {
   tags?: { tag_id: number; tag_name: string }[]
   created_at: string | null
   updated_at: string | null
+  deleted_at: string | null
   is_deleted: boolean
   linked_event_id?: number | null
 }

@@ -21,9 +21,18 @@ class TrashController extends Controller
         try {
             \Log::info('TrashController index called for user: ' . Auth::id());
             
-            $trashItems = TrashItem::where(function($q) {
-                    $q->where('is_shared', true)
-                      ->orWhere('user_id', Auth::id() ?: 1); // テスト用にデフォルト値1を設定
+            $user = Auth::user();
+            
+            $trashItems = TrashItem::where(function($q) use ($user) {
+                    $q->where('user_id', $user->id) // 自分が削除したアイテム
+                      ->orWhere(function($subQ) use ($user) {
+                          // または自部署のアイテム（部署IDが一致し、ユーザーが存在するもの）
+                          if ($user->department_id) {
+                              $subQ->where('owner_department_id', $user->department_id);
+                          } else {
+                              $subQ->whereRaw('1 = 0'); // 部署がない場合は一致させない
+                          }
+                      });
                 })
                 ->with('user')
                 ->orderBy('deleted_at', 'desc')
@@ -65,6 +74,8 @@ class TrashController extends Controller
                     'creatorName' => $item->creator_name ?: $creatorName,
                     'deletedBy' => $item->user ? $item->user->name : '',
                     'isShared' => $item->is_shared,
+                    'owner_department_id' => $item->owner_department_id,
+                    'is_mine' => $item->user_id === Auth::id(),
                 ];
                 return $mapped;
             });

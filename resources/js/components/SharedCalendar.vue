@@ -37,6 +37,10 @@ const props = defineProps<{
     filteredMemberId?: number | null
     defaultView?: string
     isHelpOpen?: boolean
+    departments?: App.Models.Department[]
+    calendars?: App.Models.Calendar[]
+    userDepartmentId?: number | null
+    userRoleType?: string
 }>()
 
 const emit = defineEmits<{
@@ -55,6 +59,7 @@ const pendingEditEvent = ref<App.Models.ExpandedEvent | null>(null)
 const { 
     searchQuery, 
     genreFilter, 
+    departmentFilter,
     canEditEvent,
     fetchEvents
 } = useCalendarEvents()
@@ -154,6 +159,7 @@ const dateRange = computed(() => {
 const eventFilters = computed(() => ({
     searchQuery: searchQuery.value,
     genreFilter: genreFilter.value,
+    departmentFilter: departmentFilter.value,
     memberId: props.filteredMemberId
 }))
 
@@ -169,7 +175,7 @@ const { calendarOptions } = useFullCalendarConfig(
     computed(() => props.filteredMemberId),
     viewMode,
     fullCalendar,
-    (category: string) => getEventColor.value(category),
+    getEventColor,
     {
         eventClick: handleEventClick,
         dateClick: handleDateClickFromCalendar,
@@ -510,6 +516,21 @@ const handleDateJump = (date: Date) => {
                 </div>
                 <!-- 右上操作エリア -->
                 <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                    <!-- 部署 Select (visibility) -->
+                    <div v-if="props.departments && props.departments.length > 0" class="transition-all duration-300 ease-in-out flex-shrink">
+                        <Select v-model="departmentFilter" :key="`dept-${layoutMode}`">
+                            <SelectTrigger class="w-[120px] h-9 text-xs">
+                                <SelectValue placeholder="公開範囲" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">すべて</SelectItem>
+                                <SelectItem value="public">全社公開</SelectItem>
+                                <SelectItem v-if="props.userDepartmentId" :value="`dept_${props.userDepartmentId}`">自部署</SelectItem>
+                                <SelectItem value="private">自分のみ</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     <!-- ジャンル Select -->
                     <div class="transition-all duration-300 ease-in-out flex-shrink">
                         <Select v-model="genreFilter" :key="`genre-${layoutMode}`">

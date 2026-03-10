@@ -36,7 +36,8 @@ const {
     toSurveyData,
     toggleRespondent,
     toggleAllRespondents,
-    initializeRespondents
+    initializeRespondents,
+    visibility_type,
 } = useSurveyEditor(props.initialData);
 
 const isAllSelected = computed(() => {
@@ -176,6 +177,21 @@ defineExpose({
                             placeholder="回答期限を選択"
                         />
                     </div>
+                </div>
+
+                <div class="space-y-2">
+                    <Label for="visibility">公開範囲 <span class="text-red-500">*</span></Label>
+                    <Select v-model="visibility_type">
+                        <SelectTrigger id="visibility" class="w-full">
+                            <SelectValue placeholder="公開範囲を選択" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="public">🌐 全社公開</SelectItem>
+                            <SelectItem value="department">🏢 自部署のみ</SelectItem>
+                            <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
+                            <SelectItem value="private">🔒 非公開（自分のみ）</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 
                 <div v-if="teamMembers" class="space-y-2">

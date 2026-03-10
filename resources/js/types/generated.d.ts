@@ -150,29 +150,3 @@ export type EventCategory = '会議' | '業務' | '来客' | '出張' | '休暇'
 export type EventColor = 'blue' | 'green' | 'yellow' | 'purple' | 'pink' | 'gray';
 export type EventImportance = '重要' | '中' | '低';
 }
-declare namespace App.Models {
-export type SharedNote = {
-incrementing: boolean;
-preventsLazyLoading: boolean;
-exists: boolean;
-wasRecentlyCreated: boolean;
-timestamps: boolean;
-usesUniqueIds: boolean;
-};
-export type Survey = {
-incrementing: boolean;
-preventsLazyLoading: boolean;
-exists: boolean;
-wasRecentlyCreated: boolean;
-timestamps: boolean;
-usesUniqueIds: boolean;
-};
-export type User = {
-incrementing: boolean;
-preventsLazyLoading: boolean;
-exists: boolean;
-wasRecentlyCreated: boolean;
-timestamps: boolean;
-usesUniqueIds: boolean;
-};
-}

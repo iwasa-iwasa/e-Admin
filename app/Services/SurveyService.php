@@ -38,6 +38,8 @@ class SurveyService
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
                 'is_active' => ! ($data['isDraft'] ?? false),
+                'visibility_type' => $data['visibility_type'] ?? 'public',
+                'owner_department_id' => $data['owner_department_id'] ?? null,
             ]);
 
             // 質問を保存
@@ -84,6 +86,8 @@ class SurveyService
                 'categories' => !empty($data['categories']) ? $data['categories'] : null,
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
+                'visibility_type' => $data['visibility_type'] ?? 'public',
+                'owner_department_id' => $data['owner_department_id'] ?? null,
             ]);
 
             // 質問が変更された場合、バージョンをインクリメント

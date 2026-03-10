@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateEventRequest;
 use Inertia\Inertia;
 use App\Models\Event;
 use App\Models\Calendar;
+use App\Models\Department;
 use App\Models\SharedNote;
 use App\Models\TrashItem;
 use Illuminate\Support\Facades\Auth;
@@ -37,11 +38,19 @@ class CalendarController extends Controller
         $teamMembers = \App\Models\User::where('is_active', true)->get();
         $user = auth()->user();
 
+        // 部署リストとカレンダーリストを取得
+        $departments = Department::where('is_active', true)->orderBy('name')->get();
+        $calendars = Calendar::with('ownerDepartment')->get();
+
         return Inertia::render('Calendar', [
             'events' => $events,
             'filteredMemberId' => $memberId ? (int)$memberId : null,
             'teamMembers' => $teamMembers,
             'defaultView' => $user->calendar_default_view ?? 'dayGridMonth',
+            'departments' => $departments,
+            'calendars' => $calendars,
+            'userDepartmentId' => $user->department_id,
+            'userRoleType' => $user->role_type,
         ]);
     }
 
@@ -58,6 +67,7 @@ class CalendarController extends Controller
         $memberId = $request->query('member_id');
         $searchQuery = $request->query('search_query');
         $genreFilter = $request->query('genre_filter');
+        $departmentFilter = $request->query('department_filter');
 
         \Log::info('[CalendarAPI] Request received', [
             'start' => $start,
@@ -115,6 +125,20 @@ class CalendarController extends Controller
             }
         }
 
+        if ($departmentFilter && $departmentFilter !== 'all') {
+            $user = auth()->user();
+            if ($departmentFilter === 'private') {
+                $events = array_filter($events, fn($event) => ($event['visibility_type'] ?? 'public') === 'private' && $event['created_by'] === $user->id);
+            } elseif ($departmentFilter === 'public') {
+                $events = array_filter($events, fn($event) => ($event['visibility_type'] ?? 'public') === 'public');
+            } elseif (str_starts_with($departmentFilter, 'dept_')) {
+                $deptId = (int)str_replace('dept_', '', $departmentFilter);
+                $events = array_filter($events, fn($event) => ($event['visibility_type'] ?? 'public') === 'department' && $event['owner_department_id'] === $deptId);
+            } elseif ($departmentFilter === 'custom') {
+                $events = array_filter($events, fn($event) => ($event['visibility_type'] ?? 'public') === 'custom');
+            }
+        }
+
         $finalEvents = array_values($events);
         
         \Log::info('[CalendarAPI] Response prepared', [
@@ -157,6 +181,16 @@ class CalendarController extends Controller
      */
     public function update(UpdateEventRequest $request, Event $event)
     {
+        $version = $request->input('version');
+        $forceUpdate = $request->boolean('force_update', false);
+
+        if (!$forceUpdate && $version !== null && $event->version !== (int)$version) {
+            return redirect()->back()->with('conflict', [
+                'current_data' => $event->fresh()->load(['creator', 'participants', 'attachments', 'recurrence']),
+                'your_changes' => $request->all(),
+            ]);
+        }
+        
         $data = $request->validated();
         $editScope = $request->input('edit_scope');
         $originalDate = $request->input('original_date');

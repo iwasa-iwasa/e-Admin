@@ -51,6 +51,7 @@ class SurveyRefactorVerifyTest extends TestCase
                 ]
             ],
             'respondents' => [$this->user->id],
+            'visibility_type' => 'public',
         ]);
 
         $response->assertRedirect();
@@ -139,6 +140,7 @@ class SurveyRefactorVerifyTest extends TestCase
                     'options' => []
                 ]
             ],
+            'visibility_type' => 'public',
             'confirm_reset' => false // Should normally trigger warning if not force
         ]);
         
@@ -162,6 +164,7 @@ class SurveyRefactorVerifyTest extends TestCase
                     'options' => []
                 ]
             ],
+            'visibility_type' => 'public',
             'confirm_reset' => true
         ]);
         

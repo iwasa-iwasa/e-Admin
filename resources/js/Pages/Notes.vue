@@ -52,6 +52,8 @@ interface SharedNoteModel {
   is_pinned?: boolean
   progress?: number | null
   linked_event_id?: number | null
+  visibility_type?: string
+  owner_department_id?: number | null
 }
 
 const props = defineProps<{
@@ -60,6 +62,8 @@ const props = defineProps<{
   teamMembers: UserModel[]
   allTags: string[]
   filteredMemberId?: number | null
+  currentDepartmentFilter?: string
+  userDepartmentId?: number
 }>()
 
 const page = usePage()
@@ -114,8 +118,17 @@ const isCreateDialogOpen = ref(false)
 const isSaving = ref(false)
 const saveMessage = ref('')
 const editedProgress = ref<number>(selectedNote.value?.progress ?? 0)
+const editedVisibility = ref<string>(selectedNote.value?.visibility_type || 'public')
 const linkedEvent = ref<any>(null)
 const isEventDialogOpen = ref(false)
+
+const departmentFilter = ref(props.currentDepartmentFilter || 'all')
+watch(departmentFilter, (newVal) => {
+  router.get(route('notes'), { department_filter: newVal }, {
+    preserveState: true,
+    replace: true,
+  })
+})
 
 // メッセージとUndoロジック
 const messageType = ref<'success' | 'delete'>('success')
@@ -197,6 +210,7 @@ watch(selectedNote, (newNote) => {
     editedParticipants.value = newNote.participants || []
     participantSelectValue.value = null
     editedProgress.value = newNote.progress ?? 0
+    editedVisibility.value = newNote.visibility_type || 'public'
     // タグ入力欄をクリア
     tagInput.value = ''
     showTagSuggestions.value = false
@@ -359,7 +373,8 @@ const handleSaveNote = () => {
     color: editedColor.value,
     tags: editedTags.value,
     participants: editedParticipants.value.map(p => p.id),
-    progress: editedProgress.value
+    progress: editedProgress.value,
+    visibility_type: editedVisibility.value
   }
   
   // note_idが0の場合は新規作成
@@ -564,6 +579,7 @@ const handleCopyNote = () => {
     tags: selectedNote.value.tags.map(tag => tag.tag_name),
     participants: selectedNote.value.participants || [],
     progress: selectedNote.value.progress ?? 0,
+    visibility_type: selectedNote.value.visibility_type || 'public',
   }
   
   sessionStorage.setItem('note_copy_data', JSON.stringify(copyData))
@@ -660,6 +676,17 @@ const isHelpOpen = ref(false)
         </div>
 
         <div class="flex gap-2 mb-3">
+          <Select v-model="departmentFilter">
+            <SelectTrigger class="w-[140px] flex-shrink-0 h-10 border-gray-300 dark:border-gray-600 bg-background text-sm">
+              <SelectValue placeholder="公開範囲" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべて</SelectItem>
+              <SelectItem value="public">🌐 全社公開</SelectItem>
+              <SelectItem :value="`dept_${props.userDepartmentId}`">🏢 自部署</SelectItem>
+              <SelectItem value="private">🔒 非公開</SelectItem>
+            </SelectContent>
+          </Select>
           <div class="relative flex-1">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -1021,6 +1048,22 @@ const isHelpOpen = ref(false)
             </Badge>
           </div>
           
+          <!-- 公開範囲選択 -->
+          <div class="space-y-2 mb-3">
+            <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">公開範囲</label>
+            <Select v-model="editedVisibility">
+              <SelectTrigger class="h-8 text-xs border-gray-300 dark:border-input bg-white dark:bg-gray-800 w-full max-w-sm">
+                <SelectValue placeholder="公開範囲を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">🌐 全社公開</SelectItem>
+                <SelectItem value="department">🏢 自部署のみ</SelectItem>
+                <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
+                <SelectItem value="private">🔒 非公開（自分のみ）</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <!-- メンバー追加UI -->
           <div class="space-y-2">
             <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">共有メンバー</label>

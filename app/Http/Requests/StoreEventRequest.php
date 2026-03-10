@@ -38,6 +38,7 @@ class StoreEventRequest extends FormRequest
             'url' => 'nullable|url|max:500',
             'category' => ['required', Rule::enum(EventCategory::class)],
             'importance' => ['required', Rule::enum(EventImportance::class)],
+            'visibility_type' => 'required|string|in:public,department,private,custom',
             'progress' => 'nullable|integer|min:0|max:100',
             'recurrence' => 'nullable|array',
             'recurrence.is_recurring' => 'boolean',

@@ -12,7 +12,8 @@ class AdminUserController extends Controller
     public function index()
     {
         return Inertia::render('Admin/Users/Index', [
-            'users' => \App\Data\UserData::collect(User::orderBy('created_at', 'desc')->get()),
+            'users' => \App\Data\UserData::collect(User::with('department')->orderBy('created_at', 'desc')->get()),
+            'departments' => \App\Models\Department::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
