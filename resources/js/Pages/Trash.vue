@@ -42,10 +42,14 @@ type SortOrder = 'asc' | 'desc'
 
 const props = defineProps<{
   trashItems: TrashItem[]
+  currentDepartmentFilter?: string
+  userDepartmentId?: number
+  departments?: Array<{ id: number; name: string }>
 }>()
 
 // リアクティブ変数
 const trashItems = ref<TrashItem[]>(props.trashItems || [])
+const departmentFilter = ref(props.currentDepartmentFilter || 'all')
 const sortField = ref<SortField>('deletedAt')
 const sortOrder = ref<SortOrder>('desc')
 const itemToDelete = ref<string | null>(null)
@@ -58,6 +62,13 @@ const showDeleteSelectedDialog = ref(false)
 const showRestoreSelectedDialog = ref(false)
 const deleteMode = ref<'selected' | 'unselected'>('selected')
 const restoreMode = ref<'selected' | 'unselected'>('selected')
+
+watch(departmentFilter, (newVal) => {
+    router.get('/trash', { department_filter: newVal }, {
+        preserveState: true,
+        replace: true,
+    })
+})
 
 // フィルター
 const filterScope = ref<'all' | 'mine' | 'department'>('all')
@@ -404,6 +415,19 @@ const handleTrashUpdate = () => {
           
           <!-- 検索・フィルター・アクションボタン -->
           <div class="flex items-center gap-2">
+            <Select v-model="departmentFilter">
+              <SelectTrigger class="w-[140px] h-10 border-gray-300 dark:border-gray-600 bg-background text-sm">
+                <SelectValue placeholder="表示ゴミ箱" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">すべて</SelectItem>
+                <SelectItem value="public">🌐 全社</SelectItem>
+                <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署</div>
+                <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
+                    {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
             <Button 
               variant="outline" 
               size="icon" 
@@ -442,7 +466,6 @@ const handleTrashUpdate = () => {
               <Trash2 class="h-4 w-4" />
               選択を完全削除
             </Button>
-            
           </div>
         </div>
         

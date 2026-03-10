@@ -93,11 +93,32 @@ class DepartmentController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100|unique:departments,name,' . $department->id,
+            'admin_user_id' => 'required|exists:users,id',
         ]);
 
-        $department->update($validated);
+        \DB::transaction(function () use ($department, $validated) {
+            $department->update(['name' => $validated['name']]);
 
-        return redirect()->back()->with('success', '部署名を更新しました');
+            // 管理者の変更処理
+            $currentAdmin = User::where('department_id', $department->id)
+                                ->where('role_type', 'department_admin')
+                                ->first();
+
+            if (!$currentAdmin || $currentAdmin->id !== (int)$validated['admin_user_id']) {
+                // 既存の管理者がいれば一般ユーザーへ降格
+                if ($currentAdmin) {
+                    $currentAdmin->update(['role_type' => 'user']);
+                }
+
+                // 新しい管理者を設定し、所属部署もその部署へ変更する
+                User::find($validated['admin_user_id'])->update([
+                    'department_id' => $department->id,
+                    'role_type' => 'department_admin',
+                ]);
+            }
+        });
+
+        return redirect()->back()->with('success', '部署情報を更新しました');
     }
 
     /**

@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'active' => \App\Http\Middleware\CheckUserActive::class,
+            'dept_admin' => \App\Http\Middleware\CheckDepartmentAdmin::class,
         ]);
         $middleware->trustProxies(at: '*');
         $middleware->web(append: [

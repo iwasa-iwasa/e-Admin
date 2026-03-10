@@ -67,7 +67,10 @@ const openCreateDialog = () => {
 
 const openEditDialog = (department: typeof props.departments[0]) => {
   selectedDepartment.value = department
-  form.value = { name: department.name, admin_user_id: '' } // admin_user_id is not editable here currently based on requirements
+  form.value = { 
+    name: department.name, 
+    admin_user_id: department.adminUser ? department.adminUser.id : '' 
+  }
   isEditDialogOpen.value = true
 }
 
@@ -87,7 +90,10 @@ const createDepartment = () => {
 
 const updateDepartment = () => {
   if (!selectedDepartment.value) return
-  router.put(route('admin.departments.update', selectedDepartment.value.id), { name: form.value.name }, {
+  router.put(route('admin.departments.update', selectedDepartment.value.id), { 
+    name: form.value.name,
+    admin_user_id: form.value.admin_user_id
+  }, {
     onSuccess: () => {
       isEditDialogOpen.value = false
     }
@@ -211,10 +217,24 @@ const deactivateDepartment = () => {
             <Label htmlFor="edit-name">部署名</Label>
             <Input id="edit-name" v-model="form.name" />
           </div>
+          <div class="grid gap-2">
+            <Label htmlFor="edit-admin">部署管理者</Label>
+            <Select v-model="form.admin_user_id">
+                <SelectTrigger>
+                    <SelectValue placeholder="管理者を選択" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem :value="user.id" v-for="user in users" :key="user.id">
+                        {{ user.name }}
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+            <p class="text-xs text-gray-500">※変更すると既存の管理者は一般ユーザーに戻ります。</p>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="isEditDialogOpen = false">キャンセル</Button>
-          <Button @click="updateDepartment" :disabled="!form.name || form.name === selectedDepartment?.name">更新</Button>
+          <Button @click="updateDepartment" :disabled="!form.name || !form.admin_user_id || (form.name === selectedDepartment?.name && form.admin_user_id === selectedDepartment?.adminUser?.id)">更新</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

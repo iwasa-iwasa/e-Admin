@@ -88,6 +88,9 @@ class NoteController extends Controller
             ->pluck('tag_name')
             ->values();
 
+        // 部署リストを取得
+        $departments = \App\Models\Department::where('is_active', true)->orderBy('name')->get();
+
         return Inertia::render('Notes', [
             'notes' => $sortedNotes->values(), // ソート後にキーをリセット
             'totalUsers' => \App\Models\User::where('department', $user->department)->count(),
@@ -96,6 +99,7 @@ class NoteController extends Controller
             'filteredMemberId' => $memberId ? (int)$memberId : null,
             'currentDepartmentFilter' => $departmentFilter,
             'userDepartmentId' => $user->department_id,
+            'departments' => $departments,
         ]);
     }
 

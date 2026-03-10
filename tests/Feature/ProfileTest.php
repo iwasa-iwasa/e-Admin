@@ -24,13 +24,14 @@ class ProfileTest extends TestCase
     public function test_profile_information_can_be_updated(): void
     {
         $user = User::factory()->create();
+        $department = \App\Models\Department::create(['name' => 'Test Update Dept']);
 
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
-                'department' => 'Test Dept',
+                'department_id' => $department->id,
             ]);
 
         $response
@@ -47,13 +48,14 @@ class ProfileTest extends TestCase
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
     {
         $user = User::factory()->create();
+        $department = \App\Models\Department::create(['name' => 'Test Verification Dept']);
 
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
                 'name' => 'Test User',
                 'email' => $user->email,
-                'department' => 'Test Dept',
+                'department_id' => $department->id,
             ]);
 
         $response

@@ -246,7 +246,9 @@ class CalendarController extends Controller
      */
     public function getCategoryLabels()
     {
-        $labels = CalendarCategoryLabel::all()->pluck('label', 'category_key');
+        $labels = \Illuminate\Support\Facades\Cache::remember('calendar_category_labels', now()->addDay(), function () {
+            return CalendarCategoryLabel::all()->pluck('label', 'category_key');
+        });
         return response()->json($labels);
     }
 
@@ -284,7 +286,9 @@ class CalendarController extends Controller
     public function settings()
     {
         $user = auth()->user();
-        $categoryLabels = CalendarCategoryLabel::all()->pluck('label', 'category_key');
+        $categoryLabels = \Illuminate\Support\Facades\Cache::remember('calendar_category_labels', now()->addDay(), function () {
+            return CalendarCategoryLabel::all()->pluck('label', 'category_key');
+        });
         
         $heatmapSettings = $user->heatmap_settings 
             ? json_decode($user->heatmap_settings, true)
@@ -335,6 +339,7 @@ class CalendarController extends Controller
             foreach ($validated['category_labels'] as $key => $label) {
                 CalendarCategoryLabel::where('category_key', $key)->update(['label' => $label]);
             }
+            \Illuminate\Support\Facades\Cache::forget('calendar_category_labels');
         }
         
         return redirect()->route('dashboard')->with('success', '設定を保存しました');

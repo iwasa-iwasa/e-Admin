@@ -143,6 +143,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // 部署API（認証ユーザーが利用可能）
         Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
         Route::get('/departments/{department}/members', [DepartmentController::class, 'members'])->name('departments.members');
+
+        // 全社カレンダー（権限あり：dept_adminによる申請、company_adminによる承認・却下）
+        Route::middleware(['dept_admin'])->group(function () {
+            Route::post('/company-events/request', [\App\Http\Controllers\CompanyEventRequestController::class, 'requestCompanyEvent']);
+            Route::post('/company-events/{companyEventRequest}/approve', [\App\Http\Controllers\CompanyEventRequestController::class, 'approve']);
+            Route::post('/company-events/{companyEventRequest}/reject', [\App\Http\Controllers\CompanyEventRequestController::class, 'reject']);
+            
+            // カレンダーへの共有機能
+            Route::post('/events/{event}/share', [\App\Http\Controllers\EventShareController::class, 'shareToCalendar']);
+            Route::delete('/event-shares/{calendarEventShare}', [\App\Http\Controllers\EventShareController::class, 'unshare']);
+        });
+        
+        // カレンダーの共有予定一覧取得用API（一般ユーザーも利用可能）
+        Route::get('/calendars/{calendar}/events', [\App\Http\Controllers\EventShareController::class, 'getEventsForCalendar']);
     });
 
     Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
