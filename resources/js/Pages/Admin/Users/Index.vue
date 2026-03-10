@@ -31,6 +31,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Users, History, Loader2, ChevronDown, HelpCircle } from 'lucide-vue-next'
 import axios from 'axios'
+import DepartmentTransferConfirmDialog from '@/components/DepartmentTransferConfirmDialog.vue'
+import UserDeactivateConfirmDialog from '@/components/UserDeactivateConfirmDialog.vue'
 
 defineOptions({
   layout: AuthenticatedLayout,
@@ -46,6 +48,7 @@ const selectedUser = ref<App.Data.UserData | null>(null)
 
 // Transfer
 const isTransferDialogOpen = ref(false)
+const isTransferConfirmDialogOpen = ref(false)
 const transferDepartmentId = ref<number | ''>('')
 const transferOption = ref<'transfer' | 'keep'>('transfer')
 
@@ -71,12 +74,14 @@ const openTransferDialog = (user: App.Data.UserData) => {
   isTransferDialogOpen.value = true
 }
 
-const executeTransfer = () => {
+const executeTransfer = (selectedHandlingMethod) => {
   if (!selectedUser.value || !transferDepartmentId.value) return
 
-  router.post(route('admin.departments.transfer-confirm', selectedUser.value.id), {
+  const method = selectedHandlingMethod || transferOption.value
+
+  router.post(route('admin.departments.transfer-user', selectedUser.value.id), {
     new_department_id: transferDepartmentId.value,
-    option: transferOption.value
+    option: method
   }, {
     onSuccess: () => {
       isTransferDialogOpen.value = false
@@ -91,11 +96,12 @@ const openDeactivateDialog = (user: App.Data.UserData) => {
   isDeactivateDialogOpen.value = true
 }
 
-const deactivateUser = () => {
+const deactivateUser = (reasonFromDialog) => {
   if (!selectedUser.value) return
 
-  router.delete(route('admin.users.destroy', selectedUser.value.id), {
-    data: { reason: deactivationReason.value },
+  const reason = reasonFromDialog || deactivationReason.value
+
+  router.post(route('admin.departments.deactivate-user', selectedUser.value.id), { reason: reason }, {
     onSuccess: () => {
       isDeactivateDialogOpen.value = false
       selectedUser.value = null
@@ -260,14 +266,13 @@ const formatDate = (dateString: string) => {
       </CardContent>
     </Card>
 
-    <!-- Transfer Dialog -->
+    <!-- Transfer Department Selection Dialog -->
     <Dialog :open="isTransferDialogOpen" @update:open="isTransferDialogOpen = $event">
       <DialogContent>
         <DialogHeader>
           <DialogTitle>部署異動の手続き</DialogTitle>
           <DialogDescription>
-            {{ selectedUser?.name }} さんの所属部署を変更します。
-            現在の部署から作成したイベントや共有アイテムの扱いを選択してください。
+            {{ selectedUser?.name }} さんの所属部署を変更します。異動先の部署を選択してください。
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
@@ -284,55 +289,33 @@ const formatDate = (dateString: string) => {
                 </SelectContent>
             </Select>
           </div>
-          <div class="grid gap-2 mt-2 border-t pt-4">
-            <Label>既存アイテムの取り扱い</Label>
-            <div class="flex flex-col gap-3 mt-2">
-                <label class="flex items-start gap-3 cursor-pointer">
-                    <input type="radio" value="transfer" v-model="transferOption" class="mt-1">
-                    <div class="text-sm">
-                        <span class="font-bold">旧部署に残す (推奨)</span>
-                        <p class="text-gray-500">作成した予定やメモを、元の部署の管理者に引き継ぎます。</p>
-                    </div>
-                </label>
-                <label class="flex items-start gap-3 cursor-pointer">
-                    <input type="radio" value="keep" v-model="transferOption" class="mt-1">
-                    <div class="text-sm">
-                        <span class="font-bold">自分が保持して異動先に持ち込む</span>
-                        <p class="text-gray-500 text-xs">自身のアイテムとして新しい部署へ持っていきます。一部の共有が解除される可能性があります。</p>
-                    </div>
-                </label>
-            </div>
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="isTransferDialogOpen = false">キャンセル</Button>
-          <Button @click="executeTransfer" :disabled="!transferDepartmentId">異動を実行</Button>
+          <Button @click="() => { isTransferDialogOpen = false; isTransferConfirmDialogOpen = true; }" :disabled="!transferDepartmentId">次へ</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
 
+    <!-- Transfer Confirm Dialog -->
+    <DepartmentTransferConfirmDialog
+      :is-open="isTransferConfirmDialogOpen"
+      :user-name="selectedUser?.name || ''"
+      :new-department-name="departments.find(d => d.id === transferDepartmentId)?.name || ''"
+      :requires-confirmation="true"
+      :is-processing="false"
+      @close="isTransferConfirmDialogOpen = false"
+      @confirm="executeTransfer"
+    />
+
     <!-- Deactivate Dialog -->
-    <Dialog :open="isDeactivateDialogOpen" @update:open="isDeactivateDialogOpen = $event">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>ユーザーの無効化（退職手続き）</DialogTitle>
-          <DialogDescription>
-            {{ selectedUser?.name }} さんのアカウントを無効化します。<br>
-            この操作を行うとログインできなくなり、所持している予定・メモは自動的に部署管理者（または社内管理者）に移譲されます。
-          </DialogDescription>
-        </DialogHeader>
-        <div class="grid gap-4 py-4">
-          <div class="grid gap-2">
-            <Label htmlFor="reason">無効化の理由</Label>
-            <Input id="reason" v-model="deactivationReason" placeholder="例：退職のため" />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" @click="isDeactivateDialogOpen = false">キャンセル</Button>
-          <Button variant="destructive" @click="deactivateUser" :disabled="!deactivationReason">実行</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <UserDeactivateConfirmDialog
+      :is-open="isDeactivateDialogOpen"
+      :user-name="selectedUser?.name || ''"
+      :is-processing="false"
+      @close="isDeactivateDialogOpen = false"
+      @confirm="deactivateUser"
+    />
 
     <!-- Role Update Dialog -->
     <Dialog :open="isRoleDialogOpen" @update:open="isRoleDialogOpen = $event">

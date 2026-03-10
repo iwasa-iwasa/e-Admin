@@ -22,17 +22,20 @@ class TrashController extends Controller
             \Log::info('TrashController index called for user: ' . Auth::id());
             
             $user = Auth::user();
+            $departmentFilter = $request->query('department_filter', 'all');
             
-            $trashItems = TrashItem::where(function($q) use ($user) {
-                    $q->where('user_id', $user->id) // 自分が削除したアイテム
-                      ->orWhere(function($subQ) use ($user) {
-                          // または自部署のアイテム（部署IDが一致し、ユーザーが存在するもの）
-                          if ($user->department_id) {
-                              $subQ->where('owner_department_id', $user->department_id);
-                          } else {
-                              $subQ->whereRaw('1 = 0'); // 部署がない場合は一致させない
-                          }
-                      });
+            $trashItems = TrashItem::where(function($q) use ($user, $departmentFilter) {
+                    $q->where('user_id', $user->id); // 自分が削除したアイテム
+
+                    if ($departmentFilter === 'all' || $departmentFilter === 'public') {
+                        // 特段絞り込まないが全部署や全社という概念がゴミ箱には基本ないため自分の部署を含める
+                         if ($user->department_id) {
+                            $q->orWhere('owner_department_id', $user->department_id);
+                         }
+                    } elseif (str_starts_with($departmentFilter, 'dept_')) {
+                         $deptId = (int)str_replace('dept_', '', $departmentFilter);
+                         $q->orWhere('owner_department_id', $deptId);
+                    }
                 })
                 ->with('user')
                 ->orderBy('deleted_at', 'desc')
@@ -85,11 +88,17 @@ class TrashController extends Controller
         } catch (\Exception $e) {
             \Log::error('TrashController error: ' . $e->getMessage());
             $mappedItems = collect([]);
+            $departmentFilter = 'all';
         }
+
+        $departments = \App\Models\Department::where('is_active', true)->orderBy('name')->get();
 
         return Inertia::render('Trash', [
             'trashItems' => $mappedItems,
             'highlight' => $request->query('highlight'),
+            'currentDepartmentFilter' => $departmentFilter,
+            'userDepartmentId' => Auth::user()->department_id,
+            'departments' => $departments,
         ]);
     }
 

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\Users\kazuma\Documents\e-Admin\phpunit.xml" tests="49" assertions="128" errors="0" failures="3" skipped="0" time="4.028396">
+    <testsuite name="Unit" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.002522">
+      <testsuite name="Tests\Unit\ExampleTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Unit\ExampleTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.002522">
+        <testcase name="test_that_true_is_true" file="C:\Users\kazuma\Documents\e-Admin\tests\Unit\ExampleTest.php" line="12" class="Tests\Unit\ExampleTest" classname="Tests.Unit.ExampleTest" assertions="1" time="0.002522"/>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Feature" tests="48" assertions="127" errors="0" failures="3" skipped="0" time="4.025874">
+      <testsuite name="Tests\Feature\Auth\AuthenticationTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\AuthenticationTest.php" tests="4" assertions="8" errors="0" failures="0" skipped="0" time="2.183791">
+        <testcase name="test_login_screen_can_be_rendered" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\AuthenticationTest.php" line="13" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="1" time="1.908209"/>
+        <testcase name="test_users_can_authenticate_using_the_login_screen" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\AuthenticationTest.php" line="20" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="3" time="0.032013"/>
+        <testcase name="test_users_can_not_authenticate_with_invalid_password" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\AuthenticationTest.php" line="33" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="1" time="0.227847"/>
+        <testcase name="test_users_can_logout" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\AuthenticationTest.php" line="45" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="3" time="0.015722"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Auth\EmailVerificationTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\EmailVerificationTest.php" tests="3" assertions="6" errors="0" failures="0" skipped="0" time="0.056503">
+        <testcase name="test_email_verification_screen_can_be_rendered" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\EmailVerificationTest.php" line="16" class="Tests\Feature\Auth\EmailVerificationTest" classname="Tests.Feature.Auth.EmailVerificationTest" assertions="1" time="0.020238"/>
+        <testcase name="test_email_can_be_verified" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\EmailVerificationTest.php" line="25" class="Tests\Feature\Auth\EmailVerificationTest" classname="Tests.Feature.Auth.EmailVerificationTest" assertions="4" time="0.018733"/>
+        <testcase name="test_email_is_not_verified_with_invalid_hash" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\EmailVerificationTest.php" line="44" class="Tests\Feature\Auth\EmailVerificationTest" classname="Tests.Feature.Auth.EmailVerificationTest" assertions="1" time="0.017531"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Auth\PasswordConfirmationTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordConfirmationTest.php" tests="3" assertions="4" errors="0" failures="0" skipped="0" time="0.264070">
+        <testcase name="test_confirm_password_screen_can_be_rendered" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordConfirmationTest.php" line="13" class="Tests\Feature\Auth\PasswordConfirmationTest" classname="Tests.Feature.Auth.PasswordConfirmationTest" assertions="1" time="0.018983"/>
+        <testcase name="test_password_can_be_confirmed" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordConfirmationTest.php" line="22" class="Tests\Feature\Auth\PasswordConfirmationTest" classname="Tests.Feature.Auth.PasswordConfirmationTest" assertions="2" time="0.015327"/>
+        <testcase name="test_password_is_not_confirmed_with_invalid_password" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordConfirmationTest.php" line="34" class="Tests\Feature\Auth\PasswordConfirmationTest" classname="Tests.Feature.Auth.PasswordConfirmationTest" assertions="1" time="0.229760"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Auth\PasswordResetTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordResetTest.php" tests="4" assertions="8" errors="0" failures="0" skipped="0" time="0.710431">
+        <testcase name="test_reset_password_link_screen_can_be_rendered" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordResetTest.php" line="15" class="Tests\Feature\Auth\PasswordResetTest" classname="Tests.Feature.Auth.PasswordResetTest" assertions="1" time="0.017230"/>
+        <testcase name="test_reset_password_link_can_be_requested" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordResetTest.php" line="22" class="Tests\Feature\Auth\PasswordResetTest" classname="Tests.Feature.Auth.PasswordResetTest" assertions="1" time="0.226844"/>
+        <testcase name="test_reset_password_screen_can_be_rendered" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordResetTest.php" line="33" class="Tests\Feature\Auth\PasswordResetTest" classname="Tests.Feature.Auth.PasswordResetTest" assertions="2" time="0.232322"/>
+        <testcase name="test_password_can_be_reset_with_valid_token" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordResetTest.php" line="50" class="Tests\Feature\Auth\PasswordResetTest" classname="Tests.Feature.Auth.PasswordResetTest" assertions="4" time="0.234035"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Auth\PasswordUpdateTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordUpdateTest.php" tests="2" assertions="8" errors="0" failures="0" skipped="0" time="0.044208">
+        <testcase name="test_password_can_be_updated" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordUpdateTest.php" line="14" class="Tests\Feature\Auth\PasswordUpdateTest" classname="Tests.Feature.Auth.PasswordUpdateTest" assertions="4" time="0.024616"/>
+        <testcase name="test_correct_password_must_be_provided_to_update_password" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\PasswordUpdateTest.php" line="34" class="Tests\Feature\Auth\PasswordUpdateTest" classname="Tests.Feature.Auth.PasswordUpdateTest" assertions="4" time="0.019591"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Auth\RegistrationTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\RegistrationTest.php" tests="2" assertions="2" errors="0" failures="1" skipped="0" time="0.098815">
+        <testcase name="test_registration_screen_can_be_rendered" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\RegistrationTest.php" line="12" class="Tests\Feature\Auth\RegistrationTest" classname="Tests.Feature.Auth.RegistrationTest" assertions="1" time="0.025248"/>
+        <testcase name="test_new_users_can_register" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\RegistrationTest.php" line="19" class="Tests\Feature\Auth\RegistrationTest" classname="Tests.Feature.Auth.RegistrationTest" assertions="1" time="0.073567">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Auth\RegistrationTest::test_new_users_can_register&#13;
+The user is not authenticated
+Failed asserting that false is true.
+&#13;
+C:\Users\kazuma\Documents\e-Admin\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithAuthentication.php:64
+C:\Users\kazuma\Documents\e-Admin\tests\Feature\Auth\RegistrationTest.php:28</failure>
+        </testcase>
+      </testsuite>
+      <testsuite name="Tests\Feature\CalendarTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\CalendarTest.php" tests="5" assertions="14" errors="0" failures="0" skipped="0" time="0.120097">
+        <testcase name="test_calendar_page_is_displayed" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\CalendarTest.php" line="30" class="Tests\Feature\CalendarTest" classname="Tests.Feature.CalendarTest" assertions="1" time="0.021867"/>
+        <testcase name="test_event_can_be_created" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\CalendarTest.php" line="38" class="Tests\Feature\CalendarTest" classname="Tests.Feature.CalendarTest" assertions="2" time="0.020176"/>
+        <testcase name="test_event_validation_fails_with_invalid_data" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\CalendarTest.php" line="70" class="Tests\Feature\CalendarTest" classname="Tests.Feature.CalendarTest" assertions="5" time="0.024184"/>
+        <testcase name="test_event_can_be_updated" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\CalendarTest.php" line="82" class="Tests\Feature\CalendarTest" classname="Tests.Feature.CalendarTest" assertions="3" time="0.032171"/>
+        <testcase name="test_event_can_be_deleted" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\CalendarTest.php" line="125" class="Tests\Feature\CalendarTest" classname="Tests.Feature.CalendarTest" assertions="3" time="0.021698"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\ConflictResolutionTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ConflictResolutionTest.php" tests="1" assertions="9" errors="0" failures="0" skipped="0" time="0.038513">
+        <testcase name="test_conflict_is_detected_on_outdated_version_update" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ConflictResolutionTest.php" line="25" class="Tests\Feature\ConflictResolutionTest" classname="Tests.Feature.ConflictResolutionTest" assertions="9" time="0.038513"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\DepartmentMergeTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\DepartmentMergeTest.php" tests="1" assertions="7" errors="0" failures="0" skipped="0" time="0.025109">
+        <testcase name="test_departments_can_be_merged_successfully" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\DepartmentMergeTest.php" line="31" class="Tests\Feature\DepartmentMergeTest" classname="Tests.Feature.DepartmentMergeTest" assertions="7" time="0.025109"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\DepartmentTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\DepartmentTest.php" tests="5" assertions="10" errors="0" failures="0" skipped="0" time="0.092651">
+        <testcase name="test_department_creation_auto_creates_calendar" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\DepartmentTest.php" line="34" class="Tests\Feature\DepartmentTest" classname="Tests.Feature.DepartmentTest" assertions="1" time="0.013589"/>
+        <testcase name="test_department_name_change_updates_calendar_name" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\DepartmentTest.php" line="50" class="Tests\Feature\DepartmentTest" classname="Tests.Feature.DepartmentTest" assertions="1" time="0.013496"/>
+        <testcase name="test_admin_can_create_department" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\DepartmentTest.php" line="66" class="Tests\Feature\DepartmentTest" classname="Tests.Feature.DepartmentTest" assertions="2" time="0.020588"/>
+        <testcase name="test_member_cannot_create_department" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\DepartmentTest.php" line="99" class="Tests\Feature\DepartmentTest" classname="Tests.Feature.DepartmentTest" assertions="1" time="0.021032"/>
+        <testcase name="test_department_api_returns_active_departments" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\DepartmentTest.php" line="123" class="Tests\Feature\DepartmentTest" classname="Tests.Feature.DepartmentTest" assertions="5" time="0.023947"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\ExampleTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ExampleTest.php" tests="1" assertions="2" errors="0" failures="0" skipped="0" time="0.021511">
+        <testcase name="test_the_application_returns_a_successful_response" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ExampleTest.php" line="13" class="Tests\Feature\ExampleTest" classname="Tests.Feature.ExampleTest" assertions="2" time="0.021511"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\NoteTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\NoteTest.php" tests="5" assertions="12" errors="0" failures="0" skipped="0" time="0.099791">
+        <testcase name="test_authenticated_user_can_create_note" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\NoteTest.php" line="14" class="Tests\Feature\NoteTest" classname="Tests.Feature.NoteTest" assertions="3" time="0.021346"/>
+        <testcase name="test_note_creation_requires_title" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\NoteTest.php" line="38" class="Tests\Feature\NoteTest" classname="Tests.Feature.NoteTest" assertions="2" time="0.019860"/>
+        <testcase name="test_authenticated_user_can_update_note" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\NoteTest.php" line="52" class="Tests\Feature\NoteTest" classname="Tests.Feature.NoteTest" assertions="3" time="0.021287"/>
+        <testcase name="test_note_update_requires_title" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\NoteTest.php" line="88" class="Tests\Feature\NoteTest" classname="Tests.Feature.NoteTest" assertions="2" time="0.020266"/>
+        <testcase name="test_invalid_color_is_rejected" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\NoteTest.php" line="108" class="Tests\Feature\NoteTest" classname="Tests.Feature.NoteTest" assertions="2" time="0.017032"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\ProfileTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ProfileTest.php" tests="5" assertions="13" errors="0" failures="2" skipped="0" time="0.107170">
+        <testcase name="test_profile_page_is_displayed" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ProfileTest.php" line="13" class="Tests\Feature\ProfileTest" classname="Tests.Feature.ProfileTest" assertions="1" time="0.032159"/>
+        <testcase name="test_profile_information_can_be_updated" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ProfileTest.php" line="24" class="Tests\Feature\ProfileTest" classname="Tests.Feature.ProfileTest" assertions="1" time="0.024143">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\ProfileTest::test_profile_information_can_be_updated&#13;
+Session has unexpected errors: &#13;
+&#13;
+{
+    "default": [
+        "department idは必須項目です。"
+    ]
+}
+Failed asserting that true is false.
+&#13;
+C:\Users\kazuma\Documents\e-Admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\Users\kazuma\Documents\e-Admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1655
+C:\Users\kazuma\Documents\e-Admin\tests\Feature\ProfileTest.php:37</failure>
+        </testcase>
+        <testcase name="test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ProfileTest.php" line="47" class="Tests\Feature\ProfileTest" classname="Tests.Feature.ProfileTest" assertions="1" time="0.017041">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\ProfileTest::test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged&#13;
+Session has unexpected errors: &#13;
+&#13;
+{
+    "default": [
+        "department idは必須項目です。"
+    ]
+}
+Failed asserting that true is false.
+&#13;
+C:\Users\kazuma\Documents\e-Admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\Users\kazuma\Documents\e-Admin\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1655
+C:\Users\kazuma\Documents\e-Admin\tests\Feature\ProfileTest.php:60</failure>
+        </testcase>
+        <testcase name="test_user_can_delete_their_account" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ProfileTest.php" line="66" class="Tests\Feature\ProfileTest" classname="Tests.Feature.ProfileTest" assertions="5" time="0.016885"/>
+        <testcase name="test_correct_password_must_be_provided_to_delete_account" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\ProfileTest.php" line="84" class="Tests\Feature\ProfileTest" classname="Tests.Feature.ProfileTest" assertions="5" time="0.016942"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\SurveyRefactorVerifyTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyRefactorVerifyTest.php" tests="3" assertions="12" errors="0" failures="0" skipped="0" time="0.070548">
+        <testcase name="test_can_create_survey_with_questions" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyRefactorVerifyTest.php" line="32" class="Tests\Feature\SurveyRefactorVerifyTest" classname="Tests.Feature.SurveyRefactorVerifyTest" assertions="4" time="0.024966"/>
+        <testcase name="test_can_save_draft_answer" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyRefactorVerifyTest.php" line="64" class="Tests\Feature\SurveyRefactorVerifyTest" classname="Tests.Feature.SurveyRefactorVerifyTest" assertions="3" time="0.018495"/>
+        <testcase name="test_updating_survey_questions_increments_version" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyRefactorVerifyTest.php" line="104" class="Tests\Feature\SurveyRefactorVerifyTest" classname="Tests.Feature.SurveyRefactorVerifyTest" assertions="5" time="0.027087"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\SurveyTest" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyTest.php" tests="4" assertions="12" errors="0" failures="0" skipped="0" time="0.092666">
+        <testcase name="test_can_view_surveys_page" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyTest.php" line="15" class="Tests\Feature\SurveyTest" classname="Tests.Feature.SurveyTest" assertions="1" time="0.027155"/>
+        <testcase name="test_can_create_survey" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyTest.php" line="24" class="Tests\Feature\SurveyTest" classname="Tests.Feature.SurveyTest" assertions="4" time="0.021406"/>
+        <testcase name="test_can_update_survey" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyTest.php" line="60" class="Tests\Feature\SurveyTest" classname="Tests.Feature.SurveyTest" assertions="3" time="0.020788"/>
+        <testcase name="test_can_delete_survey" file="C:\Users\kazuma\Documents\e-Admin\tests\Feature\SurveyTest.php" line="93" class="Tests\Feature\SurveyTest" classname="Tests.Feature.SurveyTest" assertions="4" time="0.023318"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

@@ -58,7 +58,7 @@ class DepartmentSystemSeeder extends Seeder
                     'name' => '全社管理者',
                     'email' => 'admin@company.com',
                     'password' => Hash::make('password'),
-                    'department' => null,
+                    'department' => '全社',
                     'department_id' => null,
                     'role' => 'admin',
                     'role_type' => 'company_admin',

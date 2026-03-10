@@ -64,6 +64,7 @@ const props = defineProps<{
   filteredMemberId?: number | null
   currentDepartmentFilter?: string
   userDepartmentId?: number
+  departments?: Array<{ id: number; name: string }>
 }>()
 
 const page = usePage()
@@ -678,13 +679,16 @@ const isHelpOpen = ref(false)
         <div class="flex gap-2 mb-3">
           <Select v-model="departmentFilter">
             <SelectTrigger class="w-[140px] flex-shrink-0 h-10 border-gray-300 dark:border-gray-600 bg-background text-sm">
-              <SelectValue placeholder="公開範囲" />
+              <SelectValue placeholder="表示メモ" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">すべて</SelectItem>
-              <SelectItem value="public">🌐 全社公開</SelectItem>
-              <SelectItem :value="`dept_${props.userDepartmentId}`">🏢 自部署</SelectItem>
-              <SelectItem value="private">🔒 非公開</SelectItem>
+              <SelectItem value="public">🌐 全社公開のみ</SelectItem>
+              <SelectItem value="private">🔒 自分のみ</SelectItem>
+              <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署メモ</div>
+              <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
+                  {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}
+              </SelectItem>
             </SelectContent>
           </Select>
           <div class="relative flex-1">

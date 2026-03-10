@@ -111,8 +111,9 @@ class SurveyController extends Controller
                 return $survey;
             });
 
-        // チームメンバーを取得
+        // チームメンバーと部署リストを取得
         $teamMembers = \App\Models\User::where('is_active', true)->get();
+        $departments = \App\Models\Department::where('is_active', true)->orderBy('name')->get();
 
         return Inertia::render('Surveys', [
             'surveys' => $surveys,
@@ -120,6 +121,7 @@ class SurveyController extends Controller
             'highlight' => $request->query('highlight'),
             'currentDepartmentFilter' => $departmentFilter,
             'userDepartmentId' => $userDepartmentId,
+            'departments' => $departments,
         ]);
     }
 
@@ -214,13 +216,15 @@ class SurveyController extends Controller
                 return $survey;
             });
 
-        // チームメンバーを取得
+        // チームメンバーと部署リストを取得
         $teamMembers = \App\Models\User::where('is_active', true)->get();
+        $departments = \App\Models\Department::where('is_active', true)->orderBy('name')->get();
 
         return Inertia::render('Surveys', [
             'surveys' => $surveys,
             'editSurvey' => $editSurvey,
             'teamMembers' => $teamMembers,
+            'departments' => $departments,
         ]);
     }
 
