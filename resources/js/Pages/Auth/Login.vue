@@ -5,6 +5,7 @@ import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 defineProps<{
@@ -57,9 +58,8 @@ const submit = () => {
             <div class="mt-4">
                 <InputLabel for="password" value="パスワード" />
 
-                <TextInput
+                <PasswordInput
                     id="password"
-                    type="password"
                     class="mt-1 block w-full"
                     v-model="form.password"
                     required

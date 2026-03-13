@@ -36,7 +36,18 @@ class NotificationController extends Controller
                           $q->where('user_id', $user->id);
                       });
             });
+        } elseif ($eventsFilter === 'department') {
+            $eventsQuery->where(function($query) use ($user) {
+                $query->where('owner_department_id', $user->department_id)
+                      ->where(function($subQuery) use ($user) {
+                          $subQuery->where('created_by', $user->id)
+                                   ->orWhereHas('participants', function($q) use ($user) {
+                                       $q->where('user_id', $user->id);
+                                   });
+                      });
+            });
         }
+        // 'all' の場合は作成者・参加者として関わる全ての予定
         
         $events = $eventsQuery->orderBy('start_date')->get();
 
@@ -53,7 +64,18 @@ class NotificationController extends Controller
                           $q->where('user_id', $user->id);
                       });
             });
+        } elseif ($notesFilter === 'department') {
+            $notesQuery->where(function($query) use ($user) {
+                $query->where('owner_department_id', $user->department_id)
+                      ->where(function($subQuery) use ($user) {
+                          $subQuery->where('author_id', $user->id)
+                                   ->orWhereHas('participants', function($q) use ($user) {
+                                       $q->where('user_id', $user->id);
+                                   });
+                      });
+            });
         }
+        // 'all' の場合は作成者・参加者として関わる全てのメモ
         
         $notes = $notesQuery->orderBy('deadline_date')->orderBy('deadline_time')->get();
 
