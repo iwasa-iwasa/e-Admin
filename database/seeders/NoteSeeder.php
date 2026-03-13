@@ -54,17 +54,31 @@ class NoteSeeder extends Seeder
             ];
             $title = $noteTitles[array_rand($noteTitles)];
             $content = $noteContents[array_rand($noteContents)];
+            
+            $randomUser = $users->random();
+            
+            // 総務部ユーザーの場合は部署公開に設定
+            $somubuDept = \App\Models\Department::where('name', '総務部')->first();
+            $visibilityType = 'public';
+            $ownerDepartmentId = null;
+            
+            if ($somubuDept && $randomUser->department_id === $somubuDept->id) {
+                $visibilityType = 'department';
+                $ownerDepartmentId = $somubuDept->id;
+            }
 
             $note = SharedNote::create([
                 'title' => $title,
                 'content' => $content,
-                'author_id' => $users->random()->id,
+                'author_id' => $randomUser->id,
                 'priority' => $priorities[array_rand($priorities)],
                 'color' => $colors[array_rand($colors)],
                 'deadline_date' => $deadlineDate,
                 'deadline_time' => $deadlineTime,
                 'progress' => rand(0, 100),
                 'is_deleted' => false,
+                'visibility_type' => $visibilityType,
+                'owner_department_id' => $ownerDepartmentId,
             ]);
 
             // 1〜3個のランダムなタグを添付

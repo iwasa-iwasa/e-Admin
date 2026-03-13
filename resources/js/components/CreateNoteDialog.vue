@@ -57,7 +57,7 @@ const form = useForm<{
     color: "yellow",
     participants: [],
     pinned: false,
-    visibility_type: "public",
+    visibility_type: "department",
 });
 
 const tagInput = ref("");
@@ -124,7 +124,7 @@ const restoreDraft = () => {
         form.participants = pendingDraft.value.participants || []
         selectedParticipants.value = pendingDraft.value.selectedParticipants || []
         form.pinned = pendingDraft.value.pinned
-        form.visibility_type = pendingDraft.value.visibility_type || "public"
+        form.visibility_type = pendingDraft.value.visibility_type || "department"
         showDraftBanner.value = true
     }
     showDraftDialog.value = false
@@ -139,7 +139,7 @@ const discardDraft = () => {
     form.tags = []
     form.participants = []
     form.pinned = false
-    form.visibility_type = "public"
+    form.visibility_type = "department"
     selectedParticipants.value = []
     tagInput.value = ""
 }
@@ -180,7 +180,7 @@ const handleClose = () => {
     form.tags = [];
     form.participants = [];
     form.pinned = false;
-    form.visibility_type = "public";
+    form.visibility_type = "department";
     selectedParticipants.value = [];
     tagInput.value = "";
     activeTab.value = "basic";
@@ -276,7 +276,7 @@ watch(() => props.open, (isOpen) => {
             form.priority = data.priority
             form.tags = data.tags || []
             form.pinned = false
-            form.visibility_type = data.visibility_type || "public"
+            form.visibility_type = data.visibility_type || "department"
             
             // 全員を選択
             if (props.teamMembers) {
@@ -495,10 +495,8 @@ watch(deadlineDateTime, (newDate) => {
                                     <SelectValue placeholder="公開範囲を選択" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="public">🌐 全社公開</SelectItem>
                                     <SelectItem value="department">🏢 自部署のみ</SelectItem>
                                     <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
-                                    <SelectItem value="private">🔒 非公開（自分のみ）</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

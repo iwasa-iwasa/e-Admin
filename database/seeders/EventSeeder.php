@@ -96,9 +96,22 @@ class EventSeeder extends Seeder
         foreach ($events as $eventData) {
             // ランダムなユーザーを選択
             $randomUser = $users->random();
+            
+            // 総務部ユーザーの場合は部署公開に設定
+            $somubuDept = \App\Models\Department::where('name', '総務部')->first();
+            $visibilityType = 'public';
+            $ownerDepartmentId = null;
+            
+            if ($somubuDept && $randomUser->department_id === $somubuDept->id) {
+                $visibilityType = 'department';
+                $ownerDepartmentId = $somubuDept->id;
+            }
+            
             $event = Event::create(array_merge($eventData, [
                 'calendar_id' => $calendar->calendar_id,
                 'created_by' => $randomUser->id,
+                'visibility_type' => $visibilityType,
+                'owner_department_id' => $ownerDepartmentId,
             ]));
 
             // Attach the creator as a participant

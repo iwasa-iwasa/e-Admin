@@ -80,7 +80,9 @@ class NoteController extends Controller
         $sortedNotes = $notes->sortByDesc('is_pinned');
 
         // 現在のユーザーと同じ部署のメンバーを取得
-        $teamMembers = \App\Models\User::where('is_active', true)->get();
+        $teamMembers = \App\Models\User::where('is_active', true)
+            ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
+            ->get();
 
         // すべてのタグを使用回数順で取得
         $allTags = \App\Models\NoteTag::withCount('sharedNotes')
@@ -137,8 +139,8 @@ class NoteController extends Controller
             'author_id' => Auth::id(),
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
-            'visibility_type' => $validated['visibility_type'] ?? 'public',
-            'owner_department_id' => ($validated['visibility_type'] ?? 'public') === 'department' ? Auth::user()->department_id : null,
+            'visibility_type' => $validated['visibility_type'],
+            'owner_department_id' => $validated['visibility_type'] === 'department' ? Auth::user()->department_id : null,
             'deadline_date' => $deadlineDate,
             'deadline_time' => $deadlineTime,
             'progress' => $validated['progress'] ?? 0,
@@ -208,8 +210,8 @@ class NoteController extends Controller
             'content' => $validated['content'],
             'color' => $validated['color'] ?? 'yellow',
             'priority' => $validated['priority'] ?? 'medium',
-            'visibility_type' => $validated['visibility_type'] ?? 'public',
-            'owner_department_id' => ($validated['visibility_type'] ?? 'public') === 'department' ? (auth()->user()->department_id ?? null) : null,
+            'visibility_type' => $validated['visibility_type'],
+            'owner_department_id' => $validated['visibility_type'] === 'department' ? (auth()->user()->department_id ?? null) : null,
             'deadline_date' => $deadlineDate,
             'deadline_time' => $deadlineTime,
             'progress' => $validated['progress'] ?? 0,

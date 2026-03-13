@@ -40,6 +40,7 @@ class SurveySeeder extends Seeder
                     'created_by' => $creator->id,
                     'is_active' => true,
                     'categories' => ['イベント', '全社'],
+                    'visibility_type' => 'public',
                 ],
                 'questions' => [
                     [
@@ -65,6 +66,7 @@ class SurveySeeder extends Seeder
                     'created_by' => $creator->id,
                     'is_active' => true,
                     'categories' => ['人事', '全社', '満足度調査'],
+                    'visibility_type' => 'public',
                 ],
                 'questions' => [
                     [

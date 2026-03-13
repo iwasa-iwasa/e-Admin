@@ -35,7 +35,9 @@ class CalendarController extends Controller
     {
         $memberId = $request->query('member_id');
         $events = []; 
-        $teamMembers = \App\Models\User::where('is_active', true)->get();
+        $teamMembers = \App\Models\User::where('is_active', true)
+            ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
+            ->get();
         $user = auth()->user();
 
         // 部署リストとカレンダーリストを取得

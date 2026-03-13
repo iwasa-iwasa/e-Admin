@@ -62,6 +62,7 @@ const props = defineProps<{
   open: boolean
   event?: App.Models.Event | null
   readonly?: boolean
+  calendars?: App.Models.Calendar[]
 }>()
 
 const emit = defineEmits(["update:open"])
@@ -88,6 +89,19 @@ const nextOccurrences = ref<string[]>([])
 // Computed Properties
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
+const calendars = computed(() => props.calendars ?? [])
+
+const selectedCalendar = computed(() => {
+  if (!form.calendar_id) return null
+  return calendars.value.find(c => c.calendar_id === form.calendar_id)
+})
+
+const visibilityTypeLabel = computed(() => {
+  if (!selectedCalendar.value) return ''
+  if (selectedCalendar.value.owner_type === 'company') return '全社公開'
+  if (selectedCalendar.value.owner_type === 'department') return '部署公開'
+  return ''
+})
 
 const availableMembers = computed(() => {
   return teamMembers.value.filter(member => 
@@ -151,6 +165,7 @@ const getDefaultTimes = () => {
 
 // Form Setup
 const form = useForm({
+  calendar_id: null as number | null,
   title: '',
   is_all_day: false,
   date_range: [new Date(), new Date()] as [Date, Date],
@@ -162,7 +177,6 @@ const form = useForm({
   url: '',
   category: '会議',
   importance: '中',
-  visibility_type: 'public',
   event_progress: 0,
   recurrence: {
     is_recurring: false,
@@ -201,6 +215,7 @@ watch(() => props.open, (isOpen) => {
   if (isOpen) {
     if (isEditMode.value && props.event) {
       const eventData = props.event
+      form.calendar_id = eventData.calendar_id || (calendars.value[0]?.calendar_id ?? null)
       form.title = eventData.title
       form.is_all_day = eventData.is_all_day
       form.date_range = [new Date(eventData.start_date), new Date(eventData.end_date)]
@@ -212,7 +227,6 @@ watch(() => props.open, (isOpen) => {
       form.url = eventData.url || ''
       form.category = eventData.category || '会議'
       form.importance = eventData.importance || '中'
-      form.visibility_type = (eventData as any).visibility_type || 'public'
       form.event_progress = (eventData.progress ?? 0) as number
 
       if (eventData.recurrence) {
@@ -249,6 +263,7 @@ watch(() => props.open, (isOpen) => {
         form.date_range = [now, now]
         form.start_time = startTime
         form.end_time = endTime
+        form.calendar_id = calendars.value[0]?.calendar_id ?? null
 
         const me = teamMembers.value.find(m => m.id === currentUserId.value)
         form.participants = me ? [me] : []
@@ -419,7 +434,6 @@ const saveDraft = () => {
     url: form.url,
     category: form.category,
     importance: form.importance,
-    visibility_type: form.visibility_type,
     progress: form.event_progress,
     recurrence: form.recurrence,
   }
@@ -449,7 +463,6 @@ const restoreDraft = () => {
     form.url = pendingDraft.value.url
     form.category = pendingDraft.value.category
     form.importance = pendingDraft.value.importance
-    form.visibility_type = pendingDraft.value.visibility_type || 'public'
     form.event_progress = pendingDraft.value.progress
     form.recurrence = pendingDraft.value.recurrence
     date.value = form.date_range as [Date, Date]
@@ -485,6 +498,11 @@ const normalizeDateRange = (dateRange: [Date, Date] | [Date, null]): [Date, Date
 
 // Main Actions
 const handleSave = () => {
+  if (!form.calendar_id) {
+    showMessage('カレンダーを選択してください', 'error')
+    return
+  }
+  
   if (!form.title?.trim()) {
     showMessage('タイトルを入力してください', 'error')
     return
@@ -716,6 +734,24 @@ const updateNextOccurrences = () => {
             <!-- Basic Tab -->
             <TabsContent value="basic" class="space-y-4 min-h-[400px]">
               <div class="space-y-2">
+                <Label for="calendar">カレンダー *</Label>
+                <Select v-model="form.calendar_id" :disabled="!canEdit || isEditMode">
+                  <SelectTrigger id="calendar">
+                    <SelectValue placeholder="カレンダーを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="calendar in calendars" :key="calendar.calendar_id" :value="calendar.calendar_id">
+                      {{ calendar.name }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p v-if="visibilityTypeLabel" class="text-xs text-gray-500 flex items-center gap-1">
+                  <Info class="h-3 w-3" />
+                  このカレンダーの予定は自動的に「{{ visibilityTypeLabel }}」になります
+                </p>
+              </div>
+              
+              <div class="space-y-2">
                 <Label for="title">タイトル / 件名 *</Label>
                 <Input 
                   id="title" 
@@ -795,20 +831,6 @@ const updateNextOccurrences = () => {
                     <SelectItem value="低">
                       <Badge class="bg-gray-400 text-white">低</Badge>
                     </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div class="space-y-2">
-                <Label for="visibility">公開範囲</Label>
-                <Select v-model="form.visibility_type" :disabled="!canEdit">
-                  <SelectTrigger id="visibility">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">全社公開</SelectItem>
-                    <SelectItem value="department">自部署のみ</SelectItem>
-                    <SelectItem value="private">非公開（参加者のみ）</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

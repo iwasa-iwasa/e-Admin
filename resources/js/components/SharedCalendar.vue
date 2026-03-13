@@ -821,6 +821,7 @@ const handleDateJump = (date: Date) => {
             @update:open="isEventFormOpen = $event"
             :event="editingEvent"
             :readonly="editingEvent ? !canEditEvent(editingEvent) : false"
+            :calendars="props.calendars"
             @event-updated="handleEventUpdate"
         />
 
