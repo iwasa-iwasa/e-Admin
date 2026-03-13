@@ -63,6 +63,7 @@ const props = defineProps<{
   event?: App.Models.Event | null
   readonly?: boolean
   calendars?: App.Models.Calendar[]
+  defaultCalendarId?: number | null
 }>()
 
 const emit = defineEmits(["update:open"])
@@ -263,12 +264,19 @@ watch(() => props.open, (isOpen) => {
         form.date_range = [now, now]
         form.start_time = startTime
         form.end_time = endTime
-        form.calendar_id = calendars.value[0]?.calendar_id ?? null
+        form.calendar_id = props.defaultCalendarId || calendars.value[0]?.calendar_id || null
 
         const me = teamMembers.value.find(m => m.id === currentUserId.value)
         form.participants = me ? [me] : []
       }
     }
+  }
+}, { immediate: true })
+
+// デフォルトカレンダーの設定
+watch(() => [props.defaultCalendarId, calendars.value], ([defaultId, cals]) => {
+  if (!isEditMode.value && form.calendar_id === null && cals.length > 0) {
+    form.calendar_id = defaultId || cals[0]?.calendar_id || null
   }
 }, { immediate: true })
 
@@ -741,7 +749,7 @@ const updateNextOccurrences = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem v-for="calendar in calendars" :key="calendar.calendar_id" :value="calendar.calendar_id">
-                      {{ calendar.name }}
+                      {{ calendar.calendar_name }}
                     </SelectItem>
                   </SelectContent>
                 </Select>

@@ -29,8 +29,14 @@ class EventService
                     $subQ->where('users.id', $memberId);
                 })
                 ->orWhere('created_by', $memberId)
+                // 参加者がいない予定（全員が確認できる）も含める
                 ->orWhereDoesntHave('participants');
             });
+            
+            \Log::info('[EventService] Member filter applied', [
+                'member_id' => $memberId,
+                'query_count' => $query->count(),
+            ]);
         }
         
         $events = $query->get();

@@ -41,6 +41,7 @@ const props = defineProps<{
     calendars?: App.Models.Calendar[]
     userDepartmentId?: number | null
     userRoleType?: string
+    defaultCalendarId?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -62,7 +63,7 @@ const {
     departmentFilter,
     canEditEvent,
     fetchEvents
-} = useCalendarEvents()
+} = useCalendarEvents(props.userDepartmentId)
 
 // 2. View Logic
 const { 
@@ -520,15 +521,29 @@ const handleDateJump = (date: Date) => {
                     <div v-if="props.departments && props.departments.length > 0" class="transition-all duration-300 ease-in-out flex-shrink">
                         <Select v-model="departmentFilter" :key="`dept-${layoutMode}`">
                             <SelectTrigger class="w-[140px] h-9 text-xs">
-                                <SelectValue placeholder="表示カレンダー" />
+                                <SelectValue>
+                                    <template v-if="departmentFilter === 'all'">すべて</template>
+                                    <template v-else-if="departmentFilter === 'public'">全社予定のみ</template>
+                                    <template v-else-if="departmentFilter === 'private'">自分のみ</template>
+                                    <template v-else-if="departmentFilter && departmentFilter.startsWith('dept_')">
+                                        {{ props.departments.find(d => d.id === parseInt(departmentFilter.replace('dept_', '')))?.name }}
+                                        {{ props.userDepartmentId === parseInt(departmentFilter.replace('dept_', '')) ? '(自部署)' : '' }}
+                                    </template>
+                                    <template v-else>表示カレンダー</template>
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">すべて</SelectItem>
                                 <SelectItem value="public">全社予定のみ</SelectItem>
                                 <SelectItem value="private">自分のみ</SelectItem>
                                 <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署カレンダー</div>
-                                <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
-                                    {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}
+                                <!-- 所属部署を最初に表示 -->
+                                <SelectItem v-if="props.userDepartmentId" :value="`dept_${props.userDepartmentId}`">
+                                    {{ props.departments.find(d => d.id === props.userDepartmentId)?.name }} (自部署)
+                                </SelectItem>
+                                <!-- その他の部署 -->
+                                <SelectItem v-for="dept in props.departments.filter(d => d.id !== props.userDepartmentId)" :key="dept.id" :value="`dept_${dept.id}`">
+                                    {{ dept.name }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -822,6 +837,7 @@ const handleDateJump = (date: Date) => {
             :event="editingEvent"
             :readonly="editingEvent ? !canEditEvent(editingEvent) : false"
             :calendars="props.calendars"
+            :default-calendar-id="props.defaultCalendarId"
             @event-updated="handleEventUpdate"
         />
 

@@ -148,7 +148,19 @@ class NoteController extends Controller
 
         // Add participants (if empty, everyone can see it)
         if (isset($validated['participants']) && !empty($validated['participants'])) {
-            $note->participants()->attach($validated['participants']);
+            // visibility_typeが'department'の場合は自部署のメンバーのみ、'custom'の場合は選択されたメンバーのみ
+            if ($validated['visibility_type'] === 'department') {
+                // 自部署のメンバーのみに制限
+                $departmentUserIds = \App\Models\User::where('department_id', Auth::user()->department_id)
+                    ->where('is_active', true)
+                    ->pluck('id')
+                    ->toArray();
+                $filteredParticipants = array_intersect($validated['participants'], $departmentUserIds);
+                $note->participants()->attach($filteredParticipants);
+            } else {
+                // customの場合は選択されたメンバーのみ
+                $note->participants()->attach($validated['participants']);
+            }
         }
 
         // Add tags
@@ -219,7 +231,18 @@ class NoteController extends Controller
 
         // Update participants
         if (isset($validated['participants'])) {
-            $note->participants()->sync($validated['participants']);
+            if ($validated['visibility_type'] === 'department') {
+                // 自部署のメンバーのみに制限
+                $departmentUserIds = \App\Models\User::where('department_id', auth()->user()->department_id)
+                    ->where('is_active', true)
+                    ->pluck('id')
+                    ->toArray();
+                $filteredParticipants = array_intersect($validated['participants'], $departmentUserIds);
+                $note->participants()->sync($filteredParticipants);
+            } else {
+                // customの場合は選択されたメンバーのみ
+                $note->participants()->sync($validated['participants']);
+            }
         }
 
         // Update tags

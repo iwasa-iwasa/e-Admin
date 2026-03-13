@@ -24,22 +24,64 @@ class TrashController extends Controller
             $user = Auth::user();
             $departmentFilter = $request->query('department_filter', 'all');
             
-            $trashItems = TrashItem::where(function($q) use ($user, $departmentFilter) {
-                    $q->where('user_id', $user->id); // 自分が削除したアイテム
-
-                    if ($departmentFilter === 'all' || $departmentFilter === 'public') {
-                        // 特段絞り込まないが全部署や全社という概念がゴミ箱には基本ないため自分の部署を含める
-                         if ($user->department_id) {
-                            $q->orWhere('owner_department_id', $user->department_id);
-                         }
-                    } elseif (str_starts_with($departmentFilter, 'dept_')) {
-                         $deptId = (int)str_replace('dept_', '', $departmentFilter);
-                         $q->orWhere('owner_department_id', $deptId);
+            \Log::info('TrashController: departmentFilter = ' . $departmentFilter);
+            \Log::info('TrashController: user role_type = ' . $user->role_type);
+            \Log::info('TrashController: user department_id = ' . $user->department_id);
+            
+            $query = TrashItem::query();
+            
+            // 基本的には自分が削除したアイテムまたは自分の部署のアイテムを表示
+            if ($user->role_type === 'company_admin') {
+                // 全社管理者は全てのアイテムを見ることができる
+                // フィルターに応じて絞り込み
+                if ($departmentFilter === 'all') {
+                    // 全て表示
+                    \Log::info('TrashController: Showing all items for company admin');
+                } elseif ($departmentFilter === 'public') {
+                    $query->where('visibility_type', 'public');
+                    \Log::info('TrashController: Filtering public items for company admin');
+                } elseif (str_starts_with($departmentFilter, 'dept_')) {
+                    $deptId = (int)str_replace('dept_', '', $departmentFilter);
+                    $query->where('owner_department_id', $deptId);
+                    \Log::info('TrashController: Filtering department ' . $deptId . ' items for company admin');
+                }
+            } else {
+                // 部署管理者またはメンバーの場合
+                if ($departmentFilter === 'all') {
+                    // 自分が削除したアイテムと自分の部署のアイテムを表示
+                    $query->where(function($q) use ($user) {
+                        $q->where('user_id', $user->id) // 自分が削除したアイテム
+                          ->orWhere('owner_department_id', $user->department_id); // 自分の部署のアイテム
+                    });
+                    \Log::info('TrashController: Showing all accessible items for department user');
+                } elseif ($departmentFilter === 'public') {
+                    // 全社公開アイテムのみ
+                    $query->where('visibility_type', 'public');
+                    \Log::info('TrashController: Filtering public items for department user');
+                } elseif ($departmentFilter === 'mine') {
+                    // 自分が削除したアイテムのみ
+                    $query->where('user_id', $user->id);
+                    \Log::info('TrashController: Filtering own items for department user');
+                } elseif (str_starts_with($departmentFilter, 'dept_')) {
+                    // 特定の部署のアイテムのみ（自分の部署の場合のみ表示可能）
+                    $deptId = (int)str_replace('dept_', '', $departmentFilter);
+                    if ($deptId === $user->department_id) {
+                        // 自分の部署の場合のみ表示
+                        $query->where('owner_department_id', $deptId);
+                        \Log::info('TrashController: Filtering own department ' . $deptId . ' items for department user');
+                    } else {
+                        // 他の部署は表示しない
+                        $query->whereRaw('1 = 0'); // 空の結果を返す
+                        \Log::info('TrashController: Blocking access to other department ' . $deptId . ' for department user');
                     }
-                })
-                ->with('user')
+                }
+            }
+            
+            $trashItems = $query->with('user')
                 ->orderBy('deleted_at', 'desc')
                 ->get();
+                
+            \Log::info('TrashController: Found ' . $trashItems->count() . ' trash items');
                 
             \Log::info('Found trash items: ' . $trashItems->count());
             

@@ -28,8 +28,9 @@ class DatabaseSeeder extends Seeder
             NoteSeeder::class,
             EventSeeder::class,
             ReminderSeeder::class,
-            SurveySeeder::class,
             TestDataSeeder::class, // テストデータを追加
+            SurveySeeder::class,
+            SurveyResponseSeeder::class, // アンケート回答データを追加
         ]);
     }
 }

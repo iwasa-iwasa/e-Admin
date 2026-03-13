@@ -21,6 +21,7 @@ const props = defineProps<{
   calendars?: App.Models.Calendar[]
   userDepartmentId?: number | null
   userRoleType?: string
+  defaultCalendarId?: number | null
 }>()
 
 const filteredMember = computed(() => {
@@ -51,6 +52,7 @@ const isHelpOpen = ref(false)
                 :calendars="props.calendars"
                 :user-department-id="props.userDepartmentId"
                 :user-role-type="props.userRoleType"
+                :default-calendar-id="props.defaultCalendarId"
                 :is-help-open="isHelpOpen"
                 @update:is-help-open="isHelpOpen = $event"
             />

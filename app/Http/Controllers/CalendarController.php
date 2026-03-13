@@ -17,6 +17,7 @@ use App\Enums\EventCategory;
 use App\Enums\EventColor;
 use App\Services\EventService;
 use App\Models\CalendarCategoryLabel;
+use Carbon\Carbon;
 
 class CalendarController extends Controller
 {
@@ -43,6 +44,26 @@ class CalendarController extends Controller
         // 部署リストとカレンダーリストを取得
         $departments = Department::where('is_active', true)->orderBy('name')->get();
         $calendars = Calendar::with('ownerDepartment')->get();
+        
+        // ユーザーのデフォルトカレンダーを決定
+        $defaultCalendarId = null;
+        if ($user->department_id) {
+            // 所属部署のカレンダーを優先
+            $departmentCalendar = $calendars->where('owner_type', 'department')
+                                           ->where('owner_id', $user->department_id)
+                                           ->first();
+            if ($departmentCalendar) {
+                $defaultCalendarId = $departmentCalendar->calendar_id;
+            }
+        }
+        
+        // 部署カレンダーがない場合は全社カレンダーを選択
+        if (!$defaultCalendarId) {
+            $companyCalendar = $calendars->where('owner_type', 'company')->first();
+            if ($companyCalendar) {
+                $defaultCalendarId = $companyCalendar->calendar_id;
+            }
+        }
 
         return Inertia::render('Calendar', [
             'events' => $events,
@@ -53,6 +74,7 @@ class CalendarController extends Controller
             'calendars' => $calendars,
             'userDepartmentId' => $user->department_id,
             'userRoleType' => $user->role_type,
+            'defaultCalendarId' => $defaultCalendarId,
         ]);
     }
 
@@ -88,11 +110,16 @@ class CalendarController extends Controller
 
         \Log::info('[CalendarAPI] Events fetched', [
             'total_events' => count($events),
+            'member_filter' => $memberId,
             'date_range' => [
                 'start' => $start,
                 'end' => $end,
             ],
-            'sample_dates' => array_slice(array_map(fn($e) => $e['start_date'], $events), 0, 5),
+            'sample_events' => array_slice(array_map(fn($e) => [
+                'title' => $e['title'],
+                'participants' => count($e['participants'] ?? []),
+                'created_by' => $e['created_by'],
+            ], $events), 0, 3),
         ]);
 
         // Apply additional filters

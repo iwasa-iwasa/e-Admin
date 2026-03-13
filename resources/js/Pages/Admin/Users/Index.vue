@@ -41,6 +41,8 @@ defineOptions({
 const props = defineProps<{
   users: App.Data.UserData[]
   departments: App.Models.Department[]
+  canManageAllUsers: boolean
+  currentUserDepartmentId?: number
 }>()
 
 const page = usePage()
@@ -201,7 +203,7 @@ const formatDate = (dateString: string) => {
                   <div v-if="user.id === page.props.auth.user.id">
                      <Badge variant="outline">{{ user.role === 'admin' ? '管理者' : 'メンバー' }}</Badge>
                   </div>
-                  <DropdownMenu v-else>
+                  <DropdownMenu v-else-if="canManageAllUsers">
                     <DropdownMenuTrigger as-child>
                        <Badge variant="outline" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100 transition-colors">
                          {{ user.role === 'admin' ? '管理者' : 'メンバー' }} <ChevronDown class="h-3 w-3 ml-1" />
@@ -212,6 +214,9 @@ const formatDate = (dateString: string) => {
                       <DropdownMenuItem @click="updateRole(user, 'admin')">管理者</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  <div v-else>
+                     <Badge variant="outline">{{ user.role === 'admin' ? '管理者' : 'メンバー' }}</Badge>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge :variant="user.is_active ? 'default' : 'destructive'">
@@ -230,8 +235,9 @@ const formatDate = (dateString: string) => {
                 </TableCell>
                 <TableCell>
                   <div class="flex flex-col gap-1 items-end">
+                    <!-- 部署異動ボタン: 全社管理者のみ表示 -->
                     <Button 
-                      v-if="user.is_active && user.role !== 'admin'" 
+                      v-if="user.is_active && user.role !== 'admin' && canManageAllUsers" 
                       variant="outline" 
                       size="sm"
                       @click="openTransferDialog(user)"
@@ -239,8 +245,10 @@ const formatDate = (dateString: string) => {
                     >
                       異動
                     </Button>
+                    
+                    <!-- 無効化ボタン: 全社管理者または同じ部署の部署管理者 -->
                     <Button 
-                      v-if="user.is_active && user.role !== 'admin'" 
+                      v-if="user.is_active && user.id !== page.props.auth.user.id && (canManageAllUsers || (currentUserDepartmentId === user.department_id && user.role !== 'admin'))" 
                       variant="destructive" 
                       size="sm"
                       @click="openDeactivateDialog(user)"
@@ -249,8 +257,9 @@ const formatDate = (dateString: string) => {
                       無効化
                     </Button>
 
+                    <!-- 有効化ボタン: 全社管理者または同じ部署の部署管理者 -->
                     <Button 
-                      v-else-if="!user.is_active" 
+                      v-else-if="!user.is_active && (canManageAllUsers || currentUserDepartmentId === user.department_id)" 
                       variant="default"
                       size="sm"
                       @click="restoreUser(user)"

@@ -21,17 +21,39 @@ class TestDataSeeder extends Seeder
             $this->command->info('🧪 テストデータを作成中...');
             
             // 部署を取得
+            $somubu = Department::where('name', '総務部')->first();
             $eigyobu = Department::where('name', '営業部')->first();
             $kaihatsubu = Department::where('name', '開発部')->first();
             $keiri = Department::where('name', '経理部')->first();
             
-            if (!$eigyobu || !$kaihatsubu || !$keiri) {
+            if (!$somubu || !$eigyobu || !$kaihatsubu || !$keiri) {
                 $this->command->error('❌ 部署が見つかりません。先にDepartmentSystemSeederを実行してください。');
                 return;
             }
             
             // 1. 各部署にメンバーを追加（管理者1人 + メンバー3人）
             $this->command->info('👥 部署メンバーを作成中...');
+            
+            // 総務部メンバー（aアカウント）
+            $somubuMembers = [
+                ['name' => 'a', 'email' => 'somu.a@company.com'],
+            ];
+            
+            foreach ($somubuMembers as $member) {
+                if (!User::where('email', $member['email'])->exists()) {
+                    User::create([
+                        'name' => $member['name'],
+                        'email' => $member['email'],
+                        'password' => Hash::make('password'),
+                        'department' => '総務部',
+                        'department_id' => $somubu->id,
+                        'role' => 'user',
+                        'role_type' => 'member',
+                        'is_active' => true,
+                    ]);
+                    $this->command->info("   ✓ {$member['name']}: {$member['email']} / password");
+                }
+            }
             
             // 営業部メンバー
             $eigyobuMembers = [
@@ -46,6 +68,7 @@ class TestDataSeeder extends Seeder
                         'name' => $member['name'],
                         'email' => $member['email'],
                         'password' => Hash::make('password'),
+                        'department' => '営業部',
                         'department_id' => $eigyobu->id,
                         'role' => 'user',
                         'role_type' => 'member',
@@ -68,6 +91,7 @@ class TestDataSeeder extends Seeder
                         'name' => $member['name'],
                         'email' => $member['email'],
                         'password' => Hash::make('password'),
+                        'department' => '開発部',
                         'department_id' => $kaihatsubu->id,
                         'role' => 'user',
                         'role_type' => 'member',
@@ -90,6 +114,7 @@ class TestDataSeeder extends Seeder
                         'name' => $member['name'],
                         'email' => $member['email'],
                         'password' => Hash::make('password'),
+                        'department' => '経理部',
                         'department_id' => $keiri->id,
                         'role' => 'user',
                         'role_type' => 'member',
@@ -103,6 +128,7 @@ class TestDataSeeder extends Seeder
             $this->command->info('📅 部署カレンダーを作成中...');
             
             $departmentCalendars = [
+                ['name' => '総務部カレンダー', 'dept' => $somubu],
                 ['name' => '営業部カレンダー', 'dept' => $eigyobu],
                 ['name' => '開発部カレンダー', 'dept' => $kaihatsubu],
                 ['name' => '経理部カレンダー', 'dept' => $keiri],
@@ -132,6 +158,9 @@ class TestDataSeeder extends Seeder
             
             // 全社カレンダーの予定
             if ($companyCalendar) {
+                $allUsers = User::where('is_active', true)->get();
+                $this->command->info("   全ユーザー数: " . $allUsers->count() . "人");
+                
                 $companyEvents = [
                     [
                         'title' => '全社会議',
@@ -142,6 +171,7 @@ class TestDataSeeder extends Seeder
                         'end_time' => '12:00:00',
                         'category' => '会議',
                         'importance' => '重要',
+                        'participants' => $allUsers->pluck('id')->toArray(), // 全員参加
                     ],
                     [
                         'title' => '会社創立記念日',
@@ -151,22 +181,37 @@ class TestDataSeeder extends Seeder
                         'is_all_day' => true,
                         'category' => '休暇',
                         'importance' => '重要',
+                        'participants' => [], // 参加者なし（全員が確認できる情報）
                     ],
                 ];
                 
                 foreach ($companyEvents as $eventData) {
-                    Event::create(array_merge($eventData, [
+                    $participants = $eventData['participants'];
+                    unset($eventData['participants']);
+                    
+                    $event = Event::create(array_merge($eventData, [
                         'calendar_id' => $companyCalendar->calendar_id,
                         'created_by' => 1, // 全社管理者
                         'visibility_type' => 'public',
                         'version' => 1,
                     ]));
+                    
+                    // 参加者を関連付け（空の場合はスキップ）
+                    if (!empty($participants)) {
+                        $event->participants()->attach($participants);
+                        $this->command->info("     → 参加者 " . count($participants) . "人を関連付け");
+                    } else {
+                        $this->command->info("     → 参加者なし");
+                    }
                 }
-                $this->command->info('   ✓ 全社カレンダーに2件の予定を作成');
+                $this->command->info('   ✓ 全社カレンダーに2件の予定を作成（参加者付き）');
             }
             
             // 営業部カレンダーの予定
             if ($eigyobuCalendar && $eigyobuAdmin) {
+                $eigyobuMembers = User::where('department_id', $eigyobu->id)->get();
+                $this->command->info("   営業部メンバー数: " . $eigyobuMembers->count() . "人");
+                
                 $eigyobuEvents = [
                     [
                         'title' => '営業部ミーティング',
@@ -176,6 +221,7 @@ class TestDataSeeder extends Seeder
                         'end_date' => Carbon::now()->addDays(3)->format('Y-m-d'),
                         'end_time' => '15:00:00',
                         'category' => '会議',
+                        'participants' => $eigyobuMembers->pluck('id')->toArray(),
                     ],
                     [
                         'title' => '顧客訪問',
@@ -185,23 +231,36 @@ class TestDataSeeder extends Seeder
                         'end_date' => Carbon::now()->addDays(5)->format('Y-m-d'),
                         'end_time' => '17:00:00',
                         'category' => '来客',
+                        'participants' => [$eigyobuMembers->first()->id], // 営業部の1人だけ参加
                     ],
                 ];
                 
                 foreach ($eigyobuEvents as $eventData) {
-                    Event::create(array_merge($eventData, [
+                    $participants = $eventData['participants'];
+                    unset($eventData['participants']);
+                    
+                    $event = Event::create(array_merge($eventData, [
                         'calendar_id' => $eigyobuCalendar->calendar_id,
                         'created_by' => $eigyobuAdmin->id,
                         'owner_department_id' => $eigyobu->id,
                         'visibility_type' => 'department',
                         'version' => 1,
                     ]));
+                    
+                    // 参加者を関連付け
+                    if (!empty($participants)) {
+                        $event->participants()->attach($participants);
+                        $this->command->info("     → 参加者 " . count($participants) . "人を関連付け");
+                    }
                 }
-                $this->command->info('   ✓ 営業部カレンダーに2件の予定を作成');
+                $this->command->info('   ✓ 営業部カレンダーに2件の予定を作成（参加者付き）');
             }
             
             // 開発部カレンダーの予定
             if ($kaihatsubuCalendar && $kaihatsubuAdmin) {
+                $kaihatsubuMembers = User::where('department_id', $kaihatsubu->id)->get();
+                $this->command->info("   開発部メンバー数: " . $kaihatsubuMembers->count() . "人");
+                
                 $kaihatsubuEvents = [
                     [
                         'title' => 'スプリントレビュー',
@@ -211,6 +270,7 @@ class TestDataSeeder extends Seeder
                         'end_date' => Carbon::now()->addDays(4)->format('Y-m-d'),
                         'end_time' => '16:00:00',
                         'category' => '会議',
+                        'participants' => $kaihatsubuMembers->pluck('id')->toArray(),
                     ],
                     [
                         'title' => 'システムメンテナンス',
@@ -220,19 +280,29 @@ class TestDataSeeder extends Seeder
                         'end_date' => Carbon::now()->addDays(10)->format('Y-m-d'),
                         'end_time' => '23:00:00',
                         'category' => '業務',
+                        'participants' => [$kaihatsubuMembers->first()->id, $kaihatsubuMembers->skip(1)->first()->id], // 2人だけ参加
                     ],
                 ];
                 
                 foreach ($kaihatsubuEvents as $eventData) {
-                    Event::create(array_merge($eventData, [
+                    $participants = $eventData['participants'];
+                    unset($eventData['participants']);
+                    
+                    $event = Event::create(array_merge($eventData, [
                         'calendar_id' => $kaihatsubuCalendar->calendar_id,
                         'created_by' => $kaihatsubuAdmin->id,
                         'owner_department_id' => $kaihatsubu->id,
                         'visibility_type' => 'department',
                         'version' => 1,
                     ]));
+                    
+                    // 参加者を関連付け
+                    if (!empty($participants)) {
+                        $event->participants()->attach($participants);
+                        $this->command->info("     → 参加者 " . count($participants) . "人を関連付け");
+                    }
                 }
-                $this->command->info('   ✓ 開発部カレンダーに2件の予定を作成');
+                $this->command->info('   ✓ 開発部カレンダーに2件の予定を作成（参加者付き）');
             }
             
             // 4. 共有メモを作成
@@ -321,73 +391,319 @@ class TestDataSeeder extends Seeder
                 $this->command->info('   ✓ 開発部メモを2件作成');
             }
             
-            // 5. ゴミ箱データを作成（削除済みの予定とメモ）
+            // 5. ゴミ箱データを作成（削除済みの予定、メモ、アンケート、リマインダー）
             $this->command->info('🗑️  ゴミ箱データを作成中...');
             
-            // 削除済み予定を作成
-            if ($eigyobuCalendar && $eigyobuAdmin) {
-                $deletedEvent = Event::create([
-                    'title' => '【削除済み】過去の営業会議',
-                    'description' => 'この予定は削除されました',
-                    'start_date' => Carbon::now()->subDays(10)->format('Y-m-d'),
-                    'start_time' => '10:00:00',
-                    'end_date' => Carbon::now()->subDays(10)->format('Y-m-d'),
-                    'end_time' => '11:00:00',
-                    'calendar_id' => $eigyobuCalendar->calendar_id,
-                    'created_by' => $eigyobuAdmin->id,
-                    'owner_department_id' => $eigyobu->id,
-                    'visibility_type' => 'department',
-                    'is_deleted' => true,
-                    'deleted_at' => Carbon::now()->subDays(5),
-                    'version' => 1,
-                ]);
-                
-                TrashItem::create([
-                    'user_id' => $eigyobuAdmin->id,
-                    'item_type' => 'event',
-                    'is_shared' => true,
-                    'item_id' => $deletedEvent->event_id,
-                    'original_title' => $deletedEvent->title,
-                    'owner_department_id' => $eigyobu->id,
-                    'visibility_type' => 'department',
-                    'deleted_at' => Carbon::now()->subDays(5),
-                    'permanent_delete_at' => Carbon::now()->addDays(25),
-                ]);
-                $this->command->info('   ✓ 削除済み予定を1件作成');
-            }
+            // 各部署の管理者を取得
+            $somuAdmin = User::where('email', 'a@a')->first();
             
-            // 削除済みメモを作成
-            if ($kaihatsubuAdmin) {
-                $deletedNote = SharedNote::create([
-                    'title' => '【削除済み】古い開発メモ',
-                    'content' => 'このメモは削除されました',
-                    'author_id' => $kaihatsubuAdmin->id,
-                    'color' => 'yellow',
-                    'priority' => 'low',
-                    'visibility_type' => 'department',
-                    'owner_department_id' => $kaihatsubu->id,
-                    'is_deleted' => true,
-                    'deleted_at' => Carbon::now()->subDays(3),
-                ]);
-                
-                TrashItem::create([
-                    'user_id' => $kaihatsubuAdmin->id,
-                    'item_type' => 'shared_note',
-                    'is_shared' => true,
-                    'item_id' => $deletedNote->note_id,
-                    'original_title' => $deletedNote->title,
-                    'owner_department_id' => $kaihatsubu->id,
-                    'visibility_type' => 'department',
-                    'deleted_at' => Carbon::now()->subDays(3),
-                    'permanent_delete_at' => Carbon::now()->addDays(27),
-                ]);
-                $this->command->info('   ✓ 削除済みメモを1件作成');
+            // 削除済み予定を各部署で作成
+            $deletedEvents = [
+                // 全社カレンダーの削除済み予定
+                [
+                    'title' => '【削除済み】全社忘年会',
+                    'description' => 'この予定は削除されました',
+                    'calendar' => $companyCalendar,
+                    'user' => User::where('email', 'admin@company.com')->first(),
+                    'department' => null,
+                ],
+                [
+                    'title' => '【削除済み】全社研修',
+                    'description' => 'この予定は削除されました',
+                    'calendar' => $companyCalendar,
+                    'user' => User::where('email', 'admin@company.com')->first(),
+                    'department' => null,
+                ],
+                // 営業部の削除済み予定
+                [
+                    'title' => '【削除済み】営業会議',
+                    'description' => 'この予定は削除されました',
+                    'calendar' => $eigyobuCalendar,
+                    'user' => $eigyobuAdmin,
+                    'department' => $eigyobu,
+                ],
+                [
+                    'title' => '【削除済み】顧客プレゼン',
+                    'description' => 'この予定は削除されました',
+                    'calendar' => $eigyobuCalendar,
+                    'user' => $eigyobuAdmin,
+                    'department' => $eigyobu,
+                ],
+                // 開発部の削除済み予定
+                [
+                    'title' => '【削除済み】コードレビュー',
+                    'description' => 'この予定は削除されました',
+                    'calendar' => $kaihatsubuCalendar,
+                    'user' => $kaihatsubuAdmin,
+                    'department' => $kaihatsubu,
+                ],
+                [
+                    'title' => '【削除済み】リリース会議',
+                    'description' => 'この予定は削除されました',
+                    'calendar' => $kaihatsubuCalendar,
+                    'user' => $kaihatsubuAdmin,
+                    'department' => $kaihatsubu,
+                ],
+                // 総務部の削除済み予定
+                [
+                    'title' => '【削除済み】総務部定例会議',
+                    'description' => 'この予定は削除されました',
+                    'calendar' => Calendar::where('owner_type', 'department')->where('owner_id', $somubu->id)->first(),
+                    'user' => $somuAdmin,
+                    'department' => $somubu,
+                ],
+                [
+                    'title' => '【削除済み】人事評価会議',
+                    'description' => 'この予定は削除されました',
+                    'calendar' => Calendar::where('owner_type', 'department')->where('owner_id', $somubu->id)->first(),
+                    'user' => $somuAdmin,
+                    'department' => $somubu,
+                ],
+            ];
+            
+            foreach ($deletedEvents as $eventData) {
+                if ($eventData['calendar'] && $eventData['user']) {
+                    $deletedEvent = Event::create([
+                        'title' => $eventData['title'],
+                        'description' => $eventData['description'],
+                        'start_date' => Carbon::now()->subDays(rand(5, 30))->format('Y-m-d'),
+                        'start_time' => '10:00:00',
+                        'end_date' => Carbon::now()->subDays(rand(5, 30))->format('Y-m-d'),
+                        'end_time' => '11:00:00',
+                        'calendar_id' => $eventData['calendar']->calendar_id,
+                        'created_by' => $eventData['user']->id,
+                        'owner_department_id' => $eventData['department']?->id,
+                        'visibility_type' => $eventData['department'] ? 'department' : 'public',
+                        'is_deleted' => true,
+                        'deleted_at' => Carbon::now()->subDays(rand(1, 10)),
+                        'version' => 1,
+                    ]);
+                    
+                    TrashItem::create([
+                        'user_id' => $eventData['user']->id,
+                        'item_type' => 'event',
+                        'is_shared' => true,
+                        'item_id' => $deletedEvent->event_id,
+                        'original_title' => $deletedEvent->title,
+                        'owner_department_id' => $eventData['department']?->id,
+                        'visibility_type' => $eventData['department'] ? 'department' : 'public',
+                        'deleted_at' => $deletedEvent->deleted_at,
+                        'permanent_delete_at' => Carbon::now()->addDays(rand(20, 30)),
+                    ]);
+                }
             }
+            $this->command->info('   ✓ 削除済み予定を8件作成');
+            
+            // 削除済みメモを各部署で作成
+            $deletedNotes = [
+                // 全社公開の削除済みメモ
+                [
+                    'title' => '【削除済み】古い社内規定',
+                    'content' => 'このメモは削除されました',
+                    'user' => User::where('email', 'admin@company.com')->first(),
+                    'department' => null,
+                    'visibility' => 'public',
+                ],
+                [
+                    'title' => '【削除済み】過去のお知らせ',
+                    'content' => 'このメモは削除されました',
+                    'user' => User::where('email', 'admin@company.com')->first(),
+                    'department' => null,
+                    'visibility' => 'public',
+                ],
+                // 営業部の削除済みメモ
+                [
+                    'title' => '【削除済み】古い営業資料',
+                    'content' => 'このメモは削除されました',
+                    'user' => $eigyobuAdmin,
+                    'department' => $eigyobu,
+                    'visibility' => 'department',
+                ],
+                [
+                    'title' => '【削除済み】過去の売上データ',
+                    'content' => 'このメモは削除されました',
+                    'user' => $eigyobuAdmin,
+                    'department' => $eigyobu,
+                    'visibility' => 'department',
+                ],
+                // 開発部の削除済みメモ
+                [
+                    'title' => '【削除済み】古い技術メモ',
+                    'content' => 'このメモは削除されました',
+                    'user' => $kaihatsubuAdmin,
+                    'department' => $kaihatsubu,
+                    'visibility' => 'department',
+                ],
+                [
+                    'title' => '【削除済み】過去のAPI仕様',
+                    'content' => 'このメモは削除されました',
+                    'user' => $kaihatsubuAdmin,
+                    'department' => $kaihatsubu,
+                    'visibility' => 'department',
+                ],
+                // 総務部の削除済みメモ
+                [
+                    'title' => '【削除済み】古い人事資料',
+                    'content' => 'このメモは削除されました',
+                    'user' => $somuAdmin,
+                    'department' => $somubu,
+                    'visibility' => 'department',
+                ],
+                [
+                    'title' => '【削除済み】過去の勤怠データ',
+                    'content' => 'このメモは削除されました',
+                    'user' => $somuAdmin,
+                    'department' => $somubu,
+                    'visibility' => 'department',
+                ],
+            ];
+            
+            foreach ($deletedNotes as $noteData) {
+                if ($noteData['user']) {
+                    $deletedNote = SharedNote::create([
+                        'title' => $noteData['title'],
+                        'content' => $noteData['content'],
+                        'author_id' => $noteData['user']->id,
+                        'color' => 'gray',
+                        'priority' => 'low',
+                        'visibility_type' => $noteData['visibility'],
+                        'owner_department_id' => $noteData['department']?->id,
+                        'is_deleted' => true,
+                        'deleted_at' => Carbon::now()->subDays(rand(1, 15)),
+                    ]);
+                    
+                    TrashItem::create([
+                        'user_id' => $noteData['user']->id,
+                        'item_type' => 'shared_note',
+                        'is_shared' => true,
+                        'item_id' => $deletedNote->note_id,
+                        'original_title' => $deletedNote->title,
+                        'owner_department_id' => $noteData['department']?->id,
+                        'visibility_type' => $noteData['visibility'],
+                        'deleted_at' => $deletedNote->deleted_at,
+                        'permanent_delete_at' => Carbon::now()->addDays(rand(15, 30)),
+                    ]);
+                }
+            }
+            $this->command->info('   ✓ 削除済みメモを8件作成');
+            
+            // 削除済みアンケートを作成
+            $deletedSurveys = [
+                [
+                    'title' => '【削除済み】過去の満足度調査',
+                    'user' => User::where('email', 'admin@company.com')->first(),
+                    'department' => null,
+                    'visibility' => 'public',
+                ],
+                [
+                    'title' => '【削除済み】営業部アンケート',
+                    'user' => $eigyobuAdmin,
+                    'department' => $eigyobu,
+                    'visibility' => 'department',
+                ],
+                [
+                    'title' => '【削除済み】開発環境調査',
+                    'user' => $kaihatsubuAdmin,
+                    'department' => $kaihatsubu,
+                    'visibility' => 'department',
+                ],
+                [
+                    'title' => '【削除済み】総務部業務改善アンケート',
+                    'user' => $somuAdmin,
+                    'department' => $somubu,
+                    'visibility' => 'department',
+                ],
+            ];
+            
+            foreach ($deletedSurveys as $surveyData) {
+                if ($surveyData['user']) {
+                    // 削除済みアンケートのダミーIDを作成（実際のSurveyモデルは作成しない）
+                    $dummySurveyId = rand(1000, 9999);
+                    
+                    TrashItem::create([
+                        'user_id' => $surveyData['user']->id,
+                        'item_type' => 'survey',
+                        'is_shared' => true,
+                        'item_id' => $dummySurveyId,
+                        'original_title' => $surveyData['title'],
+                        'owner_department_id' => $surveyData['department']?->id,
+                        'visibility_type' => $surveyData['visibility'],
+                        'deleted_at' => Carbon::now()->subDays(rand(1, 20)),
+                        'permanent_delete_at' => Carbon::now()->addDays(rand(10, 30)),
+                    ]);
+                }
+            }
+            $this->command->info('   ✓ 削除済みアンケートを4件作成');
+            
+            // 削除済みリマインダーを作成
+            $deletedReminders = [
+                [
+                    'title' => '【削除済み】全社会議の準備',
+                    'user' => User::where('email', 'admin@company.com')->first(),
+                    'department' => null,
+                ],
+                [
+                    'title' => '【削除済み】営業資料作成',
+                    'user' => $eigyobuAdmin,
+                    'department' => $eigyobu,
+                ],
+                [
+                    'title' => '【削除済み】コードレビュー準備',
+                    'user' => $kaihatsubuAdmin,
+                    'department' => $kaihatsubu,
+                ],
+                [
+                    'title' => '【削除済み】人事評価資料準備',
+                    'user' => $somuAdmin,
+                    'department' => $somubu,
+                ],
+                [
+                    'title' => '【削除済み】月次報告書作成',
+                    'user' => User::where('email', 'keiri@company.com')->first(),
+                    'department' => $keiri,
+                ],
+                [
+                    'title' => '【削除済み】顧客フォローアップ',
+                    'user' => $eigyobuAdmin,
+                    'department' => $eigyobu,
+                ],
+                [
+                    'title' => '【削除済み】システムバックアップ',
+                    'user' => $kaihatsubuAdmin,
+                    'department' => $kaihatsubu,
+                ],
+                [
+                    'title' => '【削除済み】勤怠チェック',
+                    'user' => $somuAdmin,
+                    'department' => $somubu,
+                ],
+            ];
+            
+            foreach ($deletedReminders as $reminderData) {
+                if ($reminderData['user']) {
+                    // 削除済みリマインダーのダミーIDを作成（実際のReminderモデルは作成しない）
+                    $dummyReminderId = rand(1000, 9999);
+                    
+                    TrashItem::create([
+                        'user_id' => $reminderData['user']->id,
+                        'item_type' => 'reminder',
+                        'is_shared' => false, // リマインダーは個人用
+                        'item_id' => $dummyReminderId,
+                        'original_title' => $reminderData['title'],
+                        'owner_department_id' => $reminderData['department']?->id,
+                        'visibility_type' => 'private',
+                        'deleted_at' => Carbon::now()->subDays(rand(1, 10)),
+                        'permanent_delete_at' => Carbon::now()->addDays(rand(20, 30)),
+                    ]);
+                }
+            }
+            $this->command->info('   ✓ 削除済みリマインダーを8件作成');
             
             $this->command->info('');
             $this->command->info('✅ テストデータの投入が完了しました！');
             $this->command->info('');
             $this->command->info('📋 作成されたアカウント:');
+            $this->command->info('   総務部: somu.a@company.com / password');
             $this->command->info('   営業部: eigyo.tanaka@company.com / password');
             $this->command->info('   営業部: eigyo.sato@company.com / password');
             $this->command->info('   営業部: eigyo.suzuki@company.com / password');

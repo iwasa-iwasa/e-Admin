@@ -14,15 +14,22 @@ defineOptions({
   layout: AuthenticatedLayout,
 })
 
-const props = defineProps<{
-  events: App.Models.ExpandedEvent[];
-  sharedNotes: SharedNoteModel[];
-  personalReminders: ReminderModel[];
+interface Props {
+  events: any[]
+  sharedNotes: SharedNoteModel[]
+  personalReminders: ReminderModel[]
   filteredMemberId?: number | null
   teamMembers: UserModel[]
   totalUsers: number
   defaultView?: string
-}>()
+  departments?: any[]
+  calendars?: any[]
+  userDepartmentId?: number | null
+  userRoleType?: string
+  defaultCalendarId?: number | null
+}
+
+const props = defineProps<Props>()
 
 const filteredMember = computed(() => {
   if (!props.filteredMemberId) return null
@@ -172,6 +179,11 @@ onUnmounted(() => {
                                 :filtered-member-id="filteredMemberId"
                                 :default-view="props.defaultView"
                                 :is-help-open="isCalendarHelpOpen"
+                                :departments="props.departments"
+                                :calendars="props.calendars"
+                                :user-department-id="props.userDepartmentId"
+                                :user-role-type="props.userRoleType"
+                                :default-calendar-id="props.defaultCalendarId"
                                 @update:is-help-open="isCalendarHelpOpen = $event"
                             />
                         </div>
@@ -204,6 +216,11 @@ onUnmounted(() => {
               :filtered-member-id="filteredMemberId"
               :default-view="props.defaultView"
               :is-help-open="isCalendarHelpOpen"
+              :departments="props.departments"
+              :calendars="props.calendars"
+              :user-department-id="props.userDepartmentId"
+              :user-role-type="props.userRoleType"
+              :default-calendar-id="props.defaultCalendarId"
               @update:is-help-open="isCalendarHelpOpen = $event"
           />
         </div>

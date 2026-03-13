@@ -31,36 +31,45 @@ class EventSeeder extends Seeder
             return;
         }
 
-        // サンプルイベントデータを100件生成
+        // 各部署に20件ずつの予定を生成
+        $departments = \App\Models\Department::all();
         $categories = ['会議', '休暇', '業務', '来客', '出張'];
         $importances = ['重要', '中', '低'];
         $locations = ['大会議室', '会議室A', '会議室B', '研修室', 'オンライン', ''];
         $faker = \Faker\Factory::create('ja_JP');
-           // すべてのユーザーを取得
+        
+        // すべてのユーザーを取得
         $users = User::all();
         if ($users->isEmpty()) {
-            // If no user, maybe run UserSeeder first
             $this->command->call('db:seed', ['--class' => 'UserSeeder']);
             $users = User::all();
         }
 
         $events = [];
-        for ($i = 1; $i <= 150; $i++) {
-            $category = $categories[array_rand($categories)];
-            $importance = $importances[array_rand($importances)];
-            $location = $locations[array_rand($locations)];
-               // ランダムなユーザーを選択
-            $randomUser = $users->random();
-               // 2026年9月〜12月の間でランダムな日付
-            $month = rand(1, 4);
-            $day = rand(1, 28);
-            $startDate = sprintf('2026-%02d-%02d', $month, $day);
-            $durationDays = rand(0, 2);
-            $endDate = date('Y-m-d', strtotime($startDate . " +{$durationDays} day"));
-            $startHour = rand(8, 17);
-            $endHour = min($startHour + rand(1, 3), 18);
-            // カテゴリーに応じたタイトルと説明の候補
-            $titles = [
+        $eventCount = 0;
+        
+        // 各部署に20件ずつ予定を作成
+        foreach ($departments as $department) {
+            $deptUsers = $users->where('department_id', $department->id);
+            if ($deptUsers->isEmpty()) continue;
+            
+            for ($i = 1; $i <= 20; $i++) {
+                $eventCount++;
+                $category = $categories[array_rand($categories)];
+                $importance = $importances[array_rand($importances)];
+                $location = $locations[array_rand($locations)];
+                // 部署内のランダムなユーザーを選択
+                $randomUser = $deptUsers->random();
+                // 2026年1月〜4月の間でランダムな日付
+                $month = rand(1, 4);
+                $day = rand(1, 28);
+                $startDate = sprintf('2026-%02d-%02d', $month, $day);
+                $durationDays = rand(0, 2);
+                $endDate = date('Y-m-d', strtotime($startDate . " +{$durationDays} day"));
+                $startHour = rand(8, 17);
+                $endHour = min($startHour + rand(1, 3), 18);
+                // カテゴリーに応じたタイトルと説明の候補
+                $titles = [
                 '会議' => ['定例会議', '進捗報告会', '戦略ミーティング', 'ブレインストーミング', 'キックオフ会議'],
                 '休暇' => ['有給休暇', '振替休日', '特別休暇', '半日休暇'],
                 '業務' => ['資料作成', 'データ分析', '企画書レビュー', 'コードレビュー', 'タスク消化'],
@@ -76,46 +85,44 @@ class EventSeeder extends Seeder
                 '出張' => ['東京のクライアント先でのプロジェクト進捗確認会を実施します。', '大阪支社での定期ミーティングに参加します。', '名古屋の顧客先を訪問し、サービス説明を行います。', '福岡での営業活動と既存顧客対応を実施します。'],
             ];
 
-            $title = $titles[$category][array_rand($titles[$category])];
-            $description = $descriptions[$category][array_rand($descriptions[$category])];
-            $events[] = [
-                'title' => $title,
-                'description' => $description,
-                'location' => $location,
-                'category' => $category,
-                'importance' => $importance,
-                'start_date' => $startDate,
-                'start_time' => sprintf('%02d:00', $startHour),
-                'end_date' => $endDate,
-                'end_time' => sprintf('%02d:00', $endHour),
-                'is_all_day' => false,
-                'progress' => rand(0, 100),
-            ];
+                $title = $titles[$category][array_rand($titles[$category])];
+                $description = $descriptions[$category][array_rand($descriptions[$category])];
+                $events[] = [
+                    'title' => $title,
+                    'description' => $description,
+                    'location' => $location,
+                    'category' => $category,
+                    'importance' => $importance,
+                    'start_date' => $startDate,
+                    'start_time' => sprintf('%02d:00', $startHour),
+                    'end_date' => $endDate,
+                    'end_time' => sprintf('%02d:00', $endHour),
+                    'is_all_day' => false,
+                    'progress' => rand(0, 100),
+                    'department_id' => $department->id,
+                    'user_id' => $randomUser->id,
+                ];
+            }
         }
 
         foreach ($events as $eventData) {
-            // ランダムなユーザーを選択
-            $randomUser = $users->random();
+            $departmentId = $eventData['department_id'];
+            $userId = $eventData['user_id'];
+            unset($eventData['department_id'], $eventData['user_id']);
             
-            // 総務部ユーザーの場合は部署公開に設定
-            $somubuDept = \App\Models\Department::where('name', '総務部')->first();
-            $visibilityType = 'public';
-            $ownerDepartmentId = null;
-            
-            if ($somubuDept && $randomUser->department_id === $somubuDept->id) {
-                $visibilityType = 'department';
-                $ownerDepartmentId = $somubuDept->id;
-            }
+            // 部署公開に設定
+            $visibilityType = 'department';
+            $ownerDepartmentId = $departmentId;
             
             $event = Event::create(array_merge($eventData, [
                 'calendar_id' => $calendar->calendar_id,
-                'created_by' => $randomUser->id,
+                'created_by' => $userId,
                 'visibility_type' => $visibilityType,
                 'owner_department_id' => $ownerDepartmentId,
             ]));
 
             // Attach the creator as a participant
-            $event->participants()->attach($randomUser->id, ['response_status' => 'accepted']);
+            $event->participants()->attach($userId, ['response_status' => 'accepted']);
         }
     }
 }
