@@ -3,10 +3,14 @@ import { ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { GENRE_FILTERS, getEventColor } from '@/constants/calendar'
 
-export function useCalendarEvents() {
+export function useCalendarEvents(userDepartmentId?: number | null) {
     const searchQuery = ref('')
     const genreFilter = ref<string>(GENRE_FILTERS.ALL)
-    const departmentFilter = ref<string | null>(null)
+    
+    // ユーザーの所属部署をデフォルトに設定
+    const departmentFilter = ref<string>(
+        userDepartmentId ? `dept_${userDepartmentId}` : 'all'
+    )
 
     const canEditEvent = (event: App.Models.ExpandedEvent | App.Models.Event) => {
         const page = usePage()

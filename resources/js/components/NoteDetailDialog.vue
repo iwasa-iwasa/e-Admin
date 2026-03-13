@@ -701,7 +701,7 @@ const editedProgress = computed({
           <div v-if="isEditing && editedNote" class="space-y-2 mt-3">
             <label class="text-xs font-medium text-gray-700 block">共有範囲</label>
             <div class="text-xs text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
-              💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
+              💡 自部署のみ：自分の部署のメンバーのみ表示。一部ユーザーのみ：他部署のメンバーや管理者も選択可能。
             </div>
             <template v-if="!canEditParticipants">
               <div class="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
@@ -725,7 +725,7 @@ const editedProgress = computed({
                     @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
                     class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                   />
-                  <span class="text-xs dark:text-gray-300">{{ member.name }}</span>
+                  <span class="text-xs dark:text-gray-300">{{ member.name }} {{ (member as any).department_name ? `(${(member as any).department_name})` : '' }}</span>
                 </label>
               </div>
             </template>

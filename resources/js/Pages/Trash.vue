@@ -65,10 +65,19 @@ const restoreMode = ref<'selected' | 'unselected'>('selected')
 
 watch(departmentFilter, (newVal) => {
     router.get('/trash', { department_filter: newVal }, {
-        preserveState: true,
+        preserveState: false,
         replace: true,
+        onSuccess: (page) => {
+            // レスポンスからtrashItemsを更新
+            trashItems.value = page.props.trashItems || []
+        }
     })
 })
+
+// propsの変更を監視してtrashItemsを更新
+watch(() => props.trashItems, (newItems) => {
+    trashItems.value = newItems || []
+}, { immediate: true })
 
 // フィルター
 const filterScope = ref<'all' | 'mine' | 'department'>('all')
@@ -423,9 +432,22 @@ const handleTrashUpdate = () => {
                 <SelectItem value="all">すべて</SelectItem>
                 <SelectItem value="public">🌐 全社</SelectItem>
                 <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署</div>
-                <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
-                    {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}
-                </SelectItem>
+                <template v-if="$page.props.auth.user.role_type === 'company_admin'">
+                  <!-- 全社管理者は全部署を選択可能 -->
+                  <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
+                      {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}
+                  </SelectItem>
+                </template>
+                <template v-else>
+                  <!-- 部署管理者/メンバーは自分の部署のみ選択可能 -->
+                  <SelectItem 
+                    v-for="dept in props.departments.filter(d => d.id === props.userDepartmentId)" 
+                    :key="dept.id" 
+                    :value="`dept_${dept.id}`"
+                  >
+                      {{ dept.name }} (自部署)
+                  </SelectItem>
+                </template>
               </SelectContent>
             </Select>
             <Button 

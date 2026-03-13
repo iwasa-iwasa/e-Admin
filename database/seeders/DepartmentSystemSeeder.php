@@ -67,19 +67,33 @@ class DepartmentSystemSeeder extends Seeder
                 $this->command->info('   ✓ 全社管理者: admin@company.com / password');
             }
             
-            // 総務部管理者
-            if (!User::where('email', 'somubu@company.com')->exists()) {
-                User::create([
+            // 総務部管理者（既存のa@aアカウントを統合）
+            $existingUser = User::where('email', 'a@a')->first();
+            if ($existingUser) {
+                // 既存のa@aアカウントを総務部管理者として更新
+                $existingUser->update([
                     'name' => '総務部管理者',
-                    'email' => 'somubu@company.com',
-                    'password' => Hash::make('password'),
+                    'email' => 'a@a', // メールアドレスはそのまま
                     'department' => '総務部',
                     'department_id' => $somubuDept->id,
-                    'role' => 'user',
+                    'role' => 'admin',
                     'role_type' => 'department_admin',
                     'is_active' => true,
                 ]);
-                $this->command->info('   ✓ 総務部管理者: somubu@company.com / password');
+                $this->command->info('   ✓ 総務部管理者（統合済み）: a@a / a');
+            } else {
+                // 新規作成
+                User::create([
+                    'name' => '総務部管理者',
+                    'email' => 'a@a',
+                    'password' => Hash::make('a'),
+                    'department' => '総務部',
+                    'department_id' => $somubuDept->id,
+                    'role' => 'admin',
+                    'role_type' => 'department_admin',
+                    'is_active' => true,
+                ]);
+                $this->command->info('   ✓ 総務部管理者: a@a / a');
             }
             
             // 営業部管理者
@@ -90,7 +104,7 @@ class DepartmentSystemSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'department' => '営業部',
                     'department_id' => $eigyobuDept->id,
-                    'role' => 'user',
+                    'role' => 'admin',
                     'role_type' => 'department_admin',
                     'is_active' => true,
                 ]);
@@ -105,7 +119,7 @@ class DepartmentSystemSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'department' => '開発部',
                     'department_id' => $kaihatsubuDept->id,
-                    'role' => 'user',
+                    'role' => 'admin',
                     'role_type' => 'department_admin',
                     'is_active' => true,
                 ]);
@@ -120,7 +134,7 @@ class DepartmentSystemSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'department' => '経理部',
                     'department_id' => $keiriDept->id,
-                    'role' => 'user',
+                    'role' => 'admin',
                     'role_type' => 'department_admin',
                     'is_active' => true,
                 ]);

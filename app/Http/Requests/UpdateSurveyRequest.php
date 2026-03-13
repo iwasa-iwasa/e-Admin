@@ -40,7 +40,7 @@ class UpdateSurveyRequest extends FormRequest
             'categories.*' => ['string'],
             'respondents' => ['nullable', 'array'],
             'respondents.*' => ['integer', 'exists:users,id'],
-            'visibility_type' => ['required', 'string', 'in:public,department,custom,private'],
+            'visibility_type' => ['required', 'string', 'in:public,department,custom'],
             'owner_department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'confirm_reset' => ['boolean'],
         ];
@@ -59,6 +59,8 @@ class UpdateSurveyRequest extends FormRequest
             'questions.required' => '最低1つの質問を追加してください。',
             'questions.*.question.required' => 'すべての質問を入力してください。',
             'questions.*.type.required' => '質問形式を選択してください。',
+            'visibility_type.required' => '公開範囲を選択してください。',
+            'visibility_type.in' => '公開範囲の選択が無効です。',
         ];
     }
 

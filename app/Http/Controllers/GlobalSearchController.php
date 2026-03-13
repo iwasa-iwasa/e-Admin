@@ -23,6 +23,7 @@ class GlobalSearchController extends Controller
         $searchField = $request->input('search_field', 'all');
         $creatorName = $request->input('creator_name', '');
         $participantName = $request->input('participant_name', '');
+        $departmentFilter = $request->input('department_filter', '');
         $dateFrom = $request->input('date_from', '');
         $dateTo = $request->input('date_to', '');
         $dateType = $request->input('date_type', 'updated');
@@ -61,6 +62,13 @@ class GlobalSearchController extends Controller
                     $subQ->whereHas('creator', fn($q) => $q->where('name', 'like', "%{$participantName}%"))
                          ->orWhereHas('participants', fn($q) => $q->where('users.name', 'like', "%{$participantName}%"));
                 });
+            })
+            ->when($departmentFilter, function($q) use ($departmentFilter) {
+                if ($departmentFilter === 'company') {
+                    $q->whereNull('owner_department_id');
+                } else {
+                    $q->where('owner_department_id', $departmentFilter);
+                }
             })
             ->when($dateFrom, function($q) use ($dateFrom, $dateType) {
                 $field = $dateType === 'created' ? 'created_at' : 'updated_at';
@@ -120,6 +128,13 @@ class GlobalSearchController extends Controller
                         $subQ->whereHas('author', fn($q) => $q->where('name', 'like', "%{$participantName}%"))
                              ->orWhereHas('participants', fn($q) => $q->where('users.name', 'like', "%{$participantName}%"));
                     });
+                })
+                ->when($departmentFilter, function($q) use ($departmentFilter) {
+                    if ($departmentFilter === 'company') {
+                        $q->whereNull('owner_department_id');
+                    } else {
+                        $q->where('owner_department_id', $departmentFilter);
+                    }
                 })
                 ->when($dateFrom, function($q) use ($dateFrom, $dateType) {
                     $field = $dateType === 'created' ? 'created_at' : 'updated_at';

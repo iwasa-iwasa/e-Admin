@@ -111,11 +111,11 @@ const isEventEditOpen = ref(false)
 
 const isProfileSettingsOpen = ref(false)
 const isHelpOpen = ref(false)
-const showEventsFilter = ref<'mine' | 'all'>(
-  (localStorage.getItem('notif_events_filter') as 'mine' | 'all') || 'mine'
+const showEventsFilter = ref<'mine' | 'department' | 'all'>(
+  (localStorage.getItem('notif_events_filter') as 'mine' | 'department' | 'all') || 'mine'
 )
-const showNotesFilter = ref<'mine' | 'all'>(
-  (localStorage.getItem('notif_notes_filter') as 'mine' | 'all') || 'mine'
+const showNotesFilter = ref<'mine' | 'department' | 'all'>(
+  (localStorage.getItem('notif_notes_filter') as 'mine' | 'department' | 'all') || 'mine'
 )
 
 interface NotificationsData {
@@ -139,14 +139,14 @@ const insertSearchOption = (option: string) => {
 
 const isLoadingNotifications = ref(false)
 
-const toggleEventsFilter = async () => {
-  showEventsFilter.value = showEventsFilter.value === 'mine' ? 'all' : 'mine'
+const toggleEventsFilter = async (newFilter: 'mine' | 'department' | 'all') => {
+  showEventsFilter.value = newFilter
   localStorage.setItem('notif_events_filter', showEventsFilter.value)
   await fetchNotifications()
 }
 
-const toggleNotesFilter = async () => {
-  showNotesFilter.value = showNotesFilter.value === 'mine' ? 'all' : 'mine'
+const toggleNotesFilter = async (newFilter: 'mine' | 'department' | 'all') => {
+  showNotesFilter.value = newFilter
   localStorage.setItem('notif_notes_filter', showNotesFilter.value)
   await fetchNotifications()
 }
@@ -710,7 +710,7 @@ onUnmounted(() => {
                               class="flex-1 h-7 text-xs"
                               :class="showEventsFilter === 'mine' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
                               :disabled="isLoadingNotifications"
-                              @click="toggleEventsFilter"
+                              @click="toggleEventsFilter('mine')"
                             >
                               自分のみ
                             </Button>
@@ -718,15 +718,25 @@ onUnmounted(() => {
                               variant="ghost" 
                               size="sm" 
                               class="flex-1 h-7 text-xs"
+                              :class="showEventsFilter === 'department' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
+                              :disabled="isLoadingNotifications"
+                              @click="toggleEventsFilter('department')"
+                            >
+                              自部署のみ
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              class="flex-1 h-7 text-xs"
                               :class="showEventsFilter === 'all' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
                               :disabled="isLoadingNotifications"
-                              @click="toggleEventsFilter"
+                              @click="toggleEventsFilter('all')"
                             >
-                              全員表示
+                              全て
                             </Button>
                           </div>
                           <p class="text-xs text-gray-500 mt-1">
-                            {{ showEventsFilter === 'mine' ? '作成者または参加者として関わる予定のみ' : '全員の重要な予定を表示' }}
+                            {{ showEventsFilter === 'mine' ? '作成者または参加者として関わる予定のみ' : showEventsFilter === 'department' ? '自部署で作成者または参加者として関わる予定のみ' : '作成者または参加者として関わる全ての予定を表示' }}
                           </p>
                         </div>
                         <div>
@@ -738,7 +748,7 @@ onUnmounted(() => {
                               class="flex-1 h-7 text-xs"
                               :class="showNotesFilter === 'mine' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
                               :disabled="isLoadingNotifications"
-                              @click="toggleNotesFilter"
+                              @click="toggleNotesFilter('mine')"
                             >
                               自分のみ
                             </Button>
@@ -746,15 +756,25 @@ onUnmounted(() => {
                               variant="ghost" 
                               size="sm" 
                               class="flex-1 h-7 text-xs"
+                              :class="showNotesFilter === 'department' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
+                              :disabled="isLoadingNotifications"
+                              @click="toggleNotesFilter('department')"
+                            >
+                              自部署のみ
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              class="flex-1 h-7 text-xs"
                               :class="showNotesFilter === 'all' ? 'bg-background shadow-sm text-foreground' : 'hover:bg-muted text-muted-foreground'"
                               :disabled="isLoadingNotifications"
-                              @click="toggleNotesFilter"
+                              @click="toggleNotesFilter('all')"
                             >
-                              全員表示
+                              全て
                             </Button>
                           </div>
                           <p class="text-xs text-gray-500 mt-1">
-                            {{ showNotesFilter === 'mine' ? '作成者または参加者として関わるメモのみ' : '全員の重要なメモを表示' }}
+                            {{ showNotesFilter === 'mine' ? '作成者または参加者として関わるメモのみ' : showNotesFilter === 'department' ? '自部署で作成者または参加者として関わるメモのみ' : '作成者または参加者として関わる全てのメモを表示' }}
                           </p>
                         </div>
                       </div>

@@ -29,8 +29,14 @@ class EventService
                     $subQ->where('users.id', $memberId);
                 })
                 ->orWhere('created_by', $memberId)
+                // 参加者がいない予定（全員が確認できる）も含める
                 ->orWhereDoesntHave('participants');
             });
+            
+            \Log::info('[EventService] Member filter applied', [
+                'member_id' => $memberId,
+                'query_count' => $query->count(),
+            ]);
         }
         
         $events = $query->get();
@@ -569,8 +575,23 @@ class EventService
      */
     public function createEvent(array $data)
     {
+        // カレンダーの種別から公開範囲を自動決定
+        $calendar = Calendar::findOrFail($data['calendar_id'] ?? Calendar::first()->calendar_id);
+        
+        if ($calendar->owner_type === 'company') {
+            $visibility_type = 'public';
+            $owner_department_id = null;
+        } elseif ($calendar->owner_type === 'department') {
+            $visibility_type = 'department';
+            $owner_department_id = $calendar->owner_id;
+        } else {
+            // デフォルト（共有カレンダーなど）
+            $visibility_type = 'public';
+            $owner_department_id = null;
+        }
+        
         $event = Event::create([
-            'calendar_id' => Calendar::first()->calendar_id,
+            'calendar_id' => $calendar->calendar_id,
             'title' => $data['title'],
             'start_date' => Carbon::parse($data['date_range'][0])->format('Y-m-d'),
             'end_date' => Carbon::parse($data['date_range'][1])->format('Y-m-d'),
@@ -582,8 +603,8 @@ class EventService
             'url' => $data['url'] ?? null,
             'category' => $data['category'],
             'importance' => $data['importance'],
-            'visibility_type' => $data['visibility_type'] ?? 'public',
-            'owner_department_id' => ($data['visibility_type'] ?? 'public') === 'department' ? (auth()->user()->department_id ?? null) : null,
+            'visibility_type' => $visibility_type,
+            'owner_department_id' => $owner_department_id,
             'progress' => $data['progress'] ?? 0,
             'created_by' => auth()->id(),
         ]);
@@ -619,6 +640,20 @@ class EventService
             ? $data['date_range'][1] 
             : Carbon::parse($data['date_range'][1])->format('Y-m-d');
         
+        // カレンダーの種別から公開範囲を自動決定
+        $calendar = Calendar::findOrFail($event->calendar_id);
+        
+        if ($calendar->owner_type === 'company') {
+            $visibility_type = 'public';
+            $owner_department_id = null;
+        } elseif ($calendar->owner_type === 'department') {
+            $visibility_type = 'department';
+            $owner_department_id = $calendar->owner_id;
+        } else {
+            $visibility_type = 'public';
+            $owner_department_id = null;
+        }
+        
         $event->update([
             'title' => $data['title'],
             'start_date' => $startDate,
@@ -631,8 +666,8 @@ class EventService
             'url' => $data['url'] ?? null,
             'category' => $data['category'] ?? '一般',
             'importance' => $data['importance'] ?? '中',
-            'visibility_type' => $data['visibility_type'] ?? 'public',
-            'owner_department_id' => ($data['visibility_type'] ?? 'public') === 'department' ? (auth()->user()->department_id ?? null) : null,
+            'visibility_type' => $visibility_type,
+            'owner_department_id' => $owner_department_id,
             'progress' => $data['progress'] ?? 0,
             'version' => (int)$event->version + 1,
         ]);

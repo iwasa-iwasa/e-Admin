@@ -16,18 +16,26 @@ class SurveySeeder extends Seeder
      */
     public function run(): void
     {
+        // 総務部管理者を作成者として取得
+        $somuAdmin = User::where('email', 'a@a')->first();
+        
+        if (!$somuAdmin) {
+            $this->command->error('総務部管理者が見つかりません。先にDepartmentSystemSeederを実行してください。');
+            return;
+        }
+        
         // 一般ユーザーのみを取得（管理者アカウントを除外）
         $users = User::whereNotIn('name', ['全社管理者', '総務部管理者', '営業部管理者', '開発部管理者'])
             ->where('is_active', true)
             ->get();
 
-        if ($users->count() < 2) {
-            $this->command->error('At least 2 active users are required to run SurveySeeder.');
-            return;
-        }
-
-        $creator = $users->first();
         $allUserIds = $users->pluck('id')->toArray();
+        
+        // 総務部のaアカウントを取得
+        $somuDepartment = \App\Models\Department::where('name', '総務部')->first();
+        $somuUserA = User::where('email', 'somu.a@company.com')
+            ->where('department_id', $somuDepartment?->id)
+            ->first();
 
         $surveys = [
             // 2問のシンプルなアンケート
@@ -37,9 +45,10 @@ class SurveySeeder extends Seeder
                     'description' => '12月の忘年会について、参加可能な日程を教えてください。',
                     'deadline_date' => '2025-12-20',
                     'deadline_time' => '23:59:59',
-                    'created_by' => $creator->id,
+                    'created_by' => $somuAdmin->id,
                     'is_active' => true,
                     'categories' => ['イベント', '全社'],
+                    'visibility_type' => 'public',
                 ],
                 'questions' => [
                     [
@@ -55,16 +64,17 @@ class SurveySeeder extends Seeder
                 ],
                 'respondents' => $allUserIds,
             ],
-            // 8問の全質問タイプを含むアンケート
+            // 8問の全質問タイプを含むアンケート（回答済み）
             [
                 'survey' => [
                     'title' => '2025年度 社員満足度調査',
                     'description' => '職場環境や業務内容について、率直なご意見をお聞かせください。',
                     'deadline_date' => '2025-12-25',
                     'deadline_time' => '23:59:59',
-                    'created_by' => $creator->id,
+                    'created_by' => $somuAdmin->id,
                     'is_active' => true,
                     'categories' => ['人事', '全社', '満足度調査'],
+                    'visibility_type' => 'public',
                 ],
                 'questions' => [
                     [
@@ -109,8 +119,69 @@ class SurveySeeder extends Seeder
                     ],
                 ],
                 'respondents' => $allUserIds,
+                'has_responses' => true, // 回答済みフラグ
             ],
         ];
+        
+        // 総務部のaアカウントが存在する場合、8問アンケートを複製
+        if ($somuUserA) {
+            $surveys[] = [
+                'survey' => [
+                    'title' => '2025年度 社員満足度調査（総務部版）',
+                    'description' => '職場環境や業務内容について、率直なご意見をお聞かせください。',
+                    'deadline_date' => '2025-12-25',
+                    'deadline_time' => '23:59:59',
+                    'created_by' => $somuUserA->id,
+                    'is_active' => true,
+                    'categories' => ['人事', '総務部', '満足度調査'],
+                    'visibility_type' => 'department',
+                    'owner_department_id' => $somuDepartment->id,
+                ],
+                'questions' => [
+                    [
+                        'text' => '現在の勤務形態を選択してください',
+                        'type' => 'single',
+                        'options' => ['フルタイム勤務', 'リモートワーク', 'ハイブリッド勤務', 'フレックスタイム'],
+                    ],
+                    [
+                        'text' => '利用している福利厚生制度をすべて選択してください',
+                        'type' => 'multiple',
+                        'options' => ['健康診断', '社員食堂', 'スポーツジム', '住宅手当', '資格取得支援'],
+                    ],
+                    [
+                        'text' => '会社の経営方針やビジョンに共感できますか？',
+                        'type' => 'rating',
+                        'options' => [],
+                    ],
+                    [
+                        'text' => '職場環境の満足度を評価してください',
+                        'type' => 'scale',
+                        'options' => [],
+                    ],
+                    [
+                        'text' => '最も重要だと思うスキル開発分野を選択してください',
+                        'type' => 'dropdown',
+                        'options' => ['リーダーシップ', '技術スキル', 'コミュニケーション', 'プロジェクト管理', '語学'],
+                    ],
+                    [
+                        'text' => '今年度の目標を簡潔に記入してください',
+                        'type' => 'text',
+                        'options' => [],
+                    ],
+                    [
+                        'text' => '会社や部署への要望・提案があれば自由に記述してください',
+                        'type' => 'textarea',
+                        'options' => [],
+                    ],
+                    [
+                        'text' => '次回の1on1ミーティングの希望日を入力してください',
+                        'type' => 'date',
+                        'options' => [],
+                    ],
+                ],
+                'respondents' => User::where('department_id', $somuDepartment->id)->pluck('id')->toArray(),
+            ];
+        }
 
         foreach ($surveys as $surveyData) {
             $survey = Survey::create($surveyData['survey']);
