@@ -413,7 +413,6 @@ onUnmounted(() => {
                             <SelectContent>
                                 <SelectItem value="all">すべて</SelectItem>
                                 <SelectItem value="public">🌐 全社公開のみ</SelectItem>
-                                <SelectItem value="private">🔒 自分のみ</SelectItem>
                                 <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署向け</div>
                                 <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
                                     {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}

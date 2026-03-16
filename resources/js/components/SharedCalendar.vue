@@ -524,7 +524,6 @@ const handleDateJump = (date: Date) => {
                                 <SelectValue>
                                     <template v-if="departmentFilter === 'all'">すべて</template>
                                     <template v-else-if="departmentFilter === 'public'">全社予定のみ</template>
-                                    <template v-else-if="departmentFilter === 'private'">自分のみ</template>
                                     <template v-else-if="departmentFilter && departmentFilter.startsWith('dept_')">
                                         {{ props.departments.find(d => d.id === parseInt(departmentFilter.replace('dept_', '')))?.name }}
                                         {{ props.userDepartmentId === parseInt(departmentFilter.replace('dept_', '')) ? '(自部署)' : '' }}
@@ -535,7 +534,6 @@ const handleDateJump = (date: Date) => {
                             <SelectContent>
                                 <SelectItem value="all">すべて</SelectItem>
                                 <SelectItem value="public">全社予定のみ</SelectItem>
-                                <SelectItem value="private">自分のみ</SelectItem>
                                 <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署カレンダー</div>
                                 <!-- 所属部署を最初に表示 -->
                                 <SelectItem v-if="props.userDepartmentId" :value="`dept_${props.userDepartmentId}`">

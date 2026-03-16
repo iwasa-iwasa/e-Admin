@@ -232,10 +232,11 @@ const handleSelectAll = () => {
             m.id !== currentUserId.value && 
             (m as any).department_id === userDepartmentId
         )
-    } else {
+    } else if (form.visibility_type === 'custom') {
         // 一部ユーザーのみの場合：全員選択可能
         membersToSelect = props.teamMembers.filter(m => m.id !== currentUserId.value)
     }
+    // 全社公開の場合は何もしない
     
     selectedParticipants.value = [...membersToSelect]
     form.participants = selectedParticipants.value.map(p => p.id)
@@ -528,7 +529,7 @@ watch(deadlineDateTime, (newDate) => {
                         
                         <div class="flex items-center justify-between mt-4">
                             <Label for="participants">共有メンバー</Label>
-                            <div class="flex items-center gap-2">
+                            <div v-if="form.visibility_type !== 'public'" class="flex items-center gap-2">
                                 <Button type="button" variant="outline" size="sm" @click="handleSelectAll" class="h-7 text-xs">
                                     全員選択
                                 </Button>
@@ -538,7 +539,7 @@ watch(deadlineDateTime, (newDate) => {
                             </div>
                         </div>
                         <div class="text-xs text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
-                            💡 自部署のみ: 自分の部署のメンバーのみ表示。一部ユーザーのみ: 他部署のメンバーや管理者も選択可能。
+                            💡 全社公開: 全員が閲覧可能。自部署のみ: 自分の部署のメンバーのみ表示。一部ユーザーのみ: 他部署のメンバーや管理者も選択可能。
                         </div>
                         <div class="max-h-[200px] overflow-y-auto border dark:border-gray-700 rounded p-2 space-y-1">
                             <template v-if="form.visibility_type === 'department'">
@@ -553,7 +554,7 @@ watch(deadlineDateTime, (newDate) => {
                                     <span class="text-xs dark:text-gray-300">{{ member.name }}</span>
                                 </label>
                             </template>
-                            <template v-else>
+                            <template v-else-if="form.visibility_type === 'custom'">
                                 <!-- 一部ユーザーのみの場合：他部署のメンバーや管理者も選択可能 -->
                                 <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
                                     <input 
@@ -565,12 +566,18 @@ watch(deadlineDateTime, (newDate) => {
                                     <span class="text-xs dark:text-gray-300">{{ member.name }} {{ member.department_name ? `(${member.department_name})` : '' }}</span>
                                 </label>
                             </template>
+                            <template v-else>
+                                <!-- 全社公開の場合：共有メンバー選択不要 -->
+                                <div class="text-xs text-gray-500 dark:text-gray-400 p-2 text-center">
+                                    全社公開の場合、共有メンバーの選択は不要です
+                                </div>
+                            </template>
                         </div>
                         <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/20">
                             <div class="text-xs font-medium text-purple-800 dark:text-purple-300 mb-2">
                                 🔒 限定公開: 
                                 <span v-if="form.visibility_type === 'department'">自部署の選択されたメンバーと自分のみ表示</span>
-                                <span v-else>選択されたメンバーと自分のみ表示</span>
+                                <span v-else-if="form.visibility_type === 'custom'">選択されたメンバーと自分のみ表示</span>
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <Badge v-for="participant in selectedParticipants" :key="participant.id" variant="secondary" class="gap-2 px-3 py-1">
@@ -583,7 +590,8 @@ watch(deadlineDateTime, (newDate) => {
                         </div>
                         <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm">
                             <span v-if="form.visibility_type === 'department'">🏢 部署公開: 自部署の全員に表示されます</span>
-                            <span v-else>🌐 全体公開: 全員に表示されます</span>
+                            <span v-else-if="form.visibility_type === 'public'">🌐 全社公開: 全員に表示されます</span>
+                            <span v-else>👥 一部ユーザーのみ: 共有メンバーを選択してください</span>
                         </div>
                     </div>
 
