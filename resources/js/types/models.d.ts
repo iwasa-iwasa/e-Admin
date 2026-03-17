@@ -7,6 +7,7 @@ declare namespace App.Models {
         created_at: string | null;
         updated_at: string | null;
         deleted_at: string | null;
+        users: User[];
     };
 
     export type Calendar = {

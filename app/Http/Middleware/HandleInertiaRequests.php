@@ -65,9 +65,21 @@ class HandleInertiaRequests extends Middleware
         
         // ユーザーが認証されている場合のみ追加データを取得
         if ($user) {
-            $teamMembers = User::where('is_active', true)
-                ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
-                ->get();
+            // ユーザーの権限に応じてメンバーを制限
+            if ($user->role_type === 'company_admin') {
+                // 全社管理者は全メンバーを表示
+                $teamMembers = User::where('is_active', true)
+                    ->with('department')
+                    ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
+                    ->get();
+            } else {
+                // 部署管理者やメンバーは自部署のみ
+                $teamMembers = User::where('is_active', true)
+                    ->where('department_id', $user->department_id)
+                    ->with('department')
+                    ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
+                    ->get();
+            }
             
             // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
             $unansweredSurveysCount = Survey::where('is_active', true)

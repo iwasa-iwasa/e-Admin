@@ -35,6 +35,8 @@ const props = defineProps<{
     events: App.Models.ExpandedEvent[]
     showBackButton?: boolean
     filteredMemberId?: number | null
+    selectedDepartmentId?: number | null
+    showCompany?: boolean
     defaultView?: string
     isHelpOpen?: boolean
     departments?: App.Models.Department[]
@@ -64,6 +66,24 @@ const {
     canEditEvent,
     fetchEvents
 } = useCalendarEvents(props.userDepartmentId)
+
+// サイドバーからの部署選択に応じてdepartmentFilterを初期化
+watch(() => [props.selectedDepartmentId, props.showCompany], ([deptId, showCompany]) => {
+    console.log('SharedCalendar: Department selection changed', { deptId, showCompany })
+    if (showCompany) {
+        departmentFilter.value = 'public'
+    } else if (deptId) {
+        departmentFilter.value = `dept_${deptId}`
+        // 選択された部署を展開するイベントを発行
+        window.dispatchEvent(new CustomEvent('expandDepartment', { detail: { departmentId: deptId } }))
+    } else if (props.userDepartmentId) {
+        // デフォルトはユーザーの所属部署
+        departmentFilter.value = `dept_${props.userDepartmentId}`
+    } else {
+        // フォールバック: すべて表示
+        departmentFilter.value = 'all'
+    }
+}, { immediate: true })
 
 // 2. View Logic
 const { 
@@ -157,12 +177,16 @@ const dateRange = computed(() => {
     }
 })
 
-const eventFilters = computed(() => ({
-    searchQuery: searchQuery.value,
-    genreFilter: genreFilter.value,
-    departmentFilter: departmentFilter.value,
-    memberId: props.filteredMemberId
-}))
+const eventFilters = computed(() => {
+    const filters = {
+        searchQuery: searchQuery.value,
+        genreFilter: genreFilter.value,
+        departmentFilter: departmentFilter.value,
+        memberId: props.filteredMemberId
+    }
+    console.log('SharedCalendar: Event filters updated', filters)
+    return filters
+})
 
 const { events: unifiedEventData, loading, initialized, refresh: refreshUnifiedEvents, clearCache } = useUnifiedEvents(
     computed(() => dateRange.value.start),
@@ -191,6 +215,7 @@ const { calendarOptions } = useFullCalendarConfig(
 
 // データの変更を監視してカレンダーを再描画
 watch(unifiedEventData, () => {
+    console.log('SharedCalendar: Event data updated', unifiedEventData.value.length)
     const api = fullCalendar.value?.getApi()
     if (api) {
         api.refetchEvents()
@@ -275,6 +300,7 @@ const compactCalendarTitle = computed(() => {
 let resizeHandler: (() => void) | null = null
 let resizeObserver: ResizeObserver | null = null
 let removeInertiaListener: (() => void) | null = null
+let resizeTimeout: number | null = null
 
 onMounted(() => {
     // カテゴリーラベルを読み込む
@@ -291,9 +317,17 @@ onMounted(() => {
     
     // Resize handler
     resizeHandler = () => {
-        const api = fullCalendar.value?.getApi()
-        if (api) {
-            api.updateSize()
+        // ホーム画面でのレイアウト変更によるリサイズは無視
+        // 実際のウィンドウリサイズのみ処理
+        if (document.visibilityState === 'visible') {
+            const api = fullCalendar.value?.getApi()
+            if (api) {
+                // デバウンス処理でリサイズを制限
+                clearTimeout(resizeTimeout)
+                resizeTimeout = setTimeout(() => {
+                    api.updateSize()
+                }, 100)
+            }
         }
     }
     window.addEventListener('resize', resizeHandler)
@@ -338,6 +372,9 @@ onUnmounted(() => {
     }
     if (resizeObserver) {
         resizeObserver.disconnect()
+    }
+    if (resizeTimeout) {
+        clearTimeout(resizeTimeout)
     }
 })
 
