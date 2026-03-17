@@ -7,6 +7,8 @@ use Inertia\Inertia;
 use App\Models\Event;
 use App\Models\SharedNote;
 use App\Models\Reminder;
+use App\Models\Department;
+use App\Models\Calendar;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -70,7 +72,35 @@ class DashboardController extends Controller
             ->orderBy('deadline_time')
             ->get();
 
-        $teamMembers = \App\Models\User::where('is_active', true)->get();
+        $teamMembers = \App\Models\User::where('is_active', true)
+            ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
+            ->get();
+        
+        // 部署情報を取得
+        $departments = Department::orderBy('name')->get();
+        
+        // カレンダー情報を取得
+        $calendars = Calendar::orderBy('calendar_name')->get();
+        
+        // ユーザーのデフォルトカレンダーを決定
+        $defaultCalendarId = null;
+        if ($user->department_id) {
+            // 所属部署のカレンダーを優先
+            $departmentCalendar = $calendars->where('owner_type', 'department')
+                                           ->where('owner_id', $user->department_id)
+                                           ->first();
+            if ($departmentCalendar) {
+                $defaultCalendarId = $departmentCalendar->calendar_id;
+            }
+        }
+        
+        // 部署カレンダーがない場合は全社カレンダーを選択
+        if (!$defaultCalendarId) {
+            $companyCalendar = $calendars->where('owner_type', 'company')->first();
+            if ($companyCalendar) {
+                $defaultCalendarId = $companyCalendar->calendar_id;
+            }
+        }
         
         return Inertia::render('Dashboard', [
             'events' => $events,
@@ -80,6 +110,11 @@ class DashboardController extends Controller
             'teamMembers' => $teamMembers,
             'totalUsers' => $teamMembers->count(),
             'defaultView' => auth()->user()->calendar_default_view ?? 'dayGridMonth',
+            'departments' => $departments,
+            'calendars' => $calendars,
+            'userDepartmentId' => $user->department_id,
+            'userRoleType' => $user->role_type,
+            'defaultCalendarId' => $defaultCalendarId,
         ]);
     }
 }

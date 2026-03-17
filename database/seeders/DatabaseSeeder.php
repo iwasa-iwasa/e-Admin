@@ -11,7 +11,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 共有カレンダーを1つだけ作成
+        // 部署システムを初期化
+        $this->call([
+            DepartmentSystemSeeder::class,
+        ]);
+
+        // 共有カレンダーを作成（既存の場合はスキップ）
         \App\Models\Calendar::firstOrCreate(
             ['calendar_name' => '共有カレンダー'],
             ['calendar_type' => 'shared']
@@ -19,11 +24,13 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UserSeeder::class,
-            NoteTagSeeder::class, // NoteSeederより先に実行
+            NoteTagSeeder::class,
             NoteSeeder::class,
             EventSeeder::class,
             ReminderSeeder::class,
+            TestDataSeeder::class, // テストデータを追加
             SurveySeeder::class,
+            SurveyResponseSeeder::class, // アンケート回答データを追加
         ]);
     }
 }

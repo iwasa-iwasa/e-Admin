@@ -684,7 +684,6 @@ const isHelpOpen = ref(false)
             <SelectContent>
               <SelectItem value="all">すべて</SelectItem>
               <SelectItem value="public">🌐 全社公開のみ</SelectItem>
-              <SelectItem value="private">🔒 自分のみ</SelectItem>
               <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署メモ</div>
               <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
                   {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}
@@ -1063,7 +1062,6 @@ const isHelpOpen = ref(false)
                 <SelectItem value="public">🌐 全社公開</SelectItem>
                 <SelectItem value="department">🏢 自部署のみ</SelectItem>
                 <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
-                <SelectItem value="private">🔒 非公開（自分のみ）</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1081,23 +1079,41 @@ const isHelpOpen = ref(false)
                 全員共有のメモは作成者のみが共有設定を変更できます
               </div>
             </template>
+            <template v-else-if="editedVisibility === 'public'">
+              <div class="text-xs text-blue-600 p-2 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-200 rounded border border-blue-200 dark:border-blue-800">
+                🌐 全社公開の場合、共有メンバーの選択は不要です
+              </div>
+            </template>
             <template v-else>
               <div v-if="editedParticipants.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-200 rounded border border-blue-200 dark:border-blue-800">
                 全員が選択されています。変更するにはメンバーを削除してください。
               </div>
               <div v-else class="max-h-[200px] overflow-y-auto border border-input rounded p-2 space-y-1">
-                <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
-                    @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
-                    class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
-                  />
-                  <span class="text-xs text-gray-900 dark:text-gray-100">{{ member.name }}</span>
-                </label>
+                <template v-if="editedVisibility === 'department'">
+                  <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id && (m as any).department_id === ($page.props as any).auth?.user?.department_id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
+                      @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                      class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span class="text-xs text-gray-900 dark:text-gray-100">{{ member.name }}</span>
+                  </label>
+                </template>
+                <template v-else>
+                  <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
+                      @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                      class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span class="text-xs text-gray-900 dark:text-gray-100">{{ member.name }}</span>
+                  </label>
+                </template>
               </div>
             </template>
-            <div v-if="editedParticipants.length > 0" class="flex flex-wrap gap-1 mt-2">
+            <div v-if="editedParticipants.length > 0 && editedVisibility !== 'public'" class="flex flex-wrap gap-1 mt-2">
               <Badge v-for="participant in editedParticipants" :key="participant.id" variant="secondary" class="text-xs gap-1">
                 {{ participant.name }}
                 <button v-if="canEditParticipants && !(isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-muted-foreground/20 rounded-full p-0.5">

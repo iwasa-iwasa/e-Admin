@@ -4,6 +4,7 @@ import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 const form = useForm({
     password: '',
@@ -30,9 +31,8 @@ const submit = () => {
         <form @submit.prevent="submit">
             <div>
                 <InputLabel for="password" value="Password" />
-                <TextInput
+                <PasswordInput
                     id="password"
-                    type="password"
                     class="mt-1 block w-full"
                     v-model="form.password"
                     required

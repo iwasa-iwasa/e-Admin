@@ -42,10 +42,12 @@ const searchTimeout = ref<number | null>(null)
 const searchField = ref('all')
 const creatorName = ref('_all_')
 const participantName = ref('_all_')
+const departmentFilter = ref('_all_')
 const dateFrom = ref<string>('')
 const dateTo = ref<string>('')
 const dateType = ref('updated')
 const allUsers = ref<Array<{id: number, name: string}>>([])
+const allDepartments = ref<Array<{id: number, name: string}>>([])
 
 const selectedEvent = ref<App.Models.ExpandedEvent | null>(null)
 const isEventDetailDialogOpen = ref(false)
@@ -89,6 +91,7 @@ const performSearch = async () => {
         params.append('search_field', searchField.value)
         params.append('creator_name', creatorName.value === '_all_' ? '' : creatorName.value)
         params.append('participant_name', participantName.value === '_all_' ? '' : participantName.value)
+        params.append('department_filter', departmentFilter.value === '_all_' ? '' : departmentFilter.value)
         params.append('date_from', dateFrom.value)
         params.append('date_to', dateTo.value)
         params.append('date_type', dateType.value)
@@ -152,10 +155,21 @@ const loadUsersOnce = async () => {
     }
 }
 
+const loadDepartmentsOnce = async () => {
+    if (allDepartments.value.length > 0) return
+    try {
+        const response = await fetch('/api/departments')
+        allDepartments.value = await response.json()
+    } catch (error) {
+        console.error('Failed to load departments:', error)
+    }
+}
+
 const handleFocus = () => {
     isResultsOpen.value = true
     loadRecentItems()
     loadUsersOnce()
+    loadDepartmentsOnce()
 }
 
 watch(searchQuery, () => {
@@ -174,7 +188,7 @@ watch(searchQuery, () => {
     }
 })
 
-watch([selectedTypes, searchField, creatorName, participantName, dateFrom, dateTo, dateType], () => {
+watch([selectedTypes, searchField, creatorName, participantName, departmentFilter, dateFrom, dateTo, dateType], () => {
     if (searchQuery.value.length >= 2) {
         if (searchTimeout.value) {
             clearTimeout(searchTimeout.value)
@@ -292,6 +306,7 @@ const clearFilters = () => {
     searchField.value = 'all'
     creatorName.value = '_all_'
     participantName.value = '_all_'
+    departmentFilter.value = '_all_'
     dateFrom.value = ''
     dateTo.value = ''
     dateType.value = 'updated'
@@ -303,6 +318,7 @@ const activeFilterCount = computed(() => {
     if (searchField.value !== 'all') count++
     if (creatorName.value !== '_all_') count++
     if (participantName.value !== '_all_') count++
+    if (departmentFilter.value !== '_all_') count++
     if (dateFrom.value || dateTo.value) count++
     return count
 })
@@ -319,6 +335,14 @@ const activeFiltersText = computed(() => {
     }
     if (creatorName.value !== '_all_') filters.push(`作成者: ${creatorName.value}`)
     if (participantName.value !== '_all_') filters.push(`参加者: ${participantName.value}`)
+    if (departmentFilter.value !== '_all_') {
+        if (departmentFilter.value === 'company') {
+            filters.push('部署: 全社')
+        } else {
+            const dept = allDepartments.value.find(d => d.id.toString() === departmentFilter.value)
+            filters.push(`部署: ${dept?.name || departmentFilter.value}`)
+        }
+    }
     if (dateFrom.value || dateTo.value) {
         const dateTypeMap: Record<string, string> = { created: '作成日', updated: '編集日', deleted: '削除日' }
         if (dateFrom.value && dateTo.value) {
@@ -484,31 +508,31 @@ const canEditNote = (note: App.Models.SharedNote) => {
                         </Badge>
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent class="w-64 z-[45]" align="end" @interact-outside="(e) => { if ((e.target as HTMLElement)?.closest?.('.dp__menu')) e.preventDefault() }">
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-medium text-sm">検索フィルター</h4>
-                            <div class="flex gap-1">
-                                <Button
-                                    v-if="activeFilterCount > 0"
-                                    variant="ghost"
-                                    size="sm"
-                                    class="h-auto p-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-                                    @click="clearFilters"
-                                >
-                                    <X class="h-3 w-3" />
-                                    クリア
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    class="h-auto p-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-                                    @click="isFilterOpen = false"
-                                >
-                                    閉じる
-                                </Button>
-                            </div>
+                <PopoverContent class="w-64 z-[45] max-h-[80vh] flex flex-col" align="end" @interact-outside="(e) => { if ((e.target as HTMLElement)?.closest?.('.dp__menu')) e.preventDefault() }">
+                    <div class="flex items-center justify-between px-4 pb-2 border-b border-border flex-shrink-0">
+                        <h4 class="font-medium text-sm">検索フィルター</h4>
+                        <div class="flex gap-1">
+                            <Button
+                                v-if="activeFilterCount > 0"
+                                variant="ghost"
+                                size="sm"
+                                class="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                                @click="clearFilters"
+                            >
+                                <X class="h-3 w-3 mr-1" />
+                                クリア
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                class="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                                @click="isFilterOpen = false"
+                            >
+                                閉じる
+                            </Button>
                         </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-2">
                         <div class="space-y-3">
                             <div class="space-y-2">
                                 <Label class="text-xs font-medium text-foreground">種類</Label>
@@ -562,15 +586,16 @@ const canEditNote = (note: App.Models.SharedNote) => {
                             </div>
                             
                             <div class="space-y-2">
-                                <Label class="text-xs font-medium text-foreground">参加者</Label>
-                                <Select v-model="participantName">
+                                <Label class="text-xs font-medium text-foreground">部署</Label>
+                                <Select v-model="departmentFilter">
                                     <SelectTrigger class="h-8">
-                                        <SelectValue placeholder="参加者を選択" />
+                                        <SelectValue placeholder="部署を選択" />
                                     </SelectTrigger>
-                                    <SelectContent class="z-[46]">
+                                    <SelectContent class="z-[46] max-h-48 overflow-y-auto">
                                         <SelectItem value="_all_">すべて</SelectItem>
-                                        <SelectItem v-for="user in allUsers" :key="user.id" :value="String(user.name)">
-                                            {{ user.name }}
+                                        <SelectItem value="company">全社</SelectItem>
+                                        <SelectItem v-for="dept in allDepartments" :key="dept.id" :value="String(dept.id)">
+                                            {{ dept.name }}
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

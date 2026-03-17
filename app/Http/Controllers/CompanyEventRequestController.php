@@ -42,7 +42,9 @@ class CompanyEventRequestController extends Controller
         ]);
         
         // 全社管理者に通知
-        $companyAdmins = User::where('role_type', 'company_admin')->get();
+        $companyAdmins = User::where('role_type', 'company_admin')
+            ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
+            ->get();
         Notification::send($companyAdmins, new CompanyEventRequested($companyEventRequest));
 
         return response()->json([

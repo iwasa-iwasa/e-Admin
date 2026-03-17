@@ -189,7 +189,6 @@ defineExpose({
                             <SelectItem value="public">🌐 全社公開</SelectItem>
                             <SelectItem value="department">🏢 自部署のみ</SelectItem>
                             <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
-                            <SelectItem value="private">🔒 非公開（自分のみ）</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

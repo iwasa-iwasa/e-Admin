@@ -34,9 +34,23 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         
+        // ユーザー情報をロードする際にdepartmentリレーションも含める
+        if ($user) {
+            $user->load('department');
+        }
+        
         $sharedData = [
             'auth' => [
-                'user' => $user,
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'department_id' => $user->department_id,
+                    'role' => $user->role,
+                    'role_type' => $user->role_type,
+                    'is_active' => $user->is_active,
+                    'email_verified_at' => $user->email_verified_at,
+                ] : null,
             ],
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
@@ -51,7 +65,9 @@ class HandleInertiaRequests extends Middleware
         
         // ユーザーが認証されている場合のみ追加データを取得
         if ($user) {
-            $teamMembers = User::where('is_active', true)->get();
+            $teamMembers = User::where('is_active', true)
+                ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
+                ->get();
             
             // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
             $unansweredSurveysCount = Survey::where('is_active', true)

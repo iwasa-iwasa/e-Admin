@@ -3,6 +3,7 @@ import InputError from '@/components/InputError.vue';
 import InputLabel from '@/components/InputLabel.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import TextInput from '@/components/TextInput.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -51,11 +52,10 @@ const updatePassword = () => {
             <div>
                 <InputLabel for="current_password" value="現在のパスワード" />
 
-                <TextInput
+                <PasswordInput
                     id="current_password"
                     ref="currentPasswordInput"
                     v-model="form.current_password"
-                    type="password"
                     class="mt-1 block w-full"
                     autocomplete="current-password"
                 />
@@ -69,11 +69,10 @@ const updatePassword = () => {
             <div>
                 <InputLabel for="password" value="新しいパスワード" />
 
-                <TextInput
+                <PasswordInput
                     id="password"
                     ref="passwordInput"
                     v-model="form.password"
-                    type="password"
                     class="mt-1 block w-full"
                     autocomplete="new-password"
                 />
@@ -87,10 +86,9 @@ const updatePassword = () => {
                     value="パスワード確認"
                 />
 
-                <TextInput
+                <PasswordInput
                     id="password_confirmation"
                     v-model="form.password_confirmation"
-                    type="password"
                     class="mt-1 block w-full"
                     autocomplete="new-password"
                 />

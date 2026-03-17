@@ -6,7 +6,6 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Survey;
 use App\Models\SurveyResponse;
-use App\Models\SurveyAnswer;
 use App\Models\User;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyQuestionOption;
@@ -44,38 +43,24 @@ class SurveyResponseSeeder extends Seeder
             }
 
             foreach ($selectedUsers as $user) {
-                // 回答を作成
-                $response = SurveyResponse::create([
-                    'survey_id' => $survey->survey_id,
-                    'respondent_id' => is_object($user) ? $user->id : $user['id'],
-                    'submitted_at' => now()->subDays(rand(0, 30))->subHours(rand(0, 23)),
-                ]);
-
-                // 各質問に対する回答を作成
+                // 各質問に対する回答を生成
+                $answers = [];
                 foreach ($survey->questions as $question) {
                     $answerData = $this->generateAnswer($question);
-
                     if ($answerData) {
-                        // 複数選択の場合は複数のレコードを作成
-                        if ($question->question_type === 'multiple_choice' && isset($answerData['option_ids'])) {
-                            foreach ($answerData['option_ids'] as $optionId) {
-                                SurveyAnswer::create([
-                                    'response_id' => $response->response_id,
-                                    'question_id' => $question->question_id,
-                                    'answer_text' => null,
-                                    'selected_option_id' => $optionId,
-                                ]);
-                            }
-                        } else {
-                            SurveyAnswer::create([
-                                'response_id' => $response->response_id,
-                                'question_id' => $question->question_id,
-                                'answer_text' => $answerData['text'] ?? null,
-                                'selected_option_id' => $answerData['option_id'] ?? null,
-                            ]);
-                        }
+                        $answers[$question->uuid] = $answerData;
                     }
                 }
+
+                // 回答を作成（JSON形式で保存）
+                SurveyResponse::create([
+                    'survey_id' => $survey->survey_id,
+                    'respondent_id' => is_object($user) ? $user->id : $user['id'],
+                    'answers' => json_encode($answers),
+                    'status' => 'submitted',
+                    'survey_version' => $survey->version,
+                    'submitted_at' => now()->subDays(rand(0, 30))->subHours(rand(0, 23)),
+                ]);
             }
         }
 
@@ -90,11 +75,6 @@ class SurveyResponseSeeder extends Seeder
      */
     private function generateAnswer($question)
     {
-        // デバッグ用ログ
-        $this->command->info("Question: {$question->question_text}");
-        $this->command->info("Type: {$question->question_type}");
-        $this->command->info("Options count: {$question->options->count()}");
-        
         switch ($question->question_type) {
             case 'single_choice':
             case 'single':
@@ -106,8 +86,8 @@ class SurveyResponseSeeder extends Seeder
                 }
                 $selectedOption = $options->random();
                 return [
-                    'text' => $selectedOption->option_text,
-                    'option_id' => $selectedOption->option_id,
+                    'type' => 'single_choice',
+                    'value' => $selectedOption->uuid,
                 ];
 
             case 'multiple_choice':
@@ -120,12 +100,11 @@ class SurveyResponseSeeder extends Seeder
                 $count = min(rand(1, 3), $options->count());
                 
                 $selectedOptions = $options->shuffle()->take($count);
-                $texts = $selectedOptions->map(fn($opt) => $opt->option_text)->all();
-                $optionIds = $selectedOptions->map(fn($opt) => $opt->option_id)->all();
+                $optionUuids = $selectedOptions->map(fn($opt) => $opt->uuid)->all();
                 
                 return [
-                    'text' => implode(', ', $texts),
-                    'option_ids' => $optionIds, // 複数のoption_idを配列で返す
+                    'type' => 'multiple_choice',
+                    'value' => $optionUuids,
                 ];
 
             case 'dropdown':
@@ -136,8 +115,8 @@ class SurveyResponseSeeder extends Seeder
                 }
                 $selectedOption = $options->random();
                 return [
-                    'text' => $selectedOption->option_text,
-                    'option_id' => $selectedOption->option_id,
+                    'type' => 'dropdown',
+                    'value' => $selectedOption->uuid,
                 ];
 
             case 'text':
@@ -152,8 +131,8 @@ class SurveyResponseSeeder extends Seeder
                     '普通です。',
                 ];
                 return [
-                    'text' => $texts[array_rand($texts)],
-                    'option_id' => null,
+                    'type' => 'text',
+                    'value' => $texts[array_rand($texts)],
                 ];
 
             case 'textarea':
@@ -167,55 +146,54 @@ class SurveyResponseSeeder extends Seeder
                     '予算に応じたメニューを希望します。',
                 ];
                 return [
-                    'text' => $texts[array_rand($texts)],
-                    'option_id' => null,
+                    'type' => 'textarea',
+                    'value' => $texts[array_rand($texts)],
                 ];
 
             case 'rating':
                 // ランダムな評価（1-5）
                 $rating = rand(1, 5);
                 return [
-                    'text' => (string) $rating,
-                    'option_id' => null,
+                    'type' => 'rating',
+                    'value' => $rating,
                 ];
 
             case 'scale':
                 // リッカートスケール：複数項目に対する評価
-                // scaleタイプの場合、optionsが評価項目を表す
                 $options = $question->options;
                 if ($options->isEmpty()) {
                     // optionsがない場合は単一値
                     $scale = rand(1, 5);
                     return [
-                        'text' => (string) $scale,
-                        'option_id' => null,
+                        'type' => 'scale',
+                        'value' => $scale,
                     ];
                 }
                 
                 // 各項目に対してランダムな評価値を生成
                 $scaleData = [];
                 foreach ($options as $option) {
-                    $scaleData[$option->option_text] = rand(1, 5);
+                    $scaleData[$option->uuid] = rand(1, 5);
                 }
                 
                 return [
-                    'text' => json_encode($scaleData, JSON_UNESCAPED_UNICODE),
-                    'option_id' => null,
+                    'type' => 'scale',
+                    'value' => $scaleData,
                 ];
 
             case 'date':
-                // ランダムな日付（秒なし）
-                $date = now()->subDays(rand(0, 30))->format('Y-m-d H:i:00');
+                // ランダムな日付
+                $date = now()->addDays(rand(1, 60))->format('Y-m-d');
                 return [
-                    'text' => $date,
-                    'option_id' => null,
+                    'type' => 'date',
+                    'value' => $date,
                 ];
 
             default:
                 $this->command->warn("Unknown question type: {$question->question_type}");
                 return [
-                    'text' => 'サンプル回答',
-                    'option_id' => null,
+                    'type' => 'text',
+                    'value' => 'サンプル回答',
                 ];
         }
     }

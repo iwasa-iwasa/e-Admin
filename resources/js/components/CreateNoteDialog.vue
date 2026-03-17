@@ -57,7 +57,7 @@ const form = useForm<{
     color: "yellow",
     participants: [],
     pinned: false,
-    visibility_type: "public",
+    visibility_type: "department",
 });
 
 const tagInput = ref("");
@@ -124,7 +124,7 @@ const restoreDraft = () => {
         form.participants = pendingDraft.value.participants || []
         selectedParticipants.value = pendingDraft.value.selectedParticipants || []
         form.pinned = pendingDraft.value.pinned
-        form.visibility_type = pendingDraft.value.visibility_type || "public"
+        form.visibility_type = pendingDraft.value.visibility_type || "department"
         showDraftBanner.value = true
     }
     showDraftDialog.value = false
@@ -139,7 +139,7 @@ const discardDraft = () => {
     form.tags = []
     form.participants = []
     form.pinned = false
-    form.visibility_type = "public"
+    form.visibility_type = "department"
     selectedParticipants.value = []
     tagInput.value = ""
 }
@@ -180,7 +180,7 @@ const handleClose = () => {
     form.tags = [];
     form.participants = [];
     form.pinned = false;
-    form.visibility_type = "public";
+    form.visibility_type = "department";
     selectedParticipants.value = [];
     tagInput.value = "";
     activeTab.value = "basic";
@@ -222,7 +222,23 @@ const handleRemoveParticipant = (participantId: number) => {
 
 const handleSelectAll = () => {
     if (!props.teamMembers) return
-    selectedParticipants.value = [...props.teamMembers.filter(m => m.id !== currentUserId.value)]
+    
+    let membersToSelect: typeof props.teamMembers = []
+    
+    if (form.visibility_type === 'department') {
+        // 自部署のみの場合：自分の部署のメンバーのみ選択
+        const userDepartmentId = (usePage().props as any).auth?.user?.department_id
+        membersToSelect = props.teamMembers.filter(m => 
+            m.id !== currentUserId.value && 
+            (m as any).department_id === userDepartmentId
+        )
+    } else if (form.visibility_type === 'custom') {
+        // 一部ユーザーのみの場合：全員選択可能
+        membersToSelect = props.teamMembers.filter(m => m.id !== currentUserId.value)
+    }
+    // 全社公開の場合は何もしない
+    
+    selectedParticipants.value = [...membersToSelect]
     form.participants = selectedParticipants.value.map(p => p.id)
 }
 
@@ -276,13 +292,18 @@ watch(() => props.open, (isOpen) => {
             form.priority = data.priority
             form.tags = data.tags || []
             form.pinned = false
-            form.visibility_type = data.visibility_type || "public"
+            form.visibility_type = data.visibility_type || "department"
             
-            // 全員を選択
+            // 自部署のメンバーのみを選択
             if (props.teamMembers) {
-                selectedParticipants.value = [...props.teamMembers.filter(m => m.id !== currentUserId.value)]
+                const userDepartmentId = (usePage().props as any).auth?.user?.department_id
+                const departmentMembers = props.teamMembers.filter(m => 
+                    m.id !== currentUserId.value && 
+                    (m as any).department_id === userDepartmentId
+                )
+                selectedParticipants.value = [...departmentMembers]
                 form.participants = selectedParticipants.value.map(p => p.id)
-                console.log('[CreateNoteDialog] Selected all participants:', selectedParticipants.value.length)
+                console.log('[CreateNoteDialog] Selected department members for copy:', selectedParticipants.value.length)
             }
             
             if (data.deadline_date) {
@@ -302,11 +323,16 @@ watch(() => props.open, (isOpen) => {
                 pendingDraft.value = draft
                 showDraftDialog.value = true
             } else {
-                // 新規作成時は全員を選択
+                // 新規作成時は自部署のメンバーのみを選択
                 if (props.teamMembers) {
-                    selectedParticipants.value = [...props.teamMembers.filter(m => m.id !== currentUserId.value)]
+                    const userDepartmentId = (usePage().props as any).auth?.user?.department_id
+                    const departmentMembers = props.teamMembers.filter(m => 
+                        m.id !== currentUserId.value && 
+                        (m as any).department_id === userDepartmentId
+                    )
+                    selectedParticipants.value = [...departmentMembers]
                     form.participants = selectedParticipants.value.map(p => p.id)
-                    console.log('[CreateNoteDialog] New note - Selected all participants:', selectedParticipants.value.length)
+                    console.log('[CreateNoteDialog] New note - Selected department members only:', selectedParticipants.value.length)
                 }
                 
                 // Initialize deadlineDateTime from form.deadline
@@ -495,17 +521,15 @@ watch(deadlineDateTime, (newDate) => {
                                     <SelectValue placeholder="公開範囲を選択" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="public">🌐 全社公開</SelectItem>
                                     <SelectItem value="department">🏢 自部署のみ</SelectItem>
                                     <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
-                                    <SelectItem value="private">🔒 非公開（自分のみ）</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         
                         <div class="flex items-center justify-between mt-4">
                             <Label for="participants">共有メンバー</Label>
-                            <div class="flex items-center gap-2">
+                            <div v-if="form.visibility_type !== 'public'" class="flex items-center gap-2">
                                 <Button type="button" variant="outline" size="sm" @click="handleSelectAll" class="h-7 text-xs">
                                     全員選択
                                 </Button>
@@ -515,21 +539,46 @@ watch(deadlineDateTime, (newDate) => {
                             </div>
                         </div>
                         <div class="text-xs text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded border dark:border-gray-700">
-                            💡 メンバーを選択すると、選択したメンバーと自分のみに表示されます。選択しない場合は全員に表示されます。
+                            💡 全社公開: 全員が閲覧可能。自部署のみ: 自分の部署のメンバーのみ表示。一部ユーザーのみ: 他部署のメンバーや管理者も選択可能。
                         </div>
                         <div class="max-h-[200px] overflow-y-auto border dark:border-gray-700 rounded p-2 space-y-1">
-                            <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    :checked="selectedParticipants.find(p => p.id === member.id) !== undefined"
-                                    @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
-                                    class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                                />
-                                <span class="text-xs dark:text-gray-300">{{ member.name }}</span>
-                            </label>
+                            <template v-if="form.visibility_type === 'department'">
+                                <!-- 自部署のみの場合：自分の部署のメンバーのみ表示 -->
+                                <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId && m.department_id === ($page.props as any).auth?.user?.department_id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        :checked="selectedParticipants.find(p => p.id === member.id) !== undefined"
+                                        @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                                        class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                                    />
+                                    <span class="text-xs dark:text-gray-300">{{ member.name }}</span>
+                                </label>
+                            </template>
+                            <template v-else-if="form.visibility_type === 'custom'">
+                                <!-- 一部ユーザーのみの場合：他部署のメンバーや管理者も選択可能 -->
+                                <label v-for="member in props.teamMembers?.filter(m => m.id !== currentUserId)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        :checked="selectedParticipants.find(p => p.id === member.id) !== undefined"
+                                        @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                                        class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                                    />
+                                    <span class="text-xs dark:text-gray-300">{{ member.name }} {{ member.department_name ? `(${member.department_name})` : '' }}</span>
+                                </label>
+                            </template>
+                            <template v-else>
+                                <!-- 全社公開の場合：共有メンバー選択不要 -->
+                                <div class="text-xs text-gray-500 dark:text-gray-400 p-2 text-center">
+                                    全社公開の場合、共有メンバーの選択は不要です
+                                </div>
+                            </template>
                         </div>
                         <div v-if="selectedParticipants.length > 0" class="min-h-[60px] p-3 border border-purple-300 dark:border-purple-700 rounded-md bg-purple-50 dark:bg-purple-900/20">
-                            <div class="text-xs font-medium text-purple-800 dark:text-purple-300 mb-2">🔒 限定公開: 選択されたメンバーと自分のみ表示</div>
+                            <div class="text-xs font-medium text-purple-800 dark:text-purple-300 mb-2">
+                                🔒 限定公開: 
+                                <span v-if="form.visibility_type === 'department'">自部署の選択されたメンバーと自分のみ表示</span>
+                                <span v-else-if="form.visibility_type === 'custom'">選択されたメンバーと自分のみ表示</span>
+                            </div>
                             <div class="flex flex-wrap gap-2">
                                 <Badge v-for="participant in selectedParticipants" :key="participant.id" variant="secondary" class="gap-2 px-3 py-1">
                                     {{ participant.name }}
@@ -540,7 +589,9 @@ watch(deadlineDateTime, (newDate) => {
                             </div>
                         </div>
                         <div v-else class="min-h-[40px] p-3 border border-input rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm">
-                            🌐 全体公開: 全員に表示されます
+                            <span v-if="form.visibility_type === 'department'">🏢 部署公開: 自部署の全員に表示されます</span>
+                            <span v-else-if="form.visibility_type === 'public'">🌐 全社公開: 全員に表示されます</span>
+                            <span v-else>👥 一部ユーザーのみ: 共有メンバーを選択してください</span>
                         </div>
                     </div>
 
