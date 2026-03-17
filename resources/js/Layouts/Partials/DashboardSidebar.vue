@@ -504,12 +504,12 @@
   
           <Separator class="my-4 dark:bg-gray-700" />
   
-          <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">部署メンバー</div>
-  
-          <ScrollArea>
-            <div class="flex flex-col gap-1">
-              <!-- ホーム・カレンダーページの場合は部署選択機能を表示 -->
-              <template v-if="isCalendarOrDashboard">
+          <!-- ホーム・カレンダーページのみ部署メンバーを表示 -->
+          <template v-if="isCalendarOrDashboard">
+            <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">部署メンバー</div>
+    
+            <ScrollArea>
+              <div class="flex flex-col gap-1">
                 <!-- 全社 -->
                 <div class="mb-2">
                   <Button
@@ -584,7 +584,7 @@
                       v-if="expandedDepartments.has(department.id)" 
                       class="ml-6 mt-1 flex flex-col gap-1"
                     >
-                      <template v-for="member in department.users.filter(m => m.department_id === department.id)" :key="member.id">
+                      <template v-for="member in (department.users || []).filter(m => m.department_id === department.id)" :key="member.id">
                         <div 
                           v-if="selectedMember === member.id" 
                           class="px-2 py-2 my-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40"
@@ -609,68 +609,71 @@
                     </div>
                   </div>
                 </template>
-              </template>
-              
-              <!-- ホーム・カレンダー以外のページの場合 -->
-              <template v-else>
-                <template v-for="department in departments" :key="department.id">
-                  <div class="mb-1">
-                    <!-- 部署ヘッダー -->
-                    <div class="flex items-center">
-                      <div class="flex-1 justify-start gap-2 px-3 text-sm font-medium flex items-center">
-                        <Building2 class="h-4 w-4 text-green-600 dark:text-green-400" />
-                        {{ department.name }}
+              </div>
+            </ScrollArea>
+          </template>
+          
+          <!-- その他のページでは自部署のメンバーのみ表示 -->
+          <template v-else>
+            <div class="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">部署メンバー</div>
+            
+            <ScrollArea>
+              <div class="flex flex-col gap-1">
+                <!-- ユーザーの所属部署のみ表示 -->
+                <template v-if="userDepartmentId">
+                  <template v-for="department in departments.filter(d => d.id === userDepartmentId)" :key="department.id">
+                    <div class="mb-1">
+                      <!-- 部署ヘッダー -->
+                      <div class="flex items-center">
+                        <div class="flex-1 justify-start gap-2 px-3 text-sm font-medium flex items-center">
+                          <Building2 class="h-4 w-4 text-green-600 dark:text-green-400" />
+                          {{ department.name }}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="px-2"
+                          @click="toggleDepartment(department.id)"
+                        >
+                          <ChevronDown 
+                            v-if="expandedDepartments.has(department.id)" 
+                            class="h-4 w-4" 
+                          />
+                          <ChevronRight 
+                            v-else 
+                            class="h-4 w-4" 
+                          />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="px-2"
-                        @click="toggleDepartment(department.id)"
+                      
+                      <!-- 部署メンバー（静的表示、クリック不可） -->
+                      <div 
+                        v-if="expandedDepartments.has(department.id)" 
+                        class="ml-6 mt-1 flex flex-col gap-1"
                       >
-                        <ChevronDown 
-                          v-if="expandedDepartments.has(department.id)" 
-                          class="h-4 w-4" 
-                        />
-                        <ChevronRight 
-                          v-else 
-                          class="h-4 w-4" 
-                        />
-                      </Button>
+                        <template v-for="member in (department.users || []).filter(m => m.department_id === department.id)" :key="member.id">
+                          <div class="px-3 py-2 text-sm flex items-center gap-3">
+                            <Avatar class="h-5 w-5">
+                              <AvatarImage :src="member.avatar || ''" />
+                              <AvatarFallback class="text-xs">{{ member.name.charAt(0) }}</AvatarFallback>
+                            </Avatar>
+                            {{ member.name }}
+                          </div>
+                        </template>
+                      </div>
                     </div>
-                    
-                    <!-- 部署メンバー -->
-                    <div 
-                      v-if="expandedDepartments.has(department.id)" 
-                      class="ml-6 mt-1 flex flex-col gap-1"
-                    >
-                      <template v-for="member in department.users" :key="member.id">
-                        <div 
-                          v-if="selectedMember === member.id" 
-                          class="px-2 py-2 my-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40"
-                          @click="handleMemberClick(member.id, currentURL)"
-                        >
-                          <div class="text-xs text-blue-700 dark:text-blue-300 font-medium">{{ member.name }} フィルター中</div>
-                        </div>
-                        <Button
-                          v-else
-                          variant="ghost"
-                          size="sm"
-                          class="w-full justify-start gap-3 px-3 text-sm"
-                          @click="handleMemberClick(member.id, currentURL)"
-                        >
-                          <Avatar class="h-5 w-5">
-                            <AvatarImage :src="member.avatar || ''" />
-                            <AvatarFallback class="text-xs">{{ member.name.charAt(0) }}</AvatarFallback>
-                          </Avatar>
-                          {{ member.name }}
-                        </Button>
-                      </template>
-                    </div>
+                  </template>
+                </template>
+                
+                <!-- 部署に所属していない場合（全社管理者など）はメッセージ表示 -->
+                <template v-else>
+                  <div class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                    部署に所属していません
                   </div>
                 </template>
-              </template>
-            </div>
-          </ScrollArea>
+              </div>
+            </ScrollArea>
+          </template>
   
         </nav>
       </ScrollArea>

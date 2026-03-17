@@ -81,6 +81,22 @@ class HandleInertiaRequests extends Middleware
                     ->get();
             }
             
+            // 部署データをusersリレーション付きで取得
+            $departments = \App\Models\Department::where('is_active', true)
+                ->with(['users' => function($query) {
+                    $query->where('is_active', true)
+                          ->select('id', 'name', 'email', 'department_id', 'role', 'role_type');
+                }])
+                ->orderBy('name')
+                ->get()
+                ->map(function($dept) {
+                    return [
+                        'id' => $dept->id,
+                        'name' => $dept->name,
+                        'users' => $dept->users->toArray()
+                    ];
+                });
+            
             // 未回答のアクティブなアンケート件数を取得（期限切れでないもののみ）
             $unansweredSurveysCount = Survey::where('is_active', true)
                 ->where('is_deleted', false)
@@ -94,6 +110,7 @@ class HandleInertiaRequests extends Middleware
                 ->count();
             
             $sharedData['teamMembers'] = $teamMembers;
+            $sharedData['departments'] = $departments;
             $sharedData['totalUsers'] = $teamMembers->count();
             $sharedData['unansweredSurveysCount'] = $unansweredSurveysCount;
         }

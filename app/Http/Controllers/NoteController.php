@@ -90,8 +90,7 @@ class NoteController extends Controller
             ->pluck('tag_name')
             ->values();
 
-        // 部署リストを取得
-        $departments = \App\Models\Department::where('is_active', true)->orderBy('name')->get();
+        // 部署リストはHandleInertiaRequestsから提供される
 
         return Inertia::render('Notes', [
             'notes' => $sortedNotes->values(), // ソート後にキーをリセット
@@ -101,7 +100,6 @@ class NoteController extends Controller
             'filteredMemberId' => $memberId ? (int)$memberId : null,
             'currentDepartmentFilter' => $departmentFilter,
             'userDepartmentId' => $user->department_id,
-            'departments' => $departments,
         ]);
     }
 
