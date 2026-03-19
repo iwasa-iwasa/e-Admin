@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Label } from '@/components/ui/label'
 
 import CreateNoteDialog from '@/components/CreateNoteDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
@@ -99,7 +101,7 @@ const searchQuery = ref('')
 const filterAuthor = ref('all')
 const filterPinned = ref('all')
 const filterTag = ref('all')
-const showFilters = ref(false)
+const isFilterOpen = ref(false)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 const sortKey = ref<'priority' | 'deadline' | 'updated_at'>('updated_at')
 const sortOrder = ref<'asc' | 'desc'>('desc')
@@ -124,12 +126,6 @@ const linkedEvent = ref<any>(null)
 const isEventDialogOpen = ref(false)
 
 const departmentFilter = ref(props.currentDepartmentFilter || 'all')
-watch(departmentFilter, (newVal) => {
-  router.get(route('notes'), { department_filter: newVal }, {
-    preserveState: true,
-    replace: true,
-  })
-})
 
 // メッセージとUndoロジック
 const messageType = ref<'success' | 'delete'>('success')
@@ -316,7 +312,23 @@ const filteredNotes = computed(() => {
   })
 })
 
-watch(showFilters, (isOpen) => {
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filterAuthor.value !== 'all') count++
+  if (filterPinned.value !== 'all') count++
+  if (filterTag.value !== 'all') count++
+  if (departmentFilter.value !== 'all') count++
+  return count
+})
+
+const clearFilters = () => {
+  filterAuthor.value = 'all'
+  filterPinned.value = 'all'
+  filterTag.value = 'all'
+  departmentFilter.value = 'all'
+}
+
+watch(isFilterOpen, (isOpen) => {
   if (!isOpen) {
     requestAnimationFrame(() => {
       const inputElement = searchInputRef.value as HTMLInputElement
@@ -324,12 +336,6 @@ watch(showFilters, (isOpen) => {
         inputElement.focus()
       }
     })
-  }
-})
-
-watch(searchQuery, () => {
-  if (searchQuery.value && showFilters.value) {
-    showFilters.value = false
   }
 })
 
@@ -687,78 +693,118 @@ const formatDate = (date: Date) => {
         </div>
 
         <div class="flex gap-2 mb-3">
-          <Select v-model="departmentFilter">
-            <SelectTrigger class="w-[140px] flex-shrink-0 h-10 border-gray-300 dark:border-gray-600 bg-background text-sm">
-              <SelectValue placeholder="表示メモ" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">すべて</SelectItem>
-              <SelectItem value="public">🌐 全社公開のみ</SelectItem>
-              <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署メモ</div>
-              <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
-                  {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
           <div class="relative flex-1">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             <input
               ref="searchInputRef"
               placeholder="タイトルなどで検索"
               v-model="searchQuery"
-              class="pl-9 pr-9 flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              class="pl-9 pr-9 flex h-10 w-full rounded-md border border-gray-300 dark:border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
               <X class="h-4 w-4" />
             </button>
           </div>
-          <Button variant="outline" size="icon" @click="showFilters = !showFilters" :class="showFilters ? 'bg-muted' : ''">
-            <Filter class="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div v-if="showFilters" class="space-y-2 mb-2 p-3 bg-muted/50 rounded-lg border border-border">
-          <div>
-            <label class="text-xs font-medium text-gray-700 mb-1 block">作成者</label>
-            <Select v-model="filterAuthor">
-              <SelectTrigger class="h-8 border-gray-300 dark:border-input">
-                <SelectValue placeholder="すべての作成者" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">すべての作成者</SelectItem>
-                <SelectItem v-for="author in authors" :key="author" :value="author">
-                  {{ author }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label class="text-xs font-medium text-gray-700 mb-1 block">メモの種類</label>
-            <Select v-model="filterPinned">
-              <SelectTrigger class="h-8 border-gray-300 dark:border-input">
-                <SelectValue placeholder="すべてのメモ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">すべてのメモ</SelectItem>
-                <SelectItem value="pinned">ピン留めのみ</SelectItem>
-                <SelectItem value="unpinned">通常メモのみ</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label class="text-xs font-medium text-gray-700 mb-1 block">タグ</label>
-            <Select v-model="filterTag">
-              <SelectTrigger class="h-8 border-gray-300 dark:border-input">
-                <SelectValue placeholder="すべてのタグ" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">すべてのタグ</SelectItem>
-                <SelectItem v-for="tag in props.allTags" :key="tag" :value="tag">
-                  {{ tag }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          
+          <Popover v-model:open="isFilterOpen">
+            <PopoverTrigger as-child>
+              <Button variant="outline" size="icon" class="relative border-gray-300 dark:border-input">
+                <Filter class="h-5 w-5" />
+                <Badge v-if="activeFilterCount > 0" class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-blue-500 text-white text-xs">
+                  {{ activeFilterCount }}
+                </Badge>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-64 z-[45] max-h-[80vh] flex flex-col" align="end">
+              <div class="flex items-center justify-between px-4 pb-2 border-b border-border flex-shrink-0">
+                <h4 class="font-medium text-sm">フィルター</h4>
+                <div class="flex gap-1">
+                  <Button
+                    v-if="activeFilterCount > 0"
+                    variant="ghost"
+                    size="sm"
+                    class="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                    @click="clearFilters"
+                  >
+                    <X class="h-3 w-3 mr-1" />
+                    クリア
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                    @click="isFilterOpen = false"
+                  >
+                    閉じる
+                  </Button>
+                </div>
+              </div>
+              <div class="flex-1 overflow-y-auto p-2">
+                <div class="space-y-3">
+                  <div class="space-y-2">
+                    <Label class="text-xs font-medium text-foreground">作成者</Label>
+                    <Select v-model="filterAuthor">
+                      <SelectTrigger class="h-8">
+                        <SelectValue placeholder="すべての作成者" />
+                      </SelectTrigger>
+                      <SelectContent class="z-[46]">
+                        <SelectItem value="all">すべて</SelectItem>
+                        <SelectItem v-for="author in authors" :key="author" :value="author">
+                          {{ author }}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div class="space-y-2">
+                    <Label class="text-xs font-medium text-foreground">メモの種類</Label>
+                    <Select v-model="filterPinned">
+                      <SelectTrigger class="h-8">
+                        <SelectValue placeholder="すべてのメモ" />
+                      </SelectTrigger>
+                      <SelectContent class="z-[46]">
+                        <SelectItem value="all">すべて</SelectItem>
+                        <SelectItem value="pinned">ピン留めのみ</SelectItem>
+                        <SelectItem value="unpinned">通常メモのみ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div class="space-y-2">
+                    <Label class="text-xs font-medium text-foreground">タグ</Label>
+                    <Select v-model="filterTag">
+                      <SelectTrigger class="h-8">
+                        <SelectValue placeholder="すべてのタグ" />
+                      </SelectTrigger>
+                      <SelectContent class="z-[46]">
+                        <SelectItem value="all">すべて</SelectItem>
+                        <SelectItem v-for="tag in props.allTags" :key="tag" :value="tag">
+                          {{ tag }}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div class="space-y-2">
+                    <Label class="text-xs font-medium text-foreground">部署</Label>
+                    <Select v-model="departmentFilter">
+                      <SelectTrigger class="h-8">
+                        <SelectValue placeholder="すべて" />
+                      </SelectTrigger>
+                      <SelectContent class="z-[46] max-h-48 overflow-y-auto">
+                        <SelectItem value="all">すべて</SelectItem>
+                        <SelectItem value="public">🌐 全社公開のみ</SelectItem>
+                        <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 dark:bg-gray-800 border-t border-b">部署メモ</div>
+                        <SelectItem v-for="dept in props.departments" :key="dept.id" :value="`dept_${dept.id}`">
+                          {{ dept.name }} {{ props.userDepartmentId === dept.id ? '(自部署)' : '' }}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div class="space-y-2">
@@ -1342,6 +1388,29 @@ const formatDate = (date: Date) => {
                   <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">削除したメモはゴミ箱に移動します。削除後すぐに「元に戻す」で復元できます。</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 運用ルール -->
+        <div class="relative pl-4 border-l-4 border-indigo-500 bg-gradient-to-r from-indigo-50 to-transparent dark:from-indigo-950/30 p-4 rounded-r-lg">
+          <h3 class="font-semibold mb-3 text-lg">📝 運用ルール</h3>
+          <div class="space-y-4">
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+              <p class="font-medium text-sm mb-2">【共有メモの活用方法】</p>
+              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li>・カレンダー予定にリンクすることで、詳細情報を共有できます</li>
+                <li>・<span class="font-semibold">特に他部署メンバーが参加する予定には、共有メモのリンクを推奨</span>します</li>
+                <li>・会議の議題、資料、事前準備事項などを記載してください</li>
+              </ul>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+              <p class="font-medium text-sm mb-2">【公開範囲の設定】</p>
+              <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li>・<span class="font-semibold">全社公開</span>：全社員が閲覧可能</li>
+                <li>・<span class="font-semibold">自部署のみ</span>：自分の部署のメンバーのみ閲覧可能</li>
+                <li>・<span class="font-semibold">一部ユーザーのみ</span>：選択したメンバーのみ閲覧可能</li>
+              </ul>
             </div>
           </div>
         </div>

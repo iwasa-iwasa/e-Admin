@@ -454,6 +454,15 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         <Badge variant="outline" class="text-xs shrink-0">
                                             {{ getTypeInfo(result.type).label }}
                                         </Badge>
+                                        <Badge v-if="(result as any).is_company" class="text-xs bg-purple-500 text-white shrink-0">
+                                            全社
+                                        </Badge>
+                                        <Badge v-else-if="(result as any).department_name" :class="[
+                                          'text-xs text-white shrink-0',
+                                          (result as any).department_id !== (usePage().props as any).auth?.user?.department_id ? 'bg-amber-500' : 'bg-blue-500'
+                                        ]">
+                                            {{ (result as any).department_name }}
+                                        </Badge>
                                     </div>
                                     <div v-if="result.description" class="text-xs text-muted-foreground line-clamp-2 mb-1">
                                         {{ result.description }}
@@ -483,6 +492,15 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         <div class="font-medium text-sm truncate">{{ result.title }}</div>
                                         <Badge variant="outline" class="text-xs shrink-0">
                                             {{ getTypeInfo(result.type).label }}
+                                        </Badge>
+                                        <Badge v-if="(result as any).is_company" class="text-xs bg-purple-500 text-white shrink-0">
+                                            全社
+                                        </Badge>
+                                        <Badge v-else-if="(result as any).department_name" :class="[
+                                          'text-xs text-white shrink-0',
+                                          (result as any).department_id !== (usePage().props as any).auth?.user?.department_id ? 'bg-amber-500' : 'bg-blue-500'
+                                        ]">
+                                            {{ (result as any).department_name }}
                                         </Badge>
                                     </div>
                                     <div v-if="result.description" class="text-xs text-muted-foreground line-clamp-2 mb-1">

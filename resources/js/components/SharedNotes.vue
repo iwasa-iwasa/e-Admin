@@ -454,6 +454,10 @@ const sortedNotes = computed(() => {
               <Badge :class="[getPriorityInfo(note.priority as Priority).className, 'text-xs px-2 py-0.5 flex-shrink-0']">
                 {{ getPriorityInfo(note.priority as Priority).label }}
               </Badge>
+              <Badge v-if="note.linked_event_id" class="text-xs px-2 py-0.5 bg-blue-500 text-white flex-shrink-0 flex items-center gap-1">
+                <Calendar class="h-3 w-3" />
+                リンク済
+              </Badge>
             </div>
             <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line mb-2">
               {{ note.content }}

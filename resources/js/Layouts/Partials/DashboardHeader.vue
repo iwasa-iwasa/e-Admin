@@ -810,6 +810,13 @@ onUnmounted(() => {
                           期限：{{ getDaysText(event.end_date || event.start_date, event.end_time || event.start_time) }}
                         </Badge>
                         <Badge class="text-xs bg-blue-500 text-white">{{ event.creator.name }}</Badge>
+                        <Badge v-if="(event as any).calendar" :class="[
+                          'text-xs text-white',
+                          (event as any).calendar.owner_type === 'company' ? 'bg-purple-500' : 
+                          (event as any).calendar.owner_department?.id !== (page.props as any).auth?.user?.department_id ? 'bg-amber-500' : 'bg-blue-500'
+                        ]">
+                          {{ (event as any).calendar.owner_type === 'company' ? '全社' : (event as any).calendar.owner_department?.name || '部署' }}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -844,6 +851,15 @@ onUnmounted(() => {
                           期限：{{ getDaysText(note.deadline_date, note.deadline_time ?? undefined) }}
                         </Badge>
                         <Badge class="text-xs bg-orange-500 text-white">{{ note.author?.name || 'N/A' }}</Badge>
+                        <Badge v-if="(note as any).owner_department_id" :class="[
+                          'text-xs text-white',
+                          (note as any).owner_department_id !== (page.props as any).auth?.user?.department_id ? 'bg-amber-500' : 'bg-blue-500'
+                        ]">
+                          {{ (note as any).owner_department?.name || '部署' }}
+                        </Badge>
+                        <Badge v-else-if="(note as any).visibility_type === 'company'" class="text-xs bg-purple-500 text-white">
+                          全社
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -1096,7 +1112,43 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="relative pl-4 border-l-4 border-green-500 bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/30 p-4 rounded-r-lg">
-            <h3 class="font-semibold mb-3 text-lg">⚙️ 表示設定</h3>
+            <h3 class="font-semibold mb-3 text-lg">🏷️ 通知の見方</h3>
+            <div class="space-y-4">
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1">
+                    <div class="flex flex-col gap-1">
+                      <Badge class="text-xs bg-purple-500 text-white">全社</Badge>
+                      <Badge class="text-xs bg-amber-500 text-white">営業部</Badge>
+                      <Badge class="text-xs bg-blue-500 text-white">総務部</Badge>
+                    </div>
+                  </div>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">バッジの色分け</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">予定が所属するカレンダーを色で区別できます。</p>
+                    <ul class="text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1">
+                      <li>・<span class="font-semibold text-purple-600">紫色</span>：全社カレンダーの予定</li>
+                      <li>・<span class="font-semibold text-amber-600">オレンジ色</span>：他部署カレンダーの予定</li>
+                      <li>・<span class="font-semibold text-blue-600">青色</span>：自部署カレンダーの予定</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                <div class="flex items-start gap-4">
+                  <div class="flex-shrink-0 pt-1">
+                    <Badge class="text-xs bg-red-500 text-white">期限：残り2日</Badge>
+                  </div>
+                  <div class="flex-1">
+                    <p class="font-medium text-sm mb-1">他部署の予定への招待</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">自分の部署以外の予定に参加する場合、「他部署の予定に招待されました」と表示されます。共有メモがリンクされている場合は、詳細情報を確認できます。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="relative pl-4 border-l-4 border-orange-500 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-950/30 p-4 rounded-r-lg">
+            <h3 class="font-semibold mb-3 text-lg">⚙️ フィルターの使い方</h3>
             <div class="space-y-4">
               <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
                 <div class="flex items-start gap-4">

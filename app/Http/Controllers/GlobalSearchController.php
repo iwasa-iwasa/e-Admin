@@ -78,7 +78,7 @@ class GlobalSearchController extends Controller
                 $field = $dateType === 'created' ? 'created_at' : 'updated_at';
                 $q->where($field, '<=', $dateTo . ' 23:59:59');
             })
-            ->with(['creator', 'participants'])
+            ->with(['creator', 'participants', 'calendar', 'calendar.ownerDepartment'])
             ->limit(50)
             ->get()
             ->map(fn($event) => [
@@ -92,6 +92,10 @@ class GlobalSearchController extends Controller
                 'date' => $event->end_date,
                 'created_at' => $event->created_at,
                 'updated_at' => $event->updated_at,
+                'department_name' => $event->calendar && $event->calendar->owner_type === 'department' 
+                    ? ($event->calendar->ownerDepartment->name ?? null)
+                    : null,
+                'is_company' => $event->calendar && $event->calendar->owner_type === 'company',
             ]);
             
             $results = $results->merge($events);
@@ -144,21 +148,44 @@ class GlobalSearchController extends Controller
                     $field = $dateType === 'created' ? 'created_at' : 'updated_at';
                     $q->where($field, '<=', $dateTo . ' 23:59:59');
                 })
-                ->with(['author', 'participants'])
+                ->with(['author', 'participants', 'ownerDepartment', 'linkedEvent.calendar.ownerDepartment'])
                 ->limit(50)
                 ->get()
-                ->map(fn($note) => [
-                    'id' => $note->note_id,
-                    'type' => 'note',
-                    'title' => $note->title ?? '',
-                    'description' => $note->content ? mb_substr($note->content, 0, 100, 'UTF-8') : '',
-                    'creator' => $note->author->name ?? '',
-                    'creator_id' => $note->author_id,
-                    'participants' => $note->participants->pluck('name')->join(', '),
-                    'date' => $note->deadline_date,
-                    'created_at' => $note->created_at,
-                    'updated_at' => $note->updated_at,
-                ]);
+                ->map(function($note) {
+                    $departmentName = null;
+                    $departmentId = null;
+                    $isCompany = false;
+                    
+                    if ($note->owner_department_id) {
+                        $departmentName = $note->ownerDepartment->name ?? null;
+                        $departmentId = $note->owner_department_id;
+                    } elseif ($note->visibility_type === 'company') {
+                        $isCompany = true;
+                    } elseif ($note->linkedEvent && $note->linkedEvent->calendar) {
+                        if ($note->linkedEvent->calendar->owner_type === 'company') {
+                            $isCompany = true;
+                        } elseif ($note->linkedEvent->calendar->owner_type === 'department') {
+                            $departmentName = $note->linkedEvent->calendar->ownerDepartment->name ?? null;
+                            $departmentId = $note->linkedEvent->calendar->owner_id;
+                        }
+                    }
+                    
+                    return [
+                        'id' => $note->note_id,
+                        'type' => 'note',
+                        'title' => $note->title ?? '',
+                        'description' => $note->content ? mb_substr($note->content, 0, 100, 'UTF-8') : '',
+                        'creator' => $note->author->name ?? '',
+                        'creator_id' => $note->author_id,
+                        'participants' => $note->participants->pluck('name')->join(', '),
+                        'date' => $note->deadline_date,
+                        'created_at' => $note->created_at,
+                        'updated_at' => $note->updated_at,
+                        'department_name' => $departmentName,
+                        'department_id' => $departmentId,
+                        'is_company' => $isCompany,
+                    ];
+                });
             
             $results = $results->merge($notes);
         }
@@ -326,7 +353,7 @@ class GlobalSearchController extends Controller
         $results = collect();
         
         // イベント（全て）
-        $events = Event::with('creator')
+        $events = Event::with(['creator', 'calendar', 'calendar.ownerDepartment'])
             ->get()
             ->map(fn($item) => [
                 'id' => $item->event_id,
@@ -336,21 +363,51 @@ class GlobalSearchController extends Controller
                 'creator' => $item->creator->name,
                 'date' => $item->end_date,
                 'updated_at' => $item->updated_at,
+                'department_name' => $item->calendar && $item->calendar->owner_type === 'department' 
+                    ? ($item->calendar->ownerDepartment->name ?? null)
+                    : null,
+                'department_id' => $item->calendar && $item->calendar->owner_type === 'department'
+                    ? $item->calendar->owner_id
+                    : null,
+                'is_company' => $item->calendar && $item->calendar->owner_type === 'company',
             ]);
         
         // 共有メモ（全て）
         $notes = SharedNote::where('is_deleted', false)
-            ->with('author')
+            ->with(['author', 'ownerDepartment', 'linkedEvent.calendar.ownerDepartment'])
             ->get()
-            ->map(fn($item) => [
-                'id' => $item->note_id,
-                'type' => 'note',
-                'title' => $item->title ?? '',
-                'description' => $item->content ? mb_substr($item->content, 0, 100, 'UTF-8') : '',
-                'creator' => $item->author->name ?? '',
-                'date' => $item->deadline_date,
-                'updated_at' => $item->updated_at,
-            ]);
+            ->map(function($item) {
+                $departmentName = null;
+                $departmentId = null;
+                $isCompany = false;
+                
+                if ($item->owner_department_id) {
+                    $departmentName = $item->ownerDepartment->name ?? null;
+                    $departmentId = $item->owner_department_id;
+                } elseif ($item->visibility_type === 'company') {
+                    $isCompany = true;
+                } elseif ($item->linkedEvent && $item->linkedEvent->calendar) {
+                    if ($item->linkedEvent->calendar->owner_type === 'company') {
+                        $isCompany = true;
+                    } elseif ($item->linkedEvent->calendar->owner_type === 'department') {
+                        $departmentName = $item->linkedEvent->calendar->ownerDepartment->name ?? null;
+                        $departmentId = $item->linkedEvent->calendar->owner_id;
+                    }
+                }
+                
+                return [
+                    'id' => $item->note_id,
+                    'type' => 'note',
+                    'title' => $item->title ?? '',
+                    'description' => $item->content ? mb_substr($item->content, 0, 100, 'UTF-8') : '',
+                    'creator' => $item->author->name ?? '',
+                    'date' => $item->deadline_date,
+                    'updated_at' => $item->updated_at,
+                    'department_name' => $departmentName,
+                    'department_id' => $departmentId,
+                    'is_company' => $isCompany,
+                ];
+            });
         
         // リマインダー（自分のみ）
         $reminders = Reminder::where('user_id', $user->id)
