@@ -643,6 +643,16 @@ const handleRemoveParticipant = (participantId: number) => {
 
 const isHelpOpen = ref(false)
 
+const formatDate = (date: Date) => {
+  if (!date) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}/${month}/${day} ${hours}:${minutes}`
+}
+
 </script>
 
 <template>
@@ -893,9 +903,20 @@ const isHelpOpen = ref(false)
                   <span>編集日：{{ new Date(selectedNote.updated_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-') }}</span>
                 </div>
                 <!-- 期限（設定されている場合のみBadgeで表示） -->
-                <Badge v-if="selectedNote.deadline_date" variant="outline" class="text-xs">
-                  期限：{{ new Date(selectedNote.deadline_date).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' }).replace(/\//g, '/') }} {{ (selectedNote.deadline_time || '23:59').substring(0, 5) }}
-                </Badge>
+                <div>
+                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">期限</label>
+                <VueDatePicker
+                  v-model="deadlineDateTime"
+                  :locale="ja"
+                  :format="formatDate"
+                  :week-start="0"
+                  auto-apply
+                  teleport-center
+                  enable-time-picker
+                  placeholder="期限を選択"
+                  class="h-8"
+                />
+              </div>
               </div>
             </div>
             <div class="flex items-center gap-2 ml-4">
@@ -909,20 +930,20 @@ const isHelpOpen = ref(false)
           <!-- 編集UI -->
           <div class="space-y-2 mb-3">
             <div class="grid grid-cols-4 gap-2">
-              <div>
-                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">期限</label>
-                <VueDatePicker
-                  v-model="deadlineDateTime"
-                  :locale="ja"
-                  format="yyyy-MM-dd HH:mm"
-                  :week-start="0"
-                  auto-apply
-                  teleport-center
-                  enable-time-picker
-                  placeholder="期限を選択"
-                  class="h-8"
-                />
-              </div>
+              <!-- 公開範囲選択 -->
+          <div class="space-y-2 mb-3">
+            <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">公開範囲</label>
+            <Select v-model="editedVisibility">
+              <SelectTrigger class="h-8 text-xs border-gray-300 dark:border-input bg-white dark:bg-gray-800 w-full max-w-sm">
+                <SelectValue placeholder="公開範囲を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">🌐 全社公開</SelectItem>
+                <SelectItem value="department">🏢 自部署のみ</SelectItem>
+                <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
               <div>
                 <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">重要度</label>
                 <Select v-model="editedPriority">
@@ -1051,20 +1072,7 @@ const isHelpOpen = ref(false)
             </Badge>
           </div>
           
-          <!-- 公開範囲選択 -->
-          <div class="space-y-2 mb-3">
-            <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">公開範囲</label>
-            <Select v-model="editedVisibility">
-              <SelectTrigger class="h-8 text-xs border-gray-300 dark:border-input bg-white dark:bg-gray-800 w-full max-w-sm">
-                <SelectValue placeholder="公開範囲を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">🌐 全社公開</SelectItem>
-                <SelectItem value="department">🏢 自部署のみ</SelectItem>
-                <SelectItem value="custom">👥 一部ユーザーのみ（共有メンバー）</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          
 
           <!-- メンバー追加UI -->
           <div class="space-y-2">

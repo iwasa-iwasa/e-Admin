@@ -806,16 +806,10 @@ onUnmounted(() => {
                         </div>
                       </div>
                       <div class="flex flex-col items-end gap-1">
-                        <Badge v-if="isOverdue(event.end_date || event.start_date, event.end_time || event.start_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
-                        <Badge v-else-if="isUpcoming(event.end_date || event.start_date, event.end_time || event.start_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
-                        <Badge v-if="(isOverdue(event.end_date || event.start_date, event.end_time || event.start_time) || isUpcoming(event.end_date || event.start_date, event.end_time || event.start_time))" 
-                          :class="isOverdue(event.end_date || event.start_date, event.end_time || event.start_time) ? 'text-xs bg-red-500 text-white' : 'text-xs bg-yellow-500 text-white'">
-                          {{ getDaysText(event.end_date || event.start_date, event.end_time || event.start_time) }}
+                        <Badge v-if="isUpcoming(event.end_date || event.start_date, event.end_time || event.start_time)" class="text-xs bg-red-500 text-white">
+                          期限：{{ getDaysText(event.end_date || event.start_date, event.end_time || event.start_time) }}
                         </Badge>
-                        <div v-if="!(isOverdue(event.end_date || event.start_date, event.end_time || event.start_time) || isUpcoming(event.end_date || event.start_date, event.end_time || event.start_time))" class="flex-1 flex items-end justify-end">
-                          <Badge class="text-xs bg-blue-500 text-white">{{ event.creator.name }}</Badge>
-                        </div>
-                        <Badge v-else class="text-xs bg-blue-500 text-white">{{ event.creator.name }}</Badge>
+                        <Badge class="text-xs bg-blue-500 text-white">{{ event.creator.name }}</Badge>
                       </div>
                     </div>
                   </div>
@@ -843,16 +837,13 @@ onUnmounted(() => {
                         </div>
                       </div>
                       <div class="flex flex-col items-end gap-1">
-                        <Badge v-if="note.deadline_date && isOverdue(note.deadline_date, note.deadline_time ?? undefined)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
-                        <Badge v-else-if="note.deadline_date && isUpcoming(note.deadline_date, note.deadline_time ?? undefined)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
-                        <Badge v-if="note.deadline_date && (isOverdue(note.deadline_date, note.deadline_time ?? undefined) || isUpcoming(note.deadline_date ?? undefined, note.deadline_time ?? undefined))" 
-                          :class="isOverdue(note.deadline_date, note.deadline_time ?? undefined) ? 'text-xs bg-red-500 text-white' : 'text-xs bg-yellow-500 text-white'">
-                          {{ getDaysText(note.deadline_date, note.deadline_time ?? undefined) }}
+                        <Badge v-if="note.deadline_date && isOverdue(note.deadline_date, note.deadline_time ?? undefined)" class="text-xs bg-red-500 text-white">
+                          期限：{{ getDaysText(note.deadline_date, note.deadline_time ?? undefined) }}
                         </Badge>
-                        <div v-if="!(note.deadline_date && (isOverdue(note.deadline_date, note.deadline_time ?? undefined) || isUpcoming(note.deadline_date ?? undefined, note.deadline_time ?? undefined)))" class="flex-1 flex items-end justify-end">
-                          <Badge class="text-xs bg-orange-500 text-white">{{ note.author?.name || 'N/A' }}</Badge>
-                        </div>
-                        <Badge v-else class="text-xs bg-orange-500 text-white">{{ note.author?.name || 'N/A' }}</Badge>
+                        <Badge v-else-if="note.deadline_date && isUpcoming(note.deadline_date, note.deadline_time ?? undefined)" class="text-xs bg-yellow-500 text-white">
+                          期限：{{ getDaysText(note.deadline_date, note.deadline_time ?? undefined) }}
+                        </Badge>
+                        <Badge class="text-xs bg-orange-500 text-white">{{ note.author?.name || 'N/A' }}</Badge>
                       </div>
                     </div>
                   </div>
@@ -878,11 +869,11 @@ onUnmounted(() => {
                         </div>
                       </div>
                       <div class="flex flex-col items-end gap-1">
-                        <Badge v-if="isOverdue(reminder.deadline_date, reminder.deadline_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
-                        <Badge v-else-if="isUpcoming(reminder.deadline_date, reminder.deadline_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
-                        <Badge v-if="reminder.deadline_date && (isOverdue(reminder.deadline_date, reminder.deadline_time) || isUpcoming(reminder.deadline_date, reminder.deadline_time))" 
-                          :class="isOverdue(reminder.deadline_date, reminder.deadline_time) ? 'text-xs bg-red-500 text-white' : 'text-xs bg-yellow-500 text-white'">
-                          {{ getDaysText(reminder.deadline_date, reminder.deadline_time) }}
+                        <Badge v-if="isOverdue(reminder.deadline_date, reminder.deadline_time)" class="text-xs bg-red-500 text-white">
+                          期限：{{ getDaysText(reminder.deadline_date, reminder.deadline_time) }}
+                        </Badge>
+                        <Badge v-else-if="isUpcoming(reminder.deadline_date, reminder.deadline_time)" class="text-xs bg-yellow-500 text-white">
+                          期限：{{ getDaysText(reminder.deadline_date, reminder.deadline_time) }}
                         </Badge>
                       </div>
                     </div>
@@ -908,16 +899,13 @@ onUnmounted(() => {
                         </div>
                       </div>
                       <div class="flex flex-col items-end gap-1">
-                        <Badge v-if="survey.deadline_date && isOverdue(survey.deadline_date, survey.deadline_time)" class="text-xs bg-red-500 text-white">期限切れ</Badge>
-                        <Badge v-else-if="survey.deadline_date && isUpcoming(survey.deadline_date, survey.deadline_time)" class="text-xs bg-yellow-500 text-white">期限間近</Badge>
-                        <Badge v-if="survey.deadline_date && (isOverdue(survey.deadline_date, survey.deadline_time) || isUpcoming(survey.deadline_date, survey.deadline_time))" 
-                          :class="isOverdue(survey.deadline_date, survey.deadline_time) ? 'text-xs bg-red-500 text-white' : 'text-xs bg-yellow-500 text-white'">
-                          {{ getDaysText(survey.deadline_date, survey.deadline_time) }}
+                        <Badge v-if="survey.deadline_date && isOverdue(survey.deadline_date, survey.deadline_time)" class="text-xs bg-red-500 text-white">
+                          期限：{{ getDaysText(survey.deadline_date, survey.deadline_time) }}
                         </Badge>
-                        <div v-if="!(survey.deadline_date && (isOverdue(survey.deadline_date, survey.deadline_time) || isUpcoming(survey.deadline_date, survey.deadline_time)))" class="flex-1 flex items-end justify-end">
-                          <Badge class="text-xs bg-purple-500 text-white">{{ survey.creator.name }}</Badge>
-                        </div>
-                        <Badge v-else class="text-xs bg-purple-500 text-white">{{ survey.creator.name }}</Badge>
+                        <Badge v-else-if="survey.deadline_date && isUpcoming(survey.deadline_date, survey.deadline_time)" class="text-xs bg-yellow-500 text-white">
+                          期限：{{ getDaysText(survey.deadline_date, survey.deadline_time) }}
+                        </Badge>
+                        <Badge class="text-xs bg-purple-500 text-white">{{ survey.creator.name }}</Badge>
                       </div>
                     </div>
                   </div>
