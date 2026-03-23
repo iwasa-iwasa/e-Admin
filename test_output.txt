@@ -1,0 +1,102 @@
+
+   PASS  Tests\Unit\ExampleTest
+  ✓ that true is true
+
+   PASS  Tests\Feature\Auth\AuthenticationTest
+  ✓ login scree… 0.24s  
+  ✓ users can a… 0.04s  
+  ✓ users can n… 0.22s  
+  ✓ users can l… 0.02s  
+
+   PASS  Tests\Feature\Auth\EmailVerificationTest
+  ✓ email verif… 0.02s  
+  ✓ email can b… 0.03s  
+  ✓ email is no… 0.02s  
+
+   PASS  Tests\Feature\Auth\PasswordConfirmationTest
+  ✓ confirm pas… 0.02s  
+  ✓ password ca… 0.02s  
+  ✓ password is… 0.22s  
+
+   PASS  Tests\Feature\Auth\PasswordResetTest
+  ✓ reset passw… 0.02s  
+  ✓ reset passw… 0.23s  
+  ✓ reset passw… 0.24s  
+  ✓ password ca… 0.23s  
+
+   PASS  Tests\Feature\Auth\PasswordUpdateTest
+  ✓ password ca… 0.03s  
+  ✓ correct pas… 0.03s  
+
+   PASS  Tests\Feature\Auth\RegistrationTest
+  ✓ registratio… 0.02s  
+  ✓ new users c… 0.02s  
+
+   PASS  Tests\Feature\CalendarTest
+  ✓ calendar pa… 0.03s  
+  ✓ event can b… 0.03s  
+  ✓ event valid… 0.03s  
+  ✓ event can b… 0.03s  
+  ✓ event can b… 0.02s  
+
+   PASS  Tests\Feature\ConflictResolutionTest
+  ✓ conflict is… 0.04s  
+
+   PASS  Tests\Feature\DepartmentMergeTest
+  ✓ departments… 0.03s  
+
+   FAIL  Tests\Feature\DepartmentTest
+  ✓ department…  0.02s  
+  ✓ department…  0.02s  
+  ✓ admin can c… 0.02s  
+  ✓ member cann… 0.02s  
+  ⨯ department…  0.04s  
+
+   PASS  Tests\Feature\ExampleTest
+  ✓ the applica… 0.02s  
+
+   PASS  Tests\Feature\NoteTest
+  ✓ authenticat… 0.02s  
+  ✓ note creati… 0.02s  
+  ✓ authenticat… 0.02s  
+  ✓ note update… 0.03s  
+  ✓ invalid col… 0.02s  
+
+   PASS  Tests\Feature\ProfileTest
+  ✓ profile pag… 0.03s  
+  ✓ profile inf… 0.03s  
+  ✓ email verif… 0.03s  
+  ✓ user can de… 0.02s  
+  ✓ correct pas… 0.02s  
+
+   PASS  Tests\Feature\SurveyRefactorVerifyTest
+  ✓ can create…  0.03s  
+  ✓ can save dr… 0.03s  
+  ✓ updating su… 0.04s  
+
+   PASS  Tests\Feature\SurveyTest
+  ✓ can view su… 0.02s  
+  ✓ can create…  0.03s  
+  ✓ can update…  0.02s  
+  ✓ can delete…  0.03s  
+  ────────────────────  
+   FAILED  Tests\Fea…   
+  Failed asserting that actual size 3 matches expected size 2.
+
+  at tests\Feature\DepartmentTest.php:141
+    137▕         $response->assertStatus(200);
+    138▕         $data = $response->json();
+    139▕ 
+    140▕         // アクティブな部署のみ返ること
+  ➜ 141▕         $this->assertCount(2, $data);
+    142▕         $names = collect($data)->pluck('name')->toArray();
+    143▕         $this->assertContains('総務部', $names);
+    144▕         $this->assertContains('営業部', $names);
+    145▕         $this->assertNotContains('廃止部署', $names);
+
+  1   tests\Feature\DepartmentTest.php:141
+
+
+  Tests:    1 failed, 48 passed (135 assertions)
+  Duration: 2.63s
+

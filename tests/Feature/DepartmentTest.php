@@ -126,10 +126,16 @@ class DepartmentTest extends TestCase
         $dept2 = Department::create(['name' => '営業部', 'is_active' => true]);
         $dept3 = Department::create(['name' => '廃止部署', 'is_active' => false]);
 
-        $user = User::factory()->create([
-            'email_verified_at' => now(),
-            'is_active' => true,
+        $user = User::create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => bcrypt('password'),
+            'department' => $dept1->name,
             'department_id' => $dept1->id,
+            'role' => 'user',
+            'role_type' => 'member',
+            'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         $response = $this->actingAs($user)->get('/api/departments');
