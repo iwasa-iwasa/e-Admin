@@ -389,9 +389,9 @@ onUnmounted(() => {
                     </div>
                     
                     <!-- 検索・作成ボタン -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2 flex-1 justify-end">
                         <Select v-model="categoryFilter">
-                            <SelectTrigger class="w-[180px]">
+                            <SelectTrigger class="w-full min-w-[140px] max-w-[200px]">
                                 <SelectValue>
                                     <div class="flex items-center gap-2">
                                         <Filter class="h-4 w-4" />
@@ -407,7 +407,7 @@ onUnmounted(() => {
                             </SelectContent>
                         </Select>
                         <Select v-model="departmentFilter">
-                            <SelectTrigger class="w-[140px]">
+                            <SelectTrigger class="w-full min-w-[120px] max-w-[160px]">
                                 <SelectValue placeholder="表示アンケート" />
                             </SelectTrigger>
                             <SelectContent>
@@ -419,12 +419,12 @@ onUnmounted(() => {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
-                        <div class="relative">
+                        <div class="relative flex-1 min-w-[200px] max-w-xs">
                             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
                                 placeholder="タイトルなどで検索"
                                 v-model="searchQuery"
-                                class="pl-9 w-80"
+                                class="pl-9 w-full"
                             />
                         </div>
                         <Button variant="outline" class="gap-2" @click="handleCreate">

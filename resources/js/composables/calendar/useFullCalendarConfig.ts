@@ -124,9 +124,9 @@ export function useFullCalendarConfig(
 
             if (holidayName) {
                 return {
-                    html: `<div class="fc-daygrid-day-top" style="flex-direction: column; align-items: flex-start;">
+                    html: `<div class="fc-daygrid-day-top" style="position: relative;">
                         <a class="fc-daygrid-day-number ${dayColor}">${dayNumber}</a>
-                        <div class="text-[9px] ${dayColor} font-medium leading-tight" style="margin-top: 2px;">${holidayName}</div>
+                        <div class="text-[9px] ${dayColor} font-medium leading-tight" style="position: absolute; top: 22px; right: 6px; white-space: nowrap; pointer-events: none;">${holidayName}</div>
                     </div>`
                 }
             }
@@ -144,6 +144,22 @@ export function useFullCalendarConfig(
                 html: `<div class="fc-daygrid-day-top">
                     <a class="fc-daygrid-day-number">${dayNumber}</a>
                 </div>`
+            }
+        },
+        eventDidMount: (info) => {
+            const event = info.event.extendedProps;
+            let deptName = '';
+            if (event.owner_department_id === null) {
+                deptName = '全社';
+            } else if (event.department?.name) {
+                deptName = event.department.name;
+            } else if (event.owner_department?.name) {
+                deptName = event.owner_department.name;
+            }
+            if (deptName) {
+                info.el.setAttribute('title', `[${deptName}] ${info.event.title}`);
+            } else {
+                info.el.setAttribute('title', info.event.title);
             }
         },
     }))
