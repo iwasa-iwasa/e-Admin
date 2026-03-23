@@ -26,7 +26,7 @@ class UpdateSharedNoteRequest extends FormRequest
             'content' => ['nullable', 'string'],
             'color' => ['nullable', 'string', 'in:yellow,blue,green,pink,purple,gray'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
-            'visibility_type' => ['required', 'string', 'in:department,custom'],
+            'visibility_type' => ['required', 'string', 'in:department,custom,public'],
             'owner_department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'deadline' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'progress' => ['nullable', 'integer', 'min:0', 'max:100'],

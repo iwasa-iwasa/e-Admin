@@ -26,20 +26,36 @@ return new class extends Migration
         ");
 
         // カレンダー予定: customをdepartmentに変更（カレンダーの種別に応じて）
-        DB::statement("
-            UPDATE events e
-            INNER JOIN calendars c ON e.calendar_id = c.calendar_id
-            SET e.visibility_type = CASE 
-                WHEN c.owner_type = 'company' THEN 'public'
-                WHEN c.owner_type = 'department' THEN 'department'
-                ELSE e.visibility_type
-            END,
-            e.owner_department_id = CASE 
-                WHEN c.owner_type = 'department' THEN c.owner_id
-                ELSE e.owner_department_id
-            END
-            WHERE e.visibility_type = 'custom'
-        ");
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement("
+                UPDATE events
+                SET visibility_type = CASE 
+                        WHEN (SELECT owner_type FROM calendars WHERE calendars.calendar_id = events.calendar_id) = 'company' THEN 'public'
+                        WHEN (SELECT owner_type FROM calendars WHERE calendars.calendar_id = events.calendar_id) = 'department' THEN 'department'
+                        ELSE visibility_type
+                    END,
+                    owner_department_id = CASE 
+                        WHEN (SELECT owner_type FROM calendars WHERE calendars.calendar_id = events.calendar_id) = 'department' THEN (SELECT owner_id FROM calendars WHERE calendars.calendar_id = events.calendar_id)
+                        ELSE owner_department_id
+                    END
+                WHERE visibility_type = 'custom'
+            ");
+        } else {
+            DB::statement("
+                UPDATE events e
+                INNER JOIN calendars c ON e.calendar_id = c.calendar_id
+                SET e.visibility_type = CASE 
+                    WHEN c.owner_type = 'company' THEN 'public'
+                    WHEN c.owner_type = 'department' THEN 'department'
+                    ELSE e.visibility_type
+                END,
+                e.owner_department_id = CASE 
+                    WHEN c.owner_type = 'department' THEN c.owner_id
+                    ELSE e.owner_department_id
+                END
+                WHERE e.visibility_type = 'custom'
+            ");
+        }
 
         // 共有メモのvisibility_typeカラムが存在する場合のみ実行
         if (Schema::hasColumn('shared_notes', 'visibility_type')) {
