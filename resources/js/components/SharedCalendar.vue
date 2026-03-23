@@ -10,6 +10,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import EventDetailDialog from '@/components/EventDetailDialog.vue'
 import CreateEventDialog from '@/components/CreateEventDialog.vue'
 import RecurrenceEditScopeDialog from '@/components/RecurrenceEditScopeDialog.vue'
@@ -35,6 +38,8 @@ const props = defineProps<{
     events: App.Models.ExpandedEvent[]
     showBackButton?: boolean
     filteredMemberId?: number | null
+    selectedDepartmentId?: number | null
+    showCompany?: boolean
     defaultView?: string
     isHelpOpen?: boolean
     departments?: App.Models.Department[]
@@ -64,6 +69,24 @@ const {
     canEditEvent,
     fetchEvents
 } = useCalendarEvents(props.userDepartmentId)
+
+// サイドバーからの部署選択に応じてdepartmentFilterを初期化
+watch(() => [props.selectedDepartmentId, props.showCompany], ([deptId, showCompany]) => {
+    console.log('SharedCalendar: Department selection changed', { deptId, showCompany })
+    if (showCompany) {
+        departmentFilter.value = 'public'
+    } else if (deptId) {
+        departmentFilter.value = `dept_${deptId}`
+        // 選択された部署を展開するイベントを発行
+        window.dispatchEvent(new CustomEvent('expandDepartment', { detail: { departmentId: deptId } }))
+    } else if (props.userDepartmentId) {
+        // デフォルトはユーザーの所属部署
+        departmentFilter.value = `dept_${props.userDepartmentId}`
+    } else {
+        // フォールバック: すべて表示
+        departmentFilter.value = 'all'
+    }
+}, { immediate: true })
 
 // 2. View Logic
 const { 
@@ -157,12 +180,16 @@ const dateRange = computed(() => {
     }
 })
 
-const eventFilters = computed(() => ({
-    searchQuery: searchQuery.value,
-    genreFilter: genreFilter.value,
-    departmentFilter: departmentFilter.value,
-    memberId: props.filteredMemberId
-}))
+const eventFilters = computed(() => {
+    const filters = {
+        searchQuery: searchQuery.value,
+        genreFilter: genreFilter.value,
+        departmentFilter: departmentFilter.value,
+        memberId: props.filteredMemberId
+    }
+    console.log('SharedCalendar: Event filters updated', filters)
+    return filters
+})
 
 const { events: unifiedEventData, loading, initialized, refresh: refreshUnifiedEvents, clearCache } = useUnifiedEvents(
     computed(() => dateRange.value.start),
@@ -191,6 +218,7 @@ const { calendarOptions } = useFullCalendarConfig(
 
 // データの変更を監視してカレンダーを再描画
 watch(unifiedEventData, () => {
+    console.log('SharedCalendar: Event data updated', unifiedEventData.value.length)
     const api = fullCalendar.value?.getApi()
     if (api) {
         api.refetchEvents()
@@ -244,9 +272,22 @@ watch(highlightId, (id) => {
 }, { immediate: true })
 
 // 検索アイコン展開用
-const isSearchOpen = ref(false)
+const isFilterOpen = ref(false)
 const headerRef = ref<HTMLElement | null>(null)
 const layoutMode = ref<'default'|'filter-small'|'search-icon'|'title-hide'|'compact'|'minimal'|'ultra-minimal'>('default')
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (genreFilter.value !== GENRE_FILTERS.ALL) count++
+  if (departmentFilter.value !== 'all') count++
+  return count
+})
+
+const clearFilters = () => {
+  genreFilter.value = GENRE_FILTERS.ALL
+  departmentFilter.value = 'all'
+  searchQuery.value = ''
+}
 
 const compactCalendarTitle = computed(() => {
     if (layoutMode.value === 'default' || layoutMode.value === 'filter-small') {
@@ -275,6 +316,7 @@ const compactCalendarTitle = computed(() => {
 let resizeHandler: (() => void) | null = null
 let resizeObserver: ResizeObserver | null = null
 let removeInertiaListener: (() => void) | null = null
+let resizeTimeout: number | null = null
 
 onMounted(() => {
     // カテゴリーラベルを読み込む
@@ -291,9 +333,17 @@ onMounted(() => {
     
     // Resize handler
     resizeHandler = () => {
-        const api = fullCalendar.value?.getApi()
-        if (api) {
-            api.updateSize()
+        // ホーム画面でのレイアウト変更によるリサイズは無視
+        // 実際のウィンドウリサイズのみ処理
+        if (document.visibilityState === 'visible') {
+            const api = fullCalendar.value?.getApi()
+            if (api) {
+                // デバウンス処理でリサイズを制限
+                clearTimeout(resizeTimeout)
+                resizeTimeout = setTimeout(() => {
+                    api.updateSize()
+                }, 100)
+            }
         }
     }
     window.addEventListener('resize', resizeHandler)
@@ -339,27 +389,11 @@ onUnmounted(() => {
     if (resizeObserver) {
         resizeObserver.disconnect()
     }
+    if (resizeTimeout) {
+        clearTimeout(resizeTimeout)
+    }
 })
 
-// 検索バー閉じる処理
-const searchInput = ref<HTMLInputElement | null>(null)
-const toggleSearch = () => {
-    isSearchOpen.value = !isSearchOpen.value
-    if (!isSearchOpen.value) {
-        searchQuery.value = ''
-    }
-}
-
-// 検索バー展開時にフォーカス
-// watch(isSearchOpen, (isOpen) => {
-//     if (isOpen) {
-//         nextTick(() => {
-//             setTimeout(() => {
-//                 searchInput.value?.focus()
-//             }, 50)
-//         })
-//     }
-// })
 
 const scopeButtons: { value: 'all' | 'current' | 'before' | 'middle' | 'after'; label: string }[] = [
     { value: 'all', label: '全体' },
@@ -517,131 +551,122 @@ const handleDateJump = (date: Date) => {
                 </div>
                 <!-- 右上操作エリア -->
                 <div class="flex items-center gap-2 min-w-0 flex-shrink">
-                    <!-- 部署 Select (visibility) -->
-                    <div v-if="props.departments && props.departments.length > 0" class="transition-all duration-300 ease-in-out flex-shrink">
-                        <Select v-model="departmentFilter" :key="`dept-${layoutMode}`">
-                            <SelectTrigger class="w-[140px] h-9 text-xs">
-                                <SelectValue>
-                                    <template v-if="departmentFilter === 'all'">すべて</template>
-                                    <template v-else-if="departmentFilter === 'public'">全社予定のみ</template>
-                                    <template v-else-if="departmentFilter && departmentFilter.startsWith('dept_')">
-                                        {{ props.departments.find(d => d.id === parseInt(departmentFilter.replace('dept_', '')))?.name }}
-                                        {{ props.userDepartmentId === parseInt(departmentFilter.replace('dept_', '')) ? '(自部署)' : '' }}
-                                    </template>
-                                    <template v-else>表示カレンダー</template>
-                                </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">すべて</SelectItem>
-                                <SelectItem value="public">全社予定のみ</SelectItem>
-                                <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 border-t border-b mb-1">部署カレンダー</div>
-                                <!-- 所属部署を最初に表示 -->
-                                <SelectItem v-if="props.userDepartmentId" :value="`dept_${props.userDepartmentId}`">
-                                    {{ props.departments.find(d => d.id === props.userDepartmentId)?.name }} (自部署)
-                                </SelectItem>
-                                <!-- その他の部署 -->
-                                <SelectItem v-for="dept in props.departments.filter(d => d.id !== props.userDepartmentId)" :key="dept.id" :value="`dept_${dept.id}`">
-                                    {{ dept.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <!-- ジャンル Select -->
-                    <div class="transition-all duration-300 ease-in-out flex-shrink">
-                        <Select v-model="genreFilter" :key="`genre-${layoutMode}`">
-                            <SelectTrigger 
-                                class="transition-all duration-300 ease-in-out w-10 justify-center px-0 [&>svg:last-child]:hidden"
-                            >
-                                <Filter class="h-4 w-4" />
-                            </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem :value="GENRE_FILTERS.ALL">すべて</SelectItem>
-                            <SelectItem :value="GENRE_FILTERS.BLUE">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['会議'] }"></div>
-                                    {{ CATEGORY_LABELS['会議'] }}
+                    <Popover v-model:open="isFilterOpen">
+                        <PopoverTrigger as-child>
+                            <Button variant="outline" size="icon" class="relative border-gray-300 dark:border-input">
+                                <Filter class="h-5 w-5" />
+                                <Badge v-if="activeFilterCount > 0" class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-blue-500 text-white text-xs">
+                                    {{ activeFilterCount }}
+                                </Badge>
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-72 z-[45] max-h-[80vh] flex flex-col" align="end">
+                            <div class="flex items-center justify-between px-4 pb-2 border-b border-border flex-shrink-0">
+                                <h4 class="font-medium text-sm">フィルター</h4>
+                                <div class="flex gap-1">
+                                    <Button
+                                        v-if="activeFilterCount > 0"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                                        @click="clearFilters"
+                                    >
+                                        <ChevronDown class="h-3 w-3 mr-1" />
+                                        クリア
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        class="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                                        @click="isFilterOpen = false"
+                                    >
+                                        閉じる
+                                    </Button>
                                 </div>
-                            </SelectItem>
-                            <SelectItem :value="GENRE_FILTERS.GREEN">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['業務'] }"></div>
-                                    {{ CATEGORY_LABELS['業務'] }}
-                                </div>
-                            </SelectItem>
-                            <SelectItem :value="GENRE_FILTERS.YELLOW">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['来客'] }"></div>
-                                    {{ CATEGORY_LABELS['来客'] }}
-                                </div>
-                            </SelectItem>
-                            <SelectItem :value="GENRE_FILTERS.PURPLE">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['出張・外出'] }"></div>
-                                    {{ CATEGORY_LABELS['出張・外出'] }}
-                                </div>
-                            </SelectItem>
-                            <SelectItem :value="GENRE_FILTERS.PINK">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['休暇'] }"></div>
-                                    {{ CATEGORY_LABELS['休暇'] }}
-                                </div>
-                            </SelectItem>
-                            <SelectItem :value="GENRE_FILTERS.OTHER">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['その他'] }"></div>
-                                    {{ CATEGORY_LABELS['その他'] }}
-                                </div>
-                            </SelectItem>
-                        </SelectContent>
-                        </Select>
-                    </div>
-
-                    <!-- 検索エリア -->
-                    <div class="relative transition-all duration-300 ease-in-out flex-shrink">
-                        <div v-if="(layoutMode === 'default' || layoutMode === 'filter-small')" class="relative">
-                            <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                            <Input
-                                v-model="searchQuery"
-                                type="text"
-                                placeholder="タイトルなどで検索"
-                                class="pl-10 min-w-0 transition-all duration-300 ease-in-out"
-                                :class="layoutMode === 'filter-small' ? 'max-w-[200px]' : 'max-w-[280px]'"
-                            />
-                        </div>
-                        <div v-else-if="layoutMode === 'search-icon' || layoutMode === 'title-hide' || layoutMode === 'compact' || layoutMode === 'minimal' || layoutMode === 'ultra-minimal'" class="flex items-center transition-all duration-300 ease-in-out">
-                            <div class="relative flex items-center">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    @click="toggleSearch"
-                                    class="transition-all duration-300 ease-in-out border-gray-300 dark:border-input"
-                                    :class="isSearchOpen ? 'rounded-r-none border-r-0' : ''"
-                                    tabindex="-1"
-                                >
-                                    <Search class="h-4 w-4"/>
-                                </Button>
-                                <Transition
-                                    enter-active-class="transition-all duration-300 ease-in-out"
-                                    leave-active-class="transition-all duration-300 ease-in-out"
-                                    enter-from-class="w-0 opacity-0"
-                                    enter-to-class="w-[140px] opacity-100"
-                                    leave-from-class="w-[140px] opacity-100"
-                                    leave-to-class="w-0 opacity-0"
-                                >
-                                    <Input
-                                        v-if="isSearchOpen"
-                                        v-model="searchQuery"
-                                        type="text"
-                                        placeholder="タイトルなどで検索"
-                                        class="rounded-l-none border-l-0 transition-all duration-300 ease-in-out"
-                                        @blur="!searchQuery && toggleSearch()"
-                                        @keydown.escape="toggleSearch()"
-                                        ref="searchInput"
-                                    />
-                                </Transition>
                             </div>
-                        </div>
+                            <div class="flex-1 overflow-y-auto p-2">
+                                <div class="space-y-3">
+                                    <div class="space-y-2">
+                                        <Label class="text-xs font-medium text-foreground">カレンダー</Label>
+                                        <Select v-model="departmentFilter">
+                                            <SelectTrigger class="h-8">
+                                                <SelectValue placeholder="すべて" />
+                                            </SelectTrigger>
+                                            <SelectContent class="z-[46] max-h-48 overflow-y-auto">
+                                                <SelectItem value="all">すべて（全社+全部署）</SelectItem>
+                                                <SelectItem value="public">全社予定のみ</SelectItem>
+                                                <div class="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 dark:bg-gray-800 border-t border-b">部署カレンダー</div>
+                                                <SelectItem v-if="props.userDepartmentId" :value="`dept_${props.userDepartmentId}`">
+                                                    {{ props.departments?.find(d => d.id === props.userDepartmentId)?.name }} (自部署)
+                                                </SelectItem>
+                                                <SelectItem v-for="dept in props.departments?.filter(d => d.id !== props.userDepartmentId)" :key="dept.id" :value="`dept_${dept.id}`">
+                                                    {{ dept.name }}
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    
+                                    <div class="space-y-2">
+                                        <Label class="text-xs font-medium text-foreground">ジャンル</Label>
+                                        <Select v-model="genreFilter">
+                                            <SelectTrigger class="h-8">
+                                                <SelectValue placeholder="すべて" />
+                                            </SelectTrigger>
+                                            <SelectContent class="z-[46]">
+                                                <SelectItem :value="GENRE_FILTERS.ALL">すべて</SelectItem>
+                                                <SelectItem :value="GENRE_FILTERS.BLUE">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['会議'] }"></div>
+                                                        {{ CATEGORY_LABELS['会議'] }}
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem :value="GENRE_FILTERS.GREEN">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['業務'] }"></div>
+                                                        {{ CATEGORY_LABELS['業務'] }}
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem :value="GENRE_FILTERS.YELLOW">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['来客'] }"></div>
+                                                        {{ CATEGORY_LABELS['来客'] }}
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem :value="GENRE_FILTERS.PURPLE">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['出張・外出'] }"></div>
+                                                        {{ CATEGORY_LABELS['出張・外出'] }}
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem :value="GENRE_FILTERS.PINK">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['休暇'] }"></div>
+                                                        {{ CATEGORY_LABELS['休暇'] }}
+                                                    </div>
+                                                </SelectItem>
+                                                <SelectItem :value="GENRE_FILTERS.OTHER">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: genreColors['その他'] }"></div>
+                                                        {{ CATEGORY_LABELS['その他'] }}
+                                                    </div>
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+
+                    <!-- 検索バー -->
+                    <div class="relative flex-1 max-w-[280px]">
+                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                        <Input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="タイトルなどで検索"
+                            class="pl-9 h-10 text-sm border-gray-300 dark:border-input"
+                        />
                     </div>
 
                     <!-- 新規作成 -->
@@ -1053,6 +1078,29 @@ const handleDateJump = (date: Date) => {
                                 <span class="font-medium text-sm">時間範囲の切り替え</span>
                             </div>
                             <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">日表示では、全体/現在/前/中/後のボタンで表示する時間範囲を切り替えられます。現在時刻を中心に、効率的にスケジュールを確認できます。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 運用ルール -->
+                <div class="relative pl-4 border-l-4 border-indigo-500 bg-gradient-to-r from-indigo-50 to-transparent dark:from-indigo-950/30 p-4 rounded-r-lg">
+                    <h3 class="font-semibold mb-3 text-lg">📝 運用ルール</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                            <p class="font-medium text-sm mb-2">【他部署メンバーを招待する場合】</p>
+                            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                <li>・「他部署のメンバーも追加」にチェックを入れて選択してください</li>
+                                <li>・他部署メンバーを招待する予定には、<span class="font-semibold">共有メモをリンクすることを推奨</span>します</li>
+                                <li>・共有メモに会議の目的、議題、資料を記載すると、参加者が事前に内容を確認できます</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                            <p class="font-medium text-sm mb-2">【予定の所属について】</p>
+                            <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                <li>・予定は選択したカレンダーに所属します</li>
+                                <li>・例：営業部カレンダーで作成 → 営業部の予定として表示されます</li>
+                                <li>・他部署メンバーには「他部署の予定に招待されました」と通知されます</li>
+                            </ul>
                         </div>
                     </div>
                 </div>

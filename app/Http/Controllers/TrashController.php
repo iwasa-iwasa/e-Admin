@@ -133,7 +133,20 @@ class TrashController extends Controller
             $departmentFilter = 'all';
         }
 
-        $departments = \App\Models\Department::where('is_active', true)->orderBy('name')->get();
+        $departments = \App\Models\Department::where('is_active', true)
+            ->with(['users' => function($query) {
+                $query->where('is_active', true)
+                      ->select('id', 'name', 'email', 'department_id', 'role', 'role_type');
+            }])
+            ->orderBy('name')
+            ->get()
+            ->map(function($dept) {
+                return [
+                    'id' => $dept->id,
+                    'name' => $dept->name,
+                    'users' => $dept->users->toArray()
+                ];
+            });
 
         return Inertia::render('Trash', [
             'trashItems' => $mappedItems,

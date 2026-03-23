@@ -27,6 +27,8 @@ interface Props {
   userDepartmentId?: number | null
   userRoleType?: string
   defaultCalendarId?: number | null
+  selectedDepartmentId?: number | null
+  showCompany?: boolean
 }
 
 const props = defineProps<Props>()
@@ -117,7 +119,12 @@ const stopDrag = () => {
     isDraggingV.value = false
     document.body.style.cursor = ''
     document.body.style.userSelect = ''
-    setTimeout(() => window.dispatchEvent(new Event('resize')), 0)
+    // リサイズイベントを遅延して発火し、サイドバーの状態を保持
+    setTimeout(() => {
+      if (!isDraggingH.value && !isDraggingV.value) {
+        window.dispatchEvent(new Event('resize'))
+      }
+    }, 150)
   }
 }
 
@@ -126,7 +133,12 @@ const handleResize = () => {
   isLandscape.value = window.innerWidth > window.innerHeight
 
   if (isIPadLayout.value) {
-    setTimeout(() => window.dispatchEvent(new Event('resize')), 0)
+    // iPadレイアウト変更時は遅延してリサイズイベントを発火
+    setTimeout(() => {
+      if (isIPadLayout.value) {
+        window.dispatchEvent(new Event('resize'))
+      }
+    }, 200)
   }
 }
 
@@ -144,7 +156,11 @@ onMounted(() => {
   
   // iPad用初期調整
   if (isIPadLayout.value) {
-    setTimeout(() => window.dispatchEvent(new Event('resize')), 100)
+    setTimeout(() => {
+      if (isIPadLayout.value) {
+        window.dispatchEvent(new Event('resize'))
+      }
+    }, 200)
   }
   
   // flashメッセージの表示
@@ -175,6 +191,7 @@ onUnmounted(() => {
                     <CardContent class="p-0">
                       <div class="h-[80vh] min-h-0 overflow-hidden">
                             <SharedCalendar 
+                                key="dashboard-calendar-ipad"
                                 :events="events" 
                                 :filtered-member-id="filteredMemberId"
                                 :default-view="props.defaultView"
@@ -184,6 +201,8 @@ onUnmounted(() => {
                                 :user-department-id="props.userDepartmentId"
                                 :user-role-type="props.userRoleType"
                                 :default-calendar-id="props.defaultCalendarId"
+                                :selected-department-id="props.selectedDepartmentId"
+                                :show-company="props.showCompany"
                                 @update:is-help-open="isCalendarHelpOpen = $event"
                             />
                         </div>
@@ -212,6 +231,7 @@ onUnmounted(() => {
       <div v-else ref="dashboardRef" class="flex h-full">
         <div :style="{ width: calendarWidth + '%' }" class="h-full pr-3">
           <SharedCalendar 
+              key="dashboard-calendar-pc"
               :events="events" 
               :filtered-member-id="filteredMemberId"
               :default-view="props.defaultView"
@@ -221,6 +241,8 @@ onUnmounted(() => {
               :user-department-id="props.userDepartmentId"
               :user-role-type="props.userRoleType"
               :default-calendar-id="props.defaultCalendarId"
+              :selected-department-id="props.selectedDepartmentId"
+              :show-company="props.showCompany"
               @update:is-help-open="isCalendarHelpOpen = $event"
           />
         </div>

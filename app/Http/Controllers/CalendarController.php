@@ -35,6 +35,8 @@ class CalendarController extends Controller
     public function index(Request $request)
     {
         $memberId = $request->query('member_id');
+        $departmentId = $request->query('department_id');
+        $showCompany = $request->query('show_company');
         $events = []; 
         $teamMembers = \App\Models\User::where('is_active', true)
             ->select('id', 'name', 'email', 'department_id', 'role', 'role_type')
@@ -42,12 +44,53 @@ class CalendarController extends Controller
         $user = auth()->user();
 
         // 部署リストとカレンダーリストを取得
-        $departments = Department::where('is_active', true)->orderBy('name')->get();
+        $departmentsData = Department::where('is_active', true)
+            ->with(['users' => function ($query) {
+                $query->where('is_active', true);
+            }])
+            ->orderBy('name')
+            ->get()
+            ->map(function ($dept) {
+                return [
+                    'id' => $dept->id,
+                    'name' => $dept->name,
+                    'is_active' => $dept->is_active,
+                    'created_at' => $dept->created_at,
+                    'updated_at' => $dept->updated_at,
+                    'users' => $dept->users->map(function ($user) {
+                        return [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'department_id' => $user->department_id,
+                            'role' => $user->role,
+                            'role_type' => $user->role_type,
+                        ];
+                    })->toArray()
+                ];
+            })
+            ->toArray();
         $calendars = Calendar::with('ownerDepartment')->get();
         
         // ユーザーのデフォルトカレンダーを決定
         $defaultCalendarId = null;
-        if ($user->department_id) {
+        
+        // サイドバーからの部署選択がある場合
+        if ($showCompany) {
+            // 全社カレンダーを選択
+            $companyCalendar = $calendars->where('owner_type', 'company')->first();
+            if ($companyCalendar) {
+                $defaultCalendarId = $companyCalendar->calendar_id;
+            }
+        } elseif ($departmentId) {
+            // 指定された部署のカレンダーを選択
+            $departmentCalendar = $calendars->where('owner_type', 'department')
+                                           ->where('owner_id', $departmentId)
+                                           ->first();
+            if ($departmentCalendar) {
+                $defaultCalendarId = $departmentCalendar->calendar_id;
+            }
+        } elseif ($user->department_id) {
             // 所属部署のカレンダーを優先
             $departmentCalendar = $calendars->where('owner_type', 'department')
                                            ->where('owner_id', $user->department_id)
@@ -68,9 +111,11 @@ class CalendarController extends Controller
         return Inertia::render('Calendar', [
             'events' => $events,
             'filteredMemberId' => $memberId ? (int)$memberId : null,
+            'selectedDepartmentId' => $departmentId ? (int)$departmentId : null,
+            'showCompany' => $showCompany ? true : false,
             'teamMembers' => $teamMembers,
             'defaultView' => $user->calendar_default_view ?? 'dayGridMonth',
-            'departments' => $departments,
+            'departments' => $departmentsData,
             'calendars' => $calendars,
             'userDepartmentId' => $user->department_id,
             'userRoleType' => $user->role_type,

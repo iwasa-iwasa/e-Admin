@@ -21,7 +21,7 @@ class NotificationController extends Controller
         $eventsFilter = $request->query('events_filter', 'mine');
         $notesFilter = $request->query('notes_filter', 'mine');
 
-        $eventsQuery = Event::with(['creator', 'calendar', 'participants', 'recurrence', 'attachments'])
+        $eventsQuery = Event::with(['creator', 'calendar', 'calendar.ownerDepartment', 'participants', 'recurrence', 'attachments'])
             ->where(function($query) use ($now, $endDate) {
                 $query->whereBetween('end_date', [$now->toDateString(), $endDate->toDateString()])
                       ->orWhere('start_date', '>=', $now->toDateString());
@@ -51,7 +51,7 @@ class NotificationController extends Controller
         
         $events = $eventsQuery->orderBy('start_date')->get();
 
-        $notesQuery = SharedNote::with(['author', 'tags', 'participants'])
+        $notesQuery = SharedNote::with(['author', 'tags', 'participants', 'ownerDepartment'])
             ->whereNotNull('deadline_date')
             ->whereBetween('deadline_date', [$now->toDateString(), $endDate->toDateString()])
             ->where('priority', 'high')

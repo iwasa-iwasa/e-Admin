@@ -15,6 +15,8 @@ defineOptions({
 const props = defineProps<{
   events: App.Models.ExpandedEvent[]
   filteredMemberId?: number | null
+  selectedDepartmentId?: number | null
+  showCompany?: boolean
   teamMembers: App.Models.User[]
   defaultView?: string
   departments?: App.Models.Department[]
@@ -47,6 +49,8 @@ const isHelpOpen = ref(false)
                 :events="props.events" 
                 :show-back-button="true" 
                 :filtered-member-id="props.filteredMemberId"
+                :selected-department-id="props.selectedDepartmentId"
+                :show-company="props.showCompany"
                 :default-view="props.defaultView"
                 :departments="props.departments"
                 :calendars="props.calendars"

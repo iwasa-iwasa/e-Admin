@@ -21,6 +21,7 @@ import {
   Paperclip,
   CheckCircle,
   Info,
+  HelpCircle,
 } from "lucide-vue-next"
 
 // UI Components
@@ -52,6 +53,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 // Third-party Components
 import { VueDatePicker } from '@vuepic/vue-datepicker'
@@ -81,6 +88,7 @@ const messageType = ref<'success' | 'error'>('success')
 const messageTimer = ref<number | null>(null)
 const showDraftBanner = ref(false)
 const showDraftDialog = ref(false)
+const showCalendarWarningDialog = ref(false)
 const pendingDraft = ref<any>(null)
 const date = ref<[Date, Date]>([new Date(), new Date()])
 const recurrenceSection = ref<HTMLElement | null>(null)
@@ -90,6 +98,7 @@ const nextOccurrences = ref<string[]>([])
 // Computed Properties
 const teamMembers = computed(() => page.props.teamMembers as App.Models.User[])
 const currentUserId = computed(() => (page.props as any).auth?.user?.id ?? null)
+const currentUserDepartmentId = computed(() => (page.props as any).auth?.user?.department_id ?? null)
 const calendars = computed(() => props.calendars ?? [])
 
 const selectedCalendar = computed(() => {
@@ -109,6 +118,28 @@ const availableMembers = computed(() => {
     member.id !== currentUserId.value && 
     !form.participants.find(p => p.id === member.id)
   )
+})
+
+// カレンダーの種類に応じた参加メンバーのフィルタリング
+const showCrossDepartmentMembers = ref(false)
+
+const filteredTeamMembers = computed(() => {
+  if (!selectedCalendar.value) return teamMembers.value
+  
+  // 「他部署のメンバーも追加」がチェックされている場合は全メンバーを表示
+  if (showCrossDepartmentMembers.value) return teamMembers.value
+  
+  // 全社カレンダーの場合は全メンバーを表示
+  if (selectedCalendar.value.owner_type === 'company') {
+    return teamMembers.value
+  }
+  
+  // 部署カレンダーの場合はその部署のメンバーのみ表示
+  if (selectedCalendar.value.owner_type === 'department' && selectedCalendar.value.owner_id) {
+    return teamMembers.value.filter(member => member.department_id === selectedCalendar.value.owner_id)
+  }
+  
+  return teamMembers.value
 })
 
 const isAllUsers = computed(() => {
@@ -528,6 +559,23 @@ const handleSave = () => {
     showMessage('日付が正しく設定されていません', 'error')
     return
   }
+  
+  // 自部署以外のカレンダーに作成する場合は警告ダイアログを表示
+  if (selectedCalendar.value) {
+    const isOwnDepartment = selectedCalendar.value.owner_type === 'department' && 
+                           selectedCalendar.value.owner_id === currentUserDepartmentId.value
+    
+    if (!isOwnDepartment) {
+      showCalendarWarningDialog.value = true
+      return
+    }
+  }
+  
+  proceedWithSave()
+}
+
+const proceedWithSave = () => {
+  showCalendarWarningDialog.value = false
   
   saveDraft()
   
@@ -949,9 +997,45 @@ const updateNextOccurrences = () => {
                 <Label class="flex items-center gap-2">
                   <Users class="h-4 w-4" />
                   参加者を選択
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                          <HelpCircle class="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent class="max-w-sm">
+                        <div class="space-y-2 text-sm">
+                          <p class="font-semibold">【参加メンバーの選択】</p>
+                          <p>・デフォルト：選択したカレンダーの部署メンバーのみ表示</p>
+                          <p>・「他部署のメンバーも追加」にチェック：全メンバーから選択可能</p>
+                          <p class="font-semibold mt-2">【他部署メンバーを招待する場合の推奨事項】</p>
+                          <p>✓ 共有メモをリンクして詳細情報を共有</p>
+                          <p>✓ 会議の目的や議題を明記</p>
+                          <p>✓ 必要な資料を共有メモに添付</p>
+                          <p class="font-semibold mt-2">【予定の通知】</p>
+                          <p>・参加者全員に通知が送信されます</p>
+                          <p>・他部署メンバーには「他部署の予定に招待されました」と表示されます</p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </Label>
+                
+                <!-- 他部署メンバー追加チェックボックス -->
+                <div v-if="selectedCalendar && selectedCalendar.owner_type === 'department'" class="flex items-center space-x-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <Switch
+                    id="crossDepartment"
+                    v-model="showCrossDepartmentMembers"
+                  />
+                  <Label for="crossDepartment" class="text-sm cursor-pointer flex items-center gap-2">
+                    <Users class="h-4 w-4" />
+                    他部署のメンバーも追加
+                  </Label>
+                </div>
+                
                 <div class="flex gap-2 mb-2">
-                  <Button type="button" variant="outline" size="sm" @click="form.participants = [...teamMembers]">
+                  <Button type="button" variant="outline" size="sm" @click="form.participants = [...filteredTeamMembers]">
                     全員選択
                   </Button>
                   <Button type="button" variant="outline" size="sm" @click="form.participants = []">
@@ -959,7 +1043,7 @@ const updateNextOccurrences = () => {
                   </Button>
                 </div>
                 <div class="max-h-[200px] overflow-y-auto border rounded p-2 space-y-1">
-                  <div v-for="member in teamMembers" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer">
+                  <div v-for="member in filteredTeamMembers" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer">
                     <input 
                       :id="`member-${member.id}`"
                       type="checkbox" 
@@ -967,7 +1051,12 @@ const updateNextOccurrences = () => {
                       @change="(e) => (e.target as HTMLInputElement).checked ? form.participants.push(member) : handleRemoveParticipant(member.id)"
                       class="h-4 w-4 text-blue-600 rounded border-gray-300"
                     />
-                    <label :for="`member-${member.id}`" class="text-xs cursor-pointer text-gray-900 dark:text-gray-100">{{ member.name }}</label>
+                    <label :for="`member-${member.id}`" class="text-xs cursor-pointer text-gray-900 dark:text-gray-100 flex items-center gap-1">
+                      {{ member.name }}
+                      <span v-if="showCrossDepartmentMembers && selectedCalendar?.owner_type === 'department' && member.department_id !== selectedCalendar?.owner_id" class="text-xs text-gray-500">
+                        (他部署)
+                      </span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1196,6 +1285,37 @@ const updateNextOccurrences = () => {
         <DialogFooter>
           <Button variant="outline" @click="discardDraft">破棄</Button>
           <Button @click="restoreDraft">復元</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Calendar Warning Dialog -->
+    <Dialog :open="showCalendarWarningDialog" @update:open="(val) => showCalendarWarningDialog = val">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <AlertCircle class="h-5 w-5 text-amber-600" />
+            確認
+          </DialogTitle>
+          <DialogDescription class="pt-2">
+            <p class="text-base">
+              この内容で{{ isEditMode ? '保存' : '作成' }}すると
+              <span class="font-semibold text-amber-700 dark:text-amber-500">
+                {{ selectedCalendar?.calendar_name || '選択したカレンダー' }}
+              </span>
+              で公開されますがよろしいですか？
+            </p>
+            <p v-if="selectedCalendar?.owner_type === 'company'" class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              ※ 全社カレンダーの予定は全社員が閲覧できます。
+            </p>
+            <p v-else-if="selectedCalendar?.owner_type === 'department'" class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              ※ この部署のカレンダーに予定が作成されます。
+            </p>
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showCalendarWarningDialog = false">キャンセル</Button>
+          <Button @click="proceedWithSave">{{ isEditMode ? '保存する' : '作成する' }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
