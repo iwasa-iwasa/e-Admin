@@ -33,12 +33,17 @@ class UserFactory extends Factory
         
         $selectedDept = fake()->randomElement($departments);
         
+        $department = \App\Models\Department::firstOrCreate(
+            ['id' => $selectedDept[1]],
+            ['name' => $selectedDept[0], 'is_active' => true]
+        );
+        
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'department' => $selectedDept[0],
-            'department_id' => $selectedDept[1],
+            'department' => $department->name,
+            'department_id' => $department->id,
             'role' => 'user',
             'role_type' => 'member',
             'is_active' => true,
