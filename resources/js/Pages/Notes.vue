@@ -689,10 +689,7 @@ const DATE_TIME_FORMAT = 'yyyy/MM/dd HH:mm'
               </Button>
             </CardTitle>
           </div>
-          <Button variant="outline" @click="handleCreateNote" class="gap-2 flex-shrink-0">
-            <Plus class="h-4 w-4" />
-            <span class="hidden sm:inline">新規作成</span>
-          </Button>
+          
         </div>
 
         <div class="flex gap-2 mb-3">
@@ -988,15 +985,19 @@ const DATE_TIME_FORMAT = 'yyyy/MM/dd HH:mm'
                       />
                     </div>
                   </div>
+                  <div class="flex items-center gap-2 ml-4">
+                    <Button variant="outline" size="sm" class="gap-2" @click="togglePin(selectedNote)">
+                      <Pin class="h-4 w-4" :class="{'fill-current text-yellow-500': selectedNote.is_pinned}" />
+                      {{ selectedNote.is_pinned ? 'ピン解除' : 'ピン留め' }}
+                    </Button>
+                  </div>
                 </div>
+
             </div>
-            <div class="flex items-center gap-2 ml-4">
-              <Button variant="outline" size="sm" class="gap-2" @click="togglePin(selectedNote)">
-                <Pin class="h-4 w-4" :class="{'fill-current text-yellow-500': selectedNote.is_pinned}" />
-                {{ selectedNote.is_pinned ? 'ピン解除' : 'ピン留め' }}
-              </Button>
-            </div>
-            
+            <Button variant="outline" @click="handleCreateNote" class="gap-2 flex-shrink-0">
+              <Plus class="h-4 w-4" />
+              <span class="hidden sm:inline">新規作成</span>
+            </Button>
           </div>
           
           <div class="mt-3 max-h-[16vh] overflow-y-auto pr-2 space-y-3">
@@ -1125,12 +1126,6 @@ const DATE_TIME_FORMAT = 'yyyy/MM/dd HH:mm'
               <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ linkedEvent.title }}</p>
             </div>
           </div>
-          
-          
-            
-
-            
-
             <!-- メンバー追加UI -->
             <div class="space-y-2">
               <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">共有メンバー</label>
