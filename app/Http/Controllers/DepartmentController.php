@@ -91,30 +91,36 @@ class DepartmentController extends Controller
      */
     public function update(Request $request, Department $department)
     {
+        if (auth()->user()->role_type !== 'company_admin') {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:100|unique:departments,name,' . $department->id,
-            'admin_user_id' => 'required|exists:users,id',
+            'admin_user_id' => 'nullable|exists:users,id',
         ]);
 
         \DB::transaction(function () use ($department, $validated) {
             $department->update(['name' => $validated['name']]);
 
             // 管理者の変更処理
-            $currentAdmin = User::where('department_id', $department->id)
-                                ->where('role_type', 'department_admin')
-                                ->first();
+            if (array_key_exists('admin_user_id', $validated) && !empty($validated['admin_user_id'])) {
+                $currentAdmin = User::where('department_id', $department->id)
+                                    ->where('role_type', 'department_admin')
+                                    ->first();
 
-            if (!$currentAdmin || $currentAdmin->id !== (int)$validated['admin_user_id']) {
-                // 既存の管理者がいれば一般ユーザーへ降格
-                if ($currentAdmin) {
-                    $currentAdmin->update(['role_type' => 'user']);
+                if (!$currentAdmin || $currentAdmin->id !== (int)$validated['admin_user_id']) {
+                    // 既存の管理者がいれば一般ユーザーへ降格
+                    if ($currentAdmin) {
+                        $currentAdmin->update(['role_type' => 'member']);
+                    }
+
+                    // 新しい管理者を設定し、所属部署もその部署へ変更する
+                    User::find($validated['admin_user_id'])->update([
+                        'department_id' => $department->id,
+                        'role_type' => 'department_admin',
+                    ]);
                 }
-
-                // 新しい管理者を設定し、所属部署もその部署へ変更する
-                User::find($validated['admin_user_id'])->update([
-                    'department_id' => $department->id,
-                    'role_type' => 'department_admin',
-                ]);
             }
         });
 

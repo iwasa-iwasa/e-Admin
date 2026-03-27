@@ -109,25 +109,38 @@ class AdminUserController extends Controller
         if ($currentUser->role_type !== 'company_admin') {
             return Redirect::back()->withErrors(['message' => '権限の変更は全社管理者のみ可能です。']);
         }
+
+        // 自分自身の権限は変更不可
+        if ($user->id === $currentUser->id) {
+            return Redirect::back()->withErrors(['message' => '自分自身の権限は変更できません。']);
+        }
         
         $request->validate([
-            'role' => 'required|in:admin,member',
+            'role_type' => 'required|in:company_admin,department_admin,member',
         ]);
 
-        // Prevent demoting the last admin
-        if ($user->role === 'admin' && $request->role !== 'admin' && User::where('role', 'admin')->where('is_active', true)->count() <= 1) {
-            return Redirect::back()->withErrors(['message' => '最後の管理者の権限は変更できません。']);
+        $newRoleType = $request->input('role_type');
+
+        // company_admin が0人になる操作は不可
+        if ($user->role_type === 'company_admin' && $newRoleType !== 'company_admin') {
+            $adminCount = User::where('role_type', 'company_admin')->where('is_active', true)->count();
+            if ($adminCount <= 1) {
+                return Redirect::back()->withErrors(['message' => '全社管理者は最低1人必要です。']);
+            }
         }
 
-        $oldRole = $user->role;
-        $user->update(['role' => $request->role]);
+        $oldRoleType = $user->role_type;
+        $user->update([
+            'role_type' => $newRoleType,
+            'role' => $newRoleType === 'member' ? 'user' : 'admin',
+        ]);
 
         \App\Models\UserLog::create([
             'user_id' => $user->id,
             'changed_by' => auth()->id(),
             'type' => 'role',
-            'old_value' => $oldRole,
-            'new_value' => $request->role,
+            'old_value' => $oldRoleType,
+            'new_value' => $newRoleType,
             'reason' => 'Admin updated role',
         ]);
 

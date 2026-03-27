@@ -49,6 +49,13 @@ const dateType = ref('updated')
 const allUsers = ref<Array<{id: number, name: string}>>([])
 const allDepartments = ref<Array<{id: number, name: string}>>([])
 
+const formatDateSlash = (date: Date): string => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}/${m}/${d}`
+}
+
 const selectedEvent = ref<App.Models.ExpandedEvent | null>(null)
 const isEventDetailDialogOpen = ref(false)
 const isEventDialogOpen = ref(false)
@@ -644,7 +651,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         <Label for="date-from" class="text-xs text-muted-foreground">開始日（この日以降）</Label>
                                         <VueDatePicker
                                             v-model="dateFrom"
-                                            format="yyyy-MM-dd"
+                                            :format="formatDateSlash"
                                             :enable-time-picker="false"
                                             placeholder="開始日を選択"
                                             :locale="ja"
@@ -659,7 +666,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         <Label for="date-to" class="text-xs text-muted-foreground">終了日（この日まで）</Label>
                                         <VueDatePicker
                                             v-model="dateTo"
-                                            format="yyyy-MM-dd"
+                                            :format="formatDateSlash"
                                             :enable-time-picker="false"
                                             placeholder="終了日を選択"
                                             :locale="ja"

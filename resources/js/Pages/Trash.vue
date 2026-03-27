@@ -554,6 +554,7 @@ const handleTrashUpdate = () => {
                 <VueDatePicker
                   v-model="filterDateFrom"
                   :locale="ja"
+                  :format="'yyyy/MM/dd'"
                   :week-start="0"
                   auto-apply
                   teleport-center
@@ -563,6 +564,7 @@ const handleTrashUpdate = () => {
                 <VueDatePicker
                   v-model="filterDateTo"
                   :locale="ja"
+                  :format="'yyyy/MM/dd'"
                   :week-start="0"
                   auto-apply
                   teleport-center

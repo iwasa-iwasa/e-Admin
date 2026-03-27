@@ -48,6 +48,25 @@ const props = defineProps<{
 const page = usePage()
 const selectedUser = ref<App.Data.UserData | null>(null)
 
+const isCompanyAdmin = () => (page.props as any).auth?.user?.role_type === 'company_admin'
+
+// Department rename (company admin only)
+const deptNameEdits = ref<Record<number, string>>(
+  Object.fromEntries((props.departments || []).map((d: any) => [d.id, d.name]))
+)
+const savingDeptId = ref<number | null>(null)
+
+const saveDepartmentName = (deptId: number) => {
+  const name = (deptNameEdits.value[deptId] || '').trim()
+  if (!name) return
+  savingDeptId.value = deptId
+  router.put(route('admin.departments.update', deptId), { name }, {
+    onFinish: () => {
+      savingDeptId.value = null
+    }
+  })
+}
+
 // Transfer
 const isTransferDialogOpen = ref(false)
 const isTransferConfirmDialogOpen = ref(false)
@@ -60,7 +79,7 @@ const deactivationReason = ref('')
 
 // Role Update
 const isRoleDialogOpen = ref(false)
-const pendingRoleUpdate = ref<{ user: App.Data.UserData, role: 'member' | 'admin' } | null>(null)
+const pendingRoleUpdate = ref<{ user: App.Data.UserData, role_type: 'company_admin' | 'department_admin' | 'member' } | null>(null)
 
 // Logs
 const isLogDialogOpen = ref(false)
@@ -117,9 +136,9 @@ const restoreUser = (user: App.Data.UserData) => {
   router.patch(route('admin.users.restore', user.id), {}, {})
 }
 
-const updateRole = (user: App.Data.UserData, role: 'member' | 'admin') => {
-  if (user.role === role) return
-  pendingRoleUpdate.value = { user, role }
+const updateRole = (user: App.Data.UserData, role_type: 'company_admin' | 'department_admin' | 'member') => {
+  if (user.role_type === role_type) return
+  pendingRoleUpdate.value = { user, role_type }
   isRoleDialogOpen.value = true
 }
 
@@ -127,13 +146,19 @@ const executeRoleUpdate = () => {
   if (!pendingRoleUpdate.value) return
 
   router.patch(route('admin.users.update-role', pendingRoleUpdate.value.user.id), {
-    role: pendingRoleUpdate.value.role
+    role_type: pendingRoleUpdate.value.role_type
   }, {
     onSuccess: () => {
         isRoleDialogOpen.value = false
         pendingRoleUpdate.value = null
     }
   })
+}
+
+const roleLabel = (roleType: string | null | undefined): string => {
+  if (roleType === 'company_admin') return '全社管理者'
+  if (roleType === 'department_admin') return '部署管理者'
+  return 'メンバー'
 }
 
 const openLogDialog = async (user: App.Data.UserData) => {
@@ -163,6 +188,31 @@ const formatDate = (dateString: string) => {
 <template>
   <Head title="ユーザー管理" />
   <div class="max-w-[1800px] mx-auto h-[calc(100vh-100px)] p-6 flex flex-col">
+    <Card v-if="isCompanyAdmin()" class="mb-4">
+      <CardHeader>
+        <CardTitle>部署名の変更（全社管理者のみ）</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div v-for="dept in props.departments" :key="dept.id" class="flex items-center gap-2 border rounded-md p-3">
+            <div class="flex-1 min-w-0">
+              <Label :for="`dept-${dept.id}`" class="text-xs text-muted-foreground">部署</Label>
+              <Input :id="`dept-${dept.id}`" v-model="deptNameEdits[dept.id]" class="h-9 mt-1" />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              class="mt-5"
+              :disabled="savingDeptId === dept.id || (deptNameEdits[dept.id] || '').trim() === dept.name"
+              @click="saveDepartmentName(dept.id)"
+            >
+              {{ savingDeptId === dept.id ? '更新中...' : '更新' }}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
     <Card class="flex-1 flex flex-col overflow-hidden">
       <CardHeader>
         <div class="flex items-center gap-2">
@@ -201,21 +251,22 @@ const formatDate = (dateString: string) => {
                 <TableCell>{{ user.department }}</TableCell>
                 <TableCell>
                   <div v-if="user.id === page.props.auth.user.id">
-                     <Badge variant="outline">{{ user.role === 'admin' ? '管理者' : 'メンバー' }}</Badge>
+                     <Badge variant="outline">{{ roleLabel(user.role_type) }}</Badge>
                   </div>
                   <DropdownMenu v-else-if="canManageAllUsers">
                     <DropdownMenuTrigger as-child>
                        <Badge variant="outline" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100 transition-colors">
-                         {{ user.role === 'admin' ? '管理者' : 'メンバー' }} <ChevronDown class="h-3 w-3 ml-1" />
+                         {{ roleLabel(user.role_type) }} <ChevronDown class="h-3 w-3 ml-1" />
                        </Badge>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
+                      <DropdownMenuItem @click="updateRole(user, 'company_admin')">全社管理者</DropdownMenuItem>
+                      <DropdownMenuItem @click="updateRole(user, 'department_admin')">部署管理者</DropdownMenuItem>
                       <DropdownMenuItem @click="updateRole(user, 'member')">メンバー</DropdownMenuItem>
-                      <DropdownMenuItem @click="updateRole(user, 'admin')">管理者</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <div v-else>
-                     <Badge variant="outline">{{ user.role === 'admin' ? '管理者' : 'メンバー' }}</Badge>
+                     <Badge variant="outline">{{ roleLabel(user.role_type) }}</Badge>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -333,7 +384,10 @@ const formatDate = (dateString: string) => {
           <DialogTitle>権限の変更確認</DialogTitle>
           <DialogDescription>
             {{ pendingRoleUpdate?.user.name }} さんの権限を 
-            <span class="font-bold">{{ pendingRoleUpdate?.role === 'admin' ? '管理者' : 'メンバー' }}</span> に変更しますか？
+            <span class="font-bold">{{ roleLabel(pendingRoleUpdate?.role_type) }}</span> に変更しますか？
+            <span v-if="pendingRoleUpdate?.role_type === 'company_admin'" class="block mt-2 text-amber-600">
+              ※ 全社管理者はすべての部署の情報にアクセスできます。
+            </span>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

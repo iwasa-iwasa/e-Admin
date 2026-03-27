@@ -70,6 +70,26 @@ const {
     fetchEvents
 } = useCalendarEvents(props.userDepartmentId)
 
+const showDepartmentBadge = computed(() => {
+    return departmentFilter.value === 'all' || departmentFilter.value === 'public'
+})
+
+const getDepartmentLabel = (event: any): string => {
+    if (!event) return ''
+    if (event.owner_department_id === null || event.owner_department_id === undefined) return '全社'
+    if (event.owner_department?.name) return event.owner_department.name
+    if (event.department?.name) return event.department.name
+    const dept = props.departments?.find(d => d.id === event.owner_department_id)
+    return dept?.name || '部署不明'
+}
+
+const departmentBadgeClass = (event: any): string => {
+    const deptId = event?.owner_department_id
+    if (deptId === null || deptId === undefined) return 'bg-purple-100 text-purple-700'
+    if (props.userDepartmentId && deptId === props.userDepartmentId) return 'bg-blue-100 text-blue-700'
+    return 'bg-orange-100 text-orange-700'
+}
+
 // サイドバーからの部署選択に応じてdepartmentFilterを初期化
 watch(() => [props.selectedDepartmentId, props.showCompany], ([deptId, showCompany]) => {
     console.log('SharedCalendar: Department selection changed', { deptId, showCompany })
@@ -889,6 +909,12 @@ const handleDateJump = (date: Date) => {
                 <!-- 単一イベントのホバー -->
                 <div v-if="hoveredEvent" class="space-y-2">
                     <div class="font-semibold text-sm">{{ hoveredEvent.title }}</div>
+                    <div v-if="showDepartmentBadge" class="text-xs">
+                        <span class="text-gray-500">所属:</span>
+                        <span :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ml-1', departmentBadgeClass(hoveredEvent)]">
+                            {{ getDepartmentLabel(hoveredEvent) }}
+                        </span>
+                    </div>
                     <div class="text-xs text-gray-600">
                         <span class="text-gray-500">重要度:</span> 
                         <span :class="{
@@ -917,6 +943,12 @@ const handleDateJump = (date: Date) => {
                 <div v-else-if="hoveredEvents.length > 0" class="space-y-3">
                     <div v-for="(event, idx) in hoveredEvents" :key="idx" class="space-y-1" :class="{ 'border-t border-gray-200 pt-2': idx > 0 }">
                         <div class="font-semibold text-sm">{{ event.title }}</div>
+                        <div v-if="showDepartmentBadge" class="text-xs">
+                            <span class="text-gray-500">所属:</span>
+                            <span :class="['inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ml-1', departmentBadgeClass(event)]">
+                                {{ getDepartmentLabel(event) }}
+                            </span>
+                        </div>
                         <div class="text-xs text-gray-600">
                             <span class="text-gray-500">重要度:</span> 
                             <span :class="{

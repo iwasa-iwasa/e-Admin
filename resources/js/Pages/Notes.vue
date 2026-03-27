@@ -127,6 +127,17 @@ const isEventDialogOpen = ref(false)
 
 const departmentFilter = ref(props.currentDepartmentFilter || 'all')
 
+watch(departmentFilter, (newVal) => {
+  router.get(route('notes'), {
+    department_filter: newVal,
+    member_id: props.filteredMemberId ?? undefined,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  })
+})
+
 // メッセージとUndoロジック
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -649,15 +660,7 @@ const handleRemoveParticipant = (participantId: number) => {
 
 const isHelpOpen = ref(false)
 
-const formatDate = (date: Date) => {
-  if (!date) return ''
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  return `${year}/${month}/${day} ${hours}:${minutes}`
-}
+const DATE_TIME_FORMAT = 'yyyy/MM/dd HH:mm'
 
 </script>
 
@@ -933,7 +936,9 @@ const formatDate = (date: Date) => {
                 placeholder="メモのタイトル"
                 class="mb-2 border-none shadow-none p-0 focus-visible:ring-0 text-xl font-bold"
               />
+              
               <div class="flex items-center gap-3 text-xs text-gray-500">
+                
                 <div class="flex items-center gap-1">
                   <User class="h-3 w-3" />
                   <span>{{ selectedNote.author?.name }}</span>
@@ -950,20 +955,40 @@ const formatDate = (date: Date) => {
                 </div>
                 <!-- 期限（設定されている場合のみBadgeで表示） -->
                 <div>
-                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">期限</label>
-                <VueDatePicker
+                  <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">期限</label>
+                  <VueDatePicker
                   v-model="deadlineDateTime"
                   :locale="ja"
-                  :format="formatDate"
+                  :format="DATE_TIME_FORMAT"
                   :week-start="0"
                   auto-apply
                   teleport-center
                   enable-time-picker
                   placeholder="期限を選択"
                   class="h-8"
-                />
-              </div>
-              </div>
+                  />
+                </div>
+                <!-- 進捗バー（休暇以外） -->
+                <div v-if="editedColor !== 'pink'" class="mt-2">
+                  <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                    <span>進捗</span>
+                    <span class="text-xs text-gray-600 dark:text-gray-400">{{ editedProgress }}%</span>
+                  </label>
+                  <div class="relative w-full h-4 flex items-center">
+                    <div 
+                    class="absolute w-full h-2 rounded-lg overflow-hidden pointer-events-none"
+                    :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editedProgress}%, #e5e7eb ${editedProgress}%, #e5e7eb 100%)` }"
+                    ></div>
+                    <input 
+                      type="range" 
+                      v-model="editedProgress" 
+                      min="0" 
+                      max="100" 
+                      class="relative w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider m-0 z-10 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
             </div>
             <div class="flex items-center gap-2 ml-4">
               <Button variant="outline" size="sm" class="gap-2" @click="togglePin(selectedNote)">
@@ -971,11 +996,14 @@ const formatDate = (date: Date) => {
                 {{ selectedNote.is_pinned ? 'ピン解除' : 'ピン留め' }}
               </Button>
             </div>
+            
           </div>
+          
+          <div class="mt-3 max-h-[16vh] overflow-y-auto pr-2 space-y-3">
           
           <!-- 編集UI -->
           <div class="space-y-2 mb-3">
-            <div class="grid grid-cols-4 gap-2">
+            <div class="grid grid-cols-3 gap-2">
               <!-- 公開範囲選択 -->
           <div class="space-y-2 mb-3">
             <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">公開範囲</label>
@@ -1033,60 +1061,49 @@ const formatDate = (date: Date) => {
                 </Select>
               </div>
               <div class="relative">
-                <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">タグ</label>
-                <div class="flex gap-1">
-                  <Input
-                    placeholder="タグを追加"
-                    v-model="tagInput"
-                    @input="handleTagInputChange"
-                    @focus="showTagSuggestions = true"
-                    @blur="handleTagBlur"
-                    @keypress.enter.prevent="handleAddTag()"
-                    class="h-8 text-xs flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    @click="handleAddTag()"
-                    class="h-8 px-2 text-xs"
-                  >
-                    追加
-                  </Button>
-                </div>
-                <div v-if="showTagSuggestions && suggestedTags.length > 0" class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                  <button
-                    v-for="tag in suggestedTags"
-                    :key="tag"
-                    @click="handleAddTag(tag)"
-                    class="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-gray-100"
-                  >
-                    {{ tag }}
-                  </button>
-                </div>
+              <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">タグ</label>
+              <div class="flex gap-1">
+                <Input
+                  placeholder="タグを追加"
+                  v-model="tagInput"
+                  @input="handleTagInputChange"
+                  @focus="showTagSuggestions = true"
+                  @blur="handleTagBlur"
+                  @keypress.enter.prevent="handleAddTag()"
+                  class="h-8 text-xs flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  @click="handleAddTag()"
+                  class="h-8 px-2 text-xs"
+                >
+                  追加
+                </Button>
               </div>
+              <div v-if="showTagSuggestions && suggestedTags.length > 0" class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                <button
+                  v-for="tag in suggestedTags"
+                  :key="tag"
+                  @click="handleAddTag(tag)"
+                  class="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-gray-100"
+                >
+                  {{ tag }}
+                </button>
+              </div>
+            </div>
+            <div v-if="editedTags.length > 0" class="flex flex-wrap gap-1">
+              <Badge v-for="tag in editedTags" :key="tag" variant="secondary" class="text-xs gap-1">
+                {{ tag }}
+                <button @click="handleRemoveTag(tag)" class="hover:bg-gray-300 rounded-full p-0.5">
+                  <X class="h-2 w-2" />
+                </button>
+              </Badge>
+            </div>
             </div>
             
-            <!-- 進捗バー（休暇以外） -->
-            <div v-if="editedColor !== 'pink'" class="mt-2">
-              <label class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
-                <span>進捗</span>
-                <span class="text-xs text-gray-600 dark:text-gray-400">{{ editedProgress }}%</span>
-              </label>
-              <div class="relative w-full h-4 flex items-center">
-                <div 
-                  class="absolute w-full h-2 rounded-lg overflow-hidden pointer-events-none"
-                  :style="{ background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${editedProgress}%, #e5e7eb ${editedProgress}%, #e5e7eb 100%)` }"
-                ></div>
-                <input 
-                  type="range" 
-                  v-model="editedProgress" 
-                  min="0" 
-                  max="100" 
-                  class="relative w-full h-2 bg-transparent rounded-lg appearance-none cursor-pointer slider m-0 z-10 focus:outline-none"
-                />
-              </div>
-            </div>
+            
             
             <!-- リンクされたカレンダー情報 -->
             <div v-if="selectedNote?.linked_event_id && linkedEvent" class="mt-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-800">
@@ -1109,71 +1126,66 @@ const formatDate = (date: Date) => {
             </div>
           </div>
           
-          <div v-if="editedTags.length > 0" class="flex flex-wrap gap-1 mb-2">
-            <Badge v-for="tag in editedTags" :key="tag" variant="secondary" class="text-xs gap-1">
-              {{ tag }}
-              <button @click="handleRemoveTag(tag)" class="hover:bg-gray-300 rounded-full p-0.5">
-                <X class="h-2 w-2" />
-              </button>
-            </Badge>
-          </div>
           
-          
+            
 
-          <!-- メンバー追加UI -->
-          <div class="space-y-2">
-            <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">共有メンバー</label>
-            <template v-if="!canEditParticipants">
-              <div class="text-xs text-muted-foreground p-2 bg-muted/50 rounded border border-border">
-                共有メンバーの変更は作成者または参加者のみ可能です
+            
+
+            <!-- メンバー追加UI -->
+            <div class="space-y-2">
+              <label class="text-xs font-medium text-gray-700 dark:text-gray-300 block">共有メンバー</label>
+              <template v-if="!canEditParticipants">
+                <div class="text-xs text-muted-foreground p-2 bg-muted/50 rounded border border-border">
+                  共有メンバーの変更は作成者または参加者のみ可能です
+                </div>
+              </template>
+              <template v-else-if="isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId">
+                <div class="text-xs text-muted-foreground p-2 bg-muted/50 rounded border border-border">
+                  全員共有のメモは作成者のみが共有設定を変更できます
+                </div>
+              </template>
+              <template v-else-if="editedVisibility === 'public'">
+                <div class="text-xs text-blue-600 p-2 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-200 rounded border border-blue-200 dark:border-blue-800">
+                  🌐 全社公開の場合、共有メンバーの選択は不要です
+                </div>
+              </template>
+              <template v-else>
+                <div v-if="editedParticipants.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-200 rounded border border-blue-200 dark:border-blue-800">
+                  全員が選択されています。変更するにはメンバーを削除してください。
+                </div>
+                <div v-else class="max-h-[200px] overflow-y-auto border border-input rounded p-2 space-y-1">
+                  <template v-if="editedVisibility === 'department'">
+                    <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id && (m as any).department_id === ($page.props as any).auth?.user?.department_id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
+                        @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                        class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                      />
+                      <span class="text-xs text-gray-900 dark:text-gray-100">{{ member.name }}</span>
+                    </label>
+                  </template>
+                  <template v-else>
+                    <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
+                        @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
+                        class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                      />
+                      <span class="text-xs text-gray-900 dark:text-gray-100">{{ member.name }}</span>
+                    </label>
+                  </template>
+                </div>
+              </template>
+              <div v-if="editedParticipants.length > 0 && editedVisibility !== 'public'" class="flex flex-wrap gap-1 mt-2">
+                <Badge v-for="participant in editedParticipants" :key="participant.id" variant="secondary" class="text-xs gap-1">
+                  {{ participant.name }}
+                  <button v-if="canEditParticipants && !(isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-muted-foreground/20 rounded-full p-0.5">
+                    <X class="h-2 w-2" />
+                  </button>
+                </Badge>
               </div>
-            </template>
-            <template v-else-if="isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId">
-              <div class="text-xs text-muted-foreground p-2 bg-muted/50 rounded border border-border">
-                全員共有のメモは作成者のみが共有設定を変更できます
-              </div>
-            </template>
-            <template v-else-if="editedVisibility === 'public'">
-              <div class="text-xs text-blue-600 p-2 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-200 rounded border border-blue-200 dark:border-blue-800">
-                🌐 全社公開の場合、共有メンバーの選択は不要です
-              </div>
-            </template>
-            <template v-else>
-              <div v-if="editedParticipants.length === props.totalUsers" class="text-xs text-blue-600 p-2 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-200 rounded border border-blue-200 dark:border-blue-800">
-                全員が選択されています。変更するにはメンバーを削除してください。
-              </div>
-              <div v-else class="max-h-[200px] overflow-y-auto border border-input rounded p-2 space-y-1">
-                <template v-if="editedVisibility === 'department'">
-                  <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id && (m as any).department_id === ($page.props as any).auth?.user?.department_id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
-                      @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
-                      class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
-                    />
-                    <span class="text-xs text-gray-900 dark:text-gray-100">{{ member.name }}</span>
-                  </label>
-                </template>
-                <template v-else>
-                  <label v-for="member in props.teamMembers.filter(m => m.id !== selectedNote?.author?.id)" :key="member.id" class="flex items-center gap-2 p-1 hover:bg-muted rounded cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      :checked="editedParticipants.find(p => p.id === member.id) !== undefined"
-                      @change="(e) => (e.target as HTMLInputElement).checked ? handleAddParticipant(member.id) : handleRemoveParticipant(member.id)"
-                      class="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
-                    />
-                    <span class="text-xs text-gray-900 dark:text-gray-100">{{ member.name }}</span>
-                  </label>
-                </template>
-              </div>
-            </template>
-            <div v-if="editedParticipants.length > 0 && editedVisibility !== 'public'" class="flex flex-wrap gap-1 mt-2">
-              <Badge v-for="participant in editedParticipants" :key="participant.id" variant="secondary" class="text-xs gap-1">
-                {{ participant.name }}
-                <button v-if="canEditParticipants && !(isAllUsers(editedParticipants) && selectedNote?.author?.id !== currentUserId)" @click="handleRemoveParticipant(participant.id)" class="hover:bg-muted-foreground/20 rounded-full p-0.5">
-                  <X class="h-2 w-2" />
-                </button>
-              </Badge>
             </div>
           </div>
         </div>

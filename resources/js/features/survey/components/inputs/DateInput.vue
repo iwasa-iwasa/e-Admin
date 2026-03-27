@@ -46,6 +46,7 @@ const formatDate = (val: string) => {
             <VueDatePicker
                 v-model="dateValue"
                 enable-time-picker
+                :format="'yyyy/MM/dd HH:mm'"
                 placeholder="日時を選択"
                 :locale="ja"
                 :week-start="0"

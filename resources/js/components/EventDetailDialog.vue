@@ -882,6 +882,7 @@ const getNextOccurrence = (offset: number) => {
                 <VueDatePicker
                   v-model="date"
                   range
+                  :format="format"
                   :time-config="{ enableTimePicker: false }"
                   placeholder="期間を選択"
                   :locale="ja"
@@ -1133,6 +1134,7 @@ const getNextOccurrence = (offset: number) => {
                   <Label class="text-sm text-gray-500 dark:text-gray-400 mb-1">繰り返し終了日</Label>
                   <VueDatePicker
                     v-model="form.recurrence.end_date"
+                    :format="'yyyy/MM/dd'"
                     placeholder="終了日を選択"
                     :locale="ja"
                     :week-start="0"
