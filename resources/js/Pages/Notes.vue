@@ -127,6 +127,13 @@ const isEventDialogOpen = ref(false)
 
 const departmentFilter = ref(props.currentDepartmentFilter || 'all')
 
+watch(departmentFilter, (newVal) => {
+    router.get(route('notes'), { department_filter: newVal }, {
+        preserveState: true,
+        replace: true
+    })
+})
+
 // メッセージとUndoロジック
 const messageType = ref<'success' | 'delete'>('success')
 const messageTimer = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -925,7 +932,9 @@ const formatDate = (date: Date) => {
 
       <div class="flex-1 flex flex-col relative h-full overflow-hidden">
       <template v-if="selectedNote">
-        <div class="flex-shrink-0 p-3 border-b border-border bg-background">
+        <div class="flex-1 overflow-y-auto">
+          <div class="flex flex-col min-h-full">
+            <div class="flex-shrink-0 p-3 border-b border-border bg-background">
           <div class="flex items-start justify-between mb-3">
             <div class="flex-1">
               <Input
@@ -1176,13 +1185,15 @@ const formatDate = (date: Date) => {
               </Badge>
             </div>
           </div>
-        </div>
-        <div class="flex-1 p-3 overflow-y-auto">
-          <Textarea
-            v-model="editedContent"
-            placeholder="メモの内容を入力..."
-            class="w-full min-h-full resize-none border-none shadow-none focus-visible:ring-0 p-0 leading-relaxed"
-          />
+            </div>
+            <div class="flex-1 p-3 flex flex-col min-h-[300px]">
+              <Textarea
+                v-model="editedContent"
+                placeholder="メモの内容を入力..."
+                class="flex-1 w-full resize-none border-none shadow-none focus-visible:ring-0 p-0 leading-relaxed"
+              />
+            </div>
+          </div>
         </div>
         <!-- 固定ボタンエリア -->
         <div class="flex-shrink-0 px-5 py-4 border-t border-border bg-background">
