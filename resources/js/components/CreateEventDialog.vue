@@ -948,7 +948,7 @@ const updateNextOccurrences = () => {
                   <VueDatePicker
                     v-model="date"
                     range
-                    format="yyyy-MM-dd"
+                    format="yyyy/MM/dd"
                     :time-config="{ enableTimePicker: false }"
                     placeholder="期間を選択"
                     :locale="ja"
@@ -1145,7 +1145,7 @@ const updateNextOccurrences = () => {
                     <Label for="recurrence_end_date">繰り返し終了日</Label>
                     <VueDatePicker
                       v-model="form.recurrence.end_date"
-                      format="yyyy-MM-dd"
+                      format="yyyy/MM/dd"
                       placeholder="終了日を選択"
                       :locale="ja"
                       :week-start="0"

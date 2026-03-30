@@ -551,7 +551,7 @@ const handleTrashUpdate = () => {
             <div>
               <label class="text-xs font-medium text-foreground mb-1.5 block">削除日</label>
               <div class="flex gap-2">
-                <VueDatePicker
+                <VueDatePicker format="yyyy/MM/dd HH:mm"
                   v-model="filterDateFrom"
                   :locale="ja"
                   :week-start="0"
@@ -560,7 +560,7 @@ const handleTrashUpdate = () => {
                   placeholder="開始日"
                   class="flex-1"
                 />
-                <VueDatePicker
+                <VueDatePicker format="yyyy/MM/dd HH:mm"
                   v-model="filterDateTo"
                   :locale="ja"
                   :week-start="0"
