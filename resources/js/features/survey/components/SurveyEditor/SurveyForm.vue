@@ -169,7 +169,7 @@ defineExpose({
                         <VueDatePicker
                             v-model="deadlineDateTime"
                             :locale="ja"
-                            format="yyyy-MM-dd HH:mm"
+                            format="yyyy/MM/dd HH:mm"
                             :week-start="0"
                             auto-apply
                             teleport-center

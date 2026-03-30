@@ -98,7 +98,7 @@ const handleClickOutside = () => {
             v-if="showPicker" 
             class="absolute z-50 mt-2 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700"
         >
-            <VueDatePicker
+            <VueDatePicker format="yyyy/MM/dd"
                 :model-value="internalValue"
                 @update:model-value="handleSelect"
                 :year-picker="pickerConfig.yearPicker"

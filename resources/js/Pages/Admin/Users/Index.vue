@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Users, History, Loader2, ChevronDown, HelpCircle } from 'lucide-vue-next'
+import { Users, History, Loader2, ChevronDown, HelpCircle, AlertCircle } from 'lucide-vue-next'
 import axios from 'axios'
 import DepartmentTransferConfirmDialog from '@/components/DepartmentTransferConfirmDialog.vue'
 import UserDeactivateConfirmDialog from '@/components/UserDeactivateConfirmDialog.vue'
@@ -330,15 +330,32 @@ const formatDate = (dateString: string) => {
     <Dialog :open="isRoleDialogOpen" @update:open="isRoleDialogOpen = $event">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>権限の変更確認</DialogTitle>
-          <DialogDescription>
+          <DialogTitle class="flex items-center gap-2">
+            <template v-if="pendingRoleUpdate?.role === 'admin'">
+              <AlertCircle class="h-5 w-5 text-red-600" />
+              <span class="text-red-600">管理者権限の付与（警告）</span>
+            </template>
+            <template v-else>
+              権限の変更確認
+            </template>
+          </DialogTitle>
+          <DialogDescription class="pt-2">
             {{ pendingRoleUpdate?.user.name }} さんの権限を 
             <span class="font-bold">{{ pendingRoleUpdate?.role === 'admin' ? '管理者' : 'メンバー' }}</span> に変更しますか？
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        
+        <div v-if="pendingRoleUpdate?.role === 'admin'" class="bg-red-50 border-l-4 border-red-500 p-4 my-2 rounded text-sm text-red-700">
+          <p class="font-bold mb-1">【重要】</p>
+          <p>全社管理者は、すべてのユーザー、部署、および各種データの管理に対するフルアクセス権限を持ちます。</p>
+          <p>この権限を付与して本当によろしいですか？</p>
+        </div>
+
+        <DialogFooter class="mt-4">
           <Button variant="outline" @click="isRoleDialogOpen = false">キャンセル</Button>
-          <Button @click="executeRoleUpdate">変更する</Button>
+          <Button :variant="pendingRoleUpdate?.role === 'admin' ? 'destructive' : 'default'" @click="executeRoleUpdate">
+            変更する
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

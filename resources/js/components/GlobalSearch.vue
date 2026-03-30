@@ -644,7 +644,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         <Label for="date-from" class="text-xs text-muted-foreground">開始日（この日以降）</Label>
                                         <VueDatePicker
                                             v-model="dateFrom"
-                                            format="yyyy-MM-dd"
+                                            format="yyyy/MM/dd"
                                             :enable-time-picker="false"
                                             placeholder="開始日を選択"
                                             :locale="ja"
@@ -659,7 +659,7 @@ const canEditNote = (note: App.Models.SharedNote) => {
                                         <Label for="date-to" class="text-xs text-muted-foreground">終了日（この日まで）</Label>
                                         <VueDatePicker
                                             v-model="dateTo"
-                                            format="yyyy-MM-dd"
+                                            format="yyyy/MM/dd"
                                             :enable-time-picker="false"
                                             placeholder="終了日を選択"
                                             :locale="ja"

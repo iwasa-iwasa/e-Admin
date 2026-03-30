@@ -68,7 +68,7 @@ const {
     departmentFilter,
     canEditEvent,
     fetchEvents
-} = useCalendarEvents(props.userDepartmentId)
+} = useCalendarEvents(props.userDepartmentId ?? undefined)
 
 // サイドバーからの部署選択に応じてdepartmentFilterを初期化
 watch(() => [props.selectedDepartmentId, props.showCompany], ([deptId, showCompany]) => {
@@ -232,6 +232,30 @@ watch(isDark, () => {
         api.refetchEvents()
     }
 })
+
+const getDepartmentName = (event: any) => {
+    if (!event) return ''
+    if (event.visibility_type === 'public' || event.owner_type === 'company') return '🌐 全社'
+    
+    // イベント自身にowner_department_idがある場合
+    if (event.owner_department_id && props.departments) {
+        const dept = props.departments.find(d => d.id === event.owner_department_id)
+        if (dept) return `🏢 ${dept.name}`
+    }
+    
+    // イベントがカレンダーIDを持っている場合
+    if (event.calendar_id && props.calendars) {
+        const calendar = props.calendars.find(c => c.calendar_id === event.calendar_id)
+        if (calendar) {
+            if ((calendar as any).owner_type === 'company') return '🌐 全社'
+            if ((calendar as any).owner_type === 'department' && (calendar as any).owner_id && props.departments) {
+                const dept = props.departments.find(d => d.id === (calendar as any).owner_id)
+                if (dept) return `🏢 ${dept.name}`
+            }
+        }
+    }
+    return ''
+}
 
 const handleEventClickFromGantt = (event: App.Models.ExpandedEvent) => {
     selectedEvent.value = event
@@ -889,6 +913,9 @@ const handleDateJump = (date: Date) => {
                 <!-- 単一イベントのホバー -->
                 <div v-if="hoveredEvent" class="space-y-2">
                     <div class="font-semibold text-sm">{{ hoveredEvent.title }}</div>
+                    <div v-if="getDepartmentName(hoveredEvent)" class="text-xs text-blue-600 font-medium">
+                        {{ getDepartmentName(hoveredEvent) }}
+                    </div>
                     <div class="text-xs text-gray-600">
                         <span class="text-gray-500">重要度:</span> 
                         <span :class="{
@@ -917,6 +944,9 @@ const handleDateJump = (date: Date) => {
                 <div v-else-if="hoveredEvents.length > 0" class="space-y-3">
                     <div v-for="(event, idx) in hoveredEvents" :key="idx" class="space-y-1" :class="{ 'border-t border-gray-200 pt-2': idx > 0 }">
                         <div class="font-semibold text-sm">{{ event.title }}</div>
+                        <div v-if="getDepartmentName(event)" class="text-xs text-blue-600 font-medium my-0.5">
+                            {{ getDepartmentName(event) }}
+                        </div>
                         <div class="text-xs text-gray-600">
                             <span class="text-gray-500">重要度:</span> 
                             <span :class="{

@@ -43,7 +43,7 @@ const formatDate = (val: string) => {
             </div>
         </template>
         <template v-else>
-            <VueDatePicker
+            <VueDatePicker format="yyyy/MM/dd HH:mm"
                 v-model="dateValue"
                 enable-time-picker
                 placeholder="日時を選択"
